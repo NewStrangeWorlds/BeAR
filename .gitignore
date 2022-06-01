@@ -9,3 +9,4 @@ CMakeFiles/*
 multinest/libmultinest.a
 multinest/multinest.h
 
+multinest/libmultinest.so.3.10

@@ -61,14 +61,21 @@ set(SRC
   helios_src/additional/aux_functions.cpp
   helios_src/additional/piecewise_poly.cpp
   helios_src/config/global_config.cpp
-  helios_src/forward_model/brown_dwarf_model_config.cpp
-  helios_src/forward_model/brown_dwarf_post_process_temperatures.cpp
-  helios_src/forward_model/brown_dwarf_post_process.cpp
-  helios_src/forward_model/brown_dwarf_priors.cpp
-  helios_src/forward_model/brown_dwarf_init.cpp
-  helios_src/forward_model/brown_dwarf.cpp
+  helios_src/forward_model/brown_dwarf/brown_dwarf_model_config.cpp
+  helios_src/forward_model/brown_dwarf/brown_dwarf_post_process_temperatures.cpp
+  helios_src/forward_model/brown_dwarf/brown_dwarf_post_process.cpp
+  helios_src/forward_model/brown_dwarf/brown_dwarf_priors.cpp
+  helios_src/forward_model/brown_dwarf/brown_dwarf_init.cpp
+  helios_src/forward_model/brown_dwarf/brown_dwarf.cpp
+  helios_src/forward_model/secondary_eclipse/secondary_eclipse_model_config.cpp
+  helios_src/forward_model/secondary_eclipse/secondary_eclipse_post_process_temperatures.cpp
+  helios_src/forward_model/secondary_eclipse/secondary_eclipse_post_process.cpp
+  helios_src/forward_model/secondary_eclipse/secondary_eclipse_priors.cpp
+  helios_src/forward_model/secondary_eclipse/secondary_eclipse_init.cpp
+  helios_src/forward_model/secondary_eclipse/secondary_eclipse.cpp
   helios_src/model_main/model_main.cpp
   helios_src/observations/observations.cpp
+  helios_src/observations/observations_filter_response.cpp
   helios_src/radiative_transfer/discrete_ordinate.cpp
   helios_src/radiative_transfer/short_characteristics.cpp
   helios_src/retrieval/multinest_parameter.cpp
@@ -83,13 +90,15 @@ set(SRC
   helios_src/spectral_grid/spectral_band_integrate.cpp
   helios_src/spectral_grid/spectral_band.cpp
   helios_src/spectral_grid/spectral_grid.cpp
-  helios_src/transport_coeff/cia_coefficients.cpp
-  helios_src/transport_coeff/h2.cpp
-  helios_src/transport_coeff/sampled_cross_section_data.cpp
-  helios_src/transport_coeff/transport_coeff_single_species.cpp
+  helios_src/spectral_grid/spectral_grid_interpolate.cpp
+  helios_src/transport_coeff/cross_section_file.cpp
+  helios_src/transport_coeff/opacity_species.cpp
+  helios_src/transport_coeff/sampled_data.cpp
+  helios_src/transport_coeff/species_rayleigh_cross_sections.cpp
   helios_src/transport_coeff/transport_coeff.cpp
   helios_src/chemistry/isoprofile_chemistry.cpp
   helios_src/chemistry/fastchem_chemistry.cpp
+  helios_src/chemistry/free_chemistry.cpp
   helios_src/temperature/piecewise_poly_temperature.cpp
   cdisort_src/cdisort.c
   cdisort_src/locate.c)
@@ -97,11 +106,10 @@ set(SRC
   
 
 set(SRC_FASTCHEM
-  fastchem_src/bisection.cpp
-  fastchem_src/calc_densities_ph.cpp
   fastchem_src/calc_densities.cpp
+  fastchem_src/calc_electron_densities.cpp
   fastchem_src/calc_mean_mol_weight.cpp
-  fastchem_src/calc_total_h_density.cpp
+  fastchem_src/calc_species_densities.cpp
   fastchem_src/check.cpp
   fastchem_src/fastchem.cpp
   fastchem_src/get.cpp
@@ -110,40 +118,33 @@ set(SRC_FASTCHEM
   fastchem_src/init_solver.cpp
   fastchem_src/init.cpp
   fastchem_src/mass_action_constant.cpp
+  fastchem_src/options_read_files.cpp
   fastchem_src/set.cpp
   fastchem_src/solve_fastchem.cpp
+  fastchem_src/solver_bisection.cpp
+  fastchem_src/solver_coeff.cpp  
   fastchem_src/solver_linsol_quadsol.cpp
-  fastchem_src/solver_nelder_mead_single.cpp
+  fastchem_src/solver_nelder_mead_electron.cpp
   fastchem_src/solver_newtsol.cpp
-  fastchem_src/solver_scaling_factor.cpp
-  fastchem_src/solver.cpp)
+  fastchem_src/solver.cpp
+  fastchem_src/species_struct.cpp)
   
 
 set(SRC_CUDA
   helios_src/CUDA_kernels/band_integration_kernels.cu
   helios_src/CUDA_kernels/convolution_kernels.cu
+  helios_src/CUDA_kernels/filter_response_kernels.cu
   helios_src/CUDA_kernels/cross_section_kernels.cu
   helios_src/CUDA_kernels/data_management_kernels.cu
   helios_src/CUDA_kernels/log_like_kernels.cu
-  helios_src/CUDA_kernels/short_characteristics_kernels.cu)
+  helios_src/CUDA_kernels/secondary_eclipse_kernels.cu
+  helios_src/CUDA_kernels/short_characteristics_kernels.cu
+  helios_src/CUDA_kernels/contribution_function_kernels.cu)
 
 
+#check for OpenMP
+find_package(OpenMP REQUIRED)
 
-#compilation target for the CUDA files
-#CUDA requires different compiler options, so it's compiled separately
-add_library(helios_r_cuda ${SRC_CUDA})
-
-
-#compilation target for FastChem
-add_library(fastchem ${SRC_FASTCHEM})
-target_compile_options(fastchem PRIVATE "-Ofast")
-
-
-
-# build application for Helios-r
-add_executable(helios-r ${SRC})
-  
-  
 #link the Boost library 
 #note that Helios-r only needs the Boost header files
 find_package(Boost REQUIRED)
@@ -151,9 +152,6 @@ if(Boost_FOUND)
   include_directories(${Boost_INCLUDE_DIRS})
 endif()
 
-
-#check for OpenMP
-find_package(OpenMP REQUIRED)
 
 
 #check for LAPACK library (required by MultiNest)
@@ -164,14 +162,30 @@ find_package(LAPACK REQUIRED)
 find_library(GFORTRAN_LIBRARY NAMES gfortran)
 
 
-#add the static MultiNest library
-set(MULTINEST_LOCATION ${CMAKE_SOURCE_DIR})
-string(APPEND MULTINEST_LOCATION "/multinest/libmultinest.a")
-add_library(multinest STATIC IMPORTED)
-set_property(TARGET multinest PROPERTY IMPORTED_LOCATION ${MULTINEST_LOCATION})
+#compilation target for the CUDA files
+#CUDA requires different compiler options, so it's compiled separately
+add_library(helios_r_cuda ${SRC_CUDA})
 
+
+#compilation target for FastChem
+add_library(fastchem ${SRC_FASTCHEM})
+target_compile_options(fastchem PRIVATE "${OpenMP_CXX_FLAGS}" PRIVATE "-O3")
+
+
+
+# build application for Helios-r
+add_executable(helios-r ${SRC})
+
+
+#add the shared MultiNest library
+set(MULTINEST_LOCATION ${CMAKE_SOURCE_DIR})
+string(APPEND MULTINEST_LOCATION "/multinest/libmultinest.so.3.10")
+
+add_library(multinest SHARED IMPORTED)
+set_property(TARGET multinest PROPERTY IMPORTED_LOCATION ${MULTINEST_LOCATION})
+SET_TARGET_PROPERTIES(multinest PROPERTIES LINKER_LANGUAGE Fortran)
 
 
 #link files for the final helios-r code
-target_link_libraries(helios-r PUBLIC fastchem helios_r_cuda multinest OpenMP::OpenMP_CXX ${GFORTRAN_LIBRARY} ${LAPACK_LIBRARIES})
-
+#target_link_libraries(helios-r PUBLIC fastchem helios_r_cuda multinest OpenMP::OpenMP_CXX ${GFORTRAN_LIBRARY} ${LAPACK_LIBRARIES})
+target_link_libraries(helios-r PUBLIC fastchem helios_r_cuda multinest OpenMP::OpenMP_CXX ${LAPACK_LIBRARIES})
