@@ -32,7 +32,6 @@
 
 #include "../observations/observations.h"
 #include "../forward_model/forward_model.h"
-#include "../forward_model/brown_dwarf/brown_dwarf.h"
 #include "../additional/physical_const.h"
 #include "../CUDA_kernels/data_management_kernels.h"
 #include "../CUDA_kernels/band_integration_kernels.h"
@@ -134,9 +133,10 @@ void PostProcess::calcSpectrumGPU(const unsigned int model_id, std::vector<doubl
 
   intializeOnDevice(model_spectrum_gpu, nb_points);
 
+
   forward_model->calcModelGPU(model_parameter[model_id], model_spectrum_gpu, spectrum_bands_dev);
   //forward_model->calcModelGPU(model_parameter[model_id], spectrum_dev, spectrum_bands_dev);
-  
+
 
   if (model_id == best_fit_model)
   {

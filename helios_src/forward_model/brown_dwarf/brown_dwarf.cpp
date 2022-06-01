@@ -57,7 +57,8 @@ BrownDwarfModel::BrownDwarfModel (Retrieval* retrieval_ptr, const BrownDwarfConf
   retrieval = retrieval_ptr;
   nb_grid_points = model_config.nb_grid_points;
   use_cloud_layer = model_config.use_cloud_layer;
-
+  
+  std::cout << "Forward model selected: Emission\n\n"; 
 
   //allocate memory for the absorption coefficients on the GPU if necessary
   if (retrieval->config->use_gpu)
@@ -276,10 +277,10 @@ bool BrownDwarfModel::calcModel(const std::vector<double>& parameter, std::vecto
 //run the forward model with the help of the GPU
 //the atmospheric structure itself is still done on the CPU
 bool BrownDwarfModel::calcModelGPU(const std::vector<double>& parameter, double* model_spectrum_gpu, double* model_spectrum_bands)
-{
+{ 
   bool neglect = calcAtmosphereStructure(parameter);
 
- 
+
   initCrossSectionsHost(retrieval->spectral_grid.nbSpectralPoints()*nb_grid_points, absorption_coeff_gpu);
 
 
@@ -288,7 +289,7 @@ bool BrownDwarfModel::calcModelGPU(const std::vector<double>& parameter, double*
                                                  nb_grid_points, i,
                                                  absorption_coeff_gpu, nullptr);
 
-  
+ 
   radiative_transfer->calcSpectrumGPU(model_spectrum_gpu,
                                       absorption_coeff_gpu, 
                                       nullptr,
@@ -297,7 +298,7 @@ bool BrownDwarfModel::calcModelGPU(const std::vector<double>& parameter, double*
                                       temperature, z_grid,
                                       radius_distance_scaling);
 
-  
+
   for (size_t i=0; i<retrieval->observations.size(); ++i)
   {
     if (retrieval->observations[i].filter_response.size() != 0) 
@@ -371,7 +372,6 @@ BrownDwarfModel::~BrownDwarfModel()
 {
   if (retrieval->config->use_gpu)
     deleteFromDevice(absorption_coeff_gpu);
-
 
   delete radiative_transfer;
   

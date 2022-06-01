@@ -57,6 +57,7 @@ SecondaryEclipseModel::SecondaryEclipseModel (Retrieval* retrieval_ptr, const Se
   nb_grid_points = model_config.nb_grid_points;
   use_cloud_layer = model_config.use_cloud_layer;
 
+  std::cout << "Forward model selected: Secondary Eclipse\n\n"; 
 
   //allocate memory for the absorption coefficients on the GPU if necessary
   if (retrieval->config->use_gpu)

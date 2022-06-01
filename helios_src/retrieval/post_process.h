@@ -48,7 +48,6 @@ class PostProcess : public Retrieval{
     ~PostProcess();
     
     virtual bool doRetrieval();
-
   private:
     ForwardModel* forward_model;
 

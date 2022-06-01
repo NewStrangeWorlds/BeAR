@@ -32,31 +32,31 @@
 namespace helios{
 
 
-void Retrieval::selectForwardModel(const std::string model_description)
+//Selects and initialises the forward model based on the option found in retrieval.config
+//Exits with an error if the selected forward model is unkown
+ForwardModel* Retrieval::selectForwardModel(const std::string model_description)
 {
 
-  if (model_description == "emission" || model_description == "em")
+  if (model_description == "emission" || model_description == "Emission" || model_description == "em")
   {
     BrownDwarfModel* model = new BrownDwarfModel(this, BrownDwarfConfig (config->retrieval_folder_path));
-    forward_model = model;
 
-    return;
+    return model;
   }
 
 
-  if (model_description == "secondary_eclipse" || model_description == "se")
+  if (model_description == "secondary_eclipse" || model_description == "Secondary_eclipse" || model_description == "se")
   {
     SecondaryEclipseModel* model = new SecondaryEclipseModel(this, SecondaryEclipseConfig (config->retrieval_folder_path));
-    forward_model = model;
 
-    return;
+    return model;
   }
 
 
   std::string error_message = "Unkown forward model found in retrieval config file: " + model_description + "\n";
   throw ExceptionInvalidInput(std::string ("retrieval.config"), error_message);
 
-  return;
+  return nullptr;
 }
 
 

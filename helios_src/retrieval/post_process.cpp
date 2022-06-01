@@ -85,7 +85,7 @@ bool PostProcess::doRetrieval()
     std::cout << "\nTotal number of wavelength points: " << spectral_grid.nbSpectralPoints() << "\n";
 
     //Initialise the forward model
-    selectForwardModel(config->forward_model_type);
+     forward_model = selectForwardModel(config->forward_model_type);
 
     readPosteriorData();
   }
