@@ -1,6 +1,9 @@
 # Helios-r2 - A Bayesian Nested-Sampling Retrieval Code
 #### Authors: Daniel Kitzmann ####
 
+# Note #
+This is an active development branch for Helios-r2. Updates are not yet documented and things might not work as expected or can even be broken. Use at your own risk!
+
 # Overview #
 Helios-r2 is an open source model that can perform atmospheric retrieval of brown dwarf and exoplanet spectra. It has been introduced and described in Kitzmann et al. (2020).
 and is the successor to the original Helios-r code described by Lavie et al (2017). This original version, however, has never been publicly released. The new version has been completely written from scratch in C++/CUDA and includes various improvements over the original one.
