@@ -30,9 +30,9 @@
 #include <vector>
 
 
-#include "../observations/observations.h"
-#include "../additional/physical_const.h"
-#include "../retrieval/retrieval.h"
+#include "../../observations/observations.h"
+#include "../../additional/physical_const.h"
+#include "../../retrieval/retrieval.h"
 
 
 

@@ -116,17 +116,14 @@ bool Observation::readPhotometryData(std::fstream& file)
   std::getline(file, line);
   std::getline(file, line);
   std::getline(file, line);
-
-
-  std::string filter_file = "";
   
-  //photometric filter not yet implemented :(
-  // file >> filter_file;
+  //read the file name for the filter transmission function
+  file >> filter_response_file_path;
+  filter_response_file_path = retrieval->config->retrieval_folder_path + filter_response_file_path;
 
-
-  // std::getline(file, line);
-  // std::getline(file, line);
-  // std::getline(file, line);
+  std::getline(file, line);
+  std::getline(file, line);
+  std::getline(file, line);
 
 
   double lower_wavelength, upper_wavelength, flux_single, error_single;
@@ -149,9 +146,10 @@ bool Observation::readPhotometryData(std::fstream& file)
   band_centre[0] = wavelengths[0][0] - (wavelengths[0][0] - wavelengths[0][1]) * 0.5; 
 
  
-  spectral_bands.init(retrieval->config, &retrieval->spectral_grid, wavelengths, band_centre, PHOTOMETRY, filter_file);
+  spectral_bands.init(retrieval->config, &retrieval->spectral_grid, wavelengths, band_centre, PHOTOMETRY);
 
-  
+  filter_response_file = readFilterResponseFunction(filter_response_file_path);
+
   return true;
 }
 
@@ -206,17 +204,13 @@ bool Observation::readBandSpectroscopyData(std::fstream& file)
     if (bin_edges[i][0] < bin_edges[i][1]) std::reverse(bin_edges[i].begin(), bin_edges[i].end());
 
 
-  std::string filter_file = "";
-
-
-
   std::vector<double> band_centres(bin_edges.size(), 0.0);
 
   for (size_t i=0; i<band_centres.size(); ++i)
     band_centres[i] = bin_edges[i][0] - (bin_edges[i][0] - bin_edges[i][1]) * 0.5; 
 
     
-  spectral_bands.init(retrieval->config, &retrieval->spectral_grid, bin_edges, band_centres, SPECTROSCOPY, filter_file);
+  spectral_bands.init(retrieval->config, &retrieval->spectral_grid, bin_edges, band_centres, BAND_SPECTROSCOPY);
 
 
   return true;
@@ -229,9 +223,25 @@ bool Observation::readSpectroscopyData(std::fstream& file)
 {
   std::vector<double> wavelengths;
   double wavelength_single, flux_single, error_single, line_profile_fwhm;
-
-    
   std::string line;
+
+  std::getline(file, line);
+  std::getline(file, line);
+  std::getline(file, line);
+  
+  //read the file name for the filter transmission function
+  file >> filter_response_file_path;
+  
+  if (filter_response_file_path != "None" && filter_response_file_path != "none" && filter_response_file_path != "")
+    filter_response_file_path = retrieval->config->retrieval_folder_path + filter_response_file_path;
+  else
+    filter_response_file_path = "";
+
+
+  std::getline(file, line);
+  std::getline(file, line);
+  std::getline(file, line);
+
 
   while (std::getline(file, line))
   {
@@ -268,10 +278,6 @@ bool Observation::readSpectroscopyData(std::fstream& file)
   }
 
 
-  std::string filter_file = "";
-
-
-
   std::vector< std::vector<double> > bin_edges(wavelengths.size(), std::vector<double>(2, 0));
 
   
@@ -299,12 +305,12 @@ bool Observation::readSpectroscopyData(std::fstream& file)
     }
 
   }
-    
 
-    
-    
-  spectral_bands.init(retrieval->config, &retrieval->spectral_grid, bin_edges, wavelengths, SPECTROSCOPY, filter_file);
 
+  spectral_bands.init(retrieval->config, &retrieval->spectral_grid, bin_edges, wavelengths, SPECTROSCOPY);
+
+  if (filter_response_file_path != "")
+    filter_response_file = readFilterResponseFunction(filter_response_file_path);
 
   return true;
 }
@@ -319,6 +325,8 @@ void Observation::printObservationDetails()
   if (spectral_bands.bandType() == PHOTOMETRY)
   {
     std::cout << std::setprecision(5) << std::scientific << "observation type: photometry\n";
+    std::cout << "Filter response function: " << filter_response_file_path << "\n";
+    std::cout << "Filter detector type: " << filter_detector_type << "\n";
     std::cout << "band edges: " << spectral_bands.band_edges_wavelength[0][0] << "\t" << spectral_bands.band_edges_wavelength[0][1] 
               << "\nband center: " << spectral_bands.band_centers_wavelength.front() << "\n";
     std::cout << "photometry flux: " << flux.front() << "\t error: " << flux_error.front() << "\n\n";

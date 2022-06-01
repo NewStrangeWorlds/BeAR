@@ -33,7 +33,6 @@
 #include "../CUDA_kernels/data_management_kernels.h"
 #include "../CUDA_kernels/log_like_kernels.h"
 #include "../CUDA_kernels/band_integration_kernels.h"
-#include "../CUDA_kernels/convolution_kernels.h"
 #include "../observations/observations.h"
 
 #include "../additional/physical_const.h"
@@ -159,6 +158,16 @@ void Retrieval::multinestLogLikeGPU(double *cube, int &nb_dim, int &nb_param, do
   Retrieval *retrieval_ptr = static_cast<Retrieval*>(context);
 
 
+  if (stop_model)
+  {
+    std::string restart_script = "sbatch " + retrieval_ptr->config->retrieval_folder_path + "job_script_re.sh";
+    std::cout << "Starting restart batch script: " << restart_script << "\n";
+    std::system(restart_script.c_str());
+    
+    exit(0);
+  }
+
+
   //convert the normalised cube values into the real parameter values
   //write back the parameter values into the cube for multinest output
   std::vector<double> parameter(nb_param, 0.0);
@@ -194,35 +203,7 @@ void Retrieval::multinestLogLikeGPU(double *cube, int &nb_dim, int &nb_param, do
 
 
   //call the forward model
-  bool neglect = retrieval_ptr->forward_model->calcModelGPU(parameter, retrieval_ptr->model_spectrum_gpu);
-
- 
-  //convolve the spectra if necessary 
-  for (size_t i=0; i<retrieval_ptr->nb_observations; ++i)
-  {
-    size_t nb_points_observation = retrieval_ptr->observations[i].spectral_bands.wavenumbers.size();
-
-    if (retrieval_ptr->observations[i].instrument_profile_fwhm.size() != 0) 
-      convolveSpectrumGPU(retrieval_ptr->model_spectrum_gpu, 
-                          retrieval_ptr->observation_wavelengths[i], 
-                          retrieval_ptr->observation_profile_sigma[i], 
-                          retrieval_ptr->observation_spectral_indices[i],
-                          retrieval_ptr->convolution_start_index[i], 
-                          retrieval_ptr->convolution_end_index[i], 
-                          nb_points_observation, 
-                          retrieval_ptr->convolved_spectra[i]);
-  }
-
-  
-  //integrate the high-res spectrum to observational bands on the GPU
-  bandIntegrationGPU(retrieval_ptr->band_spectrum_id,
-                     retrieval_ptr->band_indices_gpu,
-                     retrieval_ptr->band_sizes_gpu,
-                     retrieval_ptr->band_start_index_gpu,
-                     retrieval_ptr->nb_total_bands,
-                     retrieval_ptr->spectral_grid.wavenumber_list_gpu,
-                     retrieval_ptr->spectral_grid.wavelength_list_gpu,
-                     model_spectrum_bands);
+  bool neglect = retrieval_ptr->forward_model->calcModelGPU(parameter, retrieval_ptr->model_spectrum_gpu, model_spectrum_bands);
 
 
   double error_inflation = 0;

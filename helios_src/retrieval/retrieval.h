@@ -23,6 +23,7 @@
 
 #include <vector>
 #include <string>
+#include <iostream>
 
 
 //#include "../forward_model/forward_model.h"
@@ -32,6 +33,10 @@
 
 
 namespace helios {
+
+extern bool stop_model;
+
+void signalHandler(int sig);
 
 //forward declaration
 class ForwardModel;
@@ -54,7 +59,7 @@ class Retrieval{
     void setPriors(const std::vector<std::string>& type, const std::vector<std::string>& description, const std::vector<std::vector<double>>& parameter);
 
     size_t nbObservations() {return observations.size();}
-  protected:
+
     std::vector<double> observation_data;            //combined vector of all observational data
     std::vector<double> observation_error;           //combined array of the corresponding observational errors
 
@@ -67,10 +72,11 @@ class Retrieval{
     int* band_indices_gpu = nullptr;                 //spectral indices of the high-res points of all bands on the GPU
     int* band_sizes_gpu = nullptr;                   //number of spectral points for each band on the GPU
     int* band_start_index_gpu = nullptr;             //start index for each band on the GPU
-    size_t nb_total_bands = 0;                       //total number of observational bands 
+    size_t nb_total_bands = 0;                       //total number of observational bands
 
     double* model_spectrum_gpu = nullptr;            //pointer to the high-res spectrum on the GPU
-
+    
+    std::vector<double*> filter_response_spectra;    //pointer to the spectra with applied filter responses on the GPU
     std::vector<double*> convolved_spectra;          //pointer to the convolved spectra on the GPU
     std::vector<int*> observation_spectral_indices;  //pointer to the spectral indices from the high-res spectrum for each observational bin on the GPU
     std::vector<double*> observation_wavelengths;    //pointer to the corresponding wavelengths on the GPU
@@ -79,7 +85,7 @@ class Retrieval{
     std::vector<int*> convolution_end_index;         //pointer to the end indices for the convolution on the GPU
 
     std::vector<double*> band_spectrum_id;           //contains a pointer for each observation to either the high-res spectrum or one of its convolutions on the GPU
-
+  protected:
     void loadObservations(const std::string file_folder, const std::vector<std::string>& file_list);
     void loadObservationFileList(const std::string file_folder, std::vector<std::string>& file_list);
   private:
@@ -88,6 +94,7 @@ class Retrieval{
     
     void setAdditionalPriors();
     void setPrior(const std::string& type, const std::string& description, const std::vector<double>& parameter);
+
 
     static void multinestLogLike(double *Cube, int &ndim, int &npars, double &lnew, void *context);
     static void multinestLogLikeGPU(double *cube, int &nb_dim, int &nb_param, double &new_log_like, void *context);

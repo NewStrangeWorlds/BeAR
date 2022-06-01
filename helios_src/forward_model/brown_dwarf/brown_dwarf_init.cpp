@@ -28,11 +28,12 @@
 #include <sstream>
 
 
-#include "../additional/exceptions.h"
-#include "../retrieval/retrieval.h"
-#include "../chemistry/isoprofile_chemistry.h"
-#include "../chemistry/fastchem_chemistry.h"
-#include "../temperature/piecewise_poly_temperature.h"
+#include "../../additional/exceptions.h"
+#include "../../retrieval/retrieval.h"
+#include "../../chemistry/isoprofile_chemistry.h"
+#include "../../chemistry/free_chemistry.h"
+#include "../../chemistry/fastchem_chemistry.h"
+#include "../../temperature/piecewise_poly_temperature.h"
 
 
 namespace helios{
@@ -80,6 +81,16 @@ void BrownDwarfModel::initChemistry(const BrownDwarfConfig& model_config)
     if (model_config.chemistry_model[i] == 1)
     {
       FastChemChemistry* model = new FastChemChemistry(retrieval->config->retrieval_folder_path + model_config.chemistry_parameters[i][0], retrieval->config->nb_omp_processes);
+      chemistry[i] = model;
+    }
+
+
+    if (model_config.chemistry_model[i] == 2)
+    {
+      FreeChemistry* model = new FreeChemistry(model_config.chemistry_parameters[i][0], 
+                                               std::stoi(model_config.chemistry_parameters[i][1]),
+                                               std::stoi(model_config.chemistry_parameters[i][2]),
+                                               model_config.atmos_boundaries);
       chemistry[i] = model;
     }
   }

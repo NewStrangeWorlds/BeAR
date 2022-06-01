@@ -41,6 +41,8 @@ class SpectralGrid{
 
     void convertWavenumbersToWavelengths(const std::vector<double>& wavenumbers, std::vector<double>& wavelengths);
     void convertWavelengthsToWavenumbers(const std::vector<double>& wavelengths, std::vector<double>& wavenumbers);
+    std::vector<double> convertWavelengthsToWavenumbers(const std::vector<double>& wavelengths);
+    std::vector<double> convertWavenumbersToWavelengths(const std::vector<double>& wavenumbers);
 
     size_t nbSpectralPointsFull() {return nb_spectral_points_full;}
     size_t nbSpectralPoints() {return nb_spectral_points;}
@@ -54,6 +56,9 @@ class SpectralGrid{
     std::vector<size_t> globalToLocalIndex(const std::vector<size_t>& global_indices);
 
     void findBinEdges(const std::vector< std::vector<double> >& wavenumber_edges, std::vector<double>& bin_edges, std::vector<size_t>& edge_indices);
+
+    std::vector<double> interpolateToWavenumberGrid(const std::vector<double>& data_x, const std::vector<double>& data_y, const bool log_interpolation);
+    std::vector<double> interpolateToWavelengthGrid(const std::vector<double>& data_x, const std::vector<double>& data_y, const bool log_interpolation);
 
     std::vector<double> wavenumber_list;                                         //wavenumber list used to calculate the high-res spectra
     std::vector<double> wavelength_list;                                         //wavelength list used to calculate the high-res spectra

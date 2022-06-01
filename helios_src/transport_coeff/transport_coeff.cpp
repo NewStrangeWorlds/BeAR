@@ -1,31 +1,11 @@
-/*
-* This file is part of the Helios-r2 code (https://github.com/exoclime/Helios-r2).
-* Copyright (C) 2020 Daniel Kitzmann
-*
-* Helios-r2 is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* Helios-r2 is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You find a copy of the GNU General Public License in the main
-* Helios-r2 directory under <LICENSE>. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
-
 
 #include "transport_coeff.h"
 
 
 #include "species_definition.h"
-#include "../chemistry/chem_species.h"
-#include "transport_coeff_single_species.h"
 #include "../spectral_grid/spectral_grid.h"
-#include "../CUDA_kernels/data_management_kernels.h"
+#include "../chemistry/chem_species.h"
+#include "../config/global_config.h"
 
 
 #include <iostream>
@@ -33,10 +13,6 @@
 #include <fstream>
 #include <iomanip>
 #include <cmath>
-
-
-#include <gsl/gsl_interp.h>
-#include <gsl/gsl_spline.h>
 
 
 
@@ -65,26 +41,53 @@ TransportCoefficients::TransportCoefficients(GlobalConfig* config_ptr, SpectralG
   
   std::cout << "\nOpacity specied added:\n";
   for (auto & i : gas_species)
-    std::cout << i->getSpeciesName() << "\n";
+    std::cout << i->species_name << "\t" << i->species_folder << "\t" << i->dataAvailable() << "\n\n";
     
   if (!all_species_added) 
-    std::cout << "\nWarning, not all opacities species from the model config file could be added!\n";
-
-
-  for (auto & i : gas_species)
-    i->init(spectral_indices);
+    std::cout << "Warning, not all opacities species from the model config file could be added!\n\n";
 }
 
 
 
+
 bool TransportCoefficients::addOpacitySpecies(const std::string& species_symbol, const std::string& species_folder)
-{
+{ 
   //first, the species cases for which separate classes are available
-  if (species_symbol == "H2")
+  if (species_symbol == "CIA-H2-H2")
   {
-    GasH2* h2 = new GasH2(config, spectral_grid);
-    gas_species.push_back(h2);
+    GasGeneric* h2_h2_cia = new GasGeneric(config, spectral_grid, _H2, "CIA H2-H2", species_folder, std::vector<size_t>{_H2});
+    gas_species.push_back(h2_h2_cia);
+
+    //GasH2* h2 = new GasH2(config, spectral_grid, species_folder);
+    //gas_species.push_back(h2);
    
+    return true;
+  }
+
+
+  if (species_symbol == "CIA-H2-He")
+  {
+    GasGeneric* h2_he_cia = new GasGeneric(config, spectral_grid, _H2, "CIA H2-He", species_folder, std::vector<size_t>{_He});
+    gas_species.push_back(h2_he_cia);
+   
+    return true;
+  }
+
+
+  if (species_symbol == "CIA-H-He")
+  {
+    GasGeneric* h_he_cia = new GasGeneric(config, spectral_grid, _H, "CIA H-He", species_folder, std::vector<size_t>{_He});
+    gas_species.push_back(h_he_cia);
+
+    return true;
+  }
+
+
+  if (species_symbol == "H-")
+  {
+    GasHm* hm = new GasHm(config, spectral_grid);
+    gas_species.push_back(hm);
+
     return true;
   }
 
@@ -94,7 +97,7 @@ bool TransportCoefficients::addOpacitySpecies(const std::string& species_symbol,
   {
     if (constants::species_data[i].symbol == species_symbol)
     {
-      gas_species.push_back(new GasGeneric(config, spectral_grid, i, constants::species_data[i].symbol));
+      gas_species.push_back(new GasGeneric(config, spectral_grid, constants::species_data[i].id, constants::species_data[i].symbol, species_folder));
       
       return true;
     } 
@@ -121,20 +124,12 @@ TransportCoefficients::~TransportCoefficients()
 
 
 
+
 //calculates the transport coefficients on the CPU
 //calls the calculation method of the individual opacity species
 void TransportCoefficients::calcTransportCoefficients(const double temperature, const double pressure, const std::vector<double>& number_densities,
                                                       std::vector<double>& absorption_coeff, std::vector<double>& scattering_coeff)
 {
-  omp_set_nested(1);
-
-  #pragma omp parallel for schedule(dynamic, 1)
-  for (unsigned int i=0; i<gas_species.size(); i++)
-    gas_species[i]->prepareCalculation(temperature, pressure);
-
-  omp_set_nested(0);
-
-
   absorption_coeff.assign(spectral_grid->nbSpectralPoints(), 0);
   scattering_coeff.assign(spectral_grid->nbSpectralPoints(), 0);
 
@@ -145,7 +140,6 @@ void TransportCoefficients::calcTransportCoefficients(const double temperature, 
 
 
 
-
 //calculates the transport coefficients on the GPU
 //calculations are stored on the GPU, nothing is returned
 //the layer coefficients are a temporary storage for a given p-T point
@@ -153,14 +147,6 @@ void TransportCoefficients::calcTransportCoefficientsGPU(const double temperatur
                                                          const size_t nb_grid_points, const size_t grid_point,
                                                          double* absorption_coeff_device, double* scattering_coeff_device)
 {
-  omp_set_nested(1);
-
-  #pragma omp parallel for schedule(dynamic, 1)
-  for (unsigned int i=0; i<gas_species.size(); i++)
-    gas_species[i]->prepareCalculation(temperature, pressure);
-
-  omp_set_nested(0);
-
 
   for (unsigned int i=0; i<gas_species.size(); i++)
     gas_species[i]->calcTransportCoefficientsGPU(temperature, pressure, number_densities,
@@ -170,8 +156,4 @@ void TransportCoefficients::calcTransportCoefficientsGPU(const double temperatur
 
 
 
-
 }
-
-
-

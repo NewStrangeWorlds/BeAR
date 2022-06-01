@@ -32,10 +32,11 @@
 
 #include "../observations/observations.h"
 #include "../forward_model/forward_model.h"
-#include "../forward_model/brown_dwarf.h"
+#include "../forward_model/brown_dwarf/brown_dwarf.h"
 #include "../additional/physical_const.h"
 #include "../CUDA_kernels/data_management_kernels.h"
 #include "../CUDA_kernels/band_integration_kernels.h"
+#include "../CUDA_kernels/convolution_kernels.h"
 #include "retrieval.h"
 
 
@@ -100,7 +101,6 @@ void PostProcess::calcSpectrum(const unsigned int model_id, std::vector<double>&
     saveBestFitSpectrum(spectrum_high_res);
   
 
-
   //integrate to observational bands and save the low-res spectrum
   model_spectrum_bands.assign(nb_observation_points, 0.0);
   std::vector<double>::iterator it = model_spectrum_bands.begin();
@@ -128,33 +128,27 @@ void PostProcess::calcSpectrumGPU(const unsigned int model_id, std::vector<doubl
   double* spectrum_dev = nullptr;
   allocateOnDevice(spectrum_dev, nb_points);
 
-
-  forward_model->calcModelGPU(model_parameter[model_id], spectrum_dev);
-
-
-  if (model_id == best_fit_model)
-  {
-
-    std::vector<double> spectrum(nb_points, 0.0);
-    
-    moveToHost(spectrum_dev, spectrum);
-
-    saveBestFitSpectrum(spectrum);
-  }
-  
-
   //integrate to observational bands and save the low-res spectrum
   double* spectrum_bands_dev = nullptr;
   allocateOnDevice(spectrum_bands_dev, nb_total_bands);
 
-  bandIntegrationGPU(spectrum_dev,
-                     band_indices_gpu,
-                     band_sizes_gpu,
-                     band_start_index_gpu,
-                     nb_total_bands,
-                     spectral_grid.wavenumber_list_gpu,
-                     spectral_grid.wavelength_list_gpu,
-                     spectrum_bands_dev);
+  intializeOnDevice(model_spectrum_gpu, nb_points);
+
+  forward_model->calcModelGPU(model_parameter[model_id], model_spectrum_gpu, spectrum_bands_dev);
+  //forward_model->calcModelGPU(model_parameter[model_id], spectrum_dev, spectrum_bands_dev);
+  
+
+  if (model_id == best_fit_model)
+  {
+    std::vector<double> spectrum(nb_points, 0.0);
+    
+    moveToHost(model_spectrum_gpu, spectrum);
+
+    saveBestFitSpectrum(spectrum);
+  }
+
+  
+  //convolveHSTSpectrumGPU(spectrum_bands_dev, nb_total_bands);
   
   
   //copy data from the GPU

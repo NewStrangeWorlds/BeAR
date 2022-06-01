@@ -49,6 +49,57 @@ __forceinline__ __device__ double normalDistribution(const double sigma, const d
 
 
 //each block convolves one specific wavelength
+__global__ void convolveHSTSpectrumDevice(double* spectrum_bands, 
+                                          const int nb_bands,
+                                          double* convolved_spectrum)
+{
+  const double psf_data[21] = {6.30135344074833e-05,
+                               0.000138758970498237,
+                               0.000214912246188817,
+                               0.000253265984068092,
+                               0.000487250868657551,
+                               0.00197759346464402,
+                               0.00133729605337360,
+                               0.00264666598228360,
+                               0.0318997974951411,
+                               0.120632158125992,
+                               0.677758213508536,
+                               0.121281305558093,
+                               0.0328671079635978,
+                               0.00354672541145926,
+                               0.00141232216195981,
+                               0.00200462592394389,
+                               0.000636093537387932,
+                               0.000380924228901721,
+                               0.000301652846026469,
+                               0.000175522896289285,
+                               3.26000115080272e-05};
+
+  const int nb_psf_data = 21;
+  const int psf_center = 10;
+
+  int tid = blockIdx.x * blockDim.x + threadIdx.x;
+ 
+  if (tid < nb_bands)
+  {
+    convolved_spectrum[tid] = 0;
+
+    for (int i=0; i<nb_psf_data; ++i)
+    {
+      const int pixel_index = tid + i - psf_center;
+
+      if (pixel_index < 0 || pixel_index > nb_bands-1) continue;
+
+      convolved_spectrum[tid] += psf_data[i] * spectrum_bands[pixel_index];
+    }
+  }
+
+}
+
+
+
+
+//each block convolves one specific wavelength
 __global__ void convolveSpectrumDevice(double* spectrum, 
                                        double* band_wavelengths, double* band_sigma,
                                        int* band_indices, int* start_index, int* end_index,
@@ -152,6 +203,34 @@ __host__ void convolveSpectrumGPU(double* spectrum,
 
   cudaDeviceSynchronize(); 
   gpuErrchk( cudaPeekAtLastError() ); 
+}
+
+
+
+__host__ void convolveHSTSpectrumGPU(double* spectrum_bands, 
+                                     const int nb_bands)
+{
+  int threads = nb_bands;
+  int blocks = 1;
+
+  const int bytes = nb_bands*sizeof(double);
+  
+  double* spectrum_copy;
+  cudaMalloc((void**)&spectrum_copy, bytes);
+  
+  cudaMemcpy(spectrum_copy, &spectrum_bands[0], bytes, cudaMemcpyDeviceToDevice);
+  
+  cudaThreadSynchronize();
+
+
+  convolveHSTSpectrumDevice<<<blocks,threads>>>(spectrum_copy, nb_bands, spectrum_bands);
+
+
+  cudaDeviceSynchronize(); 
+  gpuErrchk( cudaPeekAtLastError() ); 
+
+
+  cudaFree(spectrum_copy);
 }
 
 

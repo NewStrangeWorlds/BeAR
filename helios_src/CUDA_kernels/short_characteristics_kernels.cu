@@ -188,7 +188,7 @@ __host__ void shortCharacteristicsGPU(double* model_spectrum_dev,
   cudaMemcpy(cloud_optical_depth_dev, &cloud_optical_depth[0], bytes-1, cudaMemcpyHostToDevice);
 
 
-  cudaThreadSynchronize();
+  cudaDeviceSynchronize();
 
 
   int threads = 256;
@@ -205,7 +205,7 @@ __host__ void shortCharacteristicsGPU(double* model_spectrum_dev,
                                                       nb_spectral_points, nb_grid_points);
 
 
-  cudaThreadSynchronize();
+  cudaDeviceSynchronize();
 
   cudaFree(temperature_dev);
   cudaFree(vertical_grid_dev);
@@ -240,7 +240,7 @@ __host__ void shortCharacteristicsGPU(double* model_spectrum_dev,
   cudaMemcpy(vertical_grid_dev, &vertical_grid[0], bytes, cudaMemcpyHostToDevice);
 
 
-  cudaThreadSynchronize();
+  cudaDeviceSynchronize();
 
 
   int threads = 256;
@@ -256,7 +256,7 @@ __host__ void shortCharacteristicsGPU(double* model_spectrum_dev,
                                                  nb_spectral_points, nb_grid_points);
 
 
-  cudaThreadSynchronize();
+  cudaDeviceSynchronize();
 
   cudaFree(temperature_dev);
   cudaFree(vertical_grid_dev);

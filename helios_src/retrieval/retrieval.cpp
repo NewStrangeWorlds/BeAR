@@ -26,13 +26,16 @@
 #include <fstream>
 #include <cmath>
 #include <vector>
+#include <csignal>
+#include <cstdlib>
 
 
 #include "multinest_parameter.h"
 #include "prior.h"
 #include "../observations/observations.h"
 #include "../forward_model/forward_model.h"
-#include "../forward_model/brown_dwarf.h"
+#include "../forward_model/brown_dwarf/brown_dwarf.h"
+#include "../forward_model/secondary_eclipse/secondary_eclipse.h"
 
 #include "../../multinest/multinest.h"
 #include "../CUDA_kernels/data_management_kernels.h"
@@ -43,12 +46,25 @@
 namespace helios{
 
 
+bool stop_model = false;
+
+void signalHandler(int sig) 
+{
+  std::cout << "Received signal " << sig << "\n"; 
+  
+  if (sig == SIGCONT) 
+    stop_model = true;
+
+}
+
 
 Retrieval::Retrieval(GlobalConfig* global_config) : spectral_grid(global_config)
 {
 
   config = global_config;
-  
+
+  std::signal(SIGCONT, signalHandler);
+
 }
 
 
@@ -59,7 +75,9 @@ bool Retrieval::doRetrieval()
   std::string folder = config->retrieval_folder_path;
   std::string observation_folder = folder;
 
+
   BrownDwarfModel* model = nullptr;
+  //SecondaryEclipseModel* model = nullptr;
 
 
   //try to initialise the model
@@ -77,6 +95,7 @@ bool Retrieval::doRetrieval()
 
     //Initialise the forward model
     model = new BrownDwarfModel(this, BrownDwarfConfig (config->retrieval_folder_path));
+    //model = new SecondaryEclipseModel(this, SecondaryEclipseConfig (config->retrieval_folder_path));
   }
   catch(std::runtime_error& e) 
   {

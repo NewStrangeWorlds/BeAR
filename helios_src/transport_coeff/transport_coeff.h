@@ -21,7 +21,8 @@
 #ifndef TRANSPORT_COEFF_H
 #define TRANSPORT_COEFF_H
 
-#include "transport_coeff_single_species.h"
+#include "opacity_species.h"
+
 
 #include <vector>
 
@@ -29,9 +30,11 @@
 
 namespace helios{
 
+
 //forward declaration
 class GlobalConfig;
-class SpectralGrid;
+class ModelConfig;
+
 
 
 class TransportCoefficients {
@@ -39,18 +42,20 @@ class TransportCoefficients {
     TransportCoefficients(GlobalConfig* config_ptr, SpectralGrid* grid_ptr, 
                           const std::vector<std::string>& opacity_species_symbol, const std::vector<std::string>& opacity_species_folder);
     ~TransportCoefficients();
-    
+
     void calcTransportCoefficients(const double temperature, const double pressure, const std::vector<double>& number_densities,
                                    std::vector<double>& absorption_coeff, std::vector<double>& scattering_coeff);
+
     void calcTransportCoefficientsGPU(const double temperature, const double pressure, const std::vector<double>& number_densities,
                                       const size_t nb_grid_points, const size_t grid_point,
                                       double* absorption_coeff_device, double* scattering_coeff_device);
-
+    
   private:
-    GlobalConfig* config;
-    SpectralGrid* spectral_grid;
+    GlobalConfig* config = nullptr;
+    ModelConfig* model_parameter =  nullptr;
+    SpectralGrid* spectral_grid = nullptr;
 
-    std::vector<TransportCoefficientsSingleSpecies*> gas_species;
+    std::vector<OpacitySpecies*> gas_species;
 
     bool addOpacitySpecies(const std::string& species_symbol, const std::string& species_folder);
 };

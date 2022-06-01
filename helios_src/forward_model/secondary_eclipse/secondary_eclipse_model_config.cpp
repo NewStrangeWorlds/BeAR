@@ -18,7 +18,7 @@
 */
 
 
-#include "brown_dwarf.h"
+#include "secondary_eclipse.h"
 
 
 #include <string>
@@ -28,16 +28,16 @@
 #include <sstream>
 
 
-#include "../retrieval/retrieval.h"
-#include "../retrieval/prior.h"
-#include "../additional/exceptions.h"
+#include "../../retrieval/retrieval.h"
+#include "../../retrieval/prior.h"
+#include "../../additional/exceptions.h"
 
 
 
 namespace helios{
 
 
-BrownDwarfConfig::BrownDwarfConfig (const std::string& folder_path)
+SecondaryEclipseConfig::SecondaryEclipseConfig (const std::string& folder_path)
 {
   const std::string config_file_name = folder_path + "forward_model.config";
 
@@ -46,14 +46,14 @@ BrownDwarfConfig::BrownDwarfConfig (const std::string& folder_path)
 
 
 
-void BrownDwarfConfig::readConfigFile(const std::string& file_name)
+void SecondaryEclipseConfig::readConfigFile(const std::string& file_name)
 {
   std::fstream file;
   file.open(file_name.c_str(), std::ios::in);
 
   
   if (file.fail())  
-    throw ExceptionFileNotFound(std::string ("BrownDwarfConfig::readConfigFile"), file_name);
+    throw ExceptionFileNotFound(std::string ("SecondaryEclipseConfig::readConfigFile"), file_name);
 
   
   std::string line;
@@ -92,6 +92,12 @@ void BrownDwarfConfig::readConfigFile(const std::string& file_name)
 
   file >> temperature_poly_degree >> line;
   std::cout << "- Temperature polynomial degree: " << temperature_poly_degree << "\n";
+  
+  
+  std::getline(file, line);
+
+  file >> stellar_spectrum_file >> line;
+  std::cout << "- Stellar spectrum file: " << stellar_spectrum_file << "\n";
 
 
   std::getline(file, line);
@@ -110,7 +116,7 @@ void BrownDwarfConfig::readConfigFile(const std::string& file_name)
   if (input != "disort" && input != "scm")
   {
     std::string error_message = "Radiative transfer model " + input + " in forward_model.config unknown!\n";
-    throw ExceptionInvalidInput(std::string ("BrownDwarfConfig::readConfigFile"), error_message);
+    throw ExceptionInvalidInput(std::string ("SecondaryEclipseConfig::readConfigFile"), error_message);
   }
 
   std::cout << "- Radiative transfer model: " << radiative_transfer_model << "\n";
@@ -126,7 +132,7 @@ void BrownDwarfConfig::readConfigFile(const std::string& file_name)
 
 
 
-void BrownDwarfConfig::readChemistryConfig(std::fstream& file)
+void SecondaryEclipseConfig::readChemistryConfig(std::fstream& file)
 {
   std::string line;
   std::getline(file, line);  
@@ -173,19 +179,34 @@ void BrownDwarfConfig::readChemistryConfig(std::fstream& file)
     }
 
 
-    if (chem_model != "eq" && chem_model != "iso")
+    if (chem_model == "free")
+    {
+      chemistry_model.push_back(2);
+
+      chemistry_parameters.push_back(std::vector<std::string>(3, ""));
+
+      input >> chemistry_parameters.back()[0] >> chemistry_parameters.back()[1] >> chemistry_parameters.back()[2];
+    
+      std::cout << "- Chemistry model: " << "free chemistry" << "\n";
+      std::cout << "  - Species for this model: " << chemistry_parameters.back()[0] << "\n";
+      std::cout << "  - number of elements: " << chemistry_parameters.back()[1] << "\n";
+      std::cout << "  - polynomial degree: " << chemistry_parameters.back()[2] << "\n";
+    }
+
+
+    if (chem_model != "eq" && chem_model != "iso" && chem_model != "free")
     {
       std::string error_message = "Chemistry model " + chem_model + " in forward_model.config unknown!\n";
-      throw ExceptionInvalidInput(std::string ("BrownDwarfConfig::readConfigFile"), error_message);
+      throw ExceptionInvalidInput(std::string ("SecondaryEclipseConfig::readConfigFile"), error_message);
     }
 
   }
-
+ 
 }
 
 
 
-void BrownDwarfConfig::readOpacityConfig(std::fstream& file)
+void SecondaryEclipseConfig::readOpacityConfig(std::fstream& file)
 {
   std::string line;
   std::getline(file, line);

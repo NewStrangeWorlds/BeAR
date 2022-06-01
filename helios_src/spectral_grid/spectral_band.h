@@ -39,12 +39,11 @@ class SpectralBands{
   public:
     BandType bandType() const {return band_type;}
     void init(GlobalConfig* global_config, SpectralGrid* grid,  const std::vector< std::vector<double> >& band_edges, 
-              const std::vector<double>& band_centres, const BandType type, const std::string filter_file_name);
-
+              const std::vector<double>& band_centres, const BandType type);
 
     void setLocalIndices();
     void setInstrumentProfileFWHW(std::vector<double>& profile_fwhm);
-
+    
     void bandIntegrateSpectrum(const std::vector<double>& spectrum, std::vector<double>& band_values);
     void convolveSpectrum(const std::vector<double>& spectrum, std::vector<double>& convolved_spectrum);
 
@@ -61,9 +60,8 @@ class SpectralBands{
     std::vector<double> band_centers_wavelength;                          //center wavelengths for each spectral bin
     std::vector< std::vector<double> > band_edges_wavelength;             //wavelengths of the spectral bin edges
 
-
-    std::vector<double> instrument_profile_sigma;                          //standard deviation of the instruments profile
-    std::vector< std::vector<size_t> > convolution_quadrature_intervals;   //pre-determined limits (indices) for the convolution integration
+    std::vector<double> instrument_profile_sigma;                         //standard deviation of the instruments profile
+    std::vector< std::vector<size_t> > convolution_quadrature_intervals;  //pre-determined limits (indices) for the convolution integration
 
   private:
     GlobalConfig* config;
@@ -72,12 +70,9 @@ class SpectralBands{
     size_t nb_points_bin = 0;
     size_t nb_bands = 0;                                                   //number of sub-bands/bins 
 
-
-    std::vector<double> filter_transmission;                               //placeholder for a filter function (not yet implemented)
-
     std::vector<size_t> global_spectral_indices;                           //indices of the high-res wavelenghts in the global spectral grid  
     std::vector<size_t> global_edge_indices;                               //indices of the bin edges in the global spectral grid
-
+  
     double bandIntegrateSpectrum(const std::vector<double>& spectrum, const size_t& band);
     double convolveSpectrum(const std::vector<double>& spectrum, const unsigned int index);
     void setConvolutionQuadratureIntervals();

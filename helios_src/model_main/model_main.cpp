@@ -21,11 +21,15 @@
 #include <iostream>
 
 
+#include "command_line_param.h"
 #include "../spectral_grid/spectral_grid.h"
 #include "../config/global_config.h"
 #include "../retrieval/retrieval.h"
 #include "../retrieval/post_process.h"
 #include <omp.h>
+#include <csignal>
+#include <cstdlib>
+
 
 
 bool doRetrieval(helios::GlobalConfig& config)
@@ -61,29 +65,27 @@ int main(int argc, char *argv[])
   
   std::string retrieval_folder = argv[1];
 
+
+  CommandLineParam command_line_param;
+  
+  parseCommandLine(argc, argv, command_line_param);
+
   
   helios::GlobalConfig config;
   if (config.loadConfigFile(retrieval_folder) == false)
     return 1;
+  
 
+  if (command_line_param.multinest_resume == true)
+    config.multinest_resume = true; 
+  
 
   omp_set_num_threads(config.nb_omp_processes);
 
-
-  //check for second command line option
-  bool only_post_process = false;
-
-  if (argc == 3)
-  {
-    std::string input = argv[2];
-    if (input[0] == 'p') only_post_process = true;
-  }
-
-
-
+  
   bool retrieval_success = true;
   
-  if (!only_post_process) 
+  if (!command_line_param.only_post_process) 
     retrieval_success = doRetrieval(config);
 
   if (retrieval_success)

@@ -167,7 +167,6 @@ __host__ void bandIntegrationGPU(std::vector<double*> spectra_high_res, int* ban
 
   moveToDevice(spectra_high_res_dev, spectra_high_res);
 
- 
 
   bandIntegrationDevice<<<blocks,threads>>>(spectra_high_res_dev, band_indices, band_indices_size, band_start_index,
                                             nb_bands,

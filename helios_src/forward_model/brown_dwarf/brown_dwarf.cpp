@@ -30,16 +30,19 @@
 #include <iomanip>
 
 
-#include "../CUDA_kernels/data_management_kernels.h"
-#include "../CUDA_kernels/cross_section_kernels.h"
+#include "../../CUDA_kernels/data_management_kernels.h"
+#include "../../CUDA_kernels/cross_section_kernels.h"
+#include "../../CUDA_kernels/filter_response_kernels.h"
+#include "../../CUDA_kernels/band_integration_kernels.h"
+#include "../../CUDA_kernels/convolution_kernels.h"
 
 
-#include "../chemistry/chem_species.h"
-#include "../additional/aux_functions.h"
-#include "../additional/physical_const.h"
-#include "../additional/quadrature.h"
-#include "../additional/exceptions.h"
-#include "../retrieval/retrieval.h"
+#include "../../chemistry/chem_species.h"
+#include "../../additional/aux_functions.h"
+#include "../../additional/physical_const.h"
+#include "../../additional/quadrature.h"
+#include "../../additional/exceptions.h"
+#include "../../retrieval/retrieval.h"
 
 
 
@@ -75,7 +78,7 @@ BrownDwarfModel::BrownDwarfModel (Retrieval* retrieval_ptr, const BrownDwarfConf
   initTemperature(model_config);
   initRadiativeTransfer(model_config);
 
-
+  
   setPriors();
 }
 
@@ -198,7 +201,6 @@ bool BrownDwarfModel::calcAtmosphereStructure(const std::vector<double>& paramet
 
   if (neglect_temperature) neglect_model = true;
 
-
   //chemical composition
   std::vector<double> mean_molecular_weights(nb_grid_points, 0.0);
   number_densities.assign(nb_grid_points, std::vector<double>(constants::species_data.size(), 0.0));
@@ -251,7 +253,7 @@ bool BrownDwarfModel::calcModel(const std::vector<double>& parameter, std::vecto
 
     transport_coeff.calcTransportCoefficients(temperature[i], pressure[i], number_densities[i], absorption_coeff_level, scattering_coeff_level);
 
-
+    
     for (size_t j=0; j<retrieval->spectral_grid.nbSpectralPoints(); ++j)
       absorption_coeff[j][i] = absorption_coeff_level[j];
   }
@@ -264,8 +266,8 @@ bool BrownDwarfModel::calcModel(const std::vector<double>& parameter, std::vecto
 
   for (size_t i=0; i<retrieval->spectral_grid.nbSpectralPoints(); ++i)
     spectrum[i] *= radius_distance_scaling;
-
   
+
   return neglect;
 }
 
@@ -273,7 +275,7 @@ bool BrownDwarfModel::calcModel(const std::vector<double>& parameter, std::vecto
 
 //run the forward model with the help of the GPU
 //the atmospheric structure itself is still done on the CPU
-bool BrownDwarfModel::calcModelGPU(const std::vector<double>& parameter, double* model_spectrum_gpu)
+bool BrownDwarfModel::calcModelGPU(const std::vector<double>& parameter, double* model_spectrum_gpu, double* model_spectrum_bands)
 {
   bool neglect = calcAtmosphereStructure(parameter);
 
@@ -295,6 +297,44 @@ bool BrownDwarfModel::calcModelGPU(const std::vector<double>& parameter, double*
                                       temperature, z_grid,
                                       radius_distance_scaling);
 
+  
+  for (size_t i=0; i<retrieval->observations.size(); ++i)
+  {
+    if (retrieval->observations[i].filter_response.size() != 0) 
+      applyFilterResponseGPU(retrieval->spectral_grid.wavenumber_list_gpu,
+                             model_spectrum_gpu, 
+                             retrieval->observations[i].filter_response_gpu, 
+                             retrieval->observations[i].filter_response_weight_gpu, 
+                             retrieval->observations[i].filter_response_normalisation,
+                             retrieval->spectral_grid.nbSpectralPoints(),
+                             retrieval->filter_response_spectra[i]);
+
+
+    size_t nb_points_observation = retrieval->observations[i].spectral_bands.wavenumbers.size();
+
+    if (retrieval->observations[i].instrument_profile_fwhm.size() != 0) 
+      convolveSpectrumGPU(retrieval->filter_response_spectra[i], 
+                          retrieval->observation_wavelengths[i], 
+                          retrieval->observation_profile_sigma[i], 
+                          retrieval->observation_spectral_indices[i],
+                          retrieval->convolution_start_index[i], 
+                          retrieval->convolution_end_index[i], 
+                          nb_points_observation, 
+                          retrieval->convolved_spectra[i]);
+  }
+
+
+  //integrate the high-res spectrum to observational bands on the GPU
+  bandIntegrationGPU(retrieval->band_spectrum_id,
+                     retrieval->band_indices_gpu,
+                     retrieval->band_sizes_gpu,
+                     retrieval->band_start_index_gpu,
+                     retrieval->nb_total_bands,
+                     retrieval->spectral_grid.wavenumber_list_gpu,
+                     retrieval->spectral_grid.wavelength_list_gpu,
+                     model_spectrum_bands);
+
+  //convolveHSTSpectrumGPU(model_spectrum_bands, retrieval->nb_total_bands);
 
   return neglect;
 }

@@ -54,7 +54,7 @@ double SpectralBands::bandIntegrateSpectrum(const std::vector<double>& spectrum,
 
   for (size_t i=0; i<band_spectral_indices[band].size(); ++i)
     spectrum_subset[i] = spectrum[ band_spectral_indices[band][i] ];
-
+  
 
   double wavelength_edge_left =  1.0/band_wavenumbers[band].front() * 1e4;
   double wavelength_edge_right =  1.0/band_wavenumbers[band].back() * 1e4;

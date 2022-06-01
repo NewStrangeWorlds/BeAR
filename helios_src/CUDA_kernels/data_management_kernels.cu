@@ -44,7 +44,7 @@ __host__ void allocateOnDevice(double*& device_data, size_t nb_double_values)
   cudaMalloc((void**)&device_data, bytes);
 
 
-  cudaThreadSynchronize();
+  cudaDeviceSynchronize();
   gpuErrchk( cudaPeekAtLastError() );
   gpuErrchk( cudaDeviceSynchronize() );
 }
@@ -58,7 +58,7 @@ __host__ void deleteFromDevice(double*& device_data)
 
   device_data = nullptr;
 
-  cudaThreadSynchronize();
+  cudaDeviceSynchronize();
   gpuErrchk( cudaPeekAtLastError() );
   gpuErrchk( cudaDeviceSynchronize() );
 }
@@ -73,7 +73,7 @@ __host__ void deleteFromDevice(int*& device_data)
 
   device_data = nullptr;
 
-  cudaThreadSynchronize();
+  cudaDeviceSynchronize();
   gpuErrchk( cudaPeekAtLastError() );
   gpuErrchk( cudaDeviceSynchronize() );
 }
@@ -89,7 +89,7 @@ __host__ void deleteFromDevice(double**& device_data)
 
   device_data = nullptr;
 
-  cudaThreadSynchronize();
+  cudaDeviceSynchronize();
   gpuErrchk( cudaPeekAtLastError() );
   gpuErrchk( cudaDeviceSynchronize() );
 }
@@ -115,7 +115,7 @@ __host__ void moveToDevice(double*& device_data, std::vector<double>& host_data)
   cudaMemcpy(device_data, &host_data[0], bytes, cudaMemcpyHostToDevice);
 
 
-  cudaThreadSynchronize();
+  cudaDeviceSynchronize();
   gpuErrchk( cudaPeekAtLastError() );
   gpuErrchk( cudaDeviceSynchronize() );
 }
@@ -140,7 +140,7 @@ __host__ void moveToDevice(double**& device_data, std::vector<double*>& host_dat
   cudaMemcpy(device_data, &host_data[0], bytes, cudaMemcpyHostToDevice);
 
 
-  cudaThreadSynchronize();
+  cudaDeviceSynchronize();
   gpuErrchk( cudaPeekAtLastError() );
   gpuErrchk( cudaDeviceSynchronize() );
 }
@@ -156,7 +156,7 @@ __host__ void moveToHost(double*& device_data, std::vector<double>& host_data)
   cudaMemcpy(host_data.data(), device_data, bytes, cudaMemcpyDeviceToHost);
 
   
-  cudaThreadSynchronize();
+  cudaDeviceSynchronize();
   gpuErrchk( cudaPeekAtLastError() );
   gpuErrchk( cudaDeviceSynchronize() ); 
 }
@@ -180,7 +180,7 @@ __host__ void moveToDevice(int*& device_data, std::vector<int>& host_data)
   cudaMemcpy(device_data, &host_data[0], bytes, cudaMemcpyHostToDevice);
 
 
-  cudaThreadSynchronize();
+  cudaDeviceSynchronize();
   gpuErrchk( cudaPeekAtLastError() );
   gpuErrchk( cudaDeviceSynchronize() );
 }
@@ -201,7 +201,7 @@ __host__ void intializeOnDevice2D(std::vector< double* >& device_data, const siz
   }
 
 
-  cudaThreadSynchronize();
+  cudaDeviceSynchronize();
   gpuErrchk( cudaPeekAtLastError() );
   gpuErrchk( cudaDeviceSynchronize() );
 }
@@ -217,7 +217,7 @@ __host__ void intializeOnDevice(double* device_data, const size_t nb_points)
     cudaMemset(device_data, 0, nb_points*sizeof(double));
 
 
-  cudaThreadSynchronize();
+  cudaDeviceSynchronize();
   gpuErrchk( cudaPeekAtLastError() );
   gpuErrchk( cudaDeviceSynchronize() );
 }

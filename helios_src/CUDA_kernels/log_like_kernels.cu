@@ -46,7 +46,6 @@ __global__ void logLikeDevice(double* observation, double* error, double* model,
 
     //Eq. 23 from Paper I
     d_log_like_sum += - 0.5 * log(error_square * 2.0 * constants::pi) - 0.5 * (observation[i] - model[i])*(observation[i] - model[i]) / error_square;
-
   }
 
 
@@ -82,18 +81,18 @@ __host__ double logLikeHost(double* observation, double* observation_error, doub
   logLikeDevice<<<blocks,threads>>>(observation,observation_error,model_spectrum, nb_spectral_points, error_inflation_coefficient, d_log_like);
 
 
-  cudaThreadSynchronize();
+  cudaDeviceSynchronize();
   gpuErrchk( cudaPeekAtLastError() );
   gpuErrchk( cudaDeviceSynchronize() );
 
 
   cudaMemcpy(&h_log_like, d_log_like, sizeof(double), cudaMemcpyDeviceToHost);
 
-  cudaThreadSynchronize();
+  cudaDeviceSynchronize();
   
   cudaFree(d_log_like);
   
-  cudaThreadSynchronize();
+  cudaDeviceSynchronize();
 
 
   return h_log_like;

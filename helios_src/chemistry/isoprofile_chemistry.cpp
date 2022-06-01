@@ -90,6 +90,8 @@ bool IsoprofileChemistry::calcChemicalComposition(const std::vector<double>& par
   const double solar_h2_he = solar_h2 + solar_he;
   const double solar_na_k = 16.2181;
   
+  const double solar_h_he = solar_he + 1.0;
+  const double epsilon_h = 1.0 / (solar_h_he);
 
   bool neglect_model = false;
 
@@ -100,6 +102,9 @@ bool IsoprofileChemistry::calcChemicalComposition(const std::vector<double>& par
     for (size_t j=0; j<species.size(); ++j)
       number_densities[i][species[j]] = number_densities[i][_TOTAL] * parameters[j];
 
+    //for (size_t j=0; j<species.size(); ++j)
+      //number_densities[i][species[j]] *= parameters[j];
+
     if (!sodium_free_parameter)
       number_densities[i][_Na] = number_densities[i][_K] * solar_na_k;
 
@@ -108,7 +113,7 @@ bool IsoprofileChemistry::calcChemicalComposition(const std::vector<double>& par
     double mixing_ratio_background = 1.0;
 
     for (auto & j : constants::species_data)
-      if (j.id != _H2 && j.id != _He && j.id != _TOTAL) 
+      if (j.id != _H2 && j.id != _He && j.id != _TOTAL && j.id != _H) 
         mixing_ratio_background -= number_densities[i][j.id]/number_densities[i][_TOTAL];
 
 
@@ -120,6 +125,10 @@ bool IsoprofileChemistry::calcChemicalComposition(const std::vector<double>& par
       neglect_model = true;
       mixing_ratio_background = 0;
     }
+    
+    //const double mixing_ratio_h = number_densities[i][_H]/number_densities[i][_TOTAL];
+    //const double mixing_ratio_h2 = epsilon_h / (2.0 - epsilon_h) * (mixing_ratio_background - mixing_ratio_h);
+    //const double mixing_ratio_he = mixing_ratio_background - mixing_ratio_h - mixing_ratio_h2;
 
     const double mixing_ratio_h2 = mixing_ratio_background * solar_h2 / solar_h2_he;
     const double mixing_ratio_he = mixing_ratio_background * solar_he / solar_h2_he;
@@ -140,7 +149,7 @@ bool IsoprofileChemistry::calcChemicalComposition(const std::vector<double>& par
 
     mean_molecular_weight[i] = mu;
   }
-  
+
 
   return neglect_model;
 }

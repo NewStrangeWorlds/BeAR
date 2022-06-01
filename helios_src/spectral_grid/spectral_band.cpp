@@ -39,7 +39,7 @@ namespace helios{
 
 void SpectralBands::init(GlobalConfig* global_config, SpectralGrid* grid, 
                         const std::vector< std::vector<double> >& band_edges, const std::vector<double>& band_centres, 
-                        const BandType type, const std::string filter_file_name)
+                        const BandType type)
 {
   config = global_config;
   spectral_grid = grid;

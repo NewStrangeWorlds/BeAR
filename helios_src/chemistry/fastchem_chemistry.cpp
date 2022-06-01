@@ -29,7 +29,8 @@
 #include <algorithm>
 #include <vector>
 #include <omp.h>
-
+#include <math.h> 
+#include <iostream>
 
 
 namespace helios {
@@ -40,7 +41,7 @@ FastChemChemistry::FastChemChemistry(const std::string& fastchen_parameter_file,
   , nb_processes{nb_openmp_proc}
 {
   
-  reference_element_abundances = fastchem.getElementAbundance();
+  reference_element_abundances = fastchem.getElementAbundances();
 
   
   fastchem_species_indices.assign(constants::species_data.size(), fastchem::FASTCHEM_UNKNOWN_SPECIES);
@@ -59,7 +60,7 @@ FastChemChemistry::FastChemChemistry(const std::string& fastchen_parameter_file,
   }
   
 
-  nb_parameters = 2;
+  nb_parameters = 1;
 }
 
 
@@ -69,7 +70,7 @@ bool FastChemChemistry::calcChemicalComposition(const std::vector<double>& param
                                                   std::vector<std::vector<double>>& number_densities, std::vector<double>& mean_molecular_weight)
 {
   const double metallicity_factor = parameters[0];
-  const double co_ratio = parameters[1];
+  const double co_ratio = 0.55; //parameters[1];
 
   std::vector<double> element_abundances = reference_element_abundances;
   
@@ -79,48 +80,49 @@ bool FastChemChemistry::calcChemicalComposition(const std::vector<double>& param
 
 
   element_abundances[fastchem_species_indices[_O]] = element_abundances[fastchem_species_indices[_C]] / co_ratio;
-  
-  
-  fastchem.setElementAbundance(element_abundances);
-
-  std::vector< fastchem::FastChem<long double>  > fastchems(nb_processes, fastchem);
 
 
-  std::vector<double> h_densities(temperature.size(), 0.0);
-  std::vector<std::vector<double>> fastchem_results;
-  fastchem_results.resize(temperature.size());
+  fastchem.setElementAbundances(element_abundances);
 
-  
+
+  //set up the input & output structures and run the chemistry
+  fastchem::FastChemInput input;
+  fastchem::FastChemOutput output;
+
+  input.temperature = temperature;
+  input.pressure = pressure;
+
+  for (auto & i : input.temperature)
+    if (i < 500) i = 500;
+
+
   bool neglect_model = false;
 
-  #pragma omp parallel for schedule(dynamic, 1)
-  for (unsigned int i=0; i<temperature.size(); i++)
+
+  size_t status = fastchem.calcDensities(input, output);
+
+  if (status == fastchem::FASTCHEM_INITIALIZATION_FAILED)
   {
-    double local_temperature = temperature[i];
-    const double local_pressure = pressure[i] * 1e6;
-
-    if (local_temperature < 200) local_temperature = 200;
-
-   
-    size_t status = fastchems[omp_get_thread_num()].calcDensities(local_temperature, local_pressure, fastchem_results[i], h_densities[i], mean_molecular_weight[i]);
-
-    if (status == fastchem::FASTCHEM_INITIALIZATION_FAILED)
-    {
-      std::string error_message = "FastChem initialisation failed!\n";
-      throw ExceptionInvalidInput(std::string ("FastChemChemistry::calcChemicalComposition"), error_message);
-    }
-
-
-    if (status != fastchem::FASTCHEM_SUCCESS)
-      neglect_model = true;
+    std::string error_message = "FastChem initialisation failed!\n";
+    throw ExceptionInvalidInput(std::string ("FastChemChemistry::calcChemicalComposition"), error_message);
   }
 
-  
+  if (status != fastchem::FASTCHEM_SUCCESS)
+    neglect_model = true;
+
+
+  mean_molecular_weight = output.mean_molecular_weight;
+
+
   for (size_t j=0; j<temperature.size(); ++j)
     for (size_t i=0; i<constants::species_data.size(); ++i)
+    {
       if (fastchem_species_indices[i] != fastchem::FASTCHEM_UNKNOWN_SPECIES)
-        number_densities[j][i] = fastchem_results[j][fastchem_species_indices[i]];
-  
+        number_densities[j][i] = output.number_densities[j][fastchem_species_indices[i]];
+
+      if (i == _TOTAL)
+        number_densities[j][_TOTAL] = pressure[j] * 1.e6 / constants::boltzmann_k / temperature[j];
+    }
 
   return neglect_model;
 }

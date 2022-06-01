@@ -18,8 +18,9 @@
 */
 
 
-#ifndef _brown_dward_h
-#define _brown_dwarf_h
+#ifndef _secondary_eclipse_h
+#define _secondary_eclipse_h
+
 
 #include <vector>
 #include <iostream>
@@ -27,15 +28,15 @@
 #include <fstream>
 #include <string>
 
-#include "forward_model.h"
-#include "../chemistry/chemistry.h"
-#include "../temperature/temperature.h"
-#include "../transport_coeff/transport_coeff.h"
-#include "../radiative_transfer/discrete_ordinate.h"
-#include "../radiative_transfer/short_characteristics.h"
+#include "../forward_model.h"
+#include "../../chemistry/chemistry.h"
+#include "../../temperature/temperature.h"
+#include "../../transport_coeff/transport_coeff.h"
+#include "../../radiative_transfer/discrete_ordinate.h"
+#include "../../radiative_transfer/short_characteristics.h"
 
 
-#include "../radiative_transfer/radiative_transfer.h"
+#include "../../radiative_transfer/radiative_transfer.h"
 
 
 namespace helios {
@@ -48,7 +49,7 @@ class Retrieval;
 //this struct handles the Brown Dwarf config
 //it will read in the corresponding parameter file
 //and will then be used to create a model object
-struct BrownDwarfConfig{
+struct SecondaryEclipseConfig{
   size_t nb_grid_points = 0;
 
   double atmos_boundaries[2] {0, 0};
@@ -57,6 +58,8 @@ struct BrownDwarfConfig{
   
   size_t nb_temperature_elements = 0;
   size_t temperature_poly_degree = 0;
+
+  std::string stellar_spectrum_file = "";
 
   bool use_cloud_layer = false;
   size_t radiative_transfer_model = 0;
@@ -67,7 +70,7 @@ struct BrownDwarfConfig{
   std::vector<std::string> opacity_species_symbol;
   std::vector<std::string> opacity_species_folder;
   
-  BrownDwarfConfig (const std::string& folder_path);
+  SecondaryEclipseConfig (const std::string& folder_path);
   void readConfigFile(const std::string& file_name);
   void readChemistryConfig(std::fstream& file);
   void readOpacityConfig(std::fstream& file);
@@ -76,15 +79,16 @@ struct BrownDwarfConfig{
 
 
 
-class BrownDwarfModel : public ForwardModel{
+class SecondaryEclipseModel : public ForwardModel{
   public:
-    BrownDwarfModel (Retrieval* retrieval_ptr, const BrownDwarfConfig model_config);
-    virtual ~BrownDwarfModel();
+    SecondaryEclipseModel (Retrieval* retrieval_ptr, const SecondaryEclipseConfig model_config);
+    virtual ~SecondaryEclipseModel();
     virtual bool calcModel(const std::vector<double>& parameter, std::vector<double>& spectrum);
-    virtual bool calcModelGPU(const std::vector<double>& parameter, double* model_spectrum);
+    virtual bool calcModelGPU(const std::vector<double>& parameter, double* model_spectrum, double* model_spectrum_bands);
     
     virtual void postProcess(const std::vector< std::vector<double> >& model_parameter, 
-                             const std::vector< std::vector<double> >& model_spectrum_bands);
+                             const std::vector< std::vector<double> >& model_spectrum_bands,
+                             const size_t best_fit_model);
   protected:
     Retrieval* retrieval;
     TransportCoefficients transport_coeff;
@@ -104,8 +108,11 @@ class BrownDwarfModel : public ForwardModel{
     std::vector<double> temperature;
     std::vector<double> z_grid;
     std::vector< std::vector<double> > number_densities;
+    
+    std::vector<double> stellar_spectrum;
+    std::vector<double> stellar_spectrum_bands;
+    double *stellar_spectrum_bands_gpu = nullptr;
 
-    double radius_distance_scaling = 0;
 
     std::vector< std::vector<double> > absorption_coeff;
     std::vector< std::vector<double> > scattering_coeff;
@@ -120,9 +127,16 @@ class BrownDwarfModel : public ForwardModel{
     void readPriorConfigFile(const std::string& file_name, std::vector<std::string>& prior_type, 
                                                            std::vector<std::string>& prior_description, 
                                                            std::vector<std::vector<double>>& prior_parameter);
-    void initChemistry(const BrownDwarfConfig& model_config);
-    void initRadiativeTransfer(const BrownDwarfConfig& model_config);
-    void initTemperature(const BrownDwarfConfig& model_config);
+    void initChemistry(const SecondaryEclipseConfig& model_config);
+    void initRadiativeTransfer(const SecondaryEclipseConfig& model_config);
+    void initTemperature(const SecondaryEclipseConfig& model_config);
+    void initStellarSpectrum(const SecondaryEclipseConfig& model_config);
+    void binStellarSpectrum();
+
+    std::vector<double> calcSecondaryEclipse(std::vector<double>& planet_spectrum_bands, const double radius_ratio,
+                                             const double geometric_albedo, const double radius_distance_ratio);
+    void calcSecondaryEclipseGPU(double* secondary_eclipse, double* planet_spectrum_bands, double* stellar_spectrum_bands,
+                                 const int nb_points, const double radius_ratio, double* albedo_contribution);
 
     void createPressureGrid(const double domain_boundaries [2]);
     bool calcAtmosphereStructure(const std::vector<double>& parameter);
@@ -134,8 +148,12 @@ class BrownDwarfModel : public ForwardModel{
     void calcCloudPosition(const double top_pressure, const double bottom_pressure, unsigned int& top_index, unsigned int& bottom_index);
 
     void postProcessModel(const std::vector<double>& parameter, const std::vector<double>& model_spectrum_bands, 
-                          std::vector<double>& temperature_profile, double& effective_temperature);
+                          std::vector<double>& temperature_profile, double& effective_temperature,
+                          std::vector<std::vector<double>>& mixing_ratios);
     double postProcessEffectiveTemperature(const std::vector<double>& model_spectrum_bands);
+    void postProcessContributionFunctions();
+    void saveContributionFunctions(std::vector< std::vector<double>>& contribution_function, const size_t observation_index);
+    void savePostProcessChemistry(const std::vector<std::vector<std::vector<double>>>& mixing_ratios, const unsigned int species);
     void savePostProcessTemperatures(const std::vector<std::vector<double>>& temperature_profiles);
     void savePostProcessEffectiveTemperatures(const std::vector<double>& effective_temperatures);
 };

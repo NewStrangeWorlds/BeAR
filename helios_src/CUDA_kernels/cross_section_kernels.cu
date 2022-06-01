@@ -57,12 +57,20 @@ __global__ void calcCrossSectionsDevice(const double* cross_sections1, const dou
     double c2 = cross_sections2[tid];
     double c3 = cross_sections3[tid];
     double c4 = cross_sections4[tid];
+    const double pressure_interpol_factor = (log_pressure - log_pressure1)/(log_pressure2 - log_pressure1);
 
 
-    c1 = c1 + (c2 - c1) * (temperature - temperature1)/(temperature2 - temperature1);
+    /*c1 = c1 + (c2 - c1) * (temperature - temperature1)/(temperature2 - temperature1);
     c2 = c3 + (c4 - c3) * (temperature - temperature1)/(temperature2 - temperature1);
 
     double sigma = c1 + (c2 - c1) * (log_pressure - log_pressure1)/(log_pressure2 - log_pressure1);
+    sigma = exp10(sigma);*/
+
+
+    c1 = c1 + (c2 - c1) * pressure_interpol_factor;
+    c2 = c3 + (c4 - c3) * pressure_interpol_factor;
+
+    double sigma = c1 + (c2 - c1) * (temperature - temperature1)/(temperature2 - temperature1);
     sigma = exp10(sigma);
 
    
@@ -70,6 +78,101 @@ __global__ void calcCrossSectionsDevice(const double* cross_sections1, const dou
   }
 
 }
+
+
+
+//calculates the H- continuum
+__global__ void calcHmContinuumDevice(const double hm_number_density, const int nb_spectral_points, const int grid_point, double* wavelengths_d, double* __restrict__ absorption_coeff_device)
+{
+  const double lambda_0 = 1.6419; //photo-detachment threshold
+  const double C_n[7] = {0.0, 152.519, 49.534, -118.858, 92.536, -34.194, 4.982};
+
+  //tid is the wavenumber index
+  int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+ 
+  if (tid < nb_spectral_points)
+  { 
+    if (wavelengths_d[tid] <= lambda_0 && wavelengths_d[tid] >= 0.125)
+    {
+
+      const double lambda = wavelengths_d[tid];
+      double f = 0;
+
+      const double x = 1.0/lambda - 1.0/lambda_0;
+
+      for (unsigned int i=1; i<7; ++i)
+        f += C_n[i] * pow(x, (i-1)/2.0);
+
+    
+      const double sigma = 1e-18 * wavelengths_d[tid] * wavelengths_d[tid] * wavelengths_d[tid] * std::pow(x, 1.5) * f; 
+      
+      absorption_coeff_device[grid_point*nb_spectral_points + tid] += sigma * hm_number_density;
+
+      if (absorption_coeff_device[grid_point*nb_spectral_points + tid] < 0) printf("%d\t%f\t%f\t%f\n", tid, sigma, hm_number_density);
+    }
+
+  }
+
+
+}
+
+
+
+//calculates the free-free H- continuum
+__global__ void calcHmffContinuumDevice(const double h_number_density, const double e_pressure, const double temperature,
+                                        const int nb_spectral_points, const int grid_point, double* wavelengths_d, double* __restrict__ absorption_coeff_device)
+{
+  //for wavelengths larger than 0.3645 micron
+  const double A_n1[7] = {0.0, 0.0, 2483.3460, -3449.8890, 2200.0400, -696.2710, 88.2830};
+  const double B_n1[7] = {0.0, 0.0, 285.8270, -1158.3820, 2427.7190, -1841.4000, 444.5170};
+  const double C_n1[7] = {0.0, 0.0, -2054.2910, 8746.5230, -13651.1050, 8624.9700, -1863.8650};
+  const double D_n1[7] = {0.0, 0.0, 2827.7760, -11485.6320, 16755.5240, -10051.5300, 2095.2880};
+  const double E_n1[7] = {0.0, 0.0, -1341.5370, 5303.6090, -7510.4940, 4400.0670, -901.7880};
+  const double F_n1[7] = {0.0, 0.0, 208.9520, -812.9390, 1132.7380, -655.0200, 132.9850};
+
+  //for wavelengths between 0.1823 micron and 0.3645 micron
+  const double A_n2[7] = {0.0, 518.1021, 473.2636, -482.2089, 115.5291, 0.0, 0.0};
+  const double B_n2[7] = {0.0, -734.8666, 1443.4137, -737.1616, 169.6374, 0.0, 0.0};
+  const double C_n2[7] = {0.0, 1021.1775, -1977.3395, 1096.8827, -245.6490, 0.0, 0.0};
+  const double D_n2[7] = {0.0, -479.0721, 922.3575, -521.1341, 114.2430, 0.0, 0.0};
+  const double E_n2[7] = {0.0, 93.1373, -178.9275, 101.7963, -21.9972, 0.0, 0.0};
+  const double F_n2[7] = {0.0, -6.4285, 12.3600, -7.0571, 1.5097, 0.0, 0.0};
+
+
+  //tid is the wavenumber index
+  int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+  if (tid < nb_spectral_points)
+  {
+    const double lambda = wavelengths_d[tid];
+
+    double ff_sigma = 0;
+
+    if (lambda > 0.3645)
+    {
+      for (unsigned int i=1; i<7; ++i)
+        ff_sigma += std::pow(5040.0/temperature, (i+1)/2.0) * 
+             (lambda * lambda * A_n1[i] + B_n1[i] + C_n1[i]/lambda + D_n1[i]/lambda/lambda 
+               + E_n1[i]/lambda/lambda/lambda + F_n1[i]/lambda/lambda/lambda/lambda);
+    }
+    else if (lambda >= 0.1823)
+    {
+      for (unsigned int i=1; i<7; ++i)
+        ff_sigma += std::pow(5040.0/temperature, (i+1)/2.0) * 
+              (lambda * lambda * A_n2[i] + B_n2[i] + C_n2[i]/lambda + D_n2[i]/lambda/lambda 
+              + E_n2[i]/lambda/lambda/lambda + F_n2[i]/lambda/lambda/lambda/lambda);
+    }
+    
+    ff_sigma *= 1e-29;
+    if (ff_sigma < 0) ff_sigma = 0;
+   
+    absorption_coeff_device[grid_point*nb_spectral_points + tid] += ff_sigma * h_number_density * e_pressure;
+  }
+
+
+}
+
 
 
 //set all absorption coefficients to 0
@@ -187,23 +290,22 @@ __host__ void checkCrossSectionsHost(const size_t nb_spectral_points, const size
 
 __host__ void calcCrossSectionsHost(double* cross_sections1, double* cross_sections2, double* cross_sections3, double* cross_sections4,
                                     const double temperature1, const double temperature2,
-                                    const double pressure1, const double pressure2,
-                                    const double temperature, const double pressure, const double number_density,
+                                    const double log_pressure1, const double log_pressure2,
+                                    const double temperature, const double log_pressure, const double number_density,
                                     const size_t nb_spectral_points, const size_t nb_grid_points, const size_t grid_point,
                                     double* absorption_coeff_device, double* scattering_coeff_device)
 
 {
-  double log_pressure1_gpu = log10(pressure1);
-  double log_pressure2_gpu = log10(pressure2);
+  double log_pressure1_gpu = log_pressure1;
+  double log_pressure2_gpu = log_pressure2;
   double temperature1_gpu = temperature1;
   double temperature2_gpu = temperature2;
 
-  double log_pressure = log10(pressure);
   
   //the linear interpolation in the CUDA kernel will fail if the two temperatures or pressures are equal
-  //to avoid a bunch of if-statements in the CUDA kernel, we here simply offset one of the temperatures or pressures by bit
+  //to avoid a bunch of if-statements in the CUDA kernel, we here simply offset one of the temperatures or pressures by a bit
   if (temperature1_gpu == temperature2_gpu) temperature2_gpu += 1;
-  if (log_pressure1_gpu == log_pressure2_gpu) log_pressure2_gpu += 0.01;
+  if (log_pressure1_gpu == log_pressure2_gpu) log_pressure2_gpu += 0.001;
 
 
   cudaDeviceSynchronize();
@@ -262,6 +364,36 @@ __host__ void calcCIACoefficientsHost(double* cross_sections1, double* cross_sec
   cudaDeviceSynchronize();
   gpuErrchk( cudaPeekAtLastError() );
 }
+
+
+
+__host__ void calcHmContinuumHost(const double hm_number_density,
+                                  const double h_number_density,
+                                  const double e_pressure,
+                                  const double temperature,
+                                  const int nb_spectral_points, const int grid_point,
+                                  double* wavelengths_device,
+                                  double* absorption_coeff_device)
+{
+
+int threads = 256;
+//int blocks = min((int (nb_spectral_points)/4+threads-1)/threads, 2048);
+int blocks = nb_spectral_points / threads;
+if (nb_spectral_points % threads) blocks++;
+
+
+calcHmContinuumDevice<<<blocks,threads>>>(hm_number_density, nb_spectral_points, grid_point, wavelengths_device, absorption_coeff_device);
+
+
+cudaDeviceSynchronize();
+
+calcHmffContinuumDevice<<<blocks,threads>>>(h_number_density, e_pressure, temperature, nb_spectral_points, grid_point, wavelengths_device, absorption_coeff_device);
+
+
+cudaDeviceSynchronize();
+gpuErrchk( cudaPeekAtLastError() );
+}
+
 
 
 

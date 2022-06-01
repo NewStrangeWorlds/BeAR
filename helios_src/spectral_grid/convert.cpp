@@ -51,6 +51,23 @@ void SpectralGrid::convertWavenumbersToWavelengths(const std::vector<double>& wa
 }
 
 
+//convert wavenumbers in cm-1 to wavelengths in microns
+std::vector<double> SpectralGrid::convertWavenumbersToWavelengths(const std::vector<double>& wavenumbers)
+{
+  size_t nb_wavenumbers = wavenumbers.size();
+
+  std::vector<double> wavelengths(nb_wavenumbers, 0);
+
+  if (nb_wavenumbers == 0) return wavelengths;
+
+
+  for (size_t i=0; i<nb_wavenumbers; ++i)
+    wavelengths[i] = 1.0/wavenumbers[i] * 1e4;
+
+  return wavelengths;
+}
+
+
 
 //convert wavelengths in microns to wavenumbers in cm-1
 void SpectralGrid::convertWavelengthsToWavenumbers(const std::vector<double>& wavelengths, std::vector<double>& wavenumbers)
@@ -65,6 +82,23 @@ void SpectralGrid::convertWavelengthsToWavenumbers(const std::vector<double>& wa
 
   for (size_t i=0; i<nb_wavelengths; ++i)
     wavenumbers[i] = 1.0/wavelengths[i] * 1e4;
+}
+
+
+
+std::vector<double> SpectralGrid::convertWavelengthsToWavenumbers(const std::vector<double>& wavelengths)
+{
+  size_t nb_wavelengths = wavelengths.size();
+
+  std::vector<double> wavenumbers(nb_wavelengths, 0);
+
+  if (nb_wavelengths == 0) return wavenumbers;
+
+
+  for (size_t i=0; i<nb_wavelengths; ++i)
+    wavenumbers[i] = 1.0/wavelengths[i] * 1e4;
+
+  return wavenumbers;
 }
 
 

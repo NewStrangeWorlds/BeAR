@@ -38,7 +38,7 @@ namespace helios{
 
 
 //load the observational data
-//input value is the location of the retrival folder
+//input value is the location of the retrieval folder
 void Retrieval::loadObservations(const std::string file_folder, const std::vector<std::string>& file_list)
 {
   nb_observations = file_list.size();
@@ -72,6 +72,7 @@ void Retrieval::loadObservations(const std::string file_folder, const std::vecto
   {
     i.spectral_bands.setLocalIndices();
     i.spectral_bands.setInstrumentProfileFWHW(i.instrument_profile_fwhm);
+    i.setFilterResponseFunction();
     i.printObservationDetails();
   }
 
@@ -86,6 +87,7 @@ void Retrieval::loadObservations(const std::string file_folder, const std::vecto
   //and create the data structures for the convolved spectra of each observation
   if (config->use_gpu)
   {
+    filter_response_spectra.assign(nb_observations, nullptr);
     convolved_spectra.assign(nb_observations, nullptr);
     observation_spectral_indices.assign(nb_observations, nullptr);
     observation_wavelengths.assign(nb_observations, nullptr);
@@ -95,37 +97,62 @@ void Retrieval::loadObservations(const std::string file_folder, const std::vecto
 
    
     for (size_t i=0; i<nb_observations; ++i)
-    {
-      if (observations[i].instrument_profile_fwhm.size() == 0) continue;
-     
-      allocateOnDevice(convolved_spectra[i], spectral_grid.nbSpectralPoints());
-
-     
-      std::vector<int> band_indices(observations[i].spectral_bands.spectral_indices.begin(), observations[i].spectral_bands.spectral_indices.end());
-      moveToDevice(observation_spectral_indices[i], band_indices);
-
-     
-      moveToDevice(observation_wavelengths[i], observations[i].spectral_bands.wavelengths);
-
-     
-      std::vector<int> start_index(observations[i].spectral_bands.wavelengths.size(), 0);
-      std::vector<int> end_index(observations[i].spectral_bands.wavelengths.size(), 0);
-     
-      for (size_t j=0; j<observations[i].spectral_bands.wavelengths.size(); ++j)
+    { 
+      if (observations[i].filter_response.size() != 0)
       {
-        start_index[j] = observations[i].spectral_bands.convolution_quadrature_intervals[j][0];
-        end_index[j] = observations[i].spectral_bands.convolution_quadrature_intervals[j][1];
+
+        allocateOnDevice(filter_response_spectra[i], spectral_grid.nbSpectralPoints());
+
       }
+      else
+      {
+
+        filter_response_spectra[i] = model_spectrum_gpu;
+
+      }
+
+
+      if (observations[i].instrument_profile_fwhm.size() != 0)
+      {
+        allocateOnDevice(convolved_spectra[i], spectral_grid.nbSpectralPoints());
+
+     
+        std::vector<int> band_indices(observations[i].spectral_bands.spectral_indices.begin(), observations[i].spectral_bands.spectral_indices.end());
+        moveToDevice(observation_spectral_indices[i], band_indices);
+
+     
+        moveToDevice(observation_wavelengths[i], observations[i].spectral_bands.wavelengths);
+
+     
+        std::vector<int> start_index(observations[i].spectral_bands.wavelengths.size(), 0);
+        std::vector<int> end_index(observations[i].spectral_bands.wavelengths.size(), 0);
+     
+        for (size_t j=0; j<observations[i].spectral_bands.wavelengths.size(); ++j)
+        {
+          start_index[j] = observations[i].spectral_bands.convolution_quadrature_intervals[j][0];
+          end_index[j] = observations[i].spectral_bands.convolution_quadrature_intervals[j][1];
+        }
       
      
-      moveToDevice(convolution_start_index[i], start_index);
-      moveToDevice(convolution_end_index[i], end_index);
+        moveToDevice(convolution_start_index[i], start_index);
+        moveToDevice(convolution_end_index[i], end_index);
 
-      moveToDevice(observation_profile_sigma[i], observations[i].spectral_bands.instrument_profile_sigma);
+        moveToDevice(observation_profile_sigma[i], observations[i].spectral_bands.instrument_profile_sigma);
+      }
+      else
+      {
+
+        if (observations[i].filter_response.size() != 0)
+          convolved_spectra[i] = filter_response_spectra[i];
+        else
+          convolved_spectra[i] = model_spectrum_gpu;
+
+      }
+
+
     }
 
   }
-
 
 
   //for the GPU we move all sub-band indices into one vector and
@@ -150,20 +177,30 @@ void Retrieval::loadObservations(const std::string file_folder, const std::vecto
 
         band_sizes_host.push_back(observations[i].spectral_bands.band_spectral_indices[j].size());
 
-        
         //assign a high-res spectrum to each band
         //if a band from a certain observation requires convolution, assign the pointer to the convolved spectrum
-        if (observations[i].instrument_profile_fwhm.size() == 0)
+        if (observations[i].instrument_profile_fwhm.size() == 0 && observations[i].filter_response.size() == 0)
           band_spectrum_id.push_back(model_spectrum_gpu);
         else
-          band_spectrum_id.push_back(convolved_spectra[i]);
+        {
+
+          if (observations[i].instrument_profile_fwhm.size() != 0)
+             band_spectrum_id.push_back(convolved_spectra[i]);
+          else
+            band_spectrum_id.push_back(filter_response_spectra[i]);
+
+        }
+
+        // if (observations[i].instrument_profile_fwhm.size() != 0 || observations[i].filter_response.size() != 0)
+        //   band_spectrum_id.push_back(convolved_spectra[i]);
+        // else
+        //   band_spectrum_id.push_back(model_spectrum_gpu);
 
 
         nb_total_bands++;
       }
 
     }
-
 
 
     moveToDevice(band_indices_gpu, band_indices_host);

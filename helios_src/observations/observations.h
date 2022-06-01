@@ -49,13 +49,28 @@ class Observation{
     std::vector<double> flux;                                           //observational data
     std::vector<double> flux_error;                                     //observational error
     std::vector<double> instrument_profile_fwhm;                        //instrument profile (if it doesn't exist, the vector will have a size of 0)
+    std::vector<double> filter_response;                                //filter response function
+    std::vector<double> filter_response_weight;
+    std::string filter_detector_type = "";
+    double filter_response_normalisation = 0.0;
+    
+    double* filter_response_gpu = nullptr;
+    double* filter_response_weight_gpu = nullptr;
+    
 
     void printObservationDetails();
+    void setFilterResponseFunction();
+    std::vector<double> applyFilterResponseFunction(const std::vector<double>& spectrum);
   private:
     std::string observation_name = "";
     Retrieval* retrieval;
 
+    std::string filter_response_file_path = "";
+    std::vector<std::vector<double>> filter_response_file;              //filter response function read from the file
+
     void loadFile(const std::string& file_name);
+    std::vector<std::vector<double>> readFilterResponseFunction(const std::string& file_path);
+    double filterResponseNormalisation(const std::vector<double>& filter_wavelength, const std::vector<double>& filter_response);
     bool readPhotometryData(std::fstream& file);
     bool readSpectroscopyData(std::fstream& file);
     bool readBandSpectroscopyData(std::fstream& file);

@@ -1,6 +1,6 @@
 /*
 * This file is part of the FastChem code (https://github.com/exoclime/fastchem).
-* Copyright (C) 2018 Daniel Kitzmann, Joachim Stock
+* Copyright (C) 2019 Daniel Kitzmann, Joachim Stock
 *
 * FastChem is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -17,23 +17,27 @@
 * <http://www.gnu.org/licenses/>.
 */
 
+
 #include "fastchem.h"
 
 #include <string>
 #include <vector>
+#include <algorithm>
 
 
 
 namespace fastchem {
 
 
+//Query for a basic chemical element index with a chemical symbol
+//Returns FASTCHEM_UNKNOWN_SPECIES if the element does not exist
 template <class double_type>
 unsigned int FastChem<double_type>::getChemicalElementIndex(const std::string symbol)
 {
   unsigned int index = FASTCHEM_UNKNOWN_SPECIES;
 
-  for (size_t i=0; i<nb_chemical_elements; ++i)
-    if (symbol == chemical_elements[i].symbol)
+  for (size_t i=0; i<nb_chemical_element_data; ++i)
+    if (symbol == chemical_element_data[i].symbol)
     {
       index = i;
       break;
@@ -45,60 +49,53 @@ unsigned int FastChem<double_type>::getChemicalElementIndex(const std::string sy
 
 
 
+//Query for a molecule index with chemical symbol
+//Returns FASTCHEM_UNKNOWN_SPECIES if the molecule does not exist
 template <class double_type>
 unsigned int FastChem<double_type>::getMoleculeIndex(const std::string symbol)
 {
-  unsigned int index = FASTCHEM_UNKNOWN_SPECIES;
+  auto it = std::find_if(molecules.begin(), molecules.end(), [&](const Molecule<double_type>& a) { return a.symbol == symbol;});
 
-  for (size_t i=0; i<molecules.size(); ++i)
-    if (symbol == molecules[i].symbol)
-    {
-      index = i;
-      break;
-    }
-
-
-  return index;
+  if (it == molecules.end()) 
+    return FASTCHEM_UNKNOWN_SPECIES;
+  else
+    return it - molecules.begin();
 }
 
 
 
+//Query for a element's index with a chemical symbol
+//Returns FASTCHEM_UNKNOWN_SPECIES if the element does not exist
 template <class double_type>
 unsigned int FastChem<double_type>::getElementIndex(const std::string symbol)
 {
-  unsigned int index = FASTCHEM_UNKNOWN_SPECIES;
+  auto it = std::find_if(elements.begin(), elements.end(), [&](const Element<double_type>& a) { return a.symbol == symbol;});
 
-  for (size_t i=0; i<elements.size(); ++i)
-    if (symbol == elements[i].symbol)
-    {
-      index = i;
-      break;
-    }
-
-
-  return index;
+  if (it == elements.end()) 
+    return FASTCHEM_UNKNOWN_SPECIES;
+  else
+    return it - elements.begin();
 }
 
 
 
+//Query for a species index (both, elements and molecules) with a chemical symbol
+//Returns FASTCHEM_UNKNOWN_SPECIES if the species does not exist
 template <class double_type>
 unsigned int FastChem<double_type>::getSpeciesIndex(const std::string symbol)
 {
-  unsigned int index = FASTCHEM_UNKNOWN_SPECIES;
+  auto it = std::find_if(species.begin(), species.end(), [&](const ChemicalSpecies<double_type>* a) { return a->symbol == symbol;});
 
-  for (size_t i=0; i<nb_species; ++i)
-    if (symbol == species[i]->symbol)
-    {
-      index = i;
-      break;
-    }
-
-
-  return index;
+  if (it == species.end()) 
+    return FASTCHEM_UNKNOWN_SPECIES;
+  else
+    return it - species.begin();
 }
 
 
 
+//Query for a species name with its index
+//Returns empty string in case the species does not exist
 template <class double_type>
 std::string FastChem<double_type>::getSpeciesName(const unsigned int species_index)
 {
@@ -109,6 +106,9 @@ std::string FastChem<double_type>::getSpeciesName(const unsigned int species_ind
 }
 
 
+
+//Query for a species symbol with its index
+//Returns empty string in case the species does not exist
 template <class double_type>
 std::string FastChem<double_type>::getSpeciesSymbol(const unsigned int species_index)
 {
@@ -122,30 +122,8 @@ std::string FastChem<double_type>::getSpeciesSymbol(const unsigned int species_i
 
 
 
-template <class double_type>
-std::string FastChem<double_type>::getElementName(const unsigned int species_index)
-{
-  if (species_index < nb_elements)
-    return elements[species_index].name;
-  else
-    return "";
-}
-
-
-
-template <class double_type>
-std::string FastChem<double_type>::getElementSymbol(const unsigned int species_index)
-{
-
-  if (species_index < nb_elements)
-    return elements[species_index].symbol;
-  else
-    return "";
-
-}
-
-
-
+//Query for a the molecular weight of a species with its index
+//Returns 0 in case the species does not exist
 template <class double_type>
 double FastChem<double_type>::getSpeciesMolecularWeight(const unsigned int species_index)
 {
@@ -158,7 +136,7 @@ double FastChem<double_type>::getSpeciesMolecularWeight(const unsigned int speci
 }
 
 
-
+//Get the element abundance for a specific element
 template <class double_type>
 double FastChem<double_type>::getElementAbundance(const unsigned int species_index)
 {
@@ -172,8 +150,9 @@ double FastChem<double_type>::getElementAbundance(const unsigned int species_ind
 
 
 
+//Get the element abundandes for all elements
 template <class double_type>
-std::vector<double> FastChem<double_type>::getElementAbundance()
+std::vector<double> FastChem<double_type>::getElementAbundances()
 {
 
   std::vector<double> abundances(nb_elements, 0.0);
@@ -189,5 +168,4 @@ std::vector<double> FastChem<double_type>::getElementAbundance()
 
 template class FastChem<double>;
 template class FastChem<long double>;
-
 }

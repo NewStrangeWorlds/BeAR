@@ -35,10 +35,11 @@ class ForwardModel{
     virtual ~ForwardModel() {}
     virtual bool calcModel(const std::vector<double>& parameter, std::vector<double>& spectrum) = 0;   //calculate a model on the CPU
                                                                                                        //the return value signals the retrieval to neglect this model
-    virtual bool calcModelGPU(const std::vector<double>& parameter, double* model_spectrum) = 0;       //calculate a model on the GPU
+    virtual bool calcModelGPU(const std::vector<double>& parameter, double* model_spectrum, double* model_spectrum_bands) = 0;       //calculate a model on the GPU
                                                                                                        //the return value signals the retrieval to neglect this model
     virtual void postProcess(const std::vector< std::vector<double> >& model_parameter, 
-                             const std::vector< std::vector<double> >& model_spectrum_bands) = 0;      //model specific post process
+                             const std::vector< std::vector<double> >& model_spectrum_bands,
+                             const size_t best_fit_model) = 0;      //model specific post process
   protected:
     virtual void setPriors() = 0;
 };
