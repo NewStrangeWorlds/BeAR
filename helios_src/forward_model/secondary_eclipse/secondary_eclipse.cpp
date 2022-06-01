@@ -43,6 +43,7 @@
 #include "../../additional/exceptions.h"
 #include "../../retrieval/retrieval.h"
 
+#include "../atmosphere/atmosphere.h"
 
 
 
@@ -51,7 +52,8 @@ namespace helios{
 
 
 SecondaryEclipseModel::SecondaryEclipseModel (Retrieval* retrieval_ptr, const SecondaryEclipseConfig model_config) 
- : transport_coeff(retrieval_ptr->config, &retrieval_ptr->spectral_grid, model_config.opacity_species_symbol, model_config.opacity_species_folder)
+ : transport_coeff(retrieval_ptr->config, &retrieval_ptr->spectral_grid, model_config.opacity_species_symbol, model_config.opacity_species_folder),
+   atmosphere(model_config.nb_grid_points, model_config.atmos_boundaries)
 {
   retrieval = retrieval_ptr;
   nb_grid_points = model_config.nb_grid_points;
@@ -63,16 +65,7 @@ SecondaryEclipseModel::SecondaryEclipseModel (Retrieval* retrieval_ptr, const Se
   if (retrieval->config->use_gpu)
     allocateOnDevice(absorption_coeff_gpu, nb_grid_points*retrieval->spectral_grid.nbSpectralPoints());
 
-  
-  createPressureGrid(model_config.atmos_boundaries);
 
-  
-  //initialise temperatures, altitudes, and number_densities to 0
-  temperature.assign(nb_grid_points, 0.0);
-  z_grid.assign(nb_grid_points, 0.0);
-  number_densities.assign(nb_grid_points, std::vector<double>(constants::species_data.size(), 0.0));
-
-  
   //select and set up the modules
   initStellarSpectrum(model_config);
   initChemistry(model_config);
@@ -84,73 +77,26 @@ SecondaryEclipseModel::SecondaryEclipseModel (Retrieval* retrieval_ptr, const Se
 }
 
 
-//Creates a pressure grid between the two boundary points
-//nb_grid_point pressures vales are equidistantly spread in the log(p) space
-void SecondaryEclipseModel::createPressureGrid(const double atmos_boundaries [2])
-{
-  pressure.assign(nb_grid_points, 0.0);
-
-  const double min_pressure = atmos_boundaries[1];
-  const double max_pressure = atmos_boundaries[0];
-
-  
-  pressure.front() = std::log10(max_pressure);
-
-  const double log_step = (std::log10(max_pressure) - std::log10(min_pressure)) / (nb_grid_points - 1.0);
-
-
-  for (size_t i=1; i<nb_grid_points-1; ++i)
-    pressure[i] = pressure[i-1] - log_step;
-
-
-  for (size_t i=0; i<nb_grid_points-1; ++i)
-    pressure[i] = pow(10.0, pressure[i]);
-
-  pressure.back() = min_pressure;
-}
-
-
-
 //calculates the upper and lower grid point of the cloud based on the top and bottom pressure
 void SecondaryEclipseModel::calcCloudPosition(const double top_pressure, const double bottom_pressure, unsigned int& top_index, unsigned int& bottom_index)
 {
   for (size_t i=0; i<nb_grid_points; ++i)
   {
-    if ((pressure[i] > top_pressure && pressure[i+1] < top_pressure) || pressure[i] == top_pressure )
+    if ((atmosphere.pressure[i] > top_pressure && atmosphere.pressure[i+1] < top_pressure) || atmosphere.pressure[i] == top_pressure )
       top_index = i;
 
-    if ((pressure[i] > bottom_pressure && pressure[i+1] < bottom_pressure) || pressure[i] == bottom_pressure )
+    if ((atmosphere.pressure[i] > bottom_pressure && atmosphere.pressure[i+1] < bottom_pressure) || atmosphere.pressure[i] == bottom_pressure )
       bottom_index = i;
   }
 
 
-  if (bottom_pressure > pressure[0])
+  if (bottom_pressure > atmosphere.pressure[0])
     bottom_index = 0;
 
 
   //clouds needs to occupy at least an entire atmospheric layer
   if (top_index == bottom_index)
     bottom_index -= 2;
-}
-
-
-
-//determine the vertical grid via hydrostatic equilibrium
-void SecondaryEclipseModel::calcAltitude(const double g, const std::vector<double>& mean_molecular_weights)
-{
-  z_grid.assign(nb_grid_points, 0.0);
-  std::vector<double> mass_density(nb_grid_points, 0.0);
-
-  for (size_t i=0; i<nb_grid_points; ++i)
-    mass_density[i] = mean_molecular_weights[i] * pressure[i]*1e6 / (constants::gas_constant  * temperature[i]);
-
-  for (size_t i=1; i<nb_grid_points; i++)
-  {
-    double delta_z = (1.0/(mass_density[i]*g) + 1.0/(mass_density[i-1]*g)) * 0.5 * (pressure[i-1]*1e6 - pressure[i]*1e6);
-
-    z_grid[i] = z_grid[i-1] + delta_z;
-  }
-  
 }
 
 
@@ -163,30 +109,16 @@ bool SecondaryEclipseModel::calcAtmosphereStructure(const std::vector<double>& p
   bool neglect_model = false;
 
 
-  //temperature profile
+  //parameters for temperature profile and chemistry
   std::vector<double> temp_parameters(parameter.begin() + nb_general_param + nb_total_chemistry_param, 
                                       parameter.begin() + nb_general_param + nb_total_chemistry_param + temperature_profile->nbParameters());
 
-  bool neglect_temperature = temperature_profile->calcProfile(temp_parameters, pressure, temperature);
+  std::vector<double> chem_parameters (parameter.begin() + nb_general_param, 
+                                       parameter.begin() + nb_general_param + nb_total_chemistry_param);
+  
 
-
-  if (neglect_temperature) neglect_model = true;
-
-  //chemical composition
-  std::vector<double> mean_molecular_weights(nb_grid_points, 0.0);
-  number_densities.assign(nb_grid_points, std::vector<double>(constants::species_data.size(), 0.0));
-  size_t nb_chem_param = 0;
-
-  for (auto & i : chemistry)
-  {
-    std::vector<double> chem_parameters(parameter.begin() + nb_general_param + nb_chem_param, 
-                                        parameter.begin() + nb_general_param + nb_chem_param + i->nbParameters());
-    nb_chem_param += i->nbParameters();
-    
-    bool neglect = i->calcChemicalComposition(chem_parameters, temperature, pressure, number_densities, mean_molecular_weights);
-
-    if (neglect) neglect_model = true;
-  } 
+  //determine atmosphere structure
+  neglect_model = atmosphere.calcAtmosphereStructure(surface_gravity, temperature_profile, temp_parameters, chemistry, chem_parameters);
  
  
   //optional cloud layer
@@ -196,9 +128,6 @@ bool SecondaryEclipseModel::calcAtmosphereStructure(const std::vector<double>& p
                                          parameter.begin() + nb_general_param + nb_total_chemistry_param + temperature_profile->nbParameters() + nb_cloud_param);
     calcGreyCloudLayer(cloud_parameters);
   }
-  
-
-  calcAltitude(surface_gravity, mean_molecular_weights);
 
 
   return neglect_model;
@@ -222,7 +151,8 @@ bool SecondaryEclipseModel::calcModel(const std::vector<double>& parameter, std:
     std::vector<double> scattering_coeff_level(retrieval->spectral_grid.nbSpectralPoints(), 0.0);
 
 
-    transport_coeff.calcTransportCoefficients(temperature[i], pressure[i], number_densities[i], absorption_coeff_level, scattering_coeff_level);
+    transport_coeff.calcTransportCoefficients(atmosphere.temperature[i], atmosphere.pressure[i], atmosphere.number_densities[i], 
+                                              absorption_coeff_level, scattering_coeff_level);
 
     
     for (size_t j=0; j<retrieval->spectral_grid.nbSpectralPoints(); ++j)
@@ -232,7 +162,9 @@ bool SecondaryEclipseModel::calcModel(const std::vector<double>& parameter, std:
 
   spectrum.assign(retrieval->spectral_grid.nbSpectralPoints(), 0.0);
  
-  radiative_transfer->calcSpectrum(absorption_coeff, scattering_coeff, cloud_optical_depths, temperature, z_grid, spectrum);
+  radiative_transfer->calcSpectrum(absorption_coeff, scattering_coeff, cloud_optical_depths, 
+                                   atmosphere.temperature, atmosphere.altitude, 
+                                   spectrum);
 
 
   return neglect;
@@ -256,7 +188,7 @@ bool SecondaryEclipseModel::calcModelGPU(const std::vector<double>& parameter, d
 
 
   for (size_t i=0; i<nb_grid_points; ++i)
-    transport_coeff.calcTransportCoefficientsGPU(temperature[i], pressure[i], number_densities[i],
+    transport_coeff.calcTransportCoefficientsGPU(atmosphere.temperature[i], atmosphere.pressure[i], atmosphere.number_densities[i],
                                                  nb_grid_points, i,
                                                  absorption_coeff_gpu, nullptr);
 
@@ -266,7 +198,7 @@ bool SecondaryEclipseModel::calcModelGPU(const std::vector<double>& parameter, d
                                       nullptr,
                                       retrieval->spectral_grid.wavenumber_list_gpu,
                                       cloud_optical_depths,
-                                      temperature, z_grid,
+                                      atmosphere.temperature, atmosphere.altitude,
                                       1.0);
 
   for (size_t i=0; i<retrieval->observations.size(); ++i)

@@ -29,6 +29,9 @@
 #include <string>
 
 #include "../forward_model.h"
+
+#include "../atmosphere/atmosphere.h"
+
 #include "../../chemistry/chemistry.h"
 #include "../../temperature/temperature.h"
 #include "../../transport_coeff/transport_coeff.h"
@@ -93,6 +96,8 @@ class SecondaryEclipseModel : public ForwardModel{
     Retrieval* retrieval;
     TransportCoefficients transport_coeff;
     RadiativeTransfer* radiative_transfer = nullptr;
+
+    Atmosphere atmosphere;
     Temperature* temperature_profile = nullptr;
     std::vector<Chemistry*> chemistry;
     
@@ -104,11 +109,6 @@ class SecondaryEclipseModel : public ForwardModel{
 
     size_t nb_total_param() {return nb_general_param + nb_total_chemistry_param + temperature_profile->nbParameters() + nb_cloud_param;}
 
-    std::vector<double> pressure;
-    std::vector<double> temperature;
-    std::vector<double> z_grid;
-    std::vector< std::vector<double> > number_densities;
-    
     std::vector<double> stellar_spectrum;
     std::vector<double> stellar_spectrum_bands;
     double *stellar_spectrum_bands_gpu = nullptr;
@@ -138,11 +138,8 @@ class SecondaryEclipseModel : public ForwardModel{
     void calcSecondaryEclipseGPU(double* secondary_eclipse, double* planet_spectrum_bands, double* stellar_spectrum_bands,
                                  const int nb_points, const double radius_ratio, double* albedo_contribution);
 
-    void createPressureGrid(const double domain_boundaries [2]);
     bool calcAtmosphereStructure(const std::vector<double>& parameter);
     double radiusDistanceScaling(const double distance, const double radius, const double scaling_f);
-
-    void calcAltitude(const double g, const std::vector<double>& mean_molecular_weights);
 
     void calcGreyCloudLayer(const std::vector<double>& cloud_parameters);
     void calcCloudPosition(const double top_pressure, const double bottom_pressure, unsigned int& top_index, unsigned int& bottom_index);

@@ -38,6 +38,7 @@
 #include "../../CUDA_kernels/cross_section_kernels.h"
 #include "../../CUDA_kernels/contribution_function_kernels.h"
 
+#include "../atmosphere/atmosphere.h"
 
 
 namespace helios{
@@ -86,11 +87,11 @@ void SecondaryEclipseModel::postProcessModel(const std::vector<double>& model_pa
   for (auto & i : constants::species_data)
   { 
     for (size_t j=0; j<nb_grid_points; ++j)
-      mixing_ratios[i.id][j] = number_densities[j][i.id]/number_densities[j][_TOTAL];
+      mixing_ratios[i.id][j] = atmosphere.number_densities[j][i.id]/atmosphere.number_densities[j][_TOTAL];
   }
 
  
-  temperature_profile = temperature;
+  temperature_profile = atmosphere.temperature;
 
   //effective_temperature = postProcessEffectiveTemperature(model_spectrum_bands);
 }
@@ -112,7 +113,7 @@ void SecondaryEclipseModel::savePostProcessChemistry(const std::vector<std::vect
 
   for (size_t i=0; i<nb_grid_points; ++i)
   {
-    file << std::setprecision(10) << std::scientific << pressure[i];
+    file << std::setprecision(10) << std::scientific << atmosphere.pressure[i];
 
     for (size_t j=0; j<nb_models; ++j)
       file << "\t" << mixing_ratios[j][species][i];
@@ -134,7 +135,7 @@ void SecondaryEclipseModel::savePostProcessTemperatures(const std::vector<std::v
 
   for (size_t i=0; i<nb_grid_points; ++i)
   {
-    file << std::setprecision(10) << std::scientific << pressure[i];
+    file << std::setprecision(10) << std::scientific << atmosphere.pressure[i];
 
     for(size_t j=0; j<temperature_profiles.size(); ++j)
       file << "\t" << temperature_profiles[j][i];
@@ -170,7 +171,7 @@ void SecondaryEclipseModel::postProcessContributionFunctions()
   initCrossSectionsHost(nb_spectral_points*nb_grid_points, absorption_coeff_gpu);
 
   for (size_t i=0; i<nb_grid_points; ++i)
-    transport_coeff.calcTransportCoefficientsGPU(temperature[i], pressure[i], number_densities[i],
+    transport_coeff.calcTransportCoefficientsGPU(atmosphere.temperature[i], atmosphere.pressure[i], atmosphere.number_densities[i],
                                                  nb_grid_points, i,
                                                  absorption_coeff_gpu, nullptr);
 
@@ -181,7 +182,7 @@ void SecondaryEclipseModel::postProcessContributionFunctions()
   
   contributionFunctionGPU(contribution_functions_dev, absorption_coeff_gpu,
                           retrieval->spectral_grid.wavenumber_list_gpu,
-                          temperature, z_grid, nb_spectral_points);
+                          atmosphere.temperature, atmosphere.altitude, nb_spectral_points);
 
 
   std::vector<double> contribution_functions_all(nb_spectral_points*nb_grid_points, 0.0);
