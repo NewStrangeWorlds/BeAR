@@ -178,7 +178,7 @@ bool SecondaryEclipseModel::calcModelGPU(const std::vector<double>& parameter, d
 {
   const double radius_ratio = parameter[1];
   const double radius_distance_ratio = parameter[1]/parameter[2];
-  const double geometric_albedo = parameter[3];
+  //const double geometric_albedo = parameter[3];
 
 
   bool neglect = calcAtmosphereStructure(parameter);
@@ -241,7 +241,7 @@ bool SecondaryEclipseModel::calcModelGPU(const std::vector<double>& parameter, d
   //albedo_contribution[retrieval->nb_total_bands-1] = 0.0;
   //albedo_contribution[retrieval->nb_total_bands-2] = 0.0;
 
-  albedo_contribution[0] = geometric_albedo*radius_distance_ratio*radius_distance_ratio;
+  //albedo_contribution[0] = geometric_albedo*radius_distance_ratio*radius_distance_ratio;
   //albedo_contribution[1] = geometric_albedo*radius_distance_ratio*radius_distance_ratio;
 
 

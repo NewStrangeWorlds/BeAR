@@ -60,7 +60,7 @@ FastChemChemistry::FastChemChemistry(const std::string& fastchen_parameter_file,
   }
   
 
-  nb_parameters = 1;
+  nb_parameters = 2;
 }
 
 
@@ -70,7 +70,7 @@ bool FastChemChemistry::calcChemicalComposition(const std::vector<double>& param
                                                   std::vector<std::vector<double>>& number_densities, std::vector<double>& mean_molecular_weight)
 {
   const double metallicity_factor = parameters[0];
-  const double co_ratio = 0.55; //parameters[1];
+  const double co_ratio = parameters[1];
 
   std::vector<double> element_abundances = reference_element_abundances;
   
