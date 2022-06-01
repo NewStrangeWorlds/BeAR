@@ -73,6 +73,7 @@ set(SRC
   helios_src/forward_model/secondary_eclipse/secondary_eclipse_priors.cpp
   helios_src/forward_model/secondary_eclipse/secondary_eclipse_init.cpp
   helios_src/forward_model/secondary_eclipse/secondary_eclipse.cpp
+  helios_src/forward_model/atmosphere/atmosphere.cpp
   helios_src/model_main/model_main.cpp
   helios_src/observations/observations.cpp
   helios_src/observations/observations_filter_response.cpp

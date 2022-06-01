@@ -32,6 +32,7 @@
 #include "../../retrieval/retrieval.h"
 #include "../../chemistry/chem_species.h"
 
+#include "../atmosphere/atmosphere.h"
 
 
 namespace helios{
@@ -74,11 +75,11 @@ void BrownDwarfModel::postProcessModel(const std::vector<double>& model_paramete
   for (auto & i : constants::species_data)
   { 
     for (size_t j=0; j<nb_grid_points; ++j)
-      mixing_ratios[i.id][j] = number_densities[j][i.id]/number_densities[j][_TOTAL];
+      mixing_ratios[i.id][j] = atmosphere.number_densities[j][i.id]/atmosphere.number_densities[j][_TOTAL];
   }
 
  
-  temperature_profile = temperature;
+  temperature_profile = atmosphere.temperature;
 
   effective_temperature = postProcessEffectiveTemperature(model_spectrum_bands);
 }
@@ -100,7 +101,7 @@ void BrownDwarfModel::savePostProcessChemistry(const std::vector<std::vector<std
 
   for (size_t i=0; i<nb_grid_points; ++i)
   {
-    file << std::setprecision(10) << std::scientific << pressure[i];
+    file << std::setprecision(10) << std::scientific << atmosphere.pressure[i];
 
     for (size_t j=0; j<nb_models; ++j)
       file << "\t" << mixing_ratios[j][species][i];
@@ -122,7 +123,7 @@ void BrownDwarfModel::savePostProcessTemperatures(const std::vector<std::vector<
 
   for (size_t i=0; i<nb_grid_points; ++i)
   {
-    file << std::setprecision(10) << std::scientific << pressure[i];
+    file << std::setprecision(10) << std::scientific << atmosphere.pressure[i];
 
     for(size_t j=0; j<temperature_profiles.size(); ++j)
       file << "\t" << temperature_profiles[j][i];

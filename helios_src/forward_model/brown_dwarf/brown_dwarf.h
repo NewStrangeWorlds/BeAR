@@ -28,6 +28,9 @@
 #include <string>
 
 #include "../forward_model.h"
+
+#include "../atmosphere/atmosphere.h"
+
 #include "../../chemistry/chemistry.h"
 #include "../../temperature/temperature.h"
 #include "../../transport_coeff/transport_coeff.h"
@@ -90,21 +93,18 @@ class BrownDwarfModel : public ForwardModel{
     Retrieval* retrieval;
     TransportCoefficients transport_coeff;
     RadiativeTransfer* radiative_transfer = nullptr;
+
+    Atmosphere atmosphere;
     Temperature* temperature_profile = nullptr;
     std::vector<Chemistry*> chemistry;
-    
-    
+
+
     size_t nb_grid_points = 0;
     size_t nb_general_param = 0;
     size_t nb_total_chemistry_param = 0;
     size_t nb_cloud_param = 0;
 
     size_t nb_total_param() {return nb_general_param + nb_total_chemistry_param + temperature_profile->nbParameters() + nb_cloud_param;}
-
-    std::vector<double> pressure;
-    std::vector<double> temperature;
-    std::vector<double> z_grid;
-    std::vector< std::vector<double> > number_densities;
 
     double radius_distance_scaling = 0;
 
@@ -125,11 +125,8 @@ class BrownDwarfModel : public ForwardModel{
     void initRadiativeTransfer(const BrownDwarfConfig& model_config);
     void initTemperature(const BrownDwarfConfig& model_config);
 
-    void createPressureGrid(const double domain_boundaries [2]);
     bool calcAtmosphereStructure(const std::vector<double>& parameter);
     double radiusDistanceScaling(const double distance, const double radius, const double scaling_f);
-
-    void calcAltitude(const double g, const std::vector<double>& mean_molecular_weights);
 
     void calcGreyCloudLayer(const std::vector<double>& cloud_parameters);
     void calcCloudPosition(const double top_pressure, const double bottom_pressure, unsigned int& top_index, unsigned int& bottom_index);
