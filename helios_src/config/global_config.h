@@ -27,6 +27,8 @@ namespace helios {
 
 struct GlobalConfig {
   bool loadConfigFile(std::string retrieval_folder);
+  
+  std::string forward_model_type = "";
 
   std::string cross_section_file_path = "";
   std::string wavenumber_file_path = "";

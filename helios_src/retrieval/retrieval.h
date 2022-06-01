@@ -56,6 +56,7 @@ class Retrieval{
     std::vector<Observation> observations;           //object that holds the single observations
 
     virtual bool doRetrieval();
+    void selectForwardModel(const std::string model_description);
     void setPriors(const std::vector<std::string>& type, const std::vector<std::string>& description, const std::vector<std::vector<double>>& parameter);
 
     size_t nbObservations() {return observations.size();}
@@ -91,7 +92,7 @@ class Retrieval{
   private:
     ForwardModel* forward_model = nullptr;
     std::vector<BasicPrior*> priors;
-    
+
     void setAdditionalPriors();
     void setPrior(const std::string& type, const std::string& description, const std::vector<double>& parameter);
 

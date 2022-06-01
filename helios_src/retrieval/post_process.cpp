@@ -33,8 +33,6 @@
 
 #include "../observations/observations.h"
 #include "../forward_model/forward_model.h"
-#include "../forward_model/brown_dwarf/brown_dwarf.h"
-#include "../forward_model/secondary_eclipse/secondary_eclipse.h"
 #include "../additional/physical_const.h"
 #include "../CUDA_kernels/data_management_kernels.h"
 #include "../CUDA_kernels/band_integration_kernels.h"
@@ -61,10 +59,8 @@ bool PostProcess::doRetrieval()
 {
   std::string folder = config->retrieval_folder_path;
   std::string observation_folder = folder;
-  
-  BrownDwarfModel* model = nullptr;
-  //SecondaryEclipseModel* model = nullptr;
-  
+
+
   //try to initialise the model
   //if there is an error, we exit the post process
   try
@@ -84,17 +80,12 @@ bool PostProcess::doRetrieval()
       file.close(); 
     }
 
-  
     loadObservations(observation_folder, file_list);
 
-    
     std::cout << "\nTotal number of wavelength points: " << spectral_grid.nbSpectralPoints() << "\n";
 
-
     //Initialise the forward model
-    model = new BrownDwarfModel(this, BrownDwarfConfig (config->retrieval_folder_path));
-    //model = new SecondaryEclipseModel(this, SecondaryEclipseConfig (config->retrieval_folder_path));
-  
+    selectForwardModel(config->forward_model_type);
 
     readPosteriorData();
   }
@@ -103,9 +94,7 @@ bool PostProcess::doRetrieval()
     std::cout << e.what() << std::endl;
     return false;
   } 
-  
 
-  forward_model = model;
 
   std::vector< std::vector<double> > model_spectrum_bands;  
 
@@ -115,10 +104,10 @@ bool PostProcess::doRetrieval()
 
 
   //call the post postprocess method of the forward model
-  model->postProcess(model_parameter, model_spectrum_bands, best_fit_model);
+  forward_model->postProcess(model_parameter, model_spectrum_bands, best_fit_model);
 
 
-  delete model;
+  delete forward_model;
 
 
   return true;

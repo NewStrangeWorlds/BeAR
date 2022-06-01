@@ -63,7 +63,7 @@ bool GlobalConfig::loadConfigFile(std::string retrieval_folder)
   std::getline(file, line);
   std::getline(file, line);
   std::getline(file, line);
-  std::cout << "General Parameter\n";
+  std::cout << "General Program Parameters\n";
 
   std::getline(file, line);
 
@@ -78,8 +78,20 @@ bool GlobalConfig::loadConfigFile(std::string retrieval_folder)
   std::cout << "- #OpenMP threads: " << nb_omp_processes << "\n";
 
 
+  //Header Forward Model
   std::getline(file, line);
+  std::getline(file, line);
+  std::getline(file, line);
+  std::cout << "\n" <<  "General Retrieval Parameters\n";
 
+
+  std::getline(file, line);
+  std::getline(file, line);
+  file >> input >> line;
+  std::cout << "- Forward model type: " << input << "\n";
+  forward_model_type = input;
+  
+  std::getline(file, line);
   file >> spectral_resolution >> line;
   std::cout << "- Spectral resolution: " << spectral_resolution << "\n";
 
@@ -106,7 +118,7 @@ bool GlobalConfig::loadConfigFile(std::string retrieval_folder)
   std::getline(file, line);
   std::getline(file, line);
   std::getline(file, line);
-  std::cout << "\n" <<  "Multinest Parameter\n";
+  std::cout << "\n" <<  "Multinest Parameters\n";
   
   std::getline(file, line);
 

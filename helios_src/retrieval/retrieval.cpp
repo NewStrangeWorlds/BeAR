@@ -34,8 +34,6 @@
 #include "prior.h"
 #include "../observations/observations.h"
 #include "../forward_model/forward_model.h"
-#include "../forward_model/brown_dwarf/brown_dwarf.h"
-#include "../forward_model/secondary_eclipse/secondary_eclipse.h"
 
 #include "../../multinest/multinest.h"
 #include "../CUDA_kernels/data_management_kernels.h"
@@ -76,10 +74,6 @@ bool Retrieval::doRetrieval()
   std::string observation_folder = folder;
 
 
-  BrownDwarfModel* model = nullptr;
-  //SecondaryEclipseModel* model = nullptr;
-
-
   //try to initialise the model
   //if there is an error, we exit the retrieval
   try
@@ -89,13 +83,10 @@ bool Retrieval::doRetrieval()
     loadObservationFileList(observation_folder, file_list);
     loadObservations(observation_folder, file_list);
 
-
     std::cout << "\nTotal number of wavelength points: " << spectral_grid.nbSpectralPoints() << "\n\n";
-  
 
     //Initialise the forward model
-    model = new BrownDwarfModel(this, BrownDwarfConfig (config->retrieval_folder_path));
-    //model = new SecondaryEclipseModel(this, SecondaryEclipseConfig (config->retrieval_folder_path));
+    selectForwardModel(config->forward_model_type);
   }
   catch(std::runtime_error& e) 
   {
@@ -103,9 +94,6 @@ bool Retrieval::doRetrieval()
     return false;
   } 
 
-  
-  forward_model = model;
-  
 
   //any required, additional priors that are not part of the forward model
   setAdditionalPriors();
