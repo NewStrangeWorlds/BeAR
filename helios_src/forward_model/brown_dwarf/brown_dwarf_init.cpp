@@ -42,7 +42,6 @@ namespace helios{
 //initialises the varous modules of the forward model
 void BrownDwarfModel::initModules(const BrownDwarfConfig& model_config)
 {
-
   radiative_transfer = selectRadiativeTransfer(model_config.radiative_transfer_model, 
                                                model_config.radiative_transfer_parameters, 
                                                model_config.nb_grid_points, 
@@ -61,9 +60,9 @@ void BrownDwarfModel::initModules(const BrownDwarfConfig& model_config)
     nb_total_chemistry_param += i->nbParameters(); 
 
 
-   temperature_profile = selectTemperatureProfile(model_config.temperature_profile_model, 
-                                                  model_config.temperature_profile_parameters, 
-                                                  model_config.atmos_boundaries);
+  temperature_profile = selectTemperatureProfile(model_config.temperature_profile_model, 
+                                                 model_config.temperature_profile_parameters, 
+                                                 model_config.atmos_boundaries);
 }
 
 

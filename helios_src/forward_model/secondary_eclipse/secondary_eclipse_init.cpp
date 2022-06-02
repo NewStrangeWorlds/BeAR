@@ -63,14 +63,13 @@ void SecondaryEclipseModel::initModules(const SecondaryEclipseConfig& model_conf
 
 
   temperature_profile = selectTemperatureProfile(model_config.temperature_profile_model, 
-                                                  model_config.temperature_profile_parameters, 
-                                                  model_config.atmos_boundaries);
-
+                                                 model_config.temperature_profile_parameters, 
+                                                 model_config.atmos_boundaries);
 }
 
 
 
-//select and initialise the chemistry models
+//read in and prepare stellar spectrum
 void SecondaryEclipseModel::initStellarSpectrum(const SecondaryEclipseConfig& model_config)
 {
   std::fstream file;

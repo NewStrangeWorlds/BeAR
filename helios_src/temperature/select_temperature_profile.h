@@ -25,7 +25,7 @@
 #include "temperature.h"
 
 #include "piecewise_poly_temperature.h"
-
+#include "constant_temperature.h"
 
 #include "../config/global_config.h"
 #include "../additional/exceptions.h"
@@ -86,8 +86,8 @@ inline Temperature* selectTemperatureProfile(const std::string profile_type, con
 
     case temp_profile_modules::constant :
       {
-        //DiscreteOrdinates* disort = new DiscreteOrdinates(spectral_grid, std::stoi(parameters[0]), nb_grid_points, config->use_gpu); 
-        //radiative_transfer = disort;
+        ConstantTemperature* temp = new ConstantTemperature();
+        temperature_profile = temp;  
       }
       break;
   }
