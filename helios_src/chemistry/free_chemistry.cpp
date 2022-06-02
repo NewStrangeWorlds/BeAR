@@ -38,7 +38,14 @@ FreeChemistry::FreeChemistry(const std::string& chemical_species,
                              const size_t nb_elements_in, const size_t polynomial_degree_in, const double atmos_boundaries [2])
  : mixing_ratios(nb_elements_in, polynomial_degree_in, atmos_boundaries)
  , nb_elements{nb_elements_in}, polynomial_degree{polynomial_degree_in}
-{
+{ 
+  std::cout << "- Chemistry model: " << "free chemistry" << "\n";
+  std::cout << "  - Species for this model: " << chemical_species << "\n";
+  std::cout << "  - number of elements: " << nb_elements_in << "\n";
+  std::cout << "  - polynomial degree: " << polynomial_degree_in << "\n";
+  std::cout << "\n";
+
+
   if (nb_elements < 1 || polynomial_degree < 1)
   {
     std::string error_message = "Wrong number of elements or polynomial degree in free chemistry config\n";
@@ -66,8 +73,8 @@ FreeChemistry::FreeChemistry(const std::string& chemical_species,
   }
       
 
-  std::cout << "Free chemistry initialised with the following species: \n";  
-  std::cout << constants::species_data[species.front()].symbol << "\n";
+  //std::cout << "Free chemistry initialised with the following species: \n";  
+  //std::cout << constants::species_data[species.front()].symbol << "\n";
   
 
   nb_parameters = nb_elements*polynomial_degree + 1; //total number of chemistry parameters

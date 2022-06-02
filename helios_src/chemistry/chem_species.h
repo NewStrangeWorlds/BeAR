@@ -77,11 +77,11 @@ const std::vector<chemistry_data> species_data{ {_TOTAL, "Total", "Total",  0.0}
                                                 {_TiH,   "TiH",   "H1Ti1",  48.87484},
                                                 {_e,     "e-",    "e-",     5.4857990907e-4},
                                                 {_V,     "V",     "V",      50.9415},
-                                                {_Vp,    "V+",    "V+",     50.9415},
+                                                {_Vp,    "V+",    "V1+",    50.9415},
                                                 {_Mn,    "Mn",    "Mn",     54.938044},
                                                 {_Si,    "Si",    "Si",     28.085},
                                                 {_Cr,    "Cr",    "Cr",     51.996},
-                                                {_Crp,   "Cr+",   "Cr+",    51.996}
+                                                {_Crp,   "Cr+",   "Cr1+",   51.996}
                                               };
 }
 }

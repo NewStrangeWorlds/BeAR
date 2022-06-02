@@ -32,7 +32,15 @@ namespace helios {
 
 
 IsoprofileChemistry::IsoprofileChemistry(const std::vector<std::string>& chemical_species)
-{
+{ 
+  std::cout << "- Chemistry model: " << "isoprofiles" << "\n";
+  std::cout << "  - Species for this model: ";
+
+  for (auto & i : chemical_species)
+    std::cout << i << "  ";
+  
+  std::cout << "\n";
+
   for (auto & i : chemical_species)
   {
     //H2 and He are used as a buffer gas and are not free variables
@@ -63,10 +71,10 @@ IsoprofileChemistry::IsoprofileChemistry(const std::vector<std::string>& chemica
       
   }
 
-  std::cout << "Isoprofile chemistry initialised with the following species: \n";
+  /*std::cout << "Isoprofile chemistry initialised with the following species: \n";
   for (auto & i : species)
     std::cout << constants::species_data[i].symbol << "  ";
-  std::cout << "\n";
+  std::cout << "\n";*/
 
 
   //check if Na is a free variable

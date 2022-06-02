@@ -40,7 +40,10 @@ FastChemChemistry::FastChemChemistry(const std::string& fastchen_parameter_file,
   : fastchem(fastchen_parameter_file, 1) 
   , nb_processes{nb_openmp_proc}
 {
+  std::cout << "- Chemistry model: " << "equilibrium/FastChem" << "\n";
+  std::cout << "  - Parameter file: " << fastchen_parameter_file << "\n\n";
   
+
   reference_element_abundances = fastchem.getElementAbundances();
 
   

@@ -135,67 +135,19 @@ void BrownDwarfConfig::readChemistryConfig(std::fstream& file)
   while (std::getline(file, line) && line.size() != 0)
   { 
     std::istringstream input(line);
-
+    
     std::string chem_model;
     input >> chem_model;
-
-    if (chem_model == "iso")
-    {
-      chemistry_model.push_back(0);
-
-      chemistry_parameters.resize(chemistry_parameters.size()+1);
     
-      std::string species;
+    chemistry_model.push_back(chem_model);
+    chemistry_parameters.resize(chemistry_parameters.size()+1);
 
-      while (input >> species)
-        chemistry_parameters.back().push_back(species);
+    std::string param;
 
-      std::cout << "- Chemistry model: " << "isoprofiles" << "\n";
-      std::cout << "  - Species for this model: ";
-    
-      for (auto & i : chemistry_parameters.back())
-        std::cout << i << "  ";
-
-      std::cout << "\n";
-    }
-
-
-    if (chem_model == "eq")
-    {
-      chemistry_model.push_back(1);
-
-      chemistry_parameters.push_back(std::vector<std::string>(1, ""));
-
-      input >> chemistry_parameters.back()[0];
-    
-      std::cout << "- Chemistry model: " << "FastChem" << "\n";
-      std::cout << "  - Parameter file: " << chemistry_parameters.back()[0] << "\n";
-    }
-
-
-    if (chem_model == "free")
-    {
-      chemistry_model.push_back(2);
-
-      chemistry_parameters.push_back(std::vector<std::string>(3, ""));
-
-      input >> chemistry_parameters.back()[0] >> chemistry_parameters.back()[1] >> chemistry_parameters.back()[2];
-    
-      std::cout << "- Chemistry model: " << "free chemistry" << "\n";
-      std::cout << "  - Species for this model: " << chemistry_parameters.back()[0] << "\n";
-      std::cout << "  - number of elements: " << chemistry_parameters.back()[1] << "\n";
-      std::cout << "  - polynomial degree: " << chemistry_parameters.back()[2] << "\n";
-    }
-
-
-    if (chem_model != "eq" && chem_model != "iso" && chem_model != "free")
-    {
-      std::string error_message = "Chemistry model " + chem_model + " in forward_model.config unknown!\n";
-      throw ExceptionInvalidInput(std::string ("BrownDwarfConfig::readConfigFile"), error_message);
-    }
-
+    while (input >> param)
+      chemistry_parameters.back().push_back(param);
   }
- 
+
 }
 
 

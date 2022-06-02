@@ -67,7 +67,7 @@ struct SecondaryEclipseConfig{
   bool use_cloud_layer = false;
   size_t radiative_transfer_model = 0;
   
-  std::vector<size_t> chemistry_model;
+  std::vector<std::string> chemistry_model;
   std::vector<std::vector<std::string>> chemistry_parameters;
   
   std::vector<std::string> opacity_species_symbol;

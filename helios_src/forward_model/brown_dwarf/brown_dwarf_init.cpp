@@ -30,9 +30,8 @@
 
 #include "../../additional/exceptions.h"
 #include "../../retrieval/retrieval.h"
-#include "../../chemistry/isoprofile_chemistry.h"
-#include "../../chemistry/free_chemistry.h"
-#include "../../chemistry/fastchem_chemistry.h"
+
+#include "../../chemistry/select_chemistry.h"
 #include "../../temperature/piecewise_poly_temperature.h"
 
 
@@ -63,39 +62,15 @@ void BrownDwarfModel::initRadiativeTransfer(const BrownDwarfConfig& model_config
 }
 
 
+
 //select and initialise the chemistry models
 void BrownDwarfModel::initChemistry(const BrownDwarfConfig& model_config)
 {
   chemistry.assign(model_config.chemistry_model.size(), nullptr);
 
-
   for (size_t i=0; i<model_config.chemistry_model.size(); ++i)
-  {
-    if (model_config.chemistry_model[i] == 0)
-    {
-      IsoprofileChemistry* model = new IsoprofileChemistry(model_config.chemistry_parameters[i]);
-      chemistry[i] = model;
-    }
+    chemistry[i] = selectChemistryModule(model_config.chemistry_model[i], model_config.chemistry_parameters[i], retrieval->config, model_config.atmos_boundaries);
 
-
-    if (model_config.chemistry_model[i] == 1)
-    {
-      FastChemChemistry* model = new FastChemChemistry(retrieval->config->retrieval_folder_path + model_config.chemistry_parameters[i][0], retrieval->config->nb_omp_processes);
-      chemistry[i] = model;
-    }
-
-
-    if (model_config.chemistry_model[i] == 2)
-    {
-      FreeChemistry* model = new FreeChemistry(model_config.chemistry_parameters[i][0], 
-                                               std::stoi(model_config.chemistry_parameters[i][1]),
-                                               std::stoi(model_config.chemistry_parameters[i][2]),
-                                               model_config.atmos_boundaries);
-      chemistry[i] = model;
-    }
-  }
-
-  
   nb_total_chemistry_param = 0;
 
   for (auto & i : chemistry)
