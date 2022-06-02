@@ -35,11 +35,11 @@ namespace helios {
 
 
 //types of priors
-enum class PriorType { uniform, log_uniform, gaussian };
+enum class PriorType { uniform, log_uniform, gaussian, delta };
 
 namespace priors{  
-  const std::vector<PriorType> prior_types{PriorType::uniform, PriorType::log_uniform, PriorType::gaussian};
-  const std::vector<std::string> prior_type_strings{"uniform", "log_uniform", "gaussian"};
+  const std::vector<PriorType> prior_types{PriorType::uniform, PriorType::log_uniform, PriorType::gaussian, PriorType::delta};
+  const std::vector<std::string> prior_type_strings{"uniform", "log_uniform", "gaussian", "delta"};
 }
 
 
@@ -106,6 +106,21 @@ class GaussianPrior : public BasicPrior {
   private:
     double mu = 0;
     double sigma = 0;
+};
+
+
+
+//Delta distribution (constant) prior
+//the constructor requires one parameters: constant parameter value
+class DeltaPrior : public BasicPrior {
+  public:
+    DeltaPrior (const std::string& parameter,
+                const double& value)
+                {parameter_name = parameter; const_value = value; prior_name = "Delta prior";}
+    virtual ~DeltaPrior() {}
+    virtual double priorParameterValue(const double& hypercube_value) {return const_value;}
+  private:
+    double const_value = 0;
 };
 
 

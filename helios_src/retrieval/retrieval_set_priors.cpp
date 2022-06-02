@@ -73,6 +73,7 @@ void Retrieval::setPrior(const std::string& type, const std::string& description
   UniformPrior* uniform_prior = nullptr;
   LogUniformPrior* log_uniform_prior = nullptr;
   GaussianPrior* gaussian_prior = nullptr;
+  DeltaPrior* delta_prior = nullptr;
 
   
   switch (prior_type)
@@ -107,6 +108,17 @@ void Retrieval::setPrior(const std::string& type, const std::string& description
                                   else
                                   { 
                                     std::string error_message = "gaussian prior " + description + " requires two parameters!\n"; 
+                                    throw ExceptionInvalidInput(std::string ("Retrieval::setPrior"), error_message);
+                                  }  
+                                  break;
+    case PriorType::delta :       if (parameter.size() == 1)
+                                  {
+                                    delta_prior = new DeltaPrior(description, parameter[0]);
+                                    priors.push_back(delta_prior);
+                                  } 
+                                  else
+                                  { 
+                                    std::string error_message = "delta prior " + description + " requires one parameter!\n"; 
                                     throw ExceptionInvalidInput(std::string ("Retrieval::setPrior"), error_message);
                                   }  
                                   break;
