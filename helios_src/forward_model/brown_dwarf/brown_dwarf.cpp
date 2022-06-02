@@ -66,9 +66,7 @@ BrownDwarfModel::BrownDwarfModel (Retrieval* retrieval_ptr, const BrownDwarfConf
     allocateOnDevice(absorption_coeff_gpu, nb_grid_points*retrieval->spectral_grid.nbSpectralPoints());
 
   //select and set up the modules
-  initChemistry(model_config);
-  initTemperature(model_config);
-  initRadiativeTransfer(model_config);
+  initModules(model_config);
 
 
   setPriors();

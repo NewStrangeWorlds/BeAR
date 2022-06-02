@@ -123,9 +123,7 @@ class BrownDwarfModel : public ForwardModel{
     void readPriorConfigFile(const std::string& file_name, std::vector<std::string>& prior_type, 
                                                            std::vector<std::string>& prior_description, 
                                                            std::vector<std::vector<double>>& prior_parameter);
-    void initChemistry(const BrownDwarfConfig& model_config);
-    void initRadiativeTransfer(const BrownDwarfConfig& model_config);
-    void initTemperature(const BrownDwarfConfig& model_config);
+    void initModules(const BrownDwarfConfig& model_config);
 
     bool calcAtmosphereStructure(const std::vector<double>& parameter);
     double radiusDistanceScaling(const double distance, const double radius, const double scaling_f);

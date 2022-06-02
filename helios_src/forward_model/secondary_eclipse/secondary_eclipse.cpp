@@ -68,11 +68,9 @@ SecondaryEclipseModel::SecondaryEclipseModel (Retrieval* retrieval_ptr, const Se
 
   //select and set up the modules
   initStellarSpectrum(model_config);
-  initChemistry(model_config);
-  initTemperature(model_config);
-  initRadiativeTransfer(model_config);
+  initModules(model_config);
 
-  
+
   setPriors();
 }
 

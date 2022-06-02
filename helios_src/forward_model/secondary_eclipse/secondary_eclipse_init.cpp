@@ -41,43 +41,32 @@
 namespace helios{
 
 
-//initialise radiative transfer model
-void SecondaryEclipseModel::initRadiativeTransfer(const SecondaryEclipseConfig& model_config)
+//initialises the varous modules of the forward model
+void SecondaryEclipseModel::initModules(const SecondaryEclipseConfig& model_config)
 {
   radiative_transfer = selectRadiativeTransfer(model_config.radiative_transfer_model, 
                                                model_config.radiative_transfer_parameters, 
                                                model_config.nb_grid_points, 
                                                retrieval->config, &retrieval->spectral_grid);
 
-}
 
-
-//select and initialise the chemistry models
-void SecondaryEclipseModel::initChemistry(const SecondaryEclipseConfig& model_config)
-{
   chemistry.assign(model_config.chemistry_model.size(), nullptr);
 
   for (size_t i=0; i<model_config.chemistry_model.size(); ++i)
     chemistry[i] = selectChemistryModule(model_config.chemistry_model[i], model_config.chemistry_parameters[i], retrieval->config, model_config.atmos_boundaries);
-
+  
+  //count the total number of free parameters for the chemistry modules
   nb_total_chemistry_param = 0;
 
   for (auto & i : chemistry)
-    nb_total_chemistry_param += i->nbParameters(); 
-}
+    nb_total_chemistry_param += i->nbParameters();
 
-
-
-//select and initialise the chemistry models
-void SecondaryEclipseModel::initTemperature(const SecondaryEclipseConfig& model_config)
-{
 
   temperature_profile = selectTemperatureProfile(model_config.temperature_profile_model, 
                                                   model_config.temperature_profile_parameters, 
                                                   model_config.atmos_boundaries);
 
 }
-
 
 
 

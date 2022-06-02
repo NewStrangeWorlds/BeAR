@@ -129,9 +129,7 @@ class SecondaryEclipseModel : public ForwardModel{
     void readPriorConfigFile(const std::string& file_name, std::vector<std::string>& prior_type, 
                                                            std::vector<std::string>& prior_description, 
                                                            std::vector<std::vector<double>>& prior_parameter);
-    void initChemistry(const SecondaryEclipseConfig& model_config);
-    void initRadiativeTransfer(const SecondaryEclipseConfig& model_config);
-    void initTemperature(const SecondaryEclipseConfig& model_config);
+    void initModules(const SecondaryEclipseConfig& model_config);
     void initStellarSpectrum(const SecondaryEclipseConfig& model_config);
     void binStellarSpectrum();
 

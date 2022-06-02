@@ -39,8 +39,8 @@
 namespace helios{
 
 
-//initialise radiative transfer model
-void BrownDwarfModel::initRadiativeTransfer(const BrownDwarfConfig& model_config)
+//initialises the varous modules of the forward model
+void BrownDwarfModel::initModules(const BrownDwarfConfig& model_config)
 {
 
   radiative_transfer = selectRadiativeTransfer(model_config.radiative_transfer_model, 
@@ -48,34 +48,24 @@ void BrownDwarfModel::initRadiativeTransfer(const BrownDwarfConfig& model_config
                                                model_config.nb_grid_points, 
                                                retrieval->config, &retrieval->spectral_grid);
 
-}
 
-
-
-//select and initialise the chemistry models
-void BrownDwarfModel::initChemistry(const BrownDwarfConfig& model_config)
-{
   chemistry.assign(model_config.chemistry_model.size(), nullptr);
 
   for (size_t i=0; i<model_config.chemistry_model.size(); ++i)
     chemistry[i] = selectChemistryModule(model_config.chemistry_model[i], model_config.chemistry_parameters[i], retrieval->config, model_config.atmos_boundaries);
-
+  
+  //count the total number of free parameters for the chemistry modules
   nb_total_chemistry_param = 0;
 
   for (auto & i : chemistry)
     nb_total_chemistry_param += i->nbParameters(); 
-}
 
 
-
-//select and initialise the chemistry models
-void BrownDwarfModel::initTemperature(const BrownDwarfConfig& model_config)
-{
    temperature_profile = selectTemperatureProfile(model_config.temperature_profile_model, 
                                                   model_config.temperature_profile_parameters, 
                                                   model_config.atmos_boundaries);
-
 }
+
 
 
 
