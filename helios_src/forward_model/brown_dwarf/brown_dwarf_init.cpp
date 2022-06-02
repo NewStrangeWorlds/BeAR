@@ -32,8 +32,7 @@
 #include "../../retrieval/retrieval.h"
 
 #include "../../chemistry/select_chemistry.h"
-#include "../../temperature/piecewise_poly_temperature.h"
-
+#include "../../temperature/select_temperature_profile.h"
 #include "../../radiative_transfer/select_radiative_transfer.h"
 
 
@@ -72,10 +71,10 @@ void BrownDwarfModel::initChemistry(const BrownDwarfConfig& model_config)
 //select and initialise the chemistry models
 void BrownDwarfModel::initTemperature(const BrownDwarfConfig& model_config)
 {
+   temperature_profile = selectTemperatureProfile(model_config.temperature_profile_model, 
+                                                  model_config.temperature_profile_parameters, 
+                                                  model_config.atmos_boundaries);
 
-  PiecewisePolynomialTemperature* temp = new PiecewisePolynomialTemperature(model_config.nb_temperature_elements, model_config.temperature_poly_degree, model_config.atmos_boundaries);
-  temperature_profile = temp; 
-  
 }
 
 

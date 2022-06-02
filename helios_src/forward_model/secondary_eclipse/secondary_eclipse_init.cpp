@@ -33,8 +33,8 @@
 
 #include "../../chemistry/select_chemistry.h"
 #include "../../radiative_transfer/select_radiative_transfer.h"
+#include "../../temperature/select_temperature_profile.h"
 
-#include "../../temperature/piecewise_poly_temperature.h"
 #include "../../CUDA_kernels/data_management_kernels.h"
 
 
@@ -72,9 +72,10 @@ void SecondaryEclipseModel::initChemistry(const SecondaryEclipseConfig& model_co
 void SecondaryEclipseModel::initTemperature(const SecondaryEclipseConfig& model_config)
 {
 
-  PiecewisePolynomialTemperature* temp = new PiecewisePolynomialTemperature(model_config.nb_temperature_elements, model_config.temperature_poly_degree, model_config.atmos_boundaries);
-  temperature_profile = temp; 
-  
+  temperature_profile = selectTemperatureProfile(model_config.temperature_profile_model, 
+                                                  model_config.temperature_profile_parameters, 
+                                                  model_config.atmos_boundaries);
+
 }
 
 

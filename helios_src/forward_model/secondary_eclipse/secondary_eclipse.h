@@ -58,23 +58,23 @@ struct SecondaryEclipseConfig{
   double atmos_boundaries[2] {0, 0};
   double atmos_top_pressure = 0;
   double atmos_bottom_pressure = 0;
-  
-  size_t nb_temperature_elements = 0;
-  size_t temperature_poly_degree = 0;
 
   std::string stellar_spectrum_file = "";
 
   bool use_cloud_layer = false;
 
+  std::string temperature_profile_model;
+  std::vector<std::string> temperature_profile_parameters;
+
   std::string radiative_transfer_model;
   std::vector<std::string> radiative_transfer_parameters;
-  
+
   std::vector<std::string> chemistry_model;
   std::vector<std::vector<std::string>> chemistry_parameters;
-  
+
   std::vector<std::string> opacity_species_symbol;
   std::vector<std::string> opacity_species_folder;
-  
+
   SecondaryEclipseConfig (const std::string& folder_path);
   void readConfigFile(const std::string& file_name);
   void readChemistryConfig(std::fstream& file);

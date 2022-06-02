@@ -76,24 +76,27 @@ void SecondaryEclipseConfig::readConfigFile(const std::string& file_name)
 
   file >> atmos_bottom_pressure >> line;
   std::cout << "- Bottom of atmosphere pressure: " << atmos_bottom_pressure << "\n";
-
-
-  std::getline(file, line);
-
-  file >> nb_temperature_elements >> line;
-  std::cout << "- Number of Temperature elements: " << nb_temperature_elements << "\n";
   
-
   atmos_boundaries[0] = atmos_top_pressure;
   atmos_boundaries[1] = atmos_bottom_pressure;
 
 
+  //temperature profile input
   std::getline(file, line);
+  std::getline(file, line);
+  std::istringstream input_stream(line);
 
-  file >> temperature_poly_degree >> line;
-  std::cout << "- Temperature polynomial degree: " << temperature_poly_degree << "\n";
+  input_stream >> temperature_profile_model;
+
+  while (input_stream >> input)
+    temperature_profile_parameters.push_back(input);
+
+  std::cout << "- Temperature profile: " << temperature_profile_model;
+  for (auto & i : temperature_profile_parameters) std::cout << "  " << i;
+  std::cout << "\n";
   
   
+  std::getline(file, line);
   std::getline(file, line);
 
   file >> stellar_spectrum_file >> line;

@@ -71,29 +71,31 @@ void BrownDwarfConfig::readConfigFile(const std::string& file_name)
   file >> atmos_top_pressure >> line;
   std::cout << "- Top of atmosphere pressure: " << atmos_top_pressure << "\n";
 
-
   std::getline(file, line);
 
   file >> atmos_bottom_pressure >> line;
   std::cout << "- Bottom of atmosphere pressure: " << atmos_bottom_pressure << "\n";
-
-
-  std::getline(file, line);
-
-  file >> nb_temperature_elements >> line;
-  std::cout << "- Number of Temperature elements: " << nb_temperature_elements << "\n";
   
-
   atmos_boundaries[0] = atmos_top_pressure;
   atmos_boundaries[1] = atmos_bottom_pressure;
 
 
+  //temperature profile input
   std::getline(file, line);
+  std::getline(file, line);
+  std::istringstream input_stream(line);
 
-  file >> temperature_poly_degree >> line;
-  std::cout << "- Temperature polynomial degree: " << temperature_poly_degree << "\n";
+  input_stream >> temperature_profile_model;
+
+  while (input_stream >> input)
+    temperature_profile_parameters.push_back(input);
+
+  std::cout << "- Temperature profile: " << temperature_profile_model;
+  for (auto & i : temperature_profile_parameters) std::cout << "  " << i;
+  std::cout << "\n";
 
 
+  std::getline(file, line);
   std::getline(file, line);
 
   file >> input >> line;
@@ -103,15 +105,18 @@ void BrownDwarfConfig::readConfigFile(const std::string& file_name)
   //the radiative transfer input
   std::getline(file, line);
   std::getline(file, line);
+  std::cout << line << "\n";
 
-  std::istringstream line_input(line);
+  input_stream.str(line); input_stream.clear();
 
-  line_input >> radiative_transfer_model;
+  input_stream >> radiative_transfer_model;
 
-  while (line_input >> input)
+  while (input_stream >> input)
     radiative_transfer_parameters.push_back(input);
 
-  std::cout << "- Radiative transfer model: " << radiative_transfer_model << "\n";
+  std::cout << "- Radiative transfer model: " << radiative_transfer_model;
+  for (auto & i : radiative_transfer_parameters) std::cout << "  " << i;
+  std::cout << "\n";
 
   std::getline(file, line);
 
@@ -119,7 +124,7 @@ void BrownDwarfConfig::readConfigFile(const std::string& file_name)
   readChemistryConfig(file);
 
   readOpacityConfig(file);
-  
+
 
   file.close();
 }
@@ -174,7 +179,7 @@ void BrownDwarfConfig::readOpacityConfig(std::fstream& file)
     
   }
 
-  
+
   std::cout << "- Opacity species:\n";
   for (size_t i=0; i<opacity_species_symbol.size(); ++i)
     std::cout << "   species " << opacity_species_symbol[i] << "\t folder: " << opacity_species_folder[i] << "\n"; 
