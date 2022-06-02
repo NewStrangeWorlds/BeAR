@@ -107,19 +107,20 @@ void SecondaryEclipseConfig::readConfigFile(const std::string& file_name)
   std::cout << "- Use Cloud Layer: " << use_cloud_layer << "\n";
 
 
+  //the radiative transfer input
+  std::getline(file, line);
   std::getline(file, line);
 
-  file >> input >> line;
-  
-  if (input == "scm") radiative_transfer_model = 0;
-  if (input == "disort") radiative_transfer_model = 1;
-  if (input != "disort" && input != "scm")
-  {
-    std::string error_message = "Radiative transfer model " + input + " in forward_model.config unknown!\n";
-    throw ExceptionInvalidInput(std::string ("SecondaryEclipseConfig::readConfigFile"), error_message);
-  }
+  std::istringstream line_input(line);
+
+  line_input >> radiative_transfer_model;
+
+  while (line_input >> input)
+    radiative_transfer_parameters.push_back(input);
 
   std::cout << "- Radiative transfer model: " << radiative_transfer_model << "\n";
+
+  std::getline(file, line);
 
 
   readChemistryConfig(file);

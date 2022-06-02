@@ -34,7 +34,7 @@
 #include "../additional/quadrature.h"
 #include "../CUDA_kernels/data_management_kernels.h"
 #include "../spectral_grid/spectral_grid.h"
-
+#include "../additional/exceptions.h"
 
 extern "C" {
   #include "../../cdisort_src/cdisort_macros.h"
@@ -65,8 +65,14 @@ namespace helios{
 #define UTAU(lu)   ds.utau[lu-1]
 
 
-DiscreteOrdinates::DiscreteOrdinates(SpectralGrid* spectral_grid_ptr, const size_t nb_streams, const size_t nb_grid_points)
-{
+DiscreteOrdinates::DiscreteOrdinates(SpectralGrid* spectral_grid_ptr, const size_t nb_streams, const size_t nb_grid_points, const bool use_gpu)
+{ 
+  if (use_gpu)
+  {
+    std::string error_message = "Radiative transfer model CDISORT cannot run on the GPU\n";
+    throw ExceptionInvalidInput(std::string ("DiscreteOrdinates::DiscreteOrdinates"), error_message);
+  }
+
   spectral_grid = spectral_grid_ptr;
   initDISORT(nb_streams, nb_grid_points-1);
 }

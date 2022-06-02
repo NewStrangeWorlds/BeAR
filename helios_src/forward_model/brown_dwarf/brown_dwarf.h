@@ -62,8 +62,10 @@ struct BrownDwarfConfig{
   size_t temperature_poly_degree = 0;
 
   bool use_cloud_layer = false;
-  size_t radiative_transfer_model = 0;
-  
+
+  std::string radiative_transfer_model;
+  std::vector<std::string> radiative_transfer_parameters;
+
   std::vector<std::string> chemistry_model;
   std::vector<std::vector<std::string>> chemistry_parameters;
   

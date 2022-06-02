@@ -43,7 +43,7 @@ class Retrieval;
 
 class DiscreteOrdinates : public RadiativeTransfer{
   public:
-    DiscreteOrdinates(SpectralGrid* spectral_grid_ptr, const size_t nb_streams, const size_t nb_grid_points);
+    DiscreteOrdinates(SpectralGrid* spectral_grid_ptr, const size_t nb_streams, const size_t nb_grid_points, const bool use_gpu);
     virtual ~DiscreteOrdinates() {finaliseDISORT();}
     virtual void calcSpectrum(const std::vector< std::vector<double> >& absorption_coeff, 
                               const std::vector< std::vector<double> >& scattering_coeff,

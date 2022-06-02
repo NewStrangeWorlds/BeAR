@@ -1,6 +1,6 @@
 /*
 * This file is part of the Helios-r2 code (https://github.com/exoclime/Helios-r2).
-* Copyright (C) 2020 Daniel Kitzmann
+* Copyright (C) 2022 Daniel Kitzmann
 *
 * Helios-r2 is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -32,6 +32,7 @@
 #include "../../retrieval/retrieval.h"
 
 #include "../../chemistry/select_chemistry.h"
+#include "../../radiative_transfer/select_radiative_transfer.h"
 
 #include "../../temperature/piecewise_poly_temperature.h"
 #include "../../CUDA_kernels/data_management_kernels.h"
@@ -43,23 +44,10 @@ namespace helios{
 //initialise radiative transfer model
 void SecondaryEclipseModel::initRadiativeTransfer(const SecondaryEclipseConfig& model_config)
 {
-  if (model_config.radiative_transfer_model == 0)
-  {
-    ShortCharacteristics* scm = new ShortCharacteristics(&retrieval->spectral_grid);
-    radiative_transfer = scm; 
-  }
-
-  if (model_config.radiative_transfer_model == 1)
-  {
-    if (retrieval->config->use_gpu)
-    {
-      std::string error_message = "Radiative transfer model CDISORT cannot run on the GPU\n";
-      throw ExceptionInvalidInput(std::string ("SecondaryEclipseModel::SecondaryEclipseModel"), error_message);
-    }
-
-    DiscreteOrdinates* disort = new DiscreteOrdinates(&retrieval->spectral_grid, 4, nb_grid_points); 
-    radiative_transfer = disort;
-  }
+  radiative_transfer = selectRadiativeTransfer(model_config.radiative_transfer_model, 
+                                               model_config.radiative_transfer_parameters, 
+                                               model_config.nb_grid_points, 
+                                               retrieval->config, &retrieval->spectral_grid);
 
 }
 

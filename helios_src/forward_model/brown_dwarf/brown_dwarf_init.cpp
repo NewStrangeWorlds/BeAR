@@ -34,6 +34,8 @@
 #include "../../chemistry/select_chemistry.h"
 #include "../../temperature/piecewise_poly_temperature.h"
 
+#include "../../radiative_transfer/select_radiative_transfer.h"
+
 
 namespace helios{
 
@@ -41,23 +43,11 @@ namespace helios{
 //initialise radiative transfer model
 void BrownDwarfModel::initRadiativeTransfer(const BrownDwarfConfig& model_config)
 {
-  if (model_config.radiative_transfer_model == 0)
-  {
-    ShortCharacteristics* scm = new ShortCharacteristics(&retrieval->spectral_grid);
-    radiative_transfer = scm; 
-  }
 
-  if (model_config.radiative_transfer_model == 1)
-  {
-    if (retrieval->config->use_gpu)
-    {
-      std::string error_message = "Radiative transfer model CDISORT cannot run on the GPU\n";
-      throw ExceptionInvalidInput(std::string ("BrownDwarfModel::BrownDwarfModel"), error_message);
-    }
-
-    DiscreteOrdinates* disort = new DiscreteOrdinates(&retrieval->spectral_grid, 4, nb_grid_points); 
-    radiative_transfer = disort;
-  }
+  radiative_transfer = selectRadiativeTransfer(model_config.radiative_transfer_model, 
+                                               model_config.radiative_transfer_parameters, 
+                                               model_config.nb_grid_points, 
+                                               retrieval->config, &retrieval->spectral_grid);
 
 }
 

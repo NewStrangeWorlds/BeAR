@@ -1,6 +1,6 @@
 /*
 * This file is part of the Helios-r2 code (https://github.com/exoclime/Helios-r2).
-* Copyright (C) 2020 Daniel Kitzmann
+* Copyright (C) 2022 Daniel Kitzmann
 *
 * Helios-r2 is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -27,8 +27,6 @@
 #include "fastchem_chemistry.h"
 #include "isoprofile_chemistry.h"
 #include "free_chemistry.h"
-
-
 
 #include "../config/global_config.h"
 #include "../additional/exceptions.h"
@@ -57,15 +55,16 @@ inline Chemistry* selectChemistryModule(const std::string chemistry_type, const 
   auto it = std::find(chemistry_modules::description.begin(), chemistry_modules::description.end(), chemistry_type);
   auto it_short = std::find(chemistry_modules::description_short.begin(), chemistry_modules::description_short.end(), chemistry_type);
 
-  
+
   //no chemistry module is found
   if (it == chemistry_modules::description.end() && it_short == chemistry_modules::description_short.end())
   {
     std::string error_message = "Chemistry type " + chemistry_type + " unknown!\n";
     throw ExceptionInvalidInput(std::string ("forward_model.config"), error_message);
   }
-  
-  
+
+
+  //get the id of the chosen module
   chemistry_modules::id module_id = static_cast<chemistry_modules::id>(0);
 
   if (it != chemistry_modules::description.end())
@@ -74,8 +73,8 @@ inline Chemistry* selectChemistryModule(const std::string chemistry_type, const 
     module_id = static_cast<chemistry_modules::id>(std::distance(chemistry_modules::description_short.begin(), it_short));
 
 
+  //create the chemistry object based on the chosen module
   Chemistry* chemistry_module = nullptr;
-
 
   switch (module_id)
   {
