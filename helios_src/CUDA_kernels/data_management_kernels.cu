@@ -122,6 +122,31 @@ __host__ void moveToDevice(double*& device_data, std::vector<double>& host_data)
 
 
 
+//moves data array host_data of type double to the GPU
+//returns the pointer *device_data to the data on the GPU
+//if device_data already exists on the GPU it will be freed first
+//if device_data has not been previously allocated, *device_data must be a null pointer!
+__host__ void moveToDevice(double*& device_data, std::vector<double>& host_data, const bool alloc_memory)
+{
+  //delete the array if it has been previously allocated on the GPU
+  //if (*device_data != nullptr)
+    //cudaFree(*device_data);
+
+  const int bytes = host_data.size()*sizeof(double);
+
+  //alloc memory if required
+  if (alloc_memory) cudaMalloc((void**)&device_data, bytes);
+
+  cudaMemcpy(device_data, &host_data[0], bytes, cudaMemcpyHostToDevice);
+
+
+  cudaDeviceSynchronize();
+  gpuErrchk( cudaPeekAtLastError() );
+  gpuErrchk( cudaDeviceSynchronize() );
+}
+
+
+
 //moves data array host_data of pointers to double arrays to the GPU
 //returns the pointer **device_data to the data on the GPU
 //if device_data already exists on the GPU it will be freed first

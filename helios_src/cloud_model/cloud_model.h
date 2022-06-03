@@ -23,7 +23,8 @@
 
 #include <vector>
 
-#include "../atmosphere/atmosphere.h"
+#include "../forward_model/atmosphere/atmosphere.h"
+#include "../spectral_grid/spectral_grid.h"
 
 
 namespace helios {
@@ -32,11 +33,16 @@ namespace helios {
 class CloudModel{
   public:
     virtual ~CloudModel() {}
-    virtual void getOpticalProperties(const std::vector<double>& parameters, const Atmosphere& atmosphere,
-                                      const std::vector<double>& wavenumbers, const std::vector<double>& wavelengths,
-                                      std::vector<std::vector<double>>& absorption_optical_depth, 
-                                      std::vector<std::vector<double>>& scattering_optical_depth, 
-                                      std::vector<std::vector<double>>& asymmetry_parameter) = 0;
+    virtual void opticalProperties(const std::vector<double>& parameters, const Atmosphere& atmosphere,
+                                   SpectralGrid* spectral_grid,
+                                   std::vector<std::vector<double>>& optical_depth, 
+                                   std::vector<std::vector<double>>& single_scattering, 
+                                   std::vector<std::vector<double>>& asym_param) = 0;
+    virtual void opticalPropertiesGPU(const std::vector<double>& parameters, const Atmosphere& atmosphere,
+                                      SpectralGrid* spectral_grid,
+                                      double* optical_depth_dev, 
+                                      double* single_scattering_dev, 
+                                      double* asym_param) = 0;
 
     size_t nbParameters() {return nb_parameters;}
   protected:

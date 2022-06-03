@@ -46,11 +46,9 @@ void BrownDwarfModel::setPriors()
   std::vector<std::string> prior_description; 
   std::vector<std::vector<double>> prior_parameter;
 
+
   readPriorConfigFile(file_name, prior_type, prior_description, prior_parameter);
 
-  nb_general_param = 3; //whe should have three general model parameters
-  
-  if (use_cloud_layer) nb_cloud_param = 3; //three parameters for the grey cloud model
 
   //check if we have the correct number of piors
   if (prior_type.size() != nb_total_param())
@@ -58,7 +56,7 @@ void BrownDwarfModel::setPriors()
     std::string error_message = "Found " + std::to_string(prior_type.size()) + " priors in priors.config but expected " + std::to_string(nb_total_param()) + "\n";
     throw ExceptionInvalidInput(std::string ("BrownDwarfModel::setPriors"), error_message);
   }
-  
+
 
   retrieval->setPriors(prior_type, prior_description, prior_parameter);
 }

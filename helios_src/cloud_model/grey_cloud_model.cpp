@@ -29,10 +29,9 @@
 #include <omp.h>
 #include <iomanip>
 
-#include "../../chemistry/chem_species.h"
-#include "../../additional/physical_const.h"
-#include "../atmosphere/atmosphere.h"
 
+#include "../forward_model/atmosphere/atmosphere.h"
+#include "../CUDA_kernels/data_management_kernels.h"
 
 
 namespace helios{
@@ -43,24 +42,24 @@ namespace helios{
 //needs three parameters: cloud top pressure, cloud bottom (fraction of top pressure), and optical depth
 //the optical depth will be distributed over the layers between the cloud's top and bottom
 void GreyCloudModel::opticalProperties(const std::vector<double>& parameters, const Atmosphere& atmosphere,
-                                       const std::vector<double>& wavenumbers, const std::vector<double>& wavelengths,
-                                       std::vector<std::vector<double>>& absorption_optical_depth, 
-                                       std::vector<std::vector<double>>& scattering_optical_depth, 
-                                       std::vector<std::vector<double>>& asymmetry_parameter)
+                                       SpectralGrid* spectral_grid,
+                                       std::vector<std::vector<double>>& optical_depth, 
+                                       std::vector<std::vector<double>>& single_scattering, 
+                                       std::vector<std::vector<double>>& asym_param)
 {
   double cloud_top_pressure = parameters[0];
   double cloud_bottom_pressure = cloud_top_pressure * parameters[1];
   double cloud_optical_depth = parameters[2];
 
 
-  size_t nb_spectral_points = wavelengths.size();
+  size_t nb_spectral_points = spectral_grid->nbSpectralPoints();
   size_t nb_grid_points = atmosphere.nb_grid_points;
 
 
   //pre-allocate the data
-  absorption_optical_depth.assign(nb_spectral_points, std::vector<double>(nb_grid_points-1, 0.0));
-  scattering_optical_depth.assign(nb_spectral_points, std::vector<double>(nb_grid_points-1, 0.0));
-  asymmetry_parameter.assign(nb_spectral_points, std::vector<double>(nb_grid_points-1, 0.0));
+  optical_depth.assign(nb_spectral_points, std::vector<double>(nb_grid_points-1, 0.0));
+  single_scattering.assign(nb_spectral_points, std::vector<double>(nb_grid_points-1, 0.0));
+  asym_param.assign(nb_spectral_points, std::vector<double>(nb_grid_points-1, 0.0));
 
 
   unsigned int cloud_top_index = 0;
@@ -74,8 +73,52 @@ void GreyCloudModel::opticalProperties(const std::vector<double>& parameters, co
   //the grey cloud here only has absorption, no scattering
   for (size_t j=0; j<nb_spectral_points; ++j)
     for (size_t i=cloud_bottom_index; i<cloud_top_index; ++i)
-      absorption_optical_depth[j][i] = optical_depth_layer;
+      optical_depth[j][i] = optical_depth_layer;
 }
+
+
+
+
+//calculates the vertical distribution of the grey layer
+//needs three parameters: cloud top pressure, cloud bottom (fraction of top pressure), and optical depth
+//the optical depth will be distributed over the layers between the cloud's top and bottom
+void GreyCloudModel::opticalPropertiesGPU(const std::vector<double>& parameters, const Atmosphere& atmosphere,
+                                          SpectralGrid* spectral_grid,
+                                          double* optical_depth_dev, 
+                                          double* single_scattering_dev, 
+                                          double* asym_param)
+{
+  double cloud_top_pressure = parameters[0];
+  double cloud_bottom_pressure = cloud_top_pressure * parameters[1];
+  double cloud_optical_depth = parameters[2];
+
+
+  size_t nb_spectral_points = spectral_grid->nbSpectralPoints();
+  size_t nb_grid_points = atmosphere.nb_grid_points;
+
+  unsigned int cloud_top_index = 0;
+  unsigned int cloud_bottom_index = 0;
+
+  cloudPosition(atmosphere, cloud_top_pressure, cloud_bottom_pressure, cloud_top_index, cloud_bottom_index);
+
+
+  double optical_depth_layer = cloud_optical_depth/static_cast<double>(cloud_top_index - cloud_bottom_index);
+
+  std::vector<double> optical_depth(nb_spectral_points*(nb_grid_points-1), 0.0); 
+
+  //the grey cloud here only has absorption, no scattering
+  for (size_t j=0; j<nb_spectral_points; ++j)
+    for (size_t i=cloud_bottom_index; i<cloud_top_index; ++i)
+    {
+      unsigned int index = i*nb_spectral_points + j;
+
+      optical_depth[index] = optical_depth_layer;
+      std::cout << j << "\t" << i << "\t" << index << "\t" << optical_depth[index] << "\n";
+    }
+
+  moveToDevice(optical_depth_dev, optical_depth, false);
+}
+
 
 
 

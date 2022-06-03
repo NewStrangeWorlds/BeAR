@@ -30,14 +30,10 @@
 #include "../forward_model.h"
 
 #include "../atmosphere/atmosphere.h"
-
+#include "../../cloud_model/cloud_model.h"
 #include "../../chemistry/chemistry.h"
 #include "../../temperature/temperature.h"
 #include "../../transport_coeff/transport_coeff.h"
-#include "../../radiative_transfer/discrete_ordinate.h"
-#include "../../radiative_transfer/short_characteristics.h"
-
-
 #include "../../radiative_transfer/radiative_transfer.h"
 
 
@@ -69,6 +65,9 @@ struct BrownDwarfConfig{
   std::vector<std::string> chemistry_model;
   std::vector<std::vector<std::string>> chemistry_parameters;
 
+  std::string cloud_model;
+  std::vector<std::string> cloud_model_parameters;
+
   std::vector<std::string> opacity_species_symbol;
   std::vector<std::string> opacity_species_folder;
 
@@ -94,19 +93,21 @@ class BrownDwarfModel : public ForwardModel{
   protected:
     Retrieval* retrieval;
     TransportCoefficients transport_coeff;
-    RadiativeTransfer* radiative_transfer = nullptr;
-
+    
     Atmosphere atmosphere;
+    RadiativeTransfer* radiative_transfer = nullptr;
     Temperature* temperature_profile = nullptr;
     std::vector<Chemistry*> chemistry;
-
-
-    size_t nb_grid_points = 0;
+    CloudModel* cloud_model = nullptr;
+    
     size_t nb_general_param = 0;
     size_t nb_total_chemistry_param = 0;
+    size_t nb_temperature_param = 0;
     size_t nb_cloud_param = 0;
 
-    size_t nb_total_param() {return nb_general_param + nb_total_chemistry_param + temperature_profile->nbParameters() + nb_cloud_param;}
+    size_t nb_total_param() {return nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_cloud_param;}
+    
+    size_t nb_grid_points = 0;
 
     double radius_distance_scaling = 0;
 
@@ -114,16 +115,25 @@ class BrownDwarfModel : public ForwardModel{
     std::vector< std::vector<double> > scattering_coeff;
 
     bool use_cloud_layer = false;
-    std::vector<double> cloud_optical_depths;
+    std::vector<double> cloud_optical_depths1;
+    std::vector< std::vector<double> > cloud_optical_depths;
+    std::vector< std::vector<double> > cloud_single_scattering;
+    std::vector< std::vector<double> > cloud_asym_param;
 
     //pointer to the array that holds the pointers to the coefficients on the GPU
     double* absorption_coeff_gpu = nullptr;
-    
+    double* scattering_coeff_dev = nullptr;
+
+    double* cloud_optical_depths_dev = nullptr;
+    double* cloud_single_scattering_dev = nullptr;
+    double* cloud_asym_param_dev = nullptr;
+
     virtual void setPriors();
     void readPriorConfigFile(const std::string& file_name, std::vector<std::string>& prior_type, 
                                                            std::vector<std::string>& prior_description, 
                                                            std::vector<std::vector<double>>& prior_parameter);
     void initModules(const BrownDwarfConfig& model_config);
+    void initDeviceMemory();
 
     bool calcAtmosphereStructure(const std::vector<double>& parameter);
     double radiusDistanceScaling(const double distance, const double radius, const double scaling_f);

@@ -53,7 +53,7 @@ namespace helios{
 
 BrownDwarfModel::BrownDwarfModel (Retrieval* retrieval_ptr, const BrownDwarfConfig model_config) 
  : transport_coeff(retrieval_ptr->config, &retrieval_ptr->spectral_grid, model_config.opacity_species_symbol, model_config.opacity_species_folder),
-   atmosphere(model_config.nb_grid_points, model_config.atmos_boundaries)
+   atmosphere(model_config.nb_grid_points, model_config.atmos_boundaries, retrieval->config->use_gpu)
 {
   retrieval = retrieval_ptr;
   nb_grid_points = model_config.nb_grid_points;
@@ -61,41 +61,21 @@ BrownDwarfModel::BrownDwarfModel (Retrieval* retrieval_ptr, const BrownDwarfConf
   
   std::cout << "Forward model selected: Emission\n\n"; 
 
-  //allocate memory for the absorption coefficients on the GPU if necessary
-  if (retrieval->config->use_gpu)
-    allocateOnDevice(absorption_coeff_gpu, nb_grid_points*retrieval->spectral_grid.nbSpectralPoints());
+  //this forward model has three free general parameters
+  nb_general_param = 3;
+
 
   //select and set up the modules
   initModules(model_config);
 
 
+  //allocate memory for the absorption coefficients on the GPU if necessary
+  if (retrieval->config->use_gpu)
+    initDeviceMemory();
+
+
   setPriors();
 }
-
-
-
-//calculates the upper and lower grid point of the cloud based on the top and bottom pressure
-void BrownDwarfModel::calcCloudPosition(const double top_pressure, const double bottom_pressure, unsigned int& top_index, unsigned int& bottom_index)
-{
-  for (size_t i=0; i<nb_grid_points; ++i)
-  {
-    if ((atmosphere.pressure[i] > top_pressure && atmosphere.pressure[i+1] < top_pressure) || atmosphere.pressure[i] == top_pressure )
-      top_index = i;
-
-    if ((atmosphere.pressure[i] > bottom_pressure && atmosphere.pressure[i+1] < bottom_pressure) || atmosphere.pressure[i] == bottom_pressure )
-      bottom_index = i;
-  }
-
-
-  if (bottom_pressure > atmosphere.pressure[0])
-    bottom_index = 0;
-
-
-  //clouds needs to occupy at least an entire atmospheric layer
-  if (top_index == bottom_index)
-    bottom_index -= 2;
-}
-
 
 
 
@@ -149,14 +129,6 @@ bool BrownDwarfModel::calcAtmosphereStructure(const std::vector<double>& paramet
   neglect_model = atmosphere.calcAtmosphereStructure(surface_gravity, temperature_profile, temp_parameters, chemistry, chem_parameters);
 
 
-  //optional cloud layer
-  if (use_cloud_layer)
-  {
-    std::vector<double> cloud_parameters(parameter.begin() + nb_general_param + nb_total_chemistry_param + temperature_profile->nbParameters(),
-                                         parameter.begin() + nb_general_param + nb_total_chemistry_param + temperature_profile->nbParameters() + nb_cloud_param);
-    calcGreyCloudLayer(cloud_parameters);
-  }
-
   return neglect_model;
 }
 
@@ -168,10 +140,24 @@ bool BrownDwarfModel::calcModel(const std::vector<double>& parameter, std::vecto
   bool neglect = calcAtmosphereStructure(parameter);
 
 
+  cloud_optical_depths.assign(retrieval->spectral_grid.nbSpectralPoints(), std::vector<double>(nb_grid_points-1, 0.0));
+  cloud_single_scattering.assign(retrieval->spectral_grid.nbSpectralPoints(), std::vector<double>(nb_grid_points-1, 0.0));
+  cloud_asym_param.assign(retrieval->spectral_grid.nbSpectralPoints(), std::vector<double>(nb_grid_points-1, 0.0));
+
+  //calculate cloud model if needed
+  if (cloud_model != nullptr)
+  {
+    std::vector<double> cloud_parameters(parameter.begin() + nb_general_param + nb_total_chemistry_param + nb_temperature_param,
+                                      parameter.begin() + nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_cloud_param);
+   
+    cloud_model->opticalProperties(cloud_parameters, atmosphere, &retrieval->spectral_grid, cloud_optical_depths, cloud_single_scattering, cloud_asym_param);
+  }
+
+  
+  //calculate gas absorption coefficients
   absorption_coeff.assign(retrieval->spectral_grid.nbSpectralPoints(), std::vector<double>(nb_grid_points, 0.0));
   scattering_coeff.assign(retrieval->spectral_grid.nbSpectralPoints(), std::vector<double>(nb_grid_points, 0.0));
 
-  
   for (size_t i=0; i<nb_grid_points; ++i)
   {
     std::vector<double> absorption_coeff_level(retrieval->spectral_grid.nbSpectralPoints(), 0.0);
@@ -190,13 +176,14 @@ bool BrownDwarfModel::calcModel(const std::vector<double>& parameter, std::vecto
   spectrum.assign(retrieval->spectral_grid.nbSpectralPoints(), 0.0);
  
   radiative_transfer->calcSpectrum(absorption_coeff, scattering_coeff, 
-                                   cloud_optical_depths, atmosphere.temperature, atmosphere.altitude, 
+                                   cloud_optical_depths, cloud_single_scattering, cloud_asym_param,
+                                   atmosphere.temperature, atmosphere.altitude, 
                                    spectrum);
 
 
   for (size_t i=0; i<retrieval->spectral_grid.nbSpectralPoints(); ++i)
     spectrum[i] *= radius_distance_scaling;
-  
+
 
   return neglect;
 }
@@ -210,6 +197,16 @@ bool BrownDwarfModel::calcModelGPU(const std::vector<double>& parameter, double*
   bool neglect = calcAtmosphereStructure(parameter);
 
 
+  //calculate cloud model if needed
+  if (cloud_model != nullptr)
+  { 
+    std::vector<double> cloud_parameters(parameter.begin() + nb_general_param + nb_total_chemistry_param + nb_temperature_param,
+                                      parameter.begin() + nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_cloud_param);
+   
+    cloud_model->opticalPropertiesGPU(cloud_parameters, atmosphere, &retrieval->spectral_grid, cloud_optical_depths_dev, cloud_single_scattering_dev, cloud_asym_param_dev);
+  }
+
+
   initCrossSectionsHost(retrieval->spectral_grid.nbSpectralPoints()*nb_grid_points, absorption_coeff_gpu);
 
 
@@ -219,12 +216,13 @@ bool BrownDwarfModel::calcModelGPU(const std::vector<double>& parameter, double*
                                                  absorption_coeff_gpu, nullptr);
 
  
-  radiative_transfer->calcSpectrumGPU(model_spectrum_gpu,
+  radiative_transfer->calcSpectrumGPU(atmosphere,
+                                      model_spectrum_gpu,
                                       absorption_coeff_gpu, 
                                       nullptr,
-                                      retrieval->spectral_grid.wavenumber_list_gpu,
-                                      cloud_optical_depths,
-                                      atmosphere.temperature, atmosphere.altitude,
+                                      cloud_optical_depths_dev,
+                                      cloud_single_scattering_dev,
+                                      cloud_asym_param_dev,
                                       radius_distance_scaling);
 
 
@@ -271,43 +269,28 @@ bool BrownDwarfModel::calcModelGPU(const std::vector<double>& parameter, double*
 
 
 
-//calculates the vertical distribution of the grey layer
-//needs three parameters: cloud top pressure, cloud bottom (fraction of top pressure), and optical depth
-//the optical depth will be distributed over the layers between the cloud's top and bottom
-void BrownDwarfModel::calcGreyCloudLayer(const std::vector<double>& cloud_parameters)
-{
-  double cloud_top_pressure = cloud_parameters[0];
-  double cloud_bottom_pressure = cloud_top_pressure * cloud_parameters[1];
-  double cloud_optical_depth = cloud_parameters[2];
-
-  
-  unsigned int cloud_top_index = 0;
-  unsigned int cloud_bottom_index = 0;
-
-  calcCloudPosition(cloud_top_pressure, cloud_bottom_pressure, cloud_top_index, cloud_bottom_index);
-
-  double cloud_optical_depth_layer = cloud_optical_depth/static_cast<double>(cloud_top_index - cloud_bottom_index); 
-
-  cloud_optical_depths.assign(nb_grid_points-1, 0);
-
-  for (size_t i=cloud_bottom_index; i<cloud_top_index; ++i)
-    cloud_optical_depths[i] = cloud_optical_depth_layer;
-}
-
-
-
-
 BrownDwarfModel::~BrownDwarfModel()
 {
   if (retrieval->config->use_gpu)
+  {
     deleteFromDevice(absorption_coeff_gpu);
+    deleteFromDevice(scattering_coeff_dev);
+
+    if (cloud_model != nullptr)
+    {
+      deleteFromDevice(cloud_optical_depths_dev);
+      deleteFromDevice(cloud_single_scattering_dev);
+      deleteFromDevice(cloud_asym_param_dev);
+    }
+  }
+
 
   delete radiative_transfer;
+  delete temperature_profile;
+  delete cloud_model;
   
   for (auto & i : chemistry)
     delete i;
-
-  delete temperature_profile;
 }
 
 

@@ -46,11 +46,9 @@ void SecondaryEclipseModel::setPriors()
   std::vector<std::string> prior_description; 
   std::vector<std::vector<double>> prior_parameter;
 
+
   readPriorConfigFile(file_name, prior_type, prior_description, prior_parameter);
 
-  nb_general_param = 3; //we should have four general model parameters
-  
-  if (use_cloud_layer) nb_cloud_param = 3; //three parameters for the grey cloud model
 
   //check if we have the correct number of piors
   if (prior_type.size() != nb_total_param())

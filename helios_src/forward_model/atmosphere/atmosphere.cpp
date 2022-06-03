@@ -31,13 +31,15 @@
 
 #include "../../chemistry/chem_species.h"
 #include "../../additional/physical_const.h"
+#include "../../CUDA_kernels/data_management_kernels.h"
+
 
 
 namespace helios{
 
 
 
-Atmosphere::Atmosphere(const size_t nb_grid_points_, const double atmos_boundaries [2]) : nb_grid_points(nb_grid_points_)
+Atmosphere::Atmosphere(const size_t nb_grid_points_, const double atmos_boundaries [2], const bool use_gpu) : nb_grid_points(nb_grid_points_)
 {
   createPressureGrid(atmos_boundaries);
 
@@ -45,6 +47,13 @@ Atmosphere::Atmosphere(const size_t nb_grid_points_, const double atmos_boundari
   temperature.assign(nb_grid_points, 0.0);
   altitude.assign(nb_grid_points, 0.0);
   number_densities.assign(nb_grid_points, std::vector<double>(constants::species_data.size(), 0.0));
+
+  if (use_gpu)
+  {
+    allocateOnDevice(temperature_dev, nb_grid_points);
+    allocateOnDevice(altitude_dev, nb_grid_points);
+    allocateOnDevice(pressure_dev, nb_grid_points);
+  }
 }
 
 
@@ -130,6 +139,18 @@ void Atmosphere::createPressureGrid(const double atmos_boundaries [2])
 
   pressure.back() = min_pressure;
 }
+
+
+
+Atmosphere::~Atmosphere()
+{
+
+  deleteFromDevice(temperature_dev);
+  deleteFromDevice(altitude_dev);
+  deleteFromDevice(pressure_dev);
+
+}
+
 
 
 

@@ -34,6 +34,7 @@
 #include "../../chemistry/select_chemistry.h"
 #include "../../radiative_transfer/select_radiative_transfer.h"
 #include "../../temperature/select_temperature_profile.h"
+#include "../../cloud_model/select_cloud_model.h"
 
 #include "../../CUDA_kernels/data_management_kernels.h"
 
@@ -65,6 +66,13 @@ void SecondaryEclipseModel::initModules(const SecondaryEclipseConfig& model_conf
   temperature_profile = selectTemperatureProfile(model_config.temperature_profile_model, 
                                                  model_config.temperature_profile_parameters, 
                                                  model_config.atmos_boundaries);
+
+  nb_temperature_param = temperature_profile->nbParameters();
+
+
+  cloud_model = selectCloudModel(model_config.cloud_model, model_config.cloud_model_parameters);
+
+  if (cloud_model != nullptr) nb_cloud_param = cloud_model->nbParameters();
 }
 
 
@@ -146,6 +154,31 @@ void SecondaryEclipseModel::binStellarSpectrum()
 
   if (retrieval->config->use_gpu)
     moveToDevice(stellar_spectrum_bands_gpu, stellar_spectrum_bands);
+
+}
+
+
+
+
+//initialises the varous modules of the forward model
+void SecondaryEclipseModel::initDeviceMemory()
+{
+  allocateOnDevice(absorption_coeff_gpu, nb_grid_points*retrieval->spectral_grid.nbSpectralPoints());
+  allocateOnDevice(scattering_coeff_dev, nb_grid_points*retrieval->spectral_grid.nbSpectralPoints());
+
+
+  if (cloud_model != nullptr)
+  { 
+    const size_t nb_layers = nb_grid_points - 1;
+
+    allocateOnDevice(cloud_optical_depths_dev, nb_layers*retrieval->spectral_grid.nbSpectralPoints());
+    allocateOnDevice(cloud_single_scattering_dev, nb_layers*retrieval->spectral_grid.nbSpectralPoints());
+    allocateOnDevice(cloud_asym_param_dev, nb_layers*retrieval->spectral_grid.nbSpectralPoints());
+
+    intializeOnDevice(cloud_optical_depths_dev, nb_layers*retrieval->spectral_grid.nbSpectralPoints());
+    intializeOnDevice(cloud_single_scattering_dev, nb_layers*retrieval->spectral_grid.nbSpectralPoints());
+    intializeOnDevice(cloud_asym_param_dev, nb_layers*retrieval->spectral_grid.nbSpectralPoints());
+  }
 
 }
 

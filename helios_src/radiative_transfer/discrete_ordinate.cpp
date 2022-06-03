@@ -79,16 +79,20 @@ DiscreteOrdinates::DiscreteOrdinates(SpectralGrid* spectral_grid_ptr, const size
 
 
 
-void DiscreteOrdinates::calcSpectrum(const std::vector< std::vector<double> >& absorption_coeff, const std::vector< std::vector<double> >& scattering_coeff, 
-                                     const std::vector<double>& cloud_optical_depth,
-                                     const std::vector<double>& temperature, const std::vector<double>& vertical_grid,
+void DiscreteOrdinates::calcSpectrum(const std::vector< std::vector<double> >& absorption_coeff, 
+                                     const std::vector< std::vector<double> >& scattering_coeff,
+                                     const std::vector< std::vector<double> >& cloud_optical_depth,
+                                     const std::vector< std::vector<double> >& cloud_single_scattering,
+                                     const std::vector< std::vector<double> >& cloud_asym_param,
+                                     const std::vector<double>& temperature, 
+                                     const std::vector<double>& vertical_grid,
                                      std::vector<double>& spectrum)
 {
   receiveTemperatureStructure(temperature, temperature[0]);
 
 
   for (size_t i=0; i<spectrum.size(); ++i)
-    spectrum[i] = calcSpectrum(absorption_coeff[i], scattering_coeff[i], cloud_optical_depth, vertical_grid, i);
+    spectrum[i] = calcSpectrum(absorption_coeff[i], scattering_coeff[i], cloud_optical_depth[i], vertical_grid, i);
 }
 
 

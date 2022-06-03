@@ -29,8 +29,10 @@ namespace helios{
 
 void allocateOnDevice(double*& device_data, size_t nb_double_values);
 void deleteFromDevice(double*& device_data);
+void moveToDevice(double*& device_data, std::vector<double>& host_data, const bool alloc_memory);
 void moveToDevice(double*& device_data, std::vector<double>& host_data);
 void moveToHost(double*& device_data, std::vector<double>& host_data);
+
 
 
 void moveToDevice(double**& device_data, std::vector<double*>& host_data);

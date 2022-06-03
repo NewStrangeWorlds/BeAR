@@ -42,6 +42,14 @@ void shortCharacteristicsGPU(double* model_spectrum_gpu,
                              const double radius_distance_scaling,
                              const size_t& nb_spectral_points);
 
+
+void shortCharacteristicsGPU(double* model_spectrum_dev,
+                             double* absorption_coeff_dev, double* wavenumber_list_dev,
+                             double* cloud_optical_depth_dev,
+                             const std::vector<double>& temperature, const std::vector<double>& vertical_grid,
+                             const double spectrum_scaling,
+                             const size_t& nb_spectral_points);
+
 }
 
 

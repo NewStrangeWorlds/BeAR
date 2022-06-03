@@ -47,18 +47,20 @@ class DiscreteOrdinates : public RadiativeTransfer{
     virtual ~DiscreteOrdinates() {finaliseDISORT();}
     virtual void calcSpectrum(const std::vector< std::vector<double> >& absorption_coeff, 
                               const std::vector< std::vector<double> >& scattering_coeff,
-                              const std::vector<double>& cloud_optical_depth,
+                              const std::vector< std::vector<double> >& cloud_optical_depth,
+                              const std::vector< std::vector<double> >& cloud_single_scattering,
+                              const std::vector< std::vector<double> >& cloud_asym_param,
                               const std::vector<double>& temperature, 
                               const std::vector<double>& vertical_grid,
                               std::vector<double>& spectrum);
-    virtual void calcSpectrumGPU(double* model_spectrum_dev,
-                                 double* absorption_coeff_dev, 
-                                 double* scattering_coeff_dev, 
-                                 double* wavenumber_list_dev,
-                                 const std::vector<double>& cloud_optical_depth,
-                                 const std::vector<double>& temperature, 
-                                 const std::vector<double>& vertical_grid,
-                                 const double radius_distance_scaling) {std::cout << "Sorry, CDISORT has no GPU option :(\n";}
+    virtual void calcSpectrumGPU(const Atmosphere& atmosphere,
+                                 double* model_spectrum_dev,
+                                 double* absorption_coeff_dev,
+                                 double* scattering_coeff_dev,
+                                 double* cloud_optical_depth,
+                                 double* cloud_single_scattering,
+                                 double* cloud_asym_param,
+                                 const double spectrum_scaling) {std::cout << "Sorry, CDISORT has no GPU option :(\n";}
   private:
     SpectralGrid* spectral_grid;
     

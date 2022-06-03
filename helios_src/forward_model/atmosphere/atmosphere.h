@@ -38,7 +38,8 @@ namespace helios {
 
 class Atmosphere {
   public:
-    Atmosphere (const size_t nb_grid_points_, const double atmos_boundaries [2]);
+    Atmosphere (const size_t nb_grid_points_, const double atmos_boundaries [2], const bool use_gpu);
+    ~Atmosphere();
 
     const size_t nb_grid_points = 0;
 
@@ -46,6 +47,10 @@ class Atmosphere {
     std::vector<double> temperature;
     std::vector<double> altitude;
     std::vector< std::vector<double> > number_densities;
+
+    double* altitude_dev = nullptr;
+    double* pressure_dev = nullptr;
+    double* temperature_dev = nullptr;
 
     bool calcAtmosphereStructure(const double surface_gravity,
                                  Temperature* temperature_profile, const std::vector<double>& temp_parameters,

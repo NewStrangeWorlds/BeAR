@@ -34,6 +34,10 @@
 #include "../../chemistry/select_chemistry.h"
 #include "../../temperature/select_temperature_profile.h"
 #include "../../radiative_transfer/select_radiative_transfer.h"
+#include "../../cloud_model/select_cloud_model.h"
+
+#include "../../CUDA_kernels/data_management_kernels.h"
+
 
 
 namespace helios{
@@ -48,10 +52,14 @@ void BrownDwarfModel::initModules(const BrownDwarfConfig& model_config)
                                                retrieval->config, &retrieval->spectral_grid);
 
 
+
   chemistry.assign(model_config.chemistry_model.size(), nullptr);
 
   for (size_t i=0; i<model_config.chemistry_model.size(); ++i)
-    chemistry[i] = selectChemistryModule(model_config.chemistry_model[i], model_config.chemistry_parameters[i], retrieval->config, model_config.atmos_boundaries);
+    chemistry[i] = selectChemistryModule(model_config.chemistry_model[i], 
+                                         model_config.chemistry_parameters[i], 
+                                         retrieval->config, 
+                                         model_config.atmos_boundaries);
   
   //count the total number of free parameters for the chemistry modules
   nb_total_chemistry_param = 0;
@@ -60,12 +68,44 @@ void BrownDwarfModel::initModules(const BrownDwarfConfig& model_config)
     nb_total_chemistry_param += i->nbParameters(); 
 
 
+
   temperature_profile = selectTemperatureProfile(model_config.temperature_profile_model, 
                                                  model_config.temperature_profile_parameters, 
                                                  model_config.atmos_boundaries);
+
+  nb_temperature_param = temperature_profile->nbParameters();
+
+
+
+  cloud_model = selectCloudModel(model_config.cloud_model, model_config.cloud_model_parameters);
+
+  if (cloud_model != nullptr) nb_cloud_param = cloud_model->nbParameters();
 }
 
 
+
+
+//initialises the varous modules of the forward model
+void BrownDwarfModel::initDeviceMemory()
+{
+  allocateOnDevice(absorption_coeff_gpu, nb_grid_points*retrieval->spectral_grid.nbSpectralPoints());
+  allocateOnDevice(scattering_coeff_dev, nb_grid_points*retrieval->spectral_grid.nbSpectralPoints());
+
+
+  if (cloud_model != nullptr)
+  { 
+    const size_t nb_layers = nb_grid_points - 1;
+
+    allocateOnDevice(cloud_optical_depths_dev, nb_layers*retrieval->spectral_grid.nbSpectralPoints());
+    allocateOnDevice(cloud_single_scattering_dev, nb_layers*retrieval->spectral_grid.nbSpectralPoints());
+    allocateOnDevice(cloud_asym_param_dev, nb_layers*retrieval->spectral_grid.nbSpectralPoints());
+
+    intializeOnDevice(cloud_optical_depths_dev, nb_layers*retrieval->spectral_grid.nbSpectralPoints());
+    intializeOnDevice(cloud_single_scattering_dev, nb_layers*retrieval->spectral_grid.nbSpectralPoints());
+    intializeOnDevice(cloud_asym_param_dev, nb_layers*retrieval->spectral_grid.nbSpectralPoints());
+  }
+
+}
 
 
 }
