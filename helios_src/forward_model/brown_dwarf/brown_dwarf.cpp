@@ -53,7 +53,7 @@ namespace helios{
 
 BrownDwarfModel::BrownDwarfModel (Retrieval* retrieval_ptr, const BrownDwarfConfig model_config) 
  : transport_coeff(retrieval_ptr->config, &retrieval_ptr->spectral_grid, model_config.opacity_species_symbol, model_config.opacity_species_folder),
-   atmosphere(model_config.nb_grid_points, model_config.atmos_boundaries, retrieval->config->use_gpu)
+   atmosphere(model_config.nb_grid_points, model_config.atmos_boundaries, retrieval_ptr->config->use_gpu)
 {
   retrieval = retrieval_ptr;
   nb_grid_points = model_config.nb_grid_points;
@@ -63,7 +63,6 @@ BrownDwarfModel::BrownDwarfModel (Retrieval* retrieval_ptr, const BrownDwarfConf
 
   //this forward model has three free general parameters
   nb_general_param = 3;
-
 
   //select and set up the modules
   initModules(model_config);
@@ -261,8 +260,6 @@ bool BrownDwarfModel::calcModelGPU(const std::vector<double>& parameter, double*
                      retrieval->spectral_grid.wavenumber_list_gpu,
                      retrieval->spectral_grid.wavelength_list_gpu,
                      model_spectrum_bands);
-
-  //convolveHSTSpectrumGPU(model_spectrum_bands, retrieval->nb_total_bands);
 
   return neglect;
 }

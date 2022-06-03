@@ -156,9 +156,6 @@ class SecondaryEclipseModel : public ForwardModel{
     bool calcAtmosphereStructure(const std::vector<double>& parameter);
     double radiusDistanceScaling(const double distance, const double radius, const double scaling_f);
 
-    void calcGreyCloudLayer(const std::vector<double>& cloud_parameters);
-    void calcCloudPosition(const double top_pressure, const double bottom_pressure, unsigned int& top_index, unsigned int& bottom_index);
-
     void postProcessModel(const std::vector<double>& parameter, const std::vector<double>& model_spectrum_bands, 
                           std::vector<double>& temperature_profile, double& effective_temperature,
                           std::vector<std::vector<double>>& mixing_ratios);

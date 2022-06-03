@@ -25,7 +25,6 @@
 #include <string>
 
 
-#include "../forward_model/forward_model.h"
 #include "../spectral_grid/spectral_grid.h"
 #include "../observations/observations.h"
 #include "../config/global_config.h"
@@ -49,8 +48,6 @@ class PostProcess : public Retrieval{
     
     virtual bool doRetrieval();
   private:
-    ForwardModel* forward_model;
-
     std::vector< std::vector<double> > model_parameter;      //the values of the posteriors
     std::vector<double> log_like;                            //and their likelihood values
  

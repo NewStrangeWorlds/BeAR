@@ -53,7 +53,7 @@ namespace helios{
 
 SecondaryEclipseModel::SecondaryEclipseModel (Retrieval* retrieval_ptr, const SecondaryEclipseConfig model_config) 
  : transport_coeff(retrieval_ptr->config, &retrieval_ptr->spectral_grid, model_config.opacity_species_symbol, model_config.opacity_species_folder),
-   atmosphere(model_config.nb_grid_points, model_config.atmos_boundaries, retrieval->config->use_gpu)
+   atmosphere(model_config.nb_grid_points, model_config.atmos_boundaries, retrieval_ptr->config->use_gpu)
 {
   retrieval = retrieval_ptr;
   nb_grid_points = model_config.nb_grid_points;
@@ -78,28 +78,6 @@ SecondaryEclipseModel::SecondaryEclipseModel (Retrieval* retrieval_ptr, const Se
   setPriors();
 }
 
-
-//calculates the upper and lower grid point of the cloud based on the top and bottom pressure
-void SecondaryEclipseModel::calcCloudPosition(const double top_pressure, const double bottom_pressure, unsigned int& top_index, unsigned int& bottom_index)
-{
-  for (size_t i=0; i<nb_grid_points; ++i)
-  {
-    if ((atmosphere.pressure[i] > top_pressure && atmosphere.pressure[i+1] < top_pressure) || atmosphere.pressure[i] == top_pressure )
-      top_index = i;
-
-    if ((atmosphere.pressure[i] > bottom_pressure && atmosphere.pressure[i+1] < bottom_pressure) || atmosphere.pressure[i] == bottom_pressure )
-      bottom_index = i;
-  }
-
-
-  if (bottom_pressure > atmosphere.pressure[0])
-    bottom_index = 0;
-
-
-  //clouds needs to occupy at least an entire atmospheric layer
-  if (top_index == bottom_index)
-    bottom_index -= 2;
-}
 
 
 //determines the basic atmospheric structure (temperature profile, chemistry...) from the free parameters supplied by MultiNest
@@ -284,31 +262,6 @@ std::vector<double> SecondaryEclipseModel::calcSecondaryEclipse(std::vector<doub
                            + geometric_albedo * radius_distance_ratio*radius_distance_ratio;
   
   return secondary_eclipse;
-}
-
-
-
-//calculates the vertical distribution of the grey layer
-//needs three parameters: cloud top pressure, cloud bottom (fraction of top pressure), and optical depth
-//the optical depth will be distributed over the layers between the cloud's top and bottom
-void SecondaryEclipseModel::calcGreyCloudLayer(const std::vector<double>& cloud_parameters)
-{
-  double cloud_top_pressure = cloud_parameters[0];
-  double cloud_bottom_pressure = cloud_top_pressure * cloud_parameters[1];
-  double cloud_optical_depth = cloud_parameters[2];
-
-  
-  unsigned int cloud_top_index = 0;
-  unsigned int cloud_bottom_index = 0;
-
-  calcCloudPosition(cloud_top_pressure, cloud_bottom_pressure, cloud_top_index, cloud_bottom_index);
-
-  double cloud_optical_depth_layer = cloud_optical_depth/static_cast<double>(cloud_top_index - cloud_bottom_index); 
-
-  cloud_optical_depths1.assign(nb_grid_points-1, 0);
-
-  for (size_t i=cloud_bottom_index; i<cloud_top_index; ++i)
-    cloud_optical_depths1[i] = cloud_optical_depth_layer;
 }
 
 

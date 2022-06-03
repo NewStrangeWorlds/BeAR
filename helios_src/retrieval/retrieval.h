@@ -86,11 +86,11 @@ class Retrieval{
 
     std::vector<double*> band_spectrum_id;           //contains a pointer for each observation to either the high-res spectrum or one of its convolutions on the GPU
   protected:
+    ForwardModel* forward_model = nullptr;
     void loadObservations(const std::string file_folder, const std::vector<std::string>& file_list);
     void loadObservationFileList(const std::string file_folder, std::vector<std::string>& file_list);
     ForwardModel* selectForwardModel(const std::string model_description);
   private:
-    ForwardModel* forward_model = nullptr;
     std::vector<BasicPrior*> priors;
 
     void setAdditionalPriors();

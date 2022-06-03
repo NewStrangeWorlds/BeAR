@@ -36,7 +36,6 @@ namespace helios{
 //Exits with an error if the selected forward model is unkown
 ForwardModel* Retrieval::selectForwardModel(const std::string model_description)
 {
-
   if (model_description == "emission" || model_description == "Emission" || model_description == "em")
   {
     BrownDwarfModel* model = new BrownDwarfModel(this, BrownDwarfConfig (config->retrieval_folder_path));

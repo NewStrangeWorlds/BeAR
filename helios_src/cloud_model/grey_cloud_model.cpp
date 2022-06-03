@@ -52,6 +52,9 @@ void GreyCloudModel::opticalProperties(const std::vector<double>& parameters, co
   double cloud_optical_depth = parameters[2];
 
 
+  if (cloud_optical_depth < 0) cloud_optical_depth = 0;
+
+
   size_t nb_spectral_points = spectral_grid->nbSpectralPoints();
   size_t nb_grid_points = atmosphere.nb_grid_points;
 
@@ -93,6 +96,9 @@ void GreyCloudModel::opticalPropertiesGPU(const std::vector<double>& parameters,
   double cloud_optical_depth = parameters[2];
 
 
+  if (cloud_optical_depth < 0) cloud_optical_depth = 0;
+
+
   size_t nb_spectral_points = spectral_grid->nbSpectralPoints();
   size_t nb_grid_points = atmosphere.nb_grid_points;
 
@@ -113,7 +119,6 @@ void GreyCloudModel::opticalPropertiesGPU(const std::vector<double>& parameters,
       unsigned int index = i*nb_spectral_points + j;
 
       optical_depth[index] = optical_depth_layer;
-      std::cout << j << "\t" << i << "\t" << index << "\t" << optical_depth[index] << "\n";
     }
 
   moveToDevice(optical_depth_dev, optical_depth, false);
