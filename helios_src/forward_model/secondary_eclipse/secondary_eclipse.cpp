@@ -34,6 +34,7 @@
 #include "../../CUDA_kernels/cross_section_kernels.h"
 #include "../../CUDA_kernels/filter_response_kernels.h"
 #include "../../CUDA_kernels/band_integration_kernels.h"
+#include "../../CUDA_kernels/convolution_kernels.h"
 
 
 #include "../../chemistry/chem_species.h"
@@ -195,6 +196,7 @@ bool SecondaryEclipseModel::calcModelGPU(const std::vector<double>& parameter, d
                                       cloud_asym_param_dev,
                                       1.0);
 
+
   for (size_t i=0; i<retrieval->observations.size(); ++i)
   {
     if (retrieval->observations[i].filter_response.size() != 0) 
@@ -204,16 +206,22 @@ bool SecondaryEclipseModel::calcModelGPU(const std::vector<double>& parameter, d
                              retrieval->observations[i].filter_response_weight_gpu, 
                              retrieval->observations[i].filter_response_normalisation,
                              retrieval->spectral_grid.nbSpectralPoints(),
-                             retrieval->convolved_spectra[i]);
-    
-    /*std::cout << i << "\t" << retrieval->convolved_spectra[i] << "\t" << model_spectrum_gpu << "\n";
-    std::vector<double> test_spectrum(retrieval->spectral_grid.nbSpectralPoints(), 0.0);
-    moveToHost(retrieval->convolved_spectra[i], test_spectrum);
+                             retrieval->filter_response_spectra[i]);
 
-    for (size_t j=0; j<retrieval->spectral_grid.nbSpectralPoints(); ++j)
-      std::cout << j << "\t" << retrieval->spectral_grid.wavelength_list[j] << "\t" << test_spectrum[j] << "\n";
-    std::cout << "\n\n";*/
+
+    size_t nb_points_observation = retrieval->observations[i].spectral_bands.wavenumbers.size();
+
+    if (retrieval->observations[i].instrument_profile_fwhm.size() != 0) 
+      convolveSpectrumGPU(retrieval->filter_response_spectra[i], 
+                          retrieval->observation_wavelengths[i], 
+                          retrieval->observation_profile_sigma[i], 
+                          retrieval->observation_spectral_indices[i],
+                          retrieval->convolution_start_index[i], 
+                          retrieval->convolution_end_index[i], 
+                          nb_points_observation, 
+                          retrieval->convolved_spectra[i]);
   }
+
 
   double* planet_spectrum_bands = nullptr;
   allocateOnDevice(planet_spectrum_bands, retrieval->nb_total_bands);

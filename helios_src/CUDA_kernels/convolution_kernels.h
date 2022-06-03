@@ -35,8 +35,6 @@ void convolveSpectrumGPU(double* spectrum,
                          const int nb_points,
                          double* convolved_spectrum);
 
-void convolveHSTSpectrumGPU(double* spectrum_bands, 
-                            const int nb_bands);
 
 }
 
