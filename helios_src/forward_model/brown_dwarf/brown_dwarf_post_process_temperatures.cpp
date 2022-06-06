@@ -43,7 +43,7 @@ namespace helios{
 //it uses the "observation" at the back of the observation vector
 //assuming that this is the postprocess_spectrum_data
 //this could in principle be a multi-band "observation" here, the method will sum up all fluxes
-double BrownDwarfModel::postProcessEffectiveTemperature(const std::vector<double>& model_spectrum_bands)
+double BrownDwarfModel::postProcessEffectiveTemperature(const std::vector<double>& model_spectrum_bands, const double radius_distance_scaling)
 {
   //the required "observation" is the last one
   size_t nb_bands = retrieval->observations.back().spectral_bands.nbBands();

@@ -53,10 +53,11 @@ void BrownDwarfModel::postProcess(const std::vector< std::vector<double> >& mode
 
   for (size_t i=0; i<nb_models; ++i)
     postProcessModel(model_parameter[i], model_spectrum_bands[i], temperature_profiles[i], effective_temperatures[i], mixing_ratios[i]);
-    
+
 
   for (auto & i : postprocess_species)
     savePostProcessChemistry(mixing_ratios, i);
+
 
   savePostProcessEffectiveTemperatures(effective_temperatures);
   savePostProcessTemperatures(temperature_profiles);
@@ -78,10 +79,12 @@ void BrownDwarfModel::postProcessModel(const std::vector<double>& model_paramete
       mixing_ratios[i.id][j] = atmosphere.number_densities[j][i.id]/atmosphere.number_densities[j][_TOTAL];
   }
 
- 
+
   temperature_profile = atmosphere.temperature;
 
-  effective_temperature = postProcessEffectiveTemperature(model_spectrum_bands);
+  const double radius_distance_scaling = radiusDistanceScaling(model_parameter);
+
+  effective_temperature = postProcessEffectiveTemperature(model_spectrum_bands, radius_distance_scaling);
 }
 
 

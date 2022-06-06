@@ -45,7 +45,7 @@ class SpectralBands{
     void setInstrumentProfileFWHW(std::vector<double>& profile_fwhm);
     
     void bandIntegrateSpectrum(const std::vector<double>& spectrum, std::vector<double>& band_values);
-    void convolveSpectrum(const std::vector<double>& spectrum, std::vector<double>& convolved_spectrum);
+    std::vector<double> convolveSpectrum(const std::vector<double>& spectrum);
 
     size_t nbBands() {return nb_bands;}
 

@@ -108,7 +108,7 @@ bool SecondaryEclipseModel::calcAtmosphereStructure(const std::vector<double>& p
 
 
 //Runs the forward model on the CPU and calculates a high-resolution spectrum
-bool SecondaryEclipseModel::calcModel(const std::vector<double>& parameter, std::vector<double>& spectrum)
+bool SecondaryEclipseModel::calcModel(const std::vector<double>& parameter, std::vector<double>& spectrum, std::vector<double>& model_spectrum_bands)
 {
   bool neglect = calcAtmosphereStructure(parameter);
 
@@ -154,6 +154,20 @@ bool SecondaryEclipseModel::calcModel(const std::vector<double>& parameter, std:
                                    spectrum);
 
 
+  //post-process the planet's high-res emission spectrum and bin it to the observational bands
+  std::vector<double> planet_spectrum_bands(retrieval->nb_observation_points, 0);
+  postProcessSpectrum(spectrum, planet_spectrum_bands);
+
+
+  model_spectrum_bands.assign(retrieval->nb_observation_points, 0);
+  std::vector<double> albedo_contribution(retrieval->nb_total_bands, 0.0);
+  const double radius_ratio = parameter[1];
+  
+  //calculate the secondary-eclipse depth with an optional geometric albedo contribution
+  for (size_t i=0; i<model_spectrum_bands.size(); ++i)
+    model_spectrum_bands[i] = planet_spectrum_bands[i]/stellar_spectrum_bands[i] * radius_ratio*radius_ratio * 1e6 + albedo_contribution[i]*1e6;
+
+
   return neglect;
 }
 
@@ -180,7 +194,6 @@ bool SecondaryEclipseModel::calcModelGPU(const std::vector<double>& parameter, d
 
   initCrossSectionsHost(retrieval->spectral_grid.nbSpectralPoints()*nb_grid_points, absorption_coeff_gpu);
 
-
   for (size_t i=0; i<nb_grid_points; ++i)
     transport_coeff.calcTransportCoefficientsGPU(atmosphere.temperature[i], atmosphere.pressure[i], atmosphere.number_densities[i],
                                                  nb_grid_points, i,
@@ -197,45 +210,11 @@ bool SecondaryEclipseModel::calcModelGPU(const std::vector<double>& parameter, d
                                       1.0);
 
 
-  for (size_t i=0; i<retrieval->observations.size(); ++i)
-  {
-    if (retrieval->observations[i].filter_response.size() != 0) 
-      applyFilterResponseGPU(retrieval->spectral_grid.wavenumber_list_gpu,
-                             model_spectrum_gpu, 
-                             retrieval->observations[i].filter_response_gpu, 
-                             retrieval->observations[i].filter_response_weight_gpu, 
-                             retrieval->observations[i].filter_response_normalisation,
-                             retrieval->spectral_grid.nbSpectralPoints(),
-                             retrieval->filter_response_spectra[i]);
-
-
-    size_t nb_points_observation = retrieval->observations[i].spectral_bands.wavenumbers.size();
-
-    if (retrieval->observations[i].instrument_profile_fwhm.size() != 0) 
-      convolveSpectrumGPU(retrieval->filter_response_spectra[i], 
-                          retrieval->observation_wavelengths[i], 
-                          retrieval->observation_profile_sigma[i], 
-                          retrieval->observation_spectral_indices[i],
-                          retrieval->convolution_start_index[i], 
-                          retrieval->convolution_end_index[i], 
-                          nb_points_observation, 
-                          retrieval->convolved_spectra[i]);
-  }
-
-
+  //post-process the planet's high-res emission spectrum and bin it to the observational bands
   double* planet_spectrum_bands = nullptr;
   allocateOnDevice(planet_spectrum_bands, retrieval->nb_total_bands);
 
- 
-  //integrate the high-res spectrum to observational bands on the GPU
-  bandIntegrationGPU(retrieval->band_spectrum_id,
-                     retrieval->band_indices_gpu,
-                     retrieval->band_sizes_gpu,
-                     retrieval->band_start_index_gpu,
-                     retrieval->nb_total_bands,
-                     retrieval->spectral_grid.wavenumber_list_gpu,
-                     retrieval->spectral_grid.wavelength_list_gpu,
-                     planet_spectrum_bands);
+  postProcessSpectrumGPU(model_spectrum_gpu, planet_spectrum_bands);
 
 
   //std::vector<double> albedo_contribution(retrieval->nb_total_bands, geometric_albedo*radius_distance_ratio*radius_distance_ratio);
@@ -271,6 +250,90 @@ std::vector<double> SecondaryEclipseModel::calcSecondaryEclipse(std::vector<doub
   
   return secondary_eclipse;
 }
+
+
+
+
+//integrate the high-res spectrum to observational bands
+//and convolve if necessary 
+void SecondaryEclipseModel::postProcessSpectrum(std::vector<double>& model_spectrum, std::vector<double>& model_spectrum_bands)
+{
+  model_spectrum_bands.assign(retrieval->nb_observation_points, 0.0);
+  
+  std::vector<double>::iterator it = model_spectrum_bands.begin();
+
+
+  for (size_t i=0; i<retrieval->nb_observations; ++i)
+  {
+    std::vector<double> observation_bands;
+
+    std::vector<double> spectrum = model_spectrum;
+    
+    //apply filter function if necessary
+    if (retrieval->observations[i].filter_response.size() != 0)
+      spectrum = retrieval->observations[i].applyFilterResponseFunction(spectrum);
+
+
+    if (retrieval->observations[i].instrument_profile_fwhm.size() == 0)
+      retrieval->observations[i].spectral_bands.bandIntegrateSpectrum(spectrum, observation_bands);
+    else
+    { //apply instrument line profile
+      std::vector<double> model_spectrum_convolved = retrieval->observations[i].spectral_bands.convolveSpectrum(spectrum);
+      retrieval->observations[i].spectral_bands.bandIntegrateSpectrum(model_spectrum_convolved, observation_bands);
+    }
+  
+    //copy the band-integrated values for this observation into the global
+    //vector of all band-integrated points, model_spectrum_bands
+    std::copy(observation_bands.begin(), observation_bands.end(), it);
+    it += observation_bands.size();
+  }
+}
+
+
+//integrate the high-res spectrum to observational bands
+//and convolve if necessary 
+void SecondaryEclipseModel::postProcessSpectrumGPU(double* model_spectrum_gpu, double* model_spectrum_bands)
+{
+
+  for (size_t i=0; i<retrieval->observations.size(); ++i)
+  {
+    if (retrieval->observations[i].filter_response.size() != 0) 
+      applyFilterResponseGPU(retrieval->spectral_grid.wavenumber_list_gpu,
+                             model_spectrum_gpu, 
+                             retrieval->observations[i].filter_response_gpu, 
+                             retrieval->observations[i].filter_response_weight_gpu, 
+                             retrieval->observations[i].filter_response_normalisation,
+                             retrieval->spectral_grid.nbSpectralPoints(),
+                             retrieval->filter_response_spectra[i]);
+
+
+    size_t nb_points_observation = retrieval->observations[i].spectral_bands.wavenumbers.size();
+
+    if (retrieval->observations[i].instrument_profile_fwhm.size() != 0) 
+      convolveSpectrumGPU(retrieval->filter_response_spectra[i], 
+                          retrieval->observation_wavelengths[i], 
+                          retrieval->observation_profile_sigma[i], 
+                          retrieval->observation_spectral_indices[i],
+                          retrieval->convolution_start_index[i], 
+                          retrieval->convolution_end_index[i], 
+                          nb_points_observation, 
+                          retrieval->convolved_spectra[i]);
+  }
+
+
+  //integrate the high-res spectrum to observational bands on the GPU
+  bandIntegrationGPU(retrieval->band_spectrum_id,
+                     retrieval->band_indices_gpu,
+                     retrieval->band_sizes_gpu,
+                     retrieval->band_start_index_gpu,
+                     retrieval->nb_total_bands,
+                     retrieval->spectral_grid.wavenumber_list_gpu,
+                     retrieval->spectral_grid.wavelength_list_gpu,
+                     model_spectrum_bands);
+
+}
+
+
 
 
 

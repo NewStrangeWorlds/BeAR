@@ -79,10 +79,14 @@ BrownDwarfModel::BrownDwarfModel (Retrieval* retrieval_ptr, const BrownDwarfConf
 
 
 //calculates the radius distance scaling factor from the MultiNest parameters
-double BrownDwarfModel::radiusDistanceScaling(const double distance, const double radius, const double scaling_f)
+double BrownDwarfModel::radiusDistanceScaling(const std::vector<double>& parameter)
 {
-  double scaling = radius/distance;
-  scaling = scaling*scaling * scaling_f;
+  const double scaling_factor = parameter[1];
+  const double distance = parameter[2] * constants::parsec;
+  const double prior_radius = constants::radius_jupiter;  //we assume a fixed prior radius of 1 Rj
+
+  double scaling = prior_radius/distance;
+  scaling = scaling*scaling * scaling_factor;
 
   return scaling;
 }
@@ -96,14 +100,7 @@ bool BrownDwarfModel::calcAtmosphereStructure(const std::vector<double>& paramet
   const double surface_gravity = std::pow(10,parameter[0]);
   const double scaling_factor = parameter[1];
 
-  const double distance = parameter[2] * constants::parsec;
-  const double prior_radius = constants::radius_jupiter;
-  
-
-  radius_distance_scaling = radiusDistanceScaling(distance, prior_radius, scaling_factor);
-
-
-  //derived radius in Jupiter radii
+  //derived radius in Jupiter radii assuming that the radius prior is 1 Rj
   const double derived_radius = std::sqrt(scaling_factor);  
 
   //derived mass in Jupiter masses
@@ -134,7 +131,7 @@ bool BrownDwarfModel::calcAtmosphereStructure(const std::vector<double>& paramet
 
 
 //Runs the forward model on the CPU and calculates a high-resolution spectrum
-bool BrownDwarfModel::calcModel(const std::vector<double>& parameter, std::vector<double>& spectrum)
+bool BrownDwarfModel::calcModel(const std::vector<double>& parameter, std::vector<double>& spectrum, std::vector<double>& model_spectrum_bands)
 {
   bool neglect = calcAtmosphereStructure(parameter);
 
@@ -180,9 +177,13 @@ bool BrownDwarfModel::calcModel(const std::vector<double>& parameter, std::vecto
                                    spectrum);
 
 
+  const double radius_distance_scaling = radiusDistanceScaling(parameter);
+  
   for (size_t i=0; i<retrieval->spectral_grid.nbSpectralPoints(); ++i)
     spectrum[i] *= radius_distance_scaling;
 
+
+  postProcessSpectrum(spectrum, model_spectrum_bands);
 
   return neglect;
 }
@@ -208,13 +209,14 @@ bool BrownDwarfModel::calcModelGPU(const std::vector<double>& parameter, double*
 
   initCrossSectionsHost(retrieval->spectral_grid.nbSpectralPoints()*nb_grid_points, absorption_coeff_gpu);
 
-
   for (size_t i=0; i<nb_grid_points; ++i)
     transport_coeff.calcTransportCoefficientsGPU(atmosphere.temperature[i], atmosphere.pressure[i], atmosphere.number_densities[i],
                                                  nb_grid_points, i,
                                                  absorption_coeff_gpu, nullptr);
 
- 
+
+  const double radius_distance_scaling = radiusDistanceScaling(parameter);
+
   radiative_transfer->calcSpectrumGPU(atmosphere,
                                       model_spectrum_gpu,
                                       absorption_coeff_gpu, 
@@ -224,6 +226,54 @@ bool BrownDwarfModel::calcModelGPU(const std::vector<double>& parameter, double*
                                       cloud_asym_param_dev,
                                       radius_distance_scaling);
 
+
+  postProcessSpectrumGPU(model_spectrum_gpu, model_spectrum_bands);
+
+  return neglect;
+}
+
+
+
+//integrate the high-res spectrum to observational bands
+//and convolve if necessary 
+void BrownDwarfModel::postProcessSpectrum(std::vector<double>& model_spectrum, std::vector<double>& model_spectrum_bands)
+{
+  model_spectrum_bands.assign(retrieval->nb_observation_points, 0.0);
+  
+  std::vector<double>::iterator it = model_spectrum_bands.begin();
+
+
+  for (size_t i=0; i<retrieval->nb_observations; ++i)
+  {
+    std::vector<double> observation_bands;
+
+    std::vector<double> spectrum = model_spectrum;
+    
+    //apply filter function if necessary
+    if (retrieval->observations[i].filter_response.size() != 0)
+      spectrum = retrieval->observations[i].applyFilterResponseFunction(spectrum);
+
+
+    if (retrieval->observations[i].instrument_profile_fwhm.size() == 0)
+      retrieval->observations[i].spectral_bands.bandIntegrateSpectrum(spectrum, observation_bands);
+    else
+    { //apply instrument line profile
+      std::vector<double> model_spectrum_convolved = retrieval->observations[i].spectral_bands.convolveSpectrum(spectrum);
+      retrieval->observations[i].spectral_bands.bandIntegrateSpectrum(model_spectrum_convolved, observation_bands);
+    }
+  
+    //copy the band-integrated values for this observation into the global
+    //vector of all band-integrated points, model_spectrum_bands
+    std::copy(observation_bands.begin(), observation_bands.end(), it);
+    it += observation_bands.size();
+  }
+}
+
+
+//integrate the high-res spectrum to observational bands
+//and convolve if necessary 
+void BrownDwarfModel::postProcessSpectrumGPU(double* model_spectrum_gpu, double* model_spectrum_bands)
+{
 
   for (size_t i=0; i<retrieval->observations.size(); ++i)
   {
@@ -260,9 +310,8 @@ bool BrownDwarfModel::calcModelGPU(const std::vector<double>& parameter, double*
                      retrieval->spectral_grid.wavenumber_list_gpu,
                      retrieval->spectral_grid.wavelength_list_gpu,
                      model_spectrum_bands);
-
-  return neglect;
 }
+
 
 
 

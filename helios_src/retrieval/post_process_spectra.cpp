@@ -90,30 +90,14 @@ void PostProcess::saveBestFitSpectrum(const std::vector<double>& spectrum)
 //Calculate the high-res and low-res spectra for a specific set of model parameter from the posterior
 void PostProcess::calcSpectrum(const unsigned int model_id, std::vector<double>& model_spectrum_bands)
 { 
-  std::vector<double> spectrum_high_res;
+  std::vector<double> spectrum_high_res(spectral_grid.nbSpectralPoints(), 0.0);
+  model_spectrum_bands.assign(nb_observation_points, 0.0);
 
-  forward_model->calcModel(model_parameter[model_id], spectrum_high_res);
-  
+  forward_model->calcModel(model_parameter[model_id], spectrum_high_res, model_spectrum_bands);
 
   //if the current model is the best-fit one, save the high-res spectrum
   if (model_id == best_fit_model)
     saveBestFitSpectrum(spectrum_high_res);
-  
-
-  //integrate to observational bands and save the low-res spectrum
-  model_spectrum_bands.assign(nb_observation_points, 0.0);
-  std::vector<double>::iterator it = model_spectrum_bands.begin();
-
-  for (size_t i=0; i<nb_observations; ++i)
-  {
-    std::vector<double> observation_bands;
-
-    observations[i].spectral_bands.bandIntegrateSpectrum(spectrum_high_res, observation_bands);
-
-    std::copy(observation_bands.begin(), observation_bands.end(), it);
-    it += observation_bands.size();
-  }
-
 }
 
 
@@ -147,10 +131,7 @@ void PostProcess::calcSpectrumGPU(const unsigned int model_id, std::vector<doubl
     saveBestFitSpectrum(spectrum);
   }
 
-  
-  //convolveHSTSpectrumGPU(spectrum_bands_dev, nb_total_bands);
-  
-  
+
   //copy data from the GPU
   model_spectrum_bands.assign(nb_observation_points, 0.0);
   moveToHost(spectrum_bands_dev, model_spectrum_bands);

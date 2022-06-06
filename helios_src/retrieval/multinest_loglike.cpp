@@ -73,32 +73,9 @@ void Retrieval::multinestLogLike(double *cube, int &ndim, int &nb_param, double 
 
   //run the forward model with the parameter set to obtain a high-res model spectrum
   std::vector<double> model_spectrum(retrieval_ptr->spectral_grid.nbSpectralPoints(), 0.0);
-  bool neglect = retrieval_ptr->forward_model->calcModel(parameter, model_spectrum);
+  std::vector<double> model_spectrum_bands(retrieval_ptr->nb_total_bands, 0.0);
 
-
-
-  //integrate the high-res spectrum to observational bands
-  //and convolve if necessary 
-  std::vector<double> model_spectrum_bands(retrieval_ptr->nb_observation_points, 0.0);
-  std::vector<double> model_spectrum_convolved(retrieval_ptr->nb_observation_points, 0.0);
-  std::vector<double>::iterator it = model_spectrum_bands.begin();
-
-
-  for (size_t i=0; i<retrieval_ptr->nb_observations; ++i)
-  {
-    std::vector<double> observation_bands;
-
-    if (retrieval_ptr->observations[i].instrument_profile_fwhm.size() == 0)
-      retrieval_ptr->observations[i].spectral_bands.bandIntegrateSpectrum(model_spectrum, observation_bands);
-    else
-    {
-      retrieval_ptr->observations[i].spectral_bands.convolveSpectrum(model_spectrum, model_spectrum_convolved);
-      retrieval_ptr->observations[i].spectral_bands.bandIntegrateSpectrum(model_spectrum_convolved, observation_bands);
-    }
-    
-    std::copy(observation_bands.begin(), observation_bands.end(), it);
-    it += observation_bands.size();
-  }
+  bool neglect = retrieval_ptr->forward_model->calcModel(parameter, model_spectrum, model_spectrum_bands);
 
 
   //print the current model parameter values to the terminal
@@ -189,6 +166,7 @@ void Retrieval::multinestLogLikeGPU(double *cube, int &nb_dim, int &nb_param, do
     std::cout << "\n";
   }
   
+  retrieval_ptr->forward_model->testModel(parameter, retrieval_ptr->model_spectrum_gpu); exit(0);
   
   //allocate the memory for the spectra on the GPU
   size_t nb_points = retrieval_ptr->spectral_grid.nbSpectralPoints();

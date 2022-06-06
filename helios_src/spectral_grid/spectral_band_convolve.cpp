@@ -81,7 +81,7 @@ void SpectralBands::setConvolutionQuadratureIntervals(const unsigned int index, 
 
 
 //convolve the spectrum with an instrument profile
-void SpectralBands::convolveSpectrum(const std::vector<double>& spectrum, std::vector<double>& convolved_spectrum)
+std::vector<double> SpectralBands::convolveSpectrum(const std::vector<double>& spectrum)
 {
   if (convolution_quadrature_intervals.size() == 0)
     setConvolutionQuadratureIntervals();
@@ -94,13 +94,16 @@ void SpectralBands::convolveSpectrum(const std::vector<double>& spectrum, std::v
 
   for (size_t i=0; i<nb_wavenumbers; ++i) 
     band_spectrum[i] = spectrum[ spectral_indices[i] ];
-  
-  
-  convolved_spectrum.assign(nb_global_wavenumbers, 0.0);
+
+
+  std::vector<double> convolved_spectrum(nb_global_wavenumbers, 0.0);
 
   #pragma omp parallel for
   for (size_t i=0; i<nb_wavenumbers; ++i)
     convolved_spectrum[spectral_indices[i]] = convolveSpectrum(band_spectrum, i);
+
+
+  return convolved_spectrum;
 }
 
 

@@ -84,12 +84,14 @@ class BrownDwarfModel : public ForwardModel{
   public:
     BrownDwarfModel (Retrieval* retrieval_ptr, const BrownDwarfConfig model_config);
     virtual ~BrownDwarfModel();
-    virtual bool calcModel(const std::vector<double>& parameter, std::vector<double>& spectrum);
+    virtual bool calcModel(const std::vector<double>& parameter, std::vector<double>& spectrum, std::vector<double>& model_spectrum_bands);
     virtual bool calcModelGPU(const std::vector<double>& parameter, double* model_spectrum, double* model_spectrum_bands);
     
     virtual void postProcess(const std::vector< std::vector<double> >& model_parameter, 
                              const std::vector< std::vector<double> >& model_spectrum_bands,
                              const size_t best_fit_model);
+    
+    virtual bool testModel(const std::vector<double>& parameter, double* model_spectrum_gpu);
   protected:
     Retrieval* retrieval;
     TransportCoefficients transport_coeff;
@@ -109,7 +111,7 @@ class BrownDwarfModel : public ForwardModel{
     
     size_t nb_grid_points = 0;
 
-    double radius_distance_scaling = 0;
+    //double radius_distance_scaling = 0;
 
     std::vector< std::vector<double> > absorption_coeff;
     std::vector< std::vector<double> > scattering_coeff;
@@ -136,18 +138,20 @@ class BrownDwarfModel : public ForwardModel{
     void initDeviceMemory();
 
     bool calcAtmosphereStructure(const std::vector<double>& parameter);
-    double radiusDistanceScaling(const double distance, const double radius, const double scaling_f);
+    double radiusDistanceScaling(const std::vector<double>& parameter);
 
-    void calcGreyCloudLayer(const std::vector<double>& cloud_parameters);
-    void calcCloudPosition(const double top_pressure, const double bottom_pressure, unsigned int& top_index, unsigned int& bottom_index);
+    void postProcessSpectrum(std::vector<double>& model_spectrum, std::vector<double>& model_spectrum_bands);
+    void postProcessSpectrumGPU(double* model_spectrum, double* model_spectrum_bands);
 
     void postProcessModel(const std::vector<double>& parameter, const std::vector<double>& model_spectrum_bands, 
                           std::vector<double>& temperature_profile, double& effective_temperature,
                           std::vector<std::vector<double>>& mixing_ratios);
-    double postProcessEffectiveTemperature(const std::vector<double>& model_spectrum_bands);
+    double postProcessEffectiveTemperature(const std::vector<double>& model_spectrum_bands, const double radius_distance_scaling);
     void savePostProcessChemistry(const std::vector<std::vector<std::vector<double>>>& mixing_ratios, const unsigned int species);
     void savePostProcessTemperatures(const std::vector<std::vector<double>>& temperature_profiles);
     void savePostProcessEffectiveTemperatures(const std::vector<double>& effective_temperatures);
+
+    bool testCPUvsGPU(const std::vector<double>& parameter, double* model_spectrum_gpu);
 };
 
 

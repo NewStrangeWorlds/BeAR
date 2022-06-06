@@ -95,23 +95,33 @@ void SecondaryEclipseConfig::readConfigFile(const std::string& file_name)
   for (auto & i : temperature_profile_parameters) std::cout << "  " << i;
   std::cout << "\n";
   
-  
+
   std::getline(file, line);
   std::getline(file, line);
 
   file >> stellar_spectrum_file >> line;
   std::cout << "- Stellar spectrum file: " << stellar_spectrum_file << "\n";
-
-
+  
   std::getline(file, line);
 
-  file >> input >> line;
-  if (input == "Y" || input == "Yes" || input == "1") use_cloud_layer = true;
-  std::cout << "- Use Cloud Layer: " << use_cloud_layer << "\n";
+  //cloud model input
+  std::getline(file, line);
 
+  input_stream.str(line); input_stream.clear();
+
+  input_stream >> cloud_model;
+
+  while (input_stream >> input)
+    cloud_model_parameters.push_back(input);
+
+  std::cout << "- Cloud model: " << cloud_model;
+  for (auto & i : cloud_model_parameters) std::cout << "  " << i;
+  std::cout << "\n";
+
+  std::getline(file, line);
+  std::getline(file, line);
 
   //the radiative transfer input
-  std::getline(file, line);
   std::getline(file, line);
 
   std::istringstream line_input(line);

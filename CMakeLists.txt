@@ -67,12 +67,14 @@ set(SRC
   helios_src/forward_model/brown_dwarf/brown_dwarf_priors.cpp
   helios_src/forward_model/brown_dwarf/brown_dwarf_init.cpp
   helios_src/forward_model/brown_dwarf/brown_dwarf.cpp
+  helios_src/forward_model/brown_dwarf/brown_dwarf_test.cpp
   helios_src/forward_model/secondary_eclipse/secondary_eclipse_model_config.cpp
   helios_src/forward_model/secondary_eclipse/secondary_eclipse_post_process_temperatures.cpp
   helios_src/forward_model/secondary_eclipse/secondary_eclipse_post_process.cpp
   helios_src/forward_model/secondary_eclipse/secondary_eclipse_priors.cpp
   helios_src/forward_model/secondary_eclipse/secondary_eclipse_init.cpp
   helios_src/forward_model/secondary_eclipse/secondary_eclipse.cpp
+  helios_src/forward_model/secondary_eclipse/secondary_eclipse_test.cpp
   helios_src/forward_model/atmosphere/atmosphere.cpp
   helios_src/cloud_model/grey_cloud_model.cpp
   helios_src/model_main/model_main.cpp
