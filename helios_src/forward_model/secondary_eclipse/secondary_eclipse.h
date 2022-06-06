@@ -127,7 +127,6 @@ class SecondaryEclipseModel : public ForwardModel{
     std::vector< std::vector<double> > absorption_coeff;
     std::vector< std::vector<double> > scattering_coeff;
 
-    bool use_cloud_layer = false;
     std::vector< std::vector<double> > cloud_optical_depths;
     std::vector< std::vector<double> > cloud_single_scattering;
     std::vector< std::vector<double> > cloud_asym_param;

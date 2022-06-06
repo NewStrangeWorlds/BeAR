@@ -22,7 +22,7 @@
 #define _radiative_transfer_h
 
 #include <vector>
-
+#include "../forward_model/atmosphere/atmosphere.h"
 
 
 namespace helios {
@@ -35,22 +35,22 @@ class Atmosphere;
 class RadiativeTransfer{
   public:
     virtual ~RadiativeTransfer() {}
-    virtual void calcSpectrum(const std::vector< std::vector<double> >& absorption_coeff, 
+    virtual void calcSpectrum(const Atmosphere& atmosphere,
+                              const std::vector< std::vector<double> >& absorption_coeff, 
                               const std::vector< std::vector<double> >& scattering_coeff,
                               const std::vector< std::vector<double> >& cloud_optical_depth,
                               const std::vector< std::vector<double> >& cloud_single_scattering,
                               const std::vector< std::vector<double> >& cloud_asym_param,
-                              const std::vector<double>& temperature, 
-                              const std::vector<double>& vertical_grid,
+                              const double spectrum_scaling,
                               std::vector<double>& spectrum) = 0;
     virtual void calcSpectrumGPU(const Atmosphere& atmosphere,
-                                 double* model_spectrum_dev,
                                  double* absorption_coeff_dev,
                                  double* scattering_coeff_dev,
                                  double* cloud_optical_depth,
                                  double* cloud_single_scattering,
                                  double* cloud_asym_param,
-                                 const double spectrum_scaling) = 0;
+                                 const double spectrum_scaling,
+                                 double* model_spectrum_dev) = 0;
 };
 
 

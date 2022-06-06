@@ -58,7 +58,6 @@ SecondaryEclipseModel::SecondaryEclipseModel (Retrieval* retrieval_ptr, const Se
 {
   retrieval = retrieval_ptr;
   nb_grid_points = model_config.nb_grid_points;
-  use_cloud_layer = model_config.use_cloud_layer;
 
   std::cout << "Forward model selected: Secondary Eclipse\n\n";
 
@@ -148,9 +147,10 @@ bool SecondaryEclipseModel::calcModel(const std::vector<double>& parameter, std:
 
   spectrum.assign(retrieval->spectral_grid.nbSpectralPoints(), 0.0);
  
-  radiative_transfer->calcSpectrum(absorption_coeff, scattering_coeff, 
+  radiative_transfer->calcSpectrum(atmosphere,
+                                   absorption_coeff, scattering_coeff, 
                                    cloud_optical_depths, cloud_single_scattering, cloud_asym_param,
-                                   atmosphere.temperature, atmosphere.altitude, 
+                                   1.0, 
                                    spectrum);
 
 
@@ -201,13 +201,13 @@ bool SecondaryEclipseModel::calcModelGPU(const std::vector<double>& parameter, d
 
 
   radiative_transfer->calcSpectrumGPU(atmosphere,
-                                      model_spectrum_gpu,
                                       absorption_coeff_gpu, 
                                       nullptr,
                                       cloud_optical_depths_dev,
                                       cloud_single_scattering_dev,
                                       cloud_asym_param_dev,
-                                      1.0);
+                                      1.0,
+                                      model_spectrum_gpu);
 
 
   //post-process the planet's high-res emission spectrum and bin it to the observational bands

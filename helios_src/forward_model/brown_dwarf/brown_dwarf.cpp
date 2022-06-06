@@ -57,7 +57,6 @@ BrownDwarfModel::BrownDwarfModel (Retrieval* retrieval_ptr, const BrownDwarfConf
 {
   retrieval = retrieval_ptr;
   nb_grid_points = model_config.nb_grid_points;
-  use_cloud_layer = model_config.use_cloud_layer;
   
   std::cout << "Forward model selected: Emission\n\n"; 
 
@@ -170,17 +169,13 @@ bool BrownDwarfModel::calcModel(const std::vector<double>& parameter, std::vecto
 
 
   spectrum.assign(retrieval->spectral_grid.nbSpectralPoints(), 0.0);
- 
-  radiative_transfer->calcSpectrum(absorption_coeff, scattering_coeff, 
-                                   cloud_optical_depths, cloud_single_scattering, cloud_asym_param,
-                                   atmosphere.temperature, atmosphere.altitude, 
-                                   spectrum);
-
-
   const double radius_distance_scaling = radiusDistanceScaling(parameter);
-  
-  for (size_t i=0; i<retrieval->spectral_grid.nbSpectralPoints(); ++i)
-    spectrum[i] *= radius_distance_scaling;
+ 
+  radiative_transfer->calcSpectrum(atmosphere,
+                                   absorption_coeff, scattering_coeff, 
+                                   cloud_optical_depths, cloud_single_scattering, cloud_asym_param,
+                                   radius_distance_scaling, 
+                                   spectrum);
 
 
   postProcessSpectrum(spectrum, model_spectrum_bands);
@@ -218,13 +213,13 @@ bool BrownDwarfModel::calcModelGPU(const std::vector<double>& parameter, double*
   const double radius_distance_scaling = radiusDistanceScaling(parameter);
 
   radiative_transfer->calcSpectrumGPU(atmosphere,
-                                      model_spectrum_gpu,
                                       absorption_coeff_gpu, 
                                       nullptr,
                                       cloud_optical_depths_dev,
                                       cloud_single_scattering_dev,
                                       cloud_asym_param_dev,
-                                      radius_distance_scaling);
+                                      radius_distance_scaling,
+                                      model_spectrum_gpu);
 
 
   postProcessSpectrumGPU(model_spectrum_gpu, model_spectrum_bands);

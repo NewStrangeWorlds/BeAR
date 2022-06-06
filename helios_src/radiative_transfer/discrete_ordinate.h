@@ -27,6 +27,7 @@
 #include <cmath>
 
 #include "radiative_transfer.h"
+#include "../forward_model/atmosphere/atmosphere.h"
 
 
 extern "C" {
@@ -45,22 +46,22 @@ class DiscreteOrdinates : public RadiativeTransfer{
   public:
     DiscreteOrdinates(SpectralGrid* spectral_grid_ptr, const size_t nb_streams, const size_t nb_grid_points, const bool use_gpu);
     virtual ~DiscreteOrdinates() {finaliseDISORT();}
-    virtual void calcSpectrum(const std::vector< std::vector<double> >& absorption_coeff, 
+    virtual void calcSpectrum(const Atmosphere& atmosphere,
+                              const std::vector< std::vector<double> >& absorption_coeff, 
                               const std::vector< std::vector<double> >& scattering_coeff,
                               const std::vector< std::vector<double> >& cloud_optical_depth,
                               const std::vector< std::vector<double> >& cloud_single_scattering,
                               const std::vector< std::vector<double> >& cloud_asym_param,
-                              const std::vector<double>& temperature, 
-                              const std::vector<double>& vertical_grid,
+                              const double spectrum_scaling,
                               std::vector<double>& spectrum);
     virtual void calcSpectrumGPU(const Atmosphere& atmosphere,
-                                 double* model_spectrum_dev,
                                  double* absorption_coeff_dev,
                                  double* scattering_coeff_dev,
                                  double* cloud_optical_depth,
                                  double* cloud_single_scattering,
                                  double* cloud_asym_param,
-                                 const double spectrum_scaling) {std::cout << "Sorry, CDISORT has no GPU option :(\n";}
+                                 const double spectrum_scaling,
+                                 double* model_spectrum_dev) {std::cout << "Sorry, CDISORT has no GPU option :(\n";}
   private:
     SpectralGrid* spectral_grid;
     

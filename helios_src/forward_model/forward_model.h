@@ -29,7 +29,7 @@ namespace helios {
 
 
 //abstract class for the forward model
-//a derived class *has to* implement the calcModel, calcModelGPU, setPriors, and postProcess methods that will be called by the retrieval 
+//a derived class *has to* implement all the various, virtual methods
 class ForwardModel{
   public:
     virtual ~ForwardModel() {}
@@ -39,11 +39,11 @@ class ForwardModel{
     //calculate a model on the GPU
     //the return value signals the retrieval to neglect this model
     virtual bool calcModelGPU(const std::vector<double>& parameter, double* model_spectrum, double* model_spectrum_bands) = 0;
-
+    //model-specific post process
     virtual void postProcess(const std::vector< std::vector<double> >& model_parameter, 
                              const std::vector< std::vector<double> >& model_spectrum_bands,
-                             const size_t best_fit_model) = 0;      //model specific post process
-
+                             const size_t best_fit_model) = 0;
+    //model-specific tests
     virtual bool testModel(const std::vector<double>& parameter, double* model_spectrum) = 0;
   protected:
     virtual void setPriors() = 0;

@@ -42,20 +42,22 @@
 namespace helios{
 
 
-void ShortCharacteristics::calcSpectrum(const std::vector< std::vector<double> >& absorption_coeff, 
+void ShortCharacteristics::calcSpectrum(const Atmosphere& atmosphere,
+                                        const std::vector< std::vector<double> >& absorption_coeff, 
                                         const std::vector< std::vector<double> >& scattering_coeff,
                                         const std::vector< std::vector<double> >& cloud_optical_depth,
                                         const std::vector< std::vector<double> >& cloud_single_scattering,
                                         const std::vector< std::vector<double> >& cloud_asym_param,
-                                        const std::vector<double>& temperature, 
-                                        const std::vector<double>& vertical_grid,
+                                        const double spectrum_scaling,
                                         std::vector<double>& spectrum)
 {
 
   #pragma omp parallel for schedule(dynamic, 1)
   for (size_t i=0; i<spectrum.size(); ++i)
-    spectrum[i] = calcSpectrum(absorption_coeff[i], cloud_optical_depth[i], temperature, vertical_grid, i);
+    spectrum[i] = calcSpectrum(absorption_coeff[i], cloud_optical_depth[i], atmosphere.temperature, atmosphere.altitude, i);
 
+
+  for (auto & i : spectrum) i *= spectrum_scaling;
 }
 
 
@@ -122,13 +124,13 @@ double ShortCharacteristics::calcSpectrum(const std::vector<double>& absorption_
 
 
 void ShortCharacteristics::calcSpectrumGPU(const Atmosphere& atmosphere,
-                                           double* model_spectrum_dev,
                                            double* absorption_coeff_dev,
                                            double* scattering_coeff_dev,
                                            double* cloud_optical_depth_dev,
                                            double* cloud_single_scattering_dev,
                                            double* cloud_asym_param_dev,
-                                           const double spectrum_scaling)
+                                           const double spectrum_scaling,
+                                           double* model_spectrum_dev)
 {
   if (cloud_optical_depth_dev != nullptr)
     helios::shortCharacteristicsGPU(model_spectrum_dev,

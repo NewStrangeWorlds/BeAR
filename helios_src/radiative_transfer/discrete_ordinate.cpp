@@ -29,6 +29,7 @@
 #include <omp.h>
 
 
+#include "../forward_model/atmosphere/atmosphere.h"
 #include "../additional/aux_functions.h"
 #include "../additional/physical_const.h"
 #include "../additional/quadrature.h"
@@ -79,20 +80,20 @@ DiscreteOrdinates::DiscreteOrdinates(SpectralGrid* spectral_grid_ptr, const size
 
 
 
-void DiscreteOrdinates::calcSpectrum(const std::vector< std::vector<double> >& absorption_coeff, 
-                                     const std::vector< std::vector<double> >& scattering_coeff,
-                                     const std::vector< std::vector<double> >& cloud_optical_depth,
-                                     const std::vector< std::vector<double> >& cloud_single_scattering,
-                                     const std::vector< std::vector<double> >& cloud_asym_param,
-                                     const std::vector<double>& temperature, 
-                                     const std::vector<double>& vertical_grid,
-                                     std::vector<double>& spectrum)
+void DiscreteOrdinates::calcSpectrum(const Atmosphere& atmosphere,
+                                    const std::vector< std::vector<double> >& absorption_coeff, 
+                                    const std::vector< std::vector<double> >& scattering_coeff,
+                                    const std::vector< std::vector<double> >& cloud_optical_depth,
+                                    const std::vector< std::vector<double> >& cloud_single_scattering,
+                                    const std::vector< std::vector<double> >& cloud_asym_param,
+                                    const double spectrum_scaling,
+                                    std::vector<double>& spectrum)
 {
-  receiveTemperatureStructure(temperature, temperature[0]);
+  receiveTemperatureStructure(atmosphere.temperature, atmosphere.temperature[0]);
 
 
   for (size_t i=0; i<spectrum.size(); ++i)
-    spectrum[i] = calcSpectrum(absorption_coeff[i], scattering_coeff[i], cloud_optical_depth[i], vertical_grid, i);
+    spectrum[i] = calcSpectrum(absorption_coeff[i], scattering_coeff[i], cloud_optical_depth[i], atmosphere.altitude, i);
 }
 
 

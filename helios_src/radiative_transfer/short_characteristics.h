@@ -27,6 +27,7 @@
 #include <cmath>
 
 #include "radiative_transfer.h"
+#include "../forward_model/atmosphere/atmosphere.h"
 
 
 namespace helios {
@@ -40,23 +41,23 @@ class ShortCharacteristics : public RadiativeTransfer{
   public:
     ShortCharacteristics(SpectralGrid* spectral_grid_ptr) {spectral_grid = spectral_grid_ptr;}
     virtual ~ShortCharacteristics() {}
-    virtual void calcSpectrum(const std::vector< std::vector<double> >& absorption_coeff, 
+    virtual void calcSpectrum(const Atmosphere& atmosphere,
+                              const std::vector< std::vector<double> >& absorption_coeff, 
                               const std::vector< std::vector<double> >& scattering_coeff,
                               const std::vector< std::vector<double> >& cloud_optical_depth,
                               const std::vector< std::vector<double> >& cloud_single_scattering,
                               const std::vector< std::vector<double> >& cloud_asym_param,
-                              const std::vector<double>& temperature, 
-                              const std::vector<double>& vertical_grid,
+                              const double spectrum_scaling,
                               std::vector<double>& spectrum);
 
     virtual void calcSpectrumGPU(const Atmosphere& atmosphere,
-                                 double* model_spectrum_dev,
                                  double* absorption_coeff_dev,
                                  double* scattering_coeff_dev,
                                  double* cloud_optical_depth,
                                  double* cloud_single_scattering,
                                  double* cloud_asym_param,
-                                 const double spectrum_scaling);
+                                 const double spectrum_scaling,
+                                 double* model_spectrum_dev);
   private:
     SpectralGrid* spectral_grid;
 

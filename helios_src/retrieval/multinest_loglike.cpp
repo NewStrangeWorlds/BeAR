@@ -166,7 +166,6 @@ void Retrieval::multinestLogLikeGPU(double *cube, int &nb_dim, int &nb_param, do
     std::cout << "\n";
   }
   
-  retrieval_ptr->forward_model->testModel(parameter, retrieval_ptr->model_spectrum_gpu); exit(0);
   
   //allocate the memory for the spectra on the GPU
   size_t nb_points = retrieval_ptr->spectral_grid.nbSpectralPoints();

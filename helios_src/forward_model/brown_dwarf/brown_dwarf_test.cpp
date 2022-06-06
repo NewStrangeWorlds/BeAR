@@ -42,6 +42,9 @@ bool BrownDwarfModel::testModel(const std::vector<double>& parameter, double* mo
   return test_ok;
 }
 
+
+
+
 bool BrownDwarfModel::testCPUvsGPU(const std::vector<double>& parameter, double* model_spectrum_gpu)
 { 
   //first we calculate the model on the GPU
