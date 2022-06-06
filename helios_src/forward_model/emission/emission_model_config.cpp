@@ -18,7 +18,7 @@
 */
 
 
-#include "brown_dwarf.h"
+#include "emission.h"
 
 
 #include <string>
@@ -37,7 +37,7 @@
 namespace helios{
 
 
-BrownDwarfConfig::BrownDwarfConfig (const std::string& folder_path)
+EmissionModelConfig::EmissionModelConfig (const std::string& folder_path)
 {
   const std::string config_file_name = folder_path + "forward_model.config";
 
@@ -46,14 +46,14 @@ BrownDwarfConfig::BrownDwarfConfig (const std::string& folder_path)
 
 
 
-void BrownDwarfConfig::readConfigFile(const std::string& file_name)
+void EmissionModelConfig::readConfigFile(const std::string& file_name)
 {
   std::fstream file;
   file.open(file_name.c_str(), std::ios::in);
 
   
   if (file.fail())  
-    throw ExceptionFileNotFound(std::string ("BrownDwarfConfig::readConfigFile"), file_name);
+    throw ExceptionFileNotFound(std::string ("EmissionModelConfig::readConfigFile"), file_name);
 
   
   std::string line;
@@ -145,7 +145,7 @@ void BrownDwarfConfig::readConfigFile(const std::string& file_name)
 
 
 
-void BrownDwarfConfig::readChemistryConfig(std::fstream& file)
+void EmissionModelConfig::readChemistryConfig(std::fstream& file)
 {
   std::string line;
   std::getline(file, line);  
@@ -171,7 +171,7 @@ void BrownDwarfConfig::readChemistryConfig(std::fstream& file)
 
 
 
-void BrownDwarfConfig::readOpacityConfig(std::fstream& file)
+void EmissionModelConfig::readOpacityConfig(std::fstream& file)
 {
   std::string line;
   std::getline(file, line);

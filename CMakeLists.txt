@@ -61,13 +61,13 @@ set(SRC
   helios_src/additional/aux_functions.cpp
   helios_src/additional/piecewise_poly.cpp
   helios_src/config/global_config.cpp
-  helios_src/forward_model/brown_dwarf/brown_dwarf_model_config.cpp
-  helios_src/forward_model/brown_dwarf/brown_dwarf_post_process_temperatures.cpp
-  helios_src/forward_model/brown_dwarf/brown_dwarf_post_process.cpp
-  helios_src/forward_model/brown_dwarf/brown_dwarf_priors.cpp
-  helios_src/forward_model/brown_dwarf/brown_dwarf_init.cpp
-  helios_src/forward_model/brown_dwarf/brown_dwarf.cpp
-  helios_src/forward_model/brown_dwarf/brown_dwarf_test.cpp
+  helios_src/forward_model/emission/emission_model_config.cpp
+  helios_src/forward_model/emission/emission_post_process_temperatures.cpp
+  helios_src/forward_model/emission/emission_post_process.cpp
+  helios_src/forward_model/emission/emission_priors.cpp
+  helios_src/forward_model/emission/emission_init.cpp
+  helios_src/forward_model/emission/emission.cpp
+  helios_src/forward_model/emission/emission_test.cpp
   helios_src/forward_model/secondary_eclipse/secondary_eclipse_model_config.cpp
   helios_src/forward_model/secondary_eclipse/secondary_eclipse_post_process_temperatures.cpp
   helios_src/forward_model/secondary_eclipse/secondary_eclipse_post_process.cpp

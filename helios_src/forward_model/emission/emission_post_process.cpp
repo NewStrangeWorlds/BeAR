@@ -18,7 +18,7 @@
 */
 
 
-#include "brown_dwarf.h"
+#include "emission.h"
 
 
 #include <string>
@@ -39,7 +39,7 @@ namespace helios{
 
 
 //calls the model specific posterior calculations
-void BrownDwarfModel::postProcess(const std::vector< std::vector<double> >& model_parameter, const std::vector< std::vector<double> >& model_spectrum_bands, const size_t best_fit_model)
+void EmissionModel::postProcess(const std::vector< std::vector<double> >& model_parameter, const std::vector< std::vector<double> >& model_spectrum_bands, const size_t best_fit_model)
 {
   const size_t nb_models = model_parameter.size();
 
@@ -66,7 +66,7 @@ void BrownDwarfModel::postProcess(const std::vector< std::vector<double> >& mode
 
 
 
-void BrownDwarfModel::postProcessModel(const std::vector<double>& model_parameter, const std::vector<double>& model_spectrum_bands, 
+void EmissionModel::postProcessModel(const std::vector<double>& model_parameter, const std::vector<double>& model_spectrum_bands, 
                                        std::vector<double>& temperature_profile, double& effective_temperature,
                                        std::vector<std::vector<double>>& mixing_ratios)
 {
@@ -89,7 +89,7 @@ void BrownDwarfModel::postProcessModel(const std::vector<double>& model_paramete
 
 
 
-void BrownDwarfModel::savePostProcessChemistry(const std::vector<std::vector<std::vector<double>>>& mixing_ratios, const unsigned int species)
+void EmissionModel::savePostProcessChemistry(const std::vector<std::vector<std::vector<double>>>& mixing_ratios, const unsigned int species)
 {
   std::fstream file;
   std::string file_name = retrieval->config->retrieval_folder_path + "/chem_";
@@ -117,7 +117,7 @@ void BrownDwarfModel::savePostProcessChemistry(const std::vector<std::vector<std
 
 
 
-void BrownDwarfModel::savePostProcessTemperatures(const std::vector<std::vector<double>>& temperature_profiles)
+void EmissionModel::savePostProcessTemperatures(const std::vector<std::vector<double>>& temperature_profiles)
 {
   //save the temperature profiles into a file
   std::fstream file;
@@ -140,7 +140,7 @@ void BrownDwarfModel::savePostProcessTemperatures(const std::vector<std::vector<
 
 
 
-void BrownDwarfModel::savePostProcessEffectiveTemperatures(const std::vector<double>& effective_temperatures)
+void EmissionModel::savePostProcessEffectiveTemperatures(const std::vector<double>& effective_temperatures)
 {
   //save the effective temperatures
   std::string file_name = retrieval->config->retrieval_folder_path + "/effective_temperatures.dat";

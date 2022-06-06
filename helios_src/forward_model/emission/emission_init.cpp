@@ -18,7 +18,7 @@
 */
 
 
-#include "brown_dwarf.h"
+#include "emission.h"
 
 
 #include <string>
@@ -44,7 +44,7 @@ namespace helios{
 
 
 //initialises the varous modules of the forward model
-void BrownDwarfModel::initModules(const BrownDwarfConfig& model_config)
+void EmissionModel::initModules(const EmissionModelConfig& model_config)
 {
   radiative_transfer = selectRadiativeTransfer(model_config.radiative_transfer_model, 
                                                model_config.radiative_transfer_parameters, 
@@ -86,7 +86,7 @@ void BrownDwarfModel::initModules(const BrownDwarfConfig& model_config)
 
 
 //initialises the varous modules of the forward model
-void BrownDwarfModel::initDeviceMemory()
+void EmissionModel::initDeviceMemory()
 {
   allocateOnDevice(absorption_coeff_gpu, nb_grid_points*retrieval->spectral_grid.nbSpectralPoints());
   allocateOnDevice(scattering_coeff_dev, nb_grid_points*retrieval->spectral_grid.nbSpectralPoints());

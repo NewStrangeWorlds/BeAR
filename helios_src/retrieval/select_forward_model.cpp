@@ -24,7 +24,7 @@
 
 
 //the header files for all forward models
-#include "../forward_model/brown_dwarf/brown_dwarf.h"
+#include "../forward_model/emission/emission.h"
 #include "../forward_model/secondary_eclipse/secondary_eclipse.h"
 
 
@@ -38,7 +38,7 @@ ForwardModel* Retrieval::selectForwardModel(const std::string model_description)
 {
   if (model_description == "emission" || model_description == "Emission" || model_description == "em")
   {
-    BrownDwarfModel* model = new BrownDwarfModel(this, BrownDwarfConfig (config->retrieval_folder_path));
+    EmissionModel* model = new EmissionModel(this, EmissionModelConfig (config->retrieval_folder_path));
 
     return model;
   }

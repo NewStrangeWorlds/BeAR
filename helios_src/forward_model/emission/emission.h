@@ -18,8 +18,8 @@
 */
 
 
-#ifndef _brown_dwarf_h
-#define _brown_dwarf_h
+#ifndef _emission_h
+#define _emission_h
 
 #include <vector>
 #include <iostream>
@@ -47,7 +47,7 @@ class Retrieval;
 //this struct handles the Brown Dwarf config
 //it will read in the corresponding parameter file
 //and will then be used to create a model object
-struct BrownDwarfConfig{
+struct EmissionModelConfig{
   size_t nb_grid_points = 0;
 
   double atmos_boundaries[2] {0, 0};
@@ -71,7 +71,7 @@ struct BrownDwarfConfig{
   std::vector<std::string> opacity_species_symbol;
   std::vector<std::string> opacity_species_folder;
 
-  BrownDwarfConfig (const std::string& folder_path);
+  EmissionModelConfig (const std::string& folder_path);
   void readConfigFile(const std::string& file_name);
   void readChemistryConfig(std::fstream& file);
   void readOpacityConfig(std::fstream& file);
@@ -80,10 +80,10 @@ struct BrownDwarfConfig{
 
 
 
-class BrownDwarfModel : public ForwardModel{
+class EmissionModel : public ForwardModel{
   public:
-    BrownDwarfModel (Retrieval* retrieval_ptr, const BrownDwarfConfig model_config);
-    virtual ~BrownDwarfModel();
+    EmissionModel (Retrieval* retrieval_ptr, const EmissionModelConfig model_config);
+    virtual ~EmissionModel();
     virtual bool calcModel(const std::vector<double>& parameter, std::vector<double>& spectrum, std::vector<double>& model_spectrum_bands);
     virtual bool calcModelGPU(const std::vector<double>& parameter, double* model_spectrum, double* model_spectrum_bands);
     
@@ -130,7 +130,7 @@ class BrownDwarfModel : public ForwardModel{
     void readPriorConfigFile(const std::string& file_name, std::vector<std::string>& prior_type, 
                                                            std::vector<std::string>& prior_description, 
                                                            std::vector<std::vector<double>>& prior_parameter);
-    void initModules(const BrownDwarfConfig& model_config);
+    void initModules(const EmissionModelConfig& model_config);
     void initDeviceMemory();
 
     bool calcAtmosphereStructure(const std::vector<double>& parameter);

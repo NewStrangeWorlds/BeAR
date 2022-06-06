@@ -18,7 +18,7 @@
 */
 
 
-#include "brown_dwarf.h"
+#include "emission.h"
 
 #include <iostream>
 #include <vector>
@@ -33,7 +33,7 @@
 namespace helios{
 
 
-bool BrownDwarfModel::testModel(const std::vector<double>& parameter, double* model_spectrum_gpu)
+bool EmissionModel::testModel(const std::vector<double>& parameter, double* model_spectrum_gpu)
 {
   bool test_ok = false;
   
@@ -45,7 +45,7 @@ bool BrownDwarfModel::testModel(const std::vector<double>& parameter, double* mo
 
 
 
-bool BrownDwarfModel::testCPUvsGPU(const std::vector<double>& parameter, double* model_spectrum_gpu)
+bool EmissionModel::testCPUvsGPU(const std::vector<double>& parameter, double* model_spectrum_gpu)
 { 
   //first we calculate the model on the GPU
   std::cout << "Start test on GPU\n";

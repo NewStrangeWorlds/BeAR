@@ -18,7 +18,7 @@
 */
 
 
-#include "brown_dwarf.h"
+#include "emission.h"
 
 
 #include <string>
@@ -38,7 +38,7 @@ namespace helios{
 
 
 //set the model priors
-void BrownDwarfModel::setPriors()
+void EmissionModel::setPriors()
 {
   const std::string file_name = retrieval->config->retrieval_folder_path + "priors.config";
 
@@ -54,7 +54,7 @@ void BrownDwarfModel::setPriors()
   if (prior_type.size() != nb_total_param())
   {
     std::string error_message = "Found " + std::to_string(prior_type.size()) + " priors in priors.config but expected " + std::to_string(nb_total_param()) + "\n";
-    throw ExceptionInvalidInput(std::string ("BrownDwarfModel::setPriors"), error_message);
+    throw ExceptionInvalidInput(std::string ("EmissionModel::setPriors"), error_message);
   }
 
 
@@ -64,7 +64,7 @@ void BrownDwarfModel::setPriors()
 
 
 
-void BrownDwarfModel::readPriorConfigFile(const std::string& file_path, std::vector<std::string>& prior_type, 
+void EmissionModel::readPriorConfigFile(const std::string& file_path, std::vector<std::string>& prior_type, 
                                                                         std::vector<std::string>& prior_description, 
                                                                         std::vector<std::vector<double>>& prior_parameter)
 {
@@ -73,7 +73,7 @@ void BrownDwarfModel::readPriorConfigFile(const std::string& file_path, std::vec
 
 
   if (file.fail())  
-    throw ExceptionFileNotFound(std::string ("BrownDwarfModel::readPriorConfigFile"), file_path);
+    throw ExceptionFileNotFound(std::string ("EmissionModel::readPriorConfigFile"), file_path);
 
 
   std::string line;

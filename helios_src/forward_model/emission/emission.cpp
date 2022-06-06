@@ -18,7 +18,7 @@
 */
 
 
-#include "brown_dwarf.h"
+#include "emission.h"
 
 
 #include <string>
@@ -51,7 +51,7 @@ namespace helios{
 
 
 
-BrownDwarfModel::BrownDwarfModel (Retrieval* retrieval_ptr, const BrownDwarfConfig model_config) 
+EmissionModel::EmissionModel (Retrieval* retrieval_ptr, const EmissionModelConfig model_config) 
  : transport_coeff(retrieval_ptr->config, &retrieval_ptr->spectral_grid, model_config.opacity_species_symbol, model_config.opacity_species_folder),
    atmosphere(model_config.nb_grid_points, model_config.atmos_boundaries, retrieval_ptr->config->use_gpu)
 {
@@ -78,7 +78,7 @@ BrownDwarfModel::BrownDwarfModel (Retrieval* retrieval_ptr, const BrownDwarfConf
 
 
 //calculates the radius distance scaling factor from the MultiNest parameters
-double BrownDwarfModel::radiusDistanceScaling(const std::vector<double>& parameter)
+double EmissionModel::radiusDistanceScaling(const std::vector<double>& parameter)
 {
   const double scaling_factor = parameter[1];
   const double distance = parameter[2] * constants::parsec;
@@ -93,7 +93,7 @@ double BrownDwarfModel::radiusDistanceScaling(const std::vector<double>& paramet
 
 
 //determines the basic atmospheric structure (temperature profile, chemistry...) from the free parameters supplied by MultiNest
-bool BrownDwarfModel::calcAtmosphereStructure(const std::vector<double>& parameter)
+bool EmissionModel::calcAtmosphereStructure(const std::vector<double>& parameter)
 {
   const double surface_gravity = std::pow(10,parameter[0]);
   const double scaling_factor = parameter[1];
@@ -129,7 +129,7 @@ bool BrownDwarfModel::calcAtmosphereStructure(const std::vector<double>& paramet
 
 
 //Runs the forward model on the CPU and calculates a high-resolution spectrum
-bool BrownDwarfModel::calcModel(const std::vector<double>& parameter, std::vector<double>& spectrum, std::vector<double>& model_spectrum_bands)
+bool EmissionModel::calcModel(const std::vector<double>& parameter, std::vector<double>& spectrum, std::vector<double>& model_spectrum_bands)
 {
   bool neglect = calcAtmosphereStructure(parameter);
 
@@ -186,7 +186,7 @@ bool BrownDwarfModel::calcModel(const std::vector<double>& parameter, std::vecto
 
 //run the forward model with the help of the GPU
 //the atmospheric structure itself is still done on the CPU
-bool BrownDwarfModel::calcModelGPU(const std::vector<double>& parameter, double* model_spectrum_gpu, double* model_spectrum_bands)
+bool EmissionModel::calcModelGPU(const std::vector<double>& parameter, double* model_spectrum_gpu, double* model_spectrum_bands)
 { 
   bool neglect = calcAtmosphereStructure(parameter);
 
@@ -230,7 +230,7 @@ bool BrownDwarfModel::calcModelGPU(const std::vector<double>& parameter, double*
 
 //integrate the high-res spectrum to observational bands
 //and convolve if necessary 
-void BrownDwarfModel::postProcessSpectrum(std::vector<double>& model_spectrum, std::vector<double>& model_spectrum_bands)
+void EmissionModel::postProcessSpectrum(std::vector<double>& model_spectrum, std::vector<double>& model_spectrum_bands)
 {
   model_spectrum_bands.assign(retrieval->nb_observation_points, 0.0);
   
@@ -266,7 +266,7 @@ void BrownDwarfModel::postProcessSpectrum(std::vector<double>& model_spectrum, s
 
 //integrate the high-res spectrum to observational bands
 //and convolve if necessary 
-void BrownDwarfModel::postProcessSpectrumGPU(double* model_spectrum_gpu, double* model_spectrum_bands)
+void EmissionModel::postProcessSpectrumGPU(double* model_spectrum_gpu, double* model_spectrum_bands)
 {
 
   for (size_t i=0; i<retrieval->observations.size(); ++i)
@@ -309,7 +309,7 @@ void BrownDwarfModel::postProcessSpectrumGPU(double* model_spectrum_gpu, double*
 
 
 
-BrownDwarfModel::~BrownDwarfModel()
+EmissionModel::~EmissionModel()
 {
   if (retrieval->config->use_gpu)
   {
