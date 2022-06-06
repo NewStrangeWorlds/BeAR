@@ -130,31 +130,11 @@ void SecondaryEclipseModel::initStellarSpectrum(const SecondaryEclipseConfig& mo
 
 void SecondaryEclipseModel::binStellarSpectrum()
 {
-  stellar_spectrum_bands.assign(retrieval->observation_data.size(), 0.0);
-
-  std::vector<double>::iterator it = stellar_spectrum_bands.begin();
-  
-
-  for (size_t i=0; i<retrieval->nb_observations; ++i)
-  {
-    std::vector<double> observation_bands;
-
-    if (retrieval->observations[i].filter_response.size() == 0)
-      retrieval->observations[i].spectral_bands.bandIntegrateSpectrum(stellar_spectrum, observation_bands);
-    else
-    {
-      std::vector<double> filter_spectrum = retrieval->observations[i].applyFilterResponseFunction(stellar_spectrum);
-      retrieval->observations[i].spectral_bands.bandIntegrateSpectrum(filter_spectrum, observation_bands);
-    }
-    
-    std::copy(observation_bands.begin(), observation_bands.end(), it);
-    it += observation_bands.size();
-  }
+  postProcessSpectrum(stellar_spectrum, stellar_spectrum_bands);
 
 
   if (retrieval->config->use_gpu)
     moveToDevice(stellar_spectrum_bands_gpu, stellar_spectrum_bands);
-
 }
 
 

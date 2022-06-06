@@ -81,7 +81,6 @@ SecondaryEclipseModel::SecondaryEclipseModel (Retrieval* retrieval_ptr, const Se
 
 
 //determines the basic atmospheric structure (temperature profile, chemistry...) from the free parameters supplied by MultiNest
-//also returns the radius-distance scaling parameter
 bool SecondaryEclipseModel::calcAtmosphereStructure(const std::vector<double>& parameter)
 {
   const double surface_gravity = std::pow(10,parameter[0]);
