@@ -105,8 +105,8 @@ set(SRC
   helios_src/chemistry/fastchem_chemistry.cpp
   helios_src/chemistry/free_chemistry.cpp
   helios_src/temperature/piecewise_poly_temperature.cpp
-  cdisort_src/cdisort.c
-  cdisort_src/locate.c)
+  _deps/cdisort_src/cdisort.c
+  _deps/cdisort_src/locate.c)
 
   
 

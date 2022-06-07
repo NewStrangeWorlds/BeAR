@@ -4,6 +4,7 @@ helios-r
 # build files from cmake
 build/*
 CMakeFiles/*
+.vscode/
 
 # MultiNest library (might be in conflict with GPL 3.0)
 multinest/libmultinest.a
