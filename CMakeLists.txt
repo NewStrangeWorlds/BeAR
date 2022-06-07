@@ -152,11 +152,13 @@ FetchContent_Declare(
 )
 
 FetchContent_GetProperties(fastchem)
+set(FASTCHEM_ONLY_LIBRARY ON)
 
 if (NOT fastchem_POPULATED)
   FetchContent_Populate(fastchem)
   add_subdirectory(${fastchem_SOURCE_DIR} ${fastchem_BINARY_DIR})
 endif()
+
 
 
 
@@ -192,7 +194,7 @@ foreach(lang C CXX Fortran)
         set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -ffree-line-length-none")
 	 if(CMAKE_${lang}_COMPILER_VERSION VERSION_GREATER 10)
             set(CMAKE_Fortran_FLAGS  "${CMAKE_Fortran_FLAGS} -std=legacy")
-	    endif()		 
+	    endif()
 	break()
     endif()
 endforeach()
