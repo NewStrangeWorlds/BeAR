@@ -110,29 +110,29 @@ set(SRC
 
   
 
-set(SRC_FASTCHEM
-  fastchem_src/calc_densities.cpp
-  fastchem_src/calc_electron_densities.cpp
-  fastchem_src/calc_mean_mol_weight.cpp
-  fastchem_src/calc_species_densities.cpp
-  fastchem_src/check.cpp
-  fastchem_src/fastchem.cpp
-  fastchem_src/get.cpp
-  fastchem_src/init_add_species.cpp
-  fastchem_src/init_read_files.cpp
-  fastchem_src/init_solver.cpp
-  fastchem_src/init.cpp
-  fastchem_src/mass_action_constant.cpp
-  fastchem_src/options_read_files.cpp
-  fastchem_src/set.cpp
-  fastchem_src/solve_fastchem.cpp
-  fastchem_src/solver_bisection.cpp
-  fastchem_src/solver_coeff.cpp  
-  fastchem_src/solver_linsol_quadsol.cpp
-  fastchem_src/solver_nelder_mead_electron.cpp
-  fastchem_src/solver_newtsol.cpp
-  fastchem_src/solver.cpp
-  fastchem_src/species_struct.cpp)
+#set(SRC_FASTCHEM
+  #fastchem_src/calc_densities.cpp
+  #fastchem_src/calc_electron_densities.cpp
+  #fastchem_src/calc_mean_mol_weight.cpp
+  #fastchem_src/calc_species_densities.cpp
+  #fastchem_src/check.cpp
+  #fastchem_src/fastchem.cpp
+  #fastchem_src/get.cpp
+  #fastchem_src/init_add_species.cpp
+  #fastchem_src/init_read_files.cpp
+  #fastchem_src/init_solver.cpp
+  #fastchem_src/init.cpp
+  #fastchem_src/mass_action_constant.cpp
+  #fastchem_src/options_read_files.cpp
+  #fastchem_src/set.cpp
+  #fastchem_src/solve_fastchem.cpp
+  #fastchem_src/solver_bisection.cpp
+  #fastchem_src/solver_coeff.cpp  
+  #fastchem_src/solver_linsol_quadsol.cpp
+  #fastchem_src/solver_nelder_mead_electron.cpp
+  #fastchem_src/solver_newtsol.cpp
+  #fastchem_src/solver.cpp
+  #fastchem_src/species_struct.cpp)
   
 
 set(SRC_CUDA
@@ -177,6 +177,22 @@ endif()
 
 
 
+#download the Boost Math library if necessary
+FetchContent_Declare(
+  fastchem
+  GIT_REPOSITORY https://github.com/exoclime/fastchem
+  GIT_TAG        932879d596bf28a02d6309142d8670ab29ac7e75
+)
+
+FetchContent_GetProperties(fastchem)
+
+if (NOT fastchem_POPULATED)
+  FetchContent_Populate(fastchem)
+  add_subdirectory(${fastchem_SOURCE_DIR} ${fastchem_BINARY_DIR})
+endif()
+
+
+
 
 #check for LAPACK library (required by MultiNest)
 find_package(LAPACK REQUIRED)
@@ -192,8 +208,8 @@ add_library(helios_r_cuda ${SRC_CUDA})
 
 
 #compilation target for FastChem
-add_library(fastchem ${SRC_FASTCHEM})
-target_compile_options(fastchem PRIVATE "${OpenMP_CXX_FLAGS}" PRIVATE "-O3")
+#add_library(fastchem ${SRC_FASTCHEM})
+#target_compile_options(fastchem PRIVATE "${OpenMP_CXX_FLAGS}" PRIVATE "-O3")
 
 
 
@@ -213,4 +229,4 @@ SET_TARGET_PROPERTIES(multinest PROPERTIES LINKER_LANGUAGE Fortran)
 
 #link files for the final helios-r code
 #target_link_libraries(helios-r PUBLIC fastchem helios_r_cuda multinest OpenMP::OpenMP_CXX ${GFORTRAN_LIBRARY} ${LAPACK_LIBRARIES})
-target_link_libraries(helios-r PUBLIC fastchem helios_r_cuda multinest OpenMP::OpenMP_CXX ${LAPACK_LIBRARIES})
+target_link_libraries(helios-r PUBLIC fastchem_lib helios_r_cuda multinest OpenMP::OpenMP_CXX ${LAPACK_LIBRARIES})

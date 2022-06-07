@@ -24,7 +24,7 @@
 
 #include "chemistry.h"
 
-#include "../../fastchem_src/fastchem.h"
+#include "../../_deps/fastchem-src/fastchem_src/fastchem.h"
 #include "chem_species.h"
 
 #include <string>
