@@ -35,7 +35,7 @@
 #include "../observations/observations.h"
 #include "../forward_model/forward_model.h"
 
-#include "../../multinest/multinest.h"
+#include "../../_deps/multinest-src/MultiNest_v3.12_CMake/multinest/include/multinest.h"
 #include "../CUDA_kernels/data_management_kernels.h"
 #include "../additional/exceptions.h"
 

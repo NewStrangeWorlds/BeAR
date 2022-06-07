@@ -18,7 +18,7 @@ cmake_minimum_required (VERSION 3.10 FATAL_ERROR)
 set(SM "0" CACHE STRING "GPU SM value")
 
 
-project(helios-r C CXX CUDA)
+project(helios-r C CXX CUDA Fortran)
 
 
 #some C++/C flags
@@ -107,32 +107,6 @@ set(SRC
   helios_src/temperature/piecewise_poly_temperature.cpp
   helios_src/radiative_transfer/cdisort_src/cdisort.c
   helios_src/radiative_transfer/cdisort_src/locate.c)
-
-  
-
-#set(SRC_FASTCHEM
-  #fastchem_src/calc_densities.cpp
-  #fastchem_src/calc_electron_densities.cpp
-  #fastchem_src/calc_mean_mol_weight.cpp
-  #fastchem_src/calc_species_densities.cpp
-  #fastchem_src/check.cpp
-  #fastchem_src/fastchem.cpp
-  #fastchem_src/get.cpp
-  #fastchem_src/init_add_species.cpp
-  #fastchem_src/init_read_files.cpp
-  #fastchem_src/init_solver.cpp
-  #fastchem_src/init.cpp
-  #fastchem_src/mass_action_constant.cpp
-  #fastchem_src/options_read_files.cpp
-  #fastchem_src/set.cpp
-  #fastchem_src/solve_fastchem.cpp
-  #fastchem_src/solver_bisection.cpp
-  #fastchem_src/solver_coeff.cpp  
-  #fastchem_src/solver_linsol_quadsol.cpp
-  #fastchem_src/solver_nelder_mead_electron.cpp
-  #fastchem_src/solver_newtsol.cpp
-  #fastchem_src/solver.cpp
-  #fastchem_src/species_struct.cpp)
   
 
 set(SRC_CUDA
@@ -150,16 +124,9 @@ set(SRC_CUDA
 #check for OpenMP
 find_package(OpenMP REQUIRED)
 
-#link the Boost library 
-#note that Helios-r only needs the Boost header files
-#find_package(Boost REQUIRED)
-#if(Boost_FOUND)
-#  include_directories(${Boost_INCLUDE_DIRS})
-#endif()
 
 
 include(FetchContent)
-
 
 #download the Boost Math library if necessary
 FetchContent_Declare(
@@ -177,7 +144,7 @@ endif()
 
 
 
-#download the Boost Math library if necessary
+#download the FastChem 2.1 if necessary
 FetchContent_Declare(
   fastchem
   GIT_REPOSITORY https://github.com/exoclime/fastchem
@@ -193,13 +160,50 @@ endif()
 
 
 
+#download Multibnest if necessary
+FetchContent_Declare(
+  multinest
+  GIT_REPOSITORY https://github.com/farhanferoz/MultiNest
+  GIT_TAG        cc616c17ed440fbff8d35937997c86256ed4d744
+)
+
+FetchContent_GetProperties(multinest)
+
+if (NOT multinest_POPULATED)
+  FetchContent_Populate(multinest)
+endif()
+
+
+set(MultiNest_SOURCE
+  ${multinest_SOURCE_DIR}/MultiNest_v3.12_CMake/multinest/src/cwrapper.f90
+  ${multinest_SOURCE_DIR}/MultiNest_v3.12_CMake/multinest/src/kmeans_clstr.f90
+  ${multinest_SOURCE_DIR}/MultiNest_v3.12_CMake/multinest/src/nested.F90
+  ${multinest_SOURCE_DIR}/MultiNest_v3.12_CMake/multinest/src/priors.f90
+  ${multinest_SOURCE_DIR}/MultiNest_v3.12_CMake/multinest/src/posterior.F90
+  ${multinest_SOURCE_DIR}/MultiNest_v3.12_CMake/multinest/src/utils.f90
+  ${multinest_SOURCE_DIR}/MultiNest_v3.12_CMake/multinest/src/utils1.f90
+  ${multinest_SOURCE_DIR}/MultiNest_v3.12_CMake/multinest/src/xmeans_clstr.f90)
+  
+
+# If we are compiling with gfortran, add -ffree-line-length-none
+foreach(lang C CXX Fortran)
+    if(CMAKE_${lang}_COMPILER_ID STREQUAL GNU)
+        MESSAGE(STATUS "Detected gfortran, adding -ffree-line-length-none compiler flag.")
+        set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -ffree-line-length-none")
+	 if(CMAKE_${lang}_COMPILER_VERSION VERSION_GREATER 10)
+            set(CMAKE_Fortran_FLAGS  "${CMAKE_Fortran_FLAGS} -std=legacy")
+	    endif()		 
+	break()
+    endif()
+endforeach()
+
+# libmultinest.so
+add_library(multinest_shared SHARED ${MultiNest_SOURCE})
+SET_TARGET_PROPERTIES(multinest_shared PROPERTIES LINKER_LANGUAGE Fortran)
+
 
 #check for LAPACK library (required by MultiNest)
 find_package(LAPACK REQUIRED)
-
-
-#link gfortran (MultiNest is written in Fortran)
-find_library(GFORTRAN_LIBRARY NAMES gfortran)
 
 
 #compilation target for the CUDA files
@@ -207,26 +211,10 @@ find_library(GFORTRAN_LIBRARY NAMES gfortran)
 add_library(helios_r_cuda ${SRC_CUDA})
 
 
-#compilation target for FastChem
-#add_library(fastchem ${SRC_FASTCHEM})
-#target_compile_options(fastchem PRIVATE "${OpenMP_CXX_FLAGS}" PRIVATE "-O3")
-
-
-
 # build application for Helios-r
 add_executable(helios-r ${SRC})
 target_include_directories(helios-r PUBLIC ${boost_math_SOURCE_DIR}/include/)
 
 
-#add the shared MultiNest library
-set(MULTINEST_LOCATION ${CMAKE_SOURCE_DIR})
-string(APPEND MULTINEST_LOCATION "/multinest/libmultinest.so.3.10")
-
-add_library(multinest SHARED IMPORTED)
-set_property(TARGET multinest PROPERTY IMPORTED_LOCATION ${MULTINEST_LOCATION})
-SET_TARGET_PROPERTIES(multinest PROPERTIES LINKER_LANGUAGE Fortran)
-
-
 #link files for the final helios-r code
-#target_link_libraries(helios-r PUBLIC fastchem helios_r_cuda multinest OpenMP::OpenMP_CXX ${GFORTRAN_LIBRARY} ${LAPACK_LIBRARIES})
-target_link_libraries(helios-r PUBLIC fastchem_lib helios_r_cuda multinest OpenMP::OpenMP_CXX ${LAPACK_LIBRARIES})
+target_link_libraries(helios-r PUBLIC fastchem_lib helios_r_cuda multinest_shared OpenMP::OpenMP_CXX ${LAPACK_LIBRARIES})

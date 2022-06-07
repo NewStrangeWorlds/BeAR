@@ -46,7 +46,7 @@ struct MultinestParameter{
   double Ztol = -1E90;    //all the modes with logZ < Ztol are ignored
   int maxModes = 100;     //expected max no. of modes (used only for memory allocation)
   int pWrap[100];         //which parameters to have periodic boundary conditions?
-  char root[100];         //root for output files
+  char root[1000];         //root for output files
   int seed = -1;          //random no. generator seed, if < 0 then take the seed from system clock
   int fb = 1;             //need feedback on standard output?
   int resume = 0;         //resume from a previous job?
