@@ -31,7 +31,7 @@
 
 
 extern "C" {
-  #include "../../_deps/cdisort_src/cdisort.h"
+  #include "cdisort_src/cdisort.h"
 }
 
 

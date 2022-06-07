@@ -6,6 +6,8 @@ build/*
 CMakeFiles/*
 .vscode/
 
+_deps/*
+
 # MultiNest library (might be in conflict with GPL 3.0)
 multinest/libmultinest.a
 multinest/multinest.h

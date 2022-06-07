@@ -105,8 +105,8 @@ set(SRC
   helios_src/chemistry/fastchem_chemistry.cpp
   helios_src/chemistry/free_chemistry.cpp
   helios_src/temperature/piecewise_poly_temperature.cpp
-  _deps/cdisort_src/cdisort.c
-  _deps/cdisort_src/locate.c)
+  helios_src/radiative_transfer/cdisort_src/cdisort.c
+  helios_src/radiative_transfer/cdisort_src/locate.c)
 
   
 
@@ -152,10 +152,29 @@ find_package(OpenMP REQUIRED)
 
 #link the Boost library 
 #note that Helios-r only needs the Boost header files
-find_package(Boost REQUIRED)
-if(Boost_FOUND)
-  include_directories(${Boost_INCLUDE_DIRS})
+#find_package(Boost REQUIRED)
+#if(Boost_FOUND)
+#  include_directories(${Boost_INCLUDE_DIRS})
+#endif()
+
+
+include(FetchContent)
+
+
+#download the Boost Math library if necessary
+FetchContent_Declare(
+  boost_math
+  GIT_REPOSITORY https://github.com/boostorg/math
+  GIT_TAG        ed01dae24893bb69c02c6d599acc74bdb8f46bda
+)
+
+FetchContent_GetProperties(boost_math)
+
+if (NOT boost_math_POPULATED)
+  FetchContent_Populate(boost_math)
+  add_subdirectory(${boost_math_SOURCE_DIR} ${boost_math_BINARY_DIR})
 endif()
+
 
 
 
@@ -180,6 +199,7 @@ target_compile_options(fastchem PRIVATE "${OpenMP_CXX_FLAGS}" PRIVATE "-O3")
 
 # build application for Helios-r
 add_executable(helios-r ${SRC})
+target_include_directories(helios-r PUBLIC ${boost_math_SOURCE_DIR}/include/)
 
 
 #add the shared MultiNest library

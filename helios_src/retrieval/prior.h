@@ -26,9 +26,12 @@
 #include <cmath>
 #include <vector>
 
+#define BOOST_IF_CONSTEXPR if
 
-#include <boost/math/special_functions/erf.hpp>
-
+//#include <boost/math/special_functions/erf.hpp>
+//#include "../../_deps/boost_math-src/include/boost/math/tools/config.hpp"
+//#include "../../_deps/boost_math-src/include/boost/math/special_functions.hpp"
+#include "../../_deps/boost_math-src/include/boost/math/special_functions/erf.hpp"
 
 
 namespace helios {
