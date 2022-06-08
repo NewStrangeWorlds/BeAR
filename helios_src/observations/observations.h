@@ -51,12 +51,12 @@ class Observation{
     std::vector<double> instrument_profile_fwhm;                        //instrument profile (if it doesn't exist, the vector will have a size of 0)
     std::vector<double> filter_response;                                //filter response function
     std::vector<double> filter_response_weight;
+    std::vector<double> likelihood_weight;                              //weight for the likelihood computation
     std::string filter_detector_type = "";
     double filter_response_normalisation = 0.0;
     
     double* filter_response_gpu = nullptr;
     double* filter_response_weight_gpu = nullptr;
-    
 
     void printObservationDetails();
     void setFilterResponseFunction();

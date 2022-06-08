@@ -34,7 +34,7 @@ namespace helios{
 
 //computes the log likelihood
 //each thread calculates one data point, the results are then summed by each block via a blockReduce method and finally all collected by thread 0 
-__global__ void logLikeDevice(double* observation, double* error, double* model, const int nb_spectral_points, const double error_inflation_coefficient, double* d_log_like)
+__global__ void logLikeDevice(double* observation, double* error, double* loglike_weight, double* model, const int nb_spectral_points, const double error_inflation_coefficient, double* d_log_like)
 {
   double d_log_like_sum = 0;
 
@@ -45,7 +45,7 @@ __global__ void logLikeDevice(double* observation, double* error, double* model,
     const double error_square = error[i]*error[i] + error_inflation_coefficient;
 
     //Eq. 23 from Paper I
-    d_log_like_sum += - 0.5 * log(error_square * 2.0 * constants::pi) - 0.5 * (observation[i] - model[i])*(observation[i] - model[i]) / error_square;
+    d_log_like_sum += (- 0.5 * log(error_square * 2.0 * constants::pi) - 0.5 * (observation[i] - model[i])*(observation[i] - model[i]) / error_square) * loglike_weight[i];
   }
 
 
@@ -61,7 +61,7 @@ __global__ void logLikeDevice(double* observation, double* error, double* model,
 
 
 
-__host__ double logLikeHost(double* observation, double* observation_error, double* model_spectrum, const size_t nb_spectral_points, const double error_inflation_coefficient)
+__host__ double logLikeHost(double* observation, double* observation_error, double* observation_likelihood_weight, double* model_spectrum, const size_t nb_spectral_points, const double error_inflation_coefficient)
 {
   double h_log_like = 0;
 
@@ -78,7 +78,7 @@ __host__ double logLikeHost(double* observation, double* observation_error, doub
   if (nb_spectral_points % threads) blocks++;
 
 
-  logLikeDevice<<<blocks,threads>>>(observation,observation_error,model_spectrum, nb_spectral_points, error_inflation_coefficient, d_log_like);
+  logLikeDevice<<<blocks,threads>>>(observation,observation_error,observation_likelihood_weight,model_spectrum, nb_spectral_points, error_inflation_coefficient, d_log_like);
 
 
   cudaDeviceSynchronize();

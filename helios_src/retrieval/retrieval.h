@@ -60,11 +60,13 @@ class Retrieval{
 
     size_t nbObservations() {return observations.size();}
 
-    std::vector<double> observation_data;            //combined vector of all observational data
-    std::vector<double> observation_error;           //combined array of the corresponding observational errors
+    std::vector<double> observation_data;               //combined vector of all observational data
+    std::vector<double> observation_error;              //combined array of the corresponding observational errors
+     std::vector<double> observation_likelihood_weight; //combined vector of likelihood weights
 
-    double* observation_data_gpu = nullptr;          //pointer to the corresponding data on the GPU
+    double* observation_data_gpu = nullptr;             //pointer to the corresponding data on the GPU
     double* observation_error_gpu = nullptr;
+    double* observation_likelihood_weight_gpu = nullptr;
 
     size_t nb_observations = 0;                      //number of observations
     size_t nb_observation_points = 0;                //total number of observational data points

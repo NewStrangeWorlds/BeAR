@@ -126,15 +126,41 @@ bool Observation::readPhotometryData(std::fstream& file)
   std::getline(file, line);
 
 
-  double lower_wavelength, upper_wavelength, flux_single, error_single;
+  std::getline(file, line);
+  
+  //count the number of columns
+  unsigned int nb_data_columns = 0;
 
-  file >> lower_wavelength >> upper_wavelength >> flux_single >> error_single;
+  if (nb_data_columns == 0)
+  {
+    std::string item;
+
+    std::stringstream ss(line);
+    while (ss >> item ) nb_data_columns++;
+      
+    if (nb_data_columns < 4)
+    {
+      std::string error_message = "Expected at least four data columns in observational file, but only found " + std::to_string(nb_data_columns) + "\n";
+      throw ExceptionInvalidInput(std::string ("Observation::readBandSpectroscopyData"), error_message);
+    }
+  }
+  
+  std::istringstream input(line);
+
+  double lower_wavelength, upper_wavelength, flux_single, error_single, retrieval_weight;
+
+  input >> lower_wavelength >> upper_wavelength >> flux_single >> error_single >> retrieval_weight;
   
   std::vector< std::vector<double> > wavelengths(1, {lower_wavelength, upper_wavelength});
  
 
   flux.push_back(flux_single);
   flux_error.push_back(error_single);
+
+  if (nb_data_columns == 5)
+    likelihood_weight.push_back(retrieval_weight);
+  else
+    likelihood_weight.push_back(1.0);
 
 
   //wavelengths should be ordered in descending order because the opacity data is organized in ascending wavenumbers
@@ -157,14 +183,35 @@ bool Observation::readPhotometryData(std::fstream& file)
 
 bool Observation::readBandSpectroscopyData(std::fstream& file)
 {
-  double left_edge, right_edge, flux_single, error, line_profile_fwhm;
+  double left_edge, right_edge, flux_single, error, line_profile_fwhm, retrieval_weight;
   std::vector< std::vector<double> > bin_edges; 
 
-    
   std::string line;
+  
+  std::getline(file, line);
+  std::getline(file, line);
+  std::getline(file, line);
+  
+  unsigned int nb_data_columns = 0;
 
   while (std::getline(file, line))
-  {
+  { 
+    //count the number of columns
+    if (nb_data_columns == 0)
+    {
+      std::string item;
+
+      std::stringstream ss(line);
+        while (ss >> item ) nb_data_columns++;
+      
+      if (nb_data_columns < 4)
+      {
+        std::string error_message = "Expected at least four data columns in observational file, but only found " + std::to_string(nb_data_columns) + "\n";
+        throw ExceptionInvalidInput(std::string ("Observation::readBandSpectroscopyData"), error_message);
+      }
+    }
+
+
     std::istringstream input(line);
 
     left_edge = 0;
@@ -172,7 +219,7 @@ bool Observation::readBandSpectroscopyData(std::fstream& file)
     error = 0.0;
     line_profile_fwhm = 0.0;
 
-    input >> left_edge >> right_edge >> flux_single >> error >> line_profile_fwhm;
+    input >> left_edge >> right_edge >> flux_single >> error >> line_profile_fwhm >> retrieval_weight;
 
     if (left_edge != 0.0 && error != 0.0)
     {
@@ -182,8 +229,13 @@ bool Observation::readBandSpectroscopyData(std::fstream& file)
     }
 
 
-    if (line_profile_fwhm != 0.0)     
+    if (line_profile_fwhm != 0.0 && nb_data_columns > 4)
       instrument_profile_fwhm.push_back(line_profile_fwhm);
+
+    if (nb_data_columns == 5)
+      likelihood_weight.push_back(retrieval_weight);
+    else
+      likelihood_weight.push_back(1.0);
   }
 
 
@@ -222,7 +274,7 @@ bool Observation::readBandSpectroscopyData(std::fstream& file)
 bool Observation::readSpectroscopyData(std::fstream& file)
 {
   std::vector<double> wavelengths;
-  double wavelength_single, flux_single, error_single, line_profile_fwhm;
+  double wavelength_single, flux_single, error_single, line_profile_fwhm, retrieval_weight;
   std::string line;
 
   std::getline(file, line);
@@ -242,15 +294,33 @@ bool Observation::readSpectroscopyData(std::fstream& file)
   std::getline(file, line);
   std::getline(file, line);
 
+  unsigned int nb_data_columns = 0;
 
   while (std::getline(file, line))
   {
+    //count the number of columns
+    if (nb_data_columns == 0)
+    {
+      std::string item;
+
+      std::stringstream ss(line);
+        while (ss >> item ) nb_data_columns++;
+      
+      if (nb_data_columns < 3)
+      {
+        std::string error_message = "Expected at least three data columns in observational file, but only found " + std::to_string(nb_data_columns) + "\n";
+        throw ExceptionInvalidInput(std::string ("Observation::readSpectroscopyData"), error_message);
+      }
+    }
+
+
     std::istringstream input(line);
 
     wavelength_single = 0.0;
     line_profile_fwhm = 0.0;
+    retrieval_weight = 0.0;
 
-    input >> wavelength_single >> flux_single >> error_single >> line_profile_fwhm;
+    input >> wavelength_single >> flux_single >> error_single >> line_profile_fwhm >> retrieval_weight;
 
     if (wavelength_single != 0.0 && error_single != 0.0)
     {
@@ -260,8 +330,13 @@ bool Observation::readSpectroscopyData(std::fstream& file)
     }
 
 
-    if (line_profile_fwhm != 0.0)     
+    if (line_profile_fwhm != 0.0 && nb_data_columns > 3)
       instrument_profile_fwhm.push_back(line_profile_fwhm);
+
+    if (nb_data_columns == 5)
+      likelihood_weight.push_back(retrieval_weight);
+    else
+      likelihood_weight.push_back(1.0);
   }
 
 
@@ -329,7 +404,8 @@ void Observation::printObservationDetails()
     std::cout << "Filter detector type: " << filter_detector_type << "\n";
     std::cout << "band edges: " << spectral_bands.band_edges_wavelength[0][0] << "\t" << spectral_bands.band_edges_wavelength[0][1] 
               << "\nband center: " << spectral_bands.band_centers_wavelength.front() << "\n";
-    std::cout << "photometry flux: " << flux.front() << "\t error: " << flux_error.front() << "\n\n";
+    std::cout << "photometry flux: " << flux.front() << "\t error: " << flux_error.front() << "\n";
+    std::cout << "likelihood weight: " << likelihood_weight.front() << "\n\n";
   }
 
 
@@ -346,9 +422,9 @@ void Observation::printObservationDetails()
                << "\t" << flux[i] << "\t" << flux_error[i];
 
       if (instrument_profile_fwhm.size() > 0)
-        std::cout << "\t" << instrument_profile_fwhm[i] << "\n";
-      else
-        std::cout << "\n";
+        std::cout << "\t" << instrument_profile_fwhm[i];
+
+      std::cout << "\t" << likelihood_weight[i] << "\n";
     }
 
     if (instrument_profile_fwhm.size() == 0)

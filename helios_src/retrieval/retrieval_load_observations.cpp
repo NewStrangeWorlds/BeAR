@@ -53,6 +53,7 @@ void Retrieval::loadObservations(const std::string file_folder, const std::vecto
     //save all the observations and their errors in a single vector
     observation_data.insert(std::end(observation_data), std::begin(observations[i].flux), std::end(observations[i].flux));
     observation_error.insert(std::end(observation_error), std::begin(observations[i].flux_error), std::end(observations[i].flux_error));
+    observation_likelihood_weight.insert(std::end(observation_likelihood_weight), std::begin(observations[i].likelihood_weight), std::end(observations[i].likelihood_weight));
   }
 
 
@@ -64,19 +65,7 @@ void Retrieval::loadObservations(const std::string file_folder, const std::vecto
   {
     moveToDevice(observation_data_gpu, observation_data);
     moveToDevice(observation_error_gpu, observation_error);
-
-    deleteFromDevice(observation_data_gpu);
-    deleteFromDevice(observation_error_gpu);
-
-    moveToDevice(observation_data_gpu, observation_data);
-    moveToDevice(observation_error_gpu, observation_error);
-
-    moveToDevice(observation_data_gpu, observation_data);
-    moveToDevice(observation_error_gpu, observation_error);
-
-   
-    moveToDevice(observation_data_gpu, observation_data);
-    moveToDevice(observation_error_gpu, observation_error);
+    moveToDevice(observation_likelihood_weight_gpu, observation_likelihood_weight);
   }
 
 

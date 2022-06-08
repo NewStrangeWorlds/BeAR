@@ -27,7 +27,7 @@
 namespace helios{
 
 
-double logLikeHost(double* observation, double* observation_error, double* model_spectrum, const size_t nb_spectral_points, const double error_inflation_coefficient);
+double logLikeHost(double* observation, double* observation_error, double* observation_likelihood_weight, double* model_spectrum, const size_t nb_spectral_points, const double error_inflation_coefficient);
 
 
 }

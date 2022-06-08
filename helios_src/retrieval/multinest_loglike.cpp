@@ -107,8 +107,9 @@ void Retrieval::multinestLogLike(double *cube, int &ndim, int &nb_param, double 
     const double error_square = retrieval_ptr->observation_error[i]*retrieval_ptr->observation_error[i] + error_inflation;
     
     //Eq. 23 from Paper I
-    log_like += - 0.5 * std::log(error_square* 2.0 * constants::pi)
-                - 0.5 * (retrieval_ptr->observation_data[i] - model_spectrum_bands[i])*(retrieval_ptr->observation_data[i] - model_spectrum_bands[i]) / error_square;
+    log_like += (- 0.5 * std::log(error_square* 2.0 * constants::pi)
+                - 0.5 * (retrieval_ptr->observation_data[i] - model_spectrum_bands[i])*(retrieval_ptr->observation_data[i] - model_spectrum_bands[i]) / error_square)
+                * retrieval_ptr->observation_likelihood_weight[i];
   }
 
   
@@ -195,6 +196,7 @@ void Retrieval::multinestLogLikeGPU(double *cube, int &nb_dim, int &nb_param, do
 
   double new_log_like = logLikeHost(retrieval_ptr->observation_data_gpu,
                                     retrieval_ptr->observation_error_gpu,
+                                    retrieval_ptr->observation_likelihood_weight_gpu,
                                     model_spectrum_bands,
                                     retrieval_ptr->nb_total_bands, 
                                     error_inflation);
