@@ -33,7 +33,7 @@ namespace helios {
 
 class GreyCloudModel: public CloudModel{
   public:
-    GreyCloudModel() {nb_parameters = 3;}
+    GreyCloudModel(const std::vector<std::string>& parameters);
     virtual ~GreyCloudModel() {}
     virtual void opticalProperties(const std::vector<double>& parameters, const Atmosphere& atmosphere,
                                    SpectralGrid* spectral_grid,
@@ -47,7 +47,10 @@ class GreyCloudModel: public CloudModel{
                                       double* asym_param);
 
   protected:
+    bool fixed_bottom = false;
     void cloudPosition(const Atmosphere& atmosphere, const double top_pressure, const double bottom_pressure, 
+                       unsigned int& top_index, unsigned int& bottom_index);
+    void cloudPosition(const Atmosphere& atmosphere, const double top_pressure, 
                        unsigned int& top_index, unsigned int& bottom_index);
 };
 

@@ -46,6 +46,7 @@ Atmosphere::Atmosphere(const size_t nb_grid_points_, const double atmos_boundari
   //initialise temperatures, altitudes, and number_densities to 0
   temperature.assign(nb_grid_points, 0.0);
   altitude.assign(nb_grid_points, 0.0);
+  scale_height.assign(nb_grid_points, 0.0);
   number_densities.assign(nb_grid_points, std::vector<double>(constants::species_data.size(), 0.0));
 
   if (use_gpu)
@@ -88,7 +89,7 @@ bool Atmosphere::calcAtmosphereStructure(const double surface_gravity,
   }
 
   calcAltitude(surface_gravity, mean_molecular_weights);
-
+  calcScaleHeight(surface_gravity, mean_molecular_weights);
 
   return neglect_model;
 }
@@ -111,6 +112,17 @@ void Atmosphere::calcAltitude(const double surface_gravity, const std::vector<do
     altitude[i] = altitude[i-1] + delta_z;
   }
 
+}
+
+
+
+//determine the local atmospheric scale heights
+void Atmosphere::calcScaleHeight(const double surface_gravity, const std::vector<double>& mean_molecular_weights)
+{
+  scale_height.assign(nb_grid_points, 0.0);
+
+  for (size_t i=0; i<nb_grid_points; ++i)
+    scale_height[i] = constants::gas_constant * temperature[i] / (mean_molecular_weights[i] * surface_gravity);
 }
 
 

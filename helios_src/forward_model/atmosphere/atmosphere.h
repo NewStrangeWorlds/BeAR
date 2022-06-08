@@ -46,6 +46,7 @@ class Atmosphere {
     std::vector<double> pressure;
     std::vector<double> temperature;
     std::vector<double> altitude;
+    std::vector<double> scale_height;
     std::vector< std::vector<double> > number_densities;
 
     double* altitude_dev = nullptr;
@@ -58,6 +59,7 @@ class Atmosphere {
   private:
     void createPressureGrid(const double domain_boundaries [2]);
     void calcAltitude(const double g, const std::vector<double>& mean_molecular_weights);
+    void calcScaleHeight(const double g, const std::vector<double>& mean_molecular_weights);
 };
 
 

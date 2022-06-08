@@ -72,7 +72,7 @@ inline CloudModel* selectCloudModel(const std::string type, const std::vector<st
 
     case cloud_modules::grey :
       {
-        GreyCloudModel* model = new GreyCloudModel();
+        GreyCloudModel* model = new GreyCloudModel(parameters);
         cloud_model = model;  
       }
       break;
