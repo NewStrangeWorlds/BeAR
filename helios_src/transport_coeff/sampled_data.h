@@ -34,6 +34,7 @@ class SampledData{
     SampledData(const double temperature_data, const double pressure_data, const std::string file_name, const bool log_data, const bool gpu_avail)
                 : pressure(pressure_data), log_pressure(std::log10(pressure_data)), temperature(temperature_data), data_file(file_name, log_data), use_gpu(gpu_avail) 
                 {}
+    ~SampledData();
     void sampleCrossSections(const std::vector<size_t>& sampling_list, const double species_mass);
     void deleteSampledData();
 

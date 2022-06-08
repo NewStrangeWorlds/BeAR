@@ -102,8 +102,8 @@ bool TransportCoefficients::addOpacitySpecies(const std::string& species_symbol,
       return true;
     } 
   }
-  
-  std::cout << "tp done\n";
+
+
   //we haven't found the corresponding species
   std::cout << "Opacity species " << species_symbol << " has not been found in the internal list located in chem_species.h!\n";
 

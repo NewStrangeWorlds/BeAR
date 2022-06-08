@@ -33,7 +33,6 @@ namespace helios{
 
 //forward declaration
 class GlobalConfig;
-class ModelConfig;
 
 
 
@@ -52,7 +51,6 @@ class TransportCoefficients {
     
   private:
     GlobalConfig* config = nullptr;
-    ModelConfig* model_parameter =  nullptr;
     SpectralGrid* spectral_grid = nullptr;
 
     std::vector<OpacitySpecies*> gas_species;

@@ -40,7 +40,7 @@ class Retrieval;
 //it also contains the required data and methods to convert a computed high-res spectrum into a simulated observation
 class Observation{
   public:
-    ~Observation() {}
+    ~Observation();
     void init (Retrieval* retrieval_ptr, const std::string& file_name);  //initialisation method that will read the file with the observational data  
     std::string observationName() const {return observation_name;} 
 

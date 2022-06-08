@@ -160,13 +160,32 @@ bool Retrieval::doRetrieval()
 Retrieval::~Retrieval()
 {
   if (config->use_gpu)
-  {
+  { 
+    deleteFromDevice(model_spectrum_gpu);
+
     deleteFromDevice(observation_data_gpu);
     deleteFromDevice(observation_error_gpu);
-
+    
     deleteFromDevice(band_sizes_gpu);
     deleteFromDevice(band_indices_gpu);
     deleteFromDevice(band_start_index_gpu);
+    
+    for (size_t i=0; i<nb_observations; ++i)
+    {
+      if (observations[i].filter_response.size() != 0)
+        deleteFromDevice(filter_response_spectra[i]);
+
+      if (observations[i].instrument_profile_fwhm.size() != 0)
+      {
+        deleteFromDevice(convolved_spectra[i]);
+        deleteFromDevice(observation_spectral_indices[i]);
+        deleteFromDevice(observation_wavelengths[i]);
+        deleteFromDevice(convolution_start_index[i]);
+        deleteFromDevice(convolution_end_index[i]);
+        deleteFromDevice(observation_profile_sigma[i]);
+      }
+    }
+    
   }
 
 }

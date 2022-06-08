@@ -64,9 +64,21 @@ void Retrieval::loadObservations(const std::string file_folder, const std::vecto
   {
     moveToDevice(observation_data_gpu, observation_data);
     moveToDevice(observation_error_gpu, observation_error);
+
+    deleteFromDevice(observation_data_gpu);
+    deleteFromDevice(observation_error_gpu);
+
+    moveToDevice(observation_data_gpu, observation_data);
+    moveToDevice(observation_error_gpu, observation_error);
+
+    moveToDevice(observation_data_gpu, observation_data);
+    moveToDevice(observation_error_gpu, observation_error);
+
+   
+    moveToDevice(observation_data_gpu, observation_data);
+    moveToDevice(observation_error_gpu, observation_error);
   }
 
-  
 
   for (auto & i : observations)
   {

@@ -361,5 +361,16 @@ void Observation::printObservationDetails()
 
 
 
+Observation::~Observation()
+{
+  if (retrieval->config->use_gpu)
+  {
+    deleteFromDevice(filter_response_gpu);
+    deleteFromDevice(filter_response_weight_gpu);
+  }
+}
+
+
+
 
 }

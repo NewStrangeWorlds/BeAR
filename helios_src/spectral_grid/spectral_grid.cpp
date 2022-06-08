@@ -312,7 +312,13 @@ void SpectralGrid::addSampledIndices(const std::vector<size_t>& new_index_list)
 
   //move the lists to the GPU, if necessary
   if (config->use_gpu)
-  {
+  { 
+    if (wavelength_list_gpu != nullptr)
+    {
+      deleteFromDevice(wavelength_list_gpu);
+      deleteFromDevice(wavenumber_list_gpu);
+    }
+
     moveToDevice(wavenumber_list_gpu, wavenumber_list);
     moveToDevice(wavelength_list_gpu, wavelength_list);
   }

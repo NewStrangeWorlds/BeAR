@@ -67,6 +67,16 @@ void SampledData::sampleCrossSections(const std::vector<size_t>& sampling_list_i
   data_file.unloadData();
 }
 
+
+
+SampledData::~SampledData()
+{
+  deleteFromDevice(cross_sections_device);
+}
+
+
+
+
 }
 
 
