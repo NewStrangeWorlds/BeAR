@@ -148,7 +148,7 @@ endif()
 FetchContent_Declare(
   fastchem
   GIT_REPOSITORY https://github.com/exoclime/fastchem
-  GIT_TAG        932879d596bf28a02d6309142d8670ab29ac7e75
+  GIT_TAG        e8dbeb7ec7719dbd0021d672a0b5d330e924a764
 )
 
 FetchContent_GetProperties(fastchem)
