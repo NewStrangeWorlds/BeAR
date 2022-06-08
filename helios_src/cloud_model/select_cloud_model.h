@@ -24,6 +24,7 @@
 
 #include "cloud_model.h"
 #include "grey_cloud_model.h"
+#include "kh_cloud_model.h"
 
 #include "../config/global_config.h"
 #include "../additional/exceptions.h"
@@ -73,9 +74,15 @@ inline CloudModel* selectCloudModel(const std::string type, const std::vector<st
     case cloud_modules::grey :
       {
         GreyCloudModel* model = new GreyCloudModel(parameters);
-        cloud_model = model;  
+        cloud_model = model;
       }
       break;
+
+    case cloud_modules::KHnongrey :
+      {
+        KHCloudModel* model = new KHCloudModel(parameters);
+        cloud_model = model;
+      }
   }
 
 

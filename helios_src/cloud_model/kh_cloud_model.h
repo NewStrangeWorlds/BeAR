@@ -18,12 +18,14 @@
 */
 
 
-#ifndef _grey_cloud_model_h
-#define _grey_cloud_model_h
+#ifndef _kh_cloud_model_h
+#define _kh_cloud_model_h
 
 
 #include <vector>
 
+#include "cloud_model.h"
+#include "grey_cloud_model.h"
 #include "cloud_model.h"
 #include "../forward_model/atmosphere/atmosphere.h"
 
@@ -31,10 +33,10 @@
 namespace helios {
 
 
-class GreyCloudModel: public CloudModel{
+class KHCloudModel: public GreyCloudModel{
   public:
-    GreyCloudModel(const std::vector<std::string>& parameters);
-    virtual ~GreyCloudModel() {}
+    KHCloudModel(const std::vector<std::string>& parameters);
+    virtual ~KHCloudModel() {}
     virtual void opticalProperties(const std::vector<double>& parameters, const Atmosphere& atmosphere,
                                    SpectralGrid* spectral_grid,
                                    std::vector<std::vector<double>>& optical_depth, 
@@ -47,12 +49,7 @@ class GreyCloudModel: public CloudModel{
                                       double* asym_param);
 
   protected:
-    bool fixed_bottom = false;
-
-    void cloudPosition(const Atmosphere& atmosphere, const double top_pressure, const double bottom_pressure, 
-                       unsigned int& top_index, unsigned int& bottom_index);
-    void cloudPosition(const Atmosphere& atmosphere, const double top_pressure, 
-                       unsigned int& top_index, unsigned int& bottom_index);
+    double reference_wavelength = 0;
 };
 
 

@@ -77,6 +77,7 @@ set(SRC
   helios_src/forward_model/secondary_eclipse/secondary_eclipse_test.cpp
   helios_src/forward_model/atmosphere/atmosphere.cpp
   helios_src/cloud_model/grey_cloud_model.cpp
+  helios_src/cloud_model/kh_cloud_model.cpp
   helios_src/model_main/model_main.cpp
   helios_src/observations/observations.cpp
   helios_src/observations/observations_filter_response.cpp
