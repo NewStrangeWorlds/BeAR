@@ -30,7 +30,7 @@
 #include "spectral_band_type.h"
 #include "spectral_grid.h"
 #include "../config/global_config.h"
-
+#include "../CUDA_kernels/data_management_kernels.h"
 
 
 namespace helios{
@@ -111,6 +111,66 @@ void SpectralBands::setInstrumentProfileFWHW(std::vector<double>& profile_fwhm)
 
 
   setConvolutionQuadratureIntervals();
+}
+
+
+
+void SpectralBands::initDeviceMemory()
+{
+  std::vector<int> band_indices(spectral_indices.begin(), spectral_indices.end());
+  moveToDevice(spectral_indices_dev, band_indices);
+
+  moveToDevice(wavelengths_dev, wavelengths);
+
+  std::vector<int> band_start(nb_bands, 0);
+  std::vector<int> band_end(nb_bands, 0);
+
+  band_start[0] = 0;
+  band_end[0] = band_spectral_indices[0].size()-1;
+
+  for (size_t i=1; i<nb_bands; ++i)
+  {
+    band_start[i] = band_end[i-1];
+    band_end[i] = band_start[i] + band_spectral_indices[i].size()-1;
+  }
+
+  moveToDevice(band_start_dev, band_start);
+  moveToDevice(band_end_dev, band_end);
+
+
+  if (instrument_profile_sigma.size() > 0)
+  {
+    std::vector<int> convolution_start(wavelengths.size(), 0);
+    std::vector<int> convolution_end(wavelengths.size(), 0);
+
+    for (size_t i=0; i<wavelengths.size(); ++i)
+    {
+      convolution_start[i] = convolution_quadrature_intervals[i][0];
+      convolution_end[i] = convolution_quadrature_intervals[i][1];
+    }
+
+    moveToDevice(convolution_start_dev, convolution_start);
+    moveToDevice(convolution_end_dev, convolution_end);
+
+    moveToDevice(instrument_profile_sigma_dev, instrument_profile_sigma);
+  }
+
+
+}
+
+
+SpectralBands::~SpectralBands()
+{
+  deleteFromDevice(spectral_indices_dev);
+  deleteFromDevice(wavelengths_dev);
+
+  deleteFromDevice(band_start_dev);
+  deleteFromDevice(band_end_dev);
+
+
+  deleteFromDevice(convolution_start_dev);
+  deleteFromDevice(convolution_end_dev);
+  deleteFromDevice(instrument_profile_sigma_dev);
 }
 
 

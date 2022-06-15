@@ -35,7 +35,6 @@
 #include "../forward_model/forward_model.h"
 #include "../additional/physical_const.h"
 #include "../CUDA_kernels/data_management_kernels.h"
-#include "../CUDA_kernels/band_integration_kernels.h"
 #include "../additional/exceptions.h"
 #include "retrieval.h"
 

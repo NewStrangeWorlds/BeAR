@@ -26,6 +26,7 @@
 //the header files for all forward models
 #include "../forward_model/emission/emission.h"
 #include "../forward_model/secondary_eclipse/secondary_eclipse.h"
+#include "../forward_model/transmission/transmission.h"
 
 
 
@@ -47,6 +48,14 @@ ForwardModel* Retrieval::selectForwardModel(const std::string model_description)
   if (model_description == "secondary_eclipse" || model_description == "Secondary_eclipse" || model_description == "se")
   {
     SecondaryEclipseModel* model = new SecondaryEclipseModel(this, SecondaryEclipseConfig (config->retrieval_folder_path));
+
+    return model;
+  }
+
+
+  if (model_description == "transmission" || model_description == "Transmission" || model_description == "trans")
+  {
+    TransmissionModel* model = new TransmissionModel(this, TransmissionModelConfig (config->retrieval_folder_path));
 
     return model;
   }

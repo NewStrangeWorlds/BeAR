@@ -83,6 +83,8 @@ void SpectralBands::setConvolutionQuadratureIntervals(const unsigned int index, 
 //convolve the spectrum with an instrument profile
 std::vector<double> SpectralBands::convolveSpectrum(const std::vector<double>& spectrum)
 {
+  if (instrument_profile_sigma.size() == 0) return spectrum;
+
   if (convolution_quadrature_intervals.size() == 0)
     setConvolutionQuadratureIntervals();
 

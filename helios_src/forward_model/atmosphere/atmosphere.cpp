@@ -91,6 +91,12 @@ bool Atmosphere::calcAtmosphereStructure(const double surface_gravity,
   calcAltitude(surface_gravity, mean_molecular_weights);
   calcScaleHeight(surface_gravity, mean_molecular_weights);
 
+  if (altitude_dev != nullptr)
+  {
+    moveToDevice(altitude_dev, altitude, false);
+    moveToDevice(temperature_dev, temperature, false);
+  }
+
   return neglect_model;
 }
 

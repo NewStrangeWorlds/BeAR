@@ -55,10 +55,19 @@ class OpacitySpecies {
     void orderDataList();
 
     virtual bool calcContinuumAbsorption(const double temperature, const std::vector<double>& number_densities, std::vector<double>& absorption_coeff) {return false;};
+    virtual void calcContinuumAbsorptionGPU(
+      const double temperature, 
+      const std::vector<double>& number_densities,
+      const size_t nb_grid_points, 
+      const size_t grid_point,
+      double* absorption_coeff_device) {};
+    
     virtual bool calcRalyleighCrossSections(std::vector<double>& cross_sections) {return false;};
-    virtual void calcContinuumAbsorptionGPU(const double temperature, const std::vector<double>& number_densities,
-                                            const size_t nb_grid_points, const size_t grid_point,
-                                            double* absorption_coeff_device) {};
+    virtual void calcRalyleighCrossSectionsGPU(
+      const double number_density,
+      const size_t nb_grid_points, 
+      const size_t grid_point,
+      double* scattering_coeff_dev) {};
 
     void readFileList(const std::string file_path);
     

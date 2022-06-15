@@ -423,11 +423,11 @@ void OpacitySpecies::calcTransportCoefficientsGPU(const double temperature, cons
   if (pressure_reference_species != _TOTAL)
     reference_pressure *= number_densities[pressure_reference_species]/number_densities[_TOTAL];
 
-  
   if (cross_section_available == true) calcAbsorptionCoefficientsGPU(pressure, temperature, number_density,
                                                                      nb_grid_points, grid_point,
                                                                      absorption_coeff_device, scattering_coeff_device);
-
+  
+  calcRalyleighCrossSectionsGPU(number_density, nb_grid_points, grid_point, scattering_coeff_device);
 
   calcContinuumAbsorptionGPU(temperature, number_densities, nb_grid_points, grid_point, absorption_coeff_device);
 }

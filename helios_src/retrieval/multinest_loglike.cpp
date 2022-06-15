@@ -32,7 +32,6 @@
 #include "../forward_model/forward_model.h"
 #include "../CUDA_kernels/data_management_kernels.h"
 #include "../CUDA_kernels/log_like_kernels.h"
-#include "../CUDA_kernels/band_integration_kernels.h"
 #include "../observations/observations.h"
 
 #include "../additional/physical_const.h"
@@ -71,13 +70,6 @@ void Retrieval::multinestLogLike(double *cube, int &ndim, int &nb_param, double 
   }
 
 
-  //run the forward model with the parameter set to obtain a high-res model spectrum
-  std::vector<double> model_spectrum(retrieval_ptr->spectral_grid.nbSpectralPoints(), 0.0);
-  std::vector<double> model_spectrum_bands(retrieval_ptr->nb_total_bands, 0.0);
-
-  bool neglect = retrieval_ptr->forward_model->calcModel(parameter, model_spectrum, model_spectrum_bands);
-
-
   //print the current model parameter values to the terminal
   if (retrieval_ptr->config->multinest_print_iter_values)
   {
@@ -88,7 +80,14 @@ void Retrieval::multinestLogLike(double *cube, int &ndim, int &nb_param, double 
     std::cout << "\n";
   }
 
-  
+
+  //run the forward model with the parameter set to obtain a high-res model spectrum
+  std::vector<double> model_spectrum(retrieval_ptr->spectral_grid.nbSpectralPoints(), 0.0);
+  std::vector<double> model_spectrum_bands(retrieval_ptr->nb_total_bands, 0.0);
+
+  bool neglect = retrieval_ptr->forward_model->calcModel(parameter, model_spectrum, model_spectrum_bands);
+
+
   double error_inflation = 0;
   
   //calculate error inflation from prior, if required

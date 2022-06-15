@@ -18,8 +18,6 @@
 */
 
 
-#include "filter_response_kernels.h"
-
 
 #include <iostream>
 #include <vector>
@@ -28,7 +26,8 @@
 #include <new>
 
 #include "../additional/physical_const.h"
-
+#include "../observations/observations.h"
+#include "../retrieval/retrieval.h"
 
 #include "error_check.h"
 #include "reduce_kernels.h"
@@ -38,44 +37,45 @@ namespace helios{
 
 
 
-__global__ void applyFilterResponseDevice(const double* wavenumber, double* spectrum, 
-                                          double* filter_response_function, double* filter_response_weight, const double filter_normalisation,
-                                          const int nb_points, double* convolved_spectrum)
+__global__ void applyFilterResponseDevice(
+  const double* wavenumber, 
+  double* spectrum, 
+  double* filter_response_function, 
+  double* filter_response_weight, 
+  const double filter_normalisation,
+  const int nb_points, 
+  double* convolved_spectrum)
 {
-
   for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < nb_points; i += blockDim.x * gridDim.x)
   {
-
     convolved_spectrum[i] = spectrum[i] * filter_response_function[i] * filter_response_weight[i] / filter_normalisation;
-
   }
-
 
 }
 
 
 
-
-
-__host__ void applyFilterResponseGPU(const double* wavenumber_dev, double* spectrum, 
-                                     double* filter_response_function, double* filter_response_weight, const double filter_normalisation,
-                                     const int nb_points, double* convolved_spectrum)
+__host__ void Observation::applyFilterResponseGPU(double* spectrum)
 {
+  int nb_spectral_points = retrieval->spectral_grid.nbSpectralPoints();
+
   int threads = 256;
-  int blocks = nb_points / threads;
-  if (nb_points % threads) blocks++;
+  int blocks = nb_spectral_points / threads;
+  if (nb_spectral_points % threads) blocks++;
 
-
-  applyFilterResponseDevice<<<blocks,threads>>>(wavenumber_dev, spectrum, 
-                                                filter_response_function, filter_response_weight, filter_normalisation,
-                                                nb_points, convolved_spectrum);
+  applyFilterResponseDevice<<<blocks,threads>>>(
+    retrieval->spectral_grid.wavenumber_list_gpu,
+    spectrum,
+    filter_response_gpu,
+    filter_response_weight_gpu,
+    filter_response_normalisation,
+    nb_spectral_points, 
+    spectrum_filter_dev);
 
 
   cudaDeviceSynchronize(); 
   gpuErrchk( cudaPeekAtLastError() ); 
 }
-
-
 
 
 

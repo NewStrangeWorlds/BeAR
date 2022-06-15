@@ -65,6 +65,24 @@ bool TransportCoefficients::addOpacitySpecies(const std::string& species_symbol,
   }
 
 
+  if (species_symbol == "H2")
+  {
+    GasH2* h2 = new GasH2(config, spectral_grid, "");
+    gas_species.push_back(h2);
+   
+    return true;
+  }
+
+
+  if (species_symbol == "He")
+  {
+    GasHe* he = new GasHe(config, spectral_grid, "");
+    gas_species.push_back(he);
+   
+    return true;
+  }
+
+
   if (species_symbol == "CIA-H2-He")
   {
     GasGeneric* h2_he_cia = new GasGeneric(config, spectral_grid, _H2, "CIA H2-He", species_folder, std::vector<size_t>{_He});

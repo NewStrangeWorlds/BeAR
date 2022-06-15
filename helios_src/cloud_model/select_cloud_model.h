@@ -63,7 +63,7 @@ inline CloudModel* selectCloudModel(const std::string type, const std::vector<st
   cloud_modules::id module_id = static_cast<cloud_modules::id>(std::distance(cloud_modules::description.begin(), it));
 
 
-  //create the radiative transfer object based on the chosen module
+  //create the cloud object based on the chosen module
   CloudModel* cloud_model = nullptr;
 
   switch (module_id)
@@ -83,6 +83,7 @@ inline CloudModel* selectCloudModel(const std::string type, const std::vector<st
         KHCloudModel* model = new KHCloudModel(parameters);
         cloud_model = model;
       }
+      break;
   }
 
 

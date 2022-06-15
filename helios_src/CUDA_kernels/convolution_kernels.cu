@@ -18,15 +18,13 @@
 */
 
 
-#include "convolution_kernels.h"
-
-
 #include <iostream>
 #include <vector>
 #include "math.h"
 #include <stdio.h>
 #include <new>
 
+#include "../spectral_grid/spectral_band.h"
 #include "../additional/physical_const.h"
 
 
@@ -39,21 +37,23 @@ namespace helios{
 
 __forceinline__ __device__ double normalDistribution(const double sigma, const double x)
 {
-  
   const double c = sqrt(1.0/(2.0 * constants::pi));
   
   return c / sigma * exp(- x*x / (2.0 * sigma*sigma));
-  
 }
 
 
 
 //each block convolves one specific wavelength
-__global__ void convolveSpectrumDevice(double* spectrum, 
-                                       double* band_wavelengths, double* band_sigma,
-                                       int* band_indices, int* start_index, int* end_index,
-                                       double* convolved_spectrum)
-{
+__global__ void convolveSpectrumDevice(
+  double* spectrum, 
+  double* band_wavelengths, 
+  double* band_sigma,
+  int* band_indices, 
+  int* start_index, 
+  int* end_index,
+  double* convolved_spectrum)
+{ 
   //the current wavelength index
   const int i = blockIdx.x;
 
@@ -68,7 +68,6 @@ __global__ void convolveSpectrumDevice(double* spectrum,
   const int end = end_index[i];
   const int sub_spectrum_size = end - start + 1; 
 
-  
   //the pointer to the data vector shared by all threads
   __shared__ double* data;
 
@@ -81,7 +80,12 @@ __global__ void convolveSpectrumDevice(double* spectrum,
     //this probably needs a more sophisticated backup procedure
     if (data == nullptr)
     {
-      printf("Not enough memory on GPU! %d %d %d %lu\n", start, end, sub_spectrum_size, sub_spectrum_size * sizeof(double));
+      printf("Not enough memory on GPU! %d %d %d %lu\n", 
+        start, 
+        end, 
+        sub_spectrum_size, 
+        sub_spectrum_size * sizeof(double));
+      
       return;
     }
     
@@ -90,7 +94,7 @@ __global__ void convolveSpectrumDevice(double* spectrum,
 
   __syncthreads();
 
-
+  
   //we create the data vector for the convolution
   for (int j = threadIdx.x; j < sub_spectrum_size; j += blockDim.x)
   {
@@ -132,22 +136,19 @@ __global__ void convolveSpectrumDevice(double* spectrum,
 
 
 
-
-
-
-__host__ void convolveSpectrumGPU(double* spectrum, 
-                                  double* band_wavelengths, double* band_sigma,
-                                  int* band_indices, int* start_index, int* end_index,
-                                  const int nb_points,
-                                  double* convolved_spectrum)
+__host__ void SpectralBands::convolveSpectrumGPU(double* spectrum, double* spectrum_processed_dev)
 {
   int threads = 128;
-  int blocks = nb_points;
+  int blocks = wavelengths.size();
 
-
-  convolveSpectrumDevice<<<blocks,threads>>>(spectrum, band_wavelengths, band_sigma,
-                                             band_indices, start_index, end_index,
-                                             convolved_spectrum);
+  convolveSpectrumDevice<<<blocks,threads>>>(
+    spectrum, 
+    wavelengths_dev, 
+    instrument_profile_sigma_dev,
+    spectral_indices_dev, 
+    convolution_start_dev, 
+    convolution_end_dev,
+    spectrum_processed_dev);
 
 
   cudaDeviceSynchronize(); 

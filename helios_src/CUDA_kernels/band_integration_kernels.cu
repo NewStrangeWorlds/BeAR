@@ -18,7 +18,9 @@
 */
 
 
-#include "band_integration_kernels.h"
+#include "../spectral_grid/spectral_band.h"
+#include "../spectral_grid/spectral_grid.h"
+
 
 #include <iostream>
 #include <vector>
@@ -39,70 +41,24 @@ namespace helios{
 //spectrum_high_res is the pointer to the array on the GPU
 //the integration is done by a simple piece-wise trapezoidal rule
 //note that the units of the high-res spectrum are in W m-2 cm, while the mean band values are in W m-2 mu-1
-__global__ void bandIntegrationDevice(double* spectrum_high_res, int* band_indices, int* band_indices_size, int* band_start_index,
-                                      int nb_bands,
-                                      double* wavenumbers, double* wavelengths,
-                                      double* spectrum_bands)
+__global__ void bandIntegrationDevice(
+  double* spectrum_high_res, 
+  int* band_indices, 
+  int* band_start, 
+  int* band_end,
+  int nb_bands,
+  double* wavenumbers, 
+  double* wavelengths,
+  double* spectrum_bands,
+  const int global_start_index,
+  const bool is_flux)
 {
   double band_sum = 0;
-
-  //the current band index
-  const int i = blockIdx.x;
-
-  //indices to navigate through the high-res spectrum
-  const int start_index = band_start_index[i];
-  const int end_index = band_start_index[i] + band_indices_size[i] - 1;
-  const int band_size = band_indices_size[i];
-
-
-  for (int j = threadIdx.x; j < band_size-1; j += blockDim.x)
-  {
-    const int index1 = band_indices[j + start_index + 1];
-    const int index2 = band_indices[j + start_index];
-      
-    const double sum = (spectrum_high_res[band_indices[j + start_index + 1] ] + spectrum_high_res[band_indices[j + start_index]])
-                       * (wavenumbers[index1] - wavenumbers[index2]);
-
-    band_sum += sum;
-  }
   
-
-  __syncthreads();
-
-
-  band_sum = blockReduceSum(band_sum);
-
-
-  if (threadIdx.x == 0)
-    spectrum_bands[blockIdx.x] = band_sum * 0.5 / (wavelengths[band_indices[start_index]] - wavelengths[band_indices[end_index]]);
-}
-
-
-
-//every block reduces one band
-//spectra_high_res is the pointer to the pointer to the data array on the GPU 
-//(there may be multiple convolved high-res spectra and we need to pick the correct one)
-//the integration is done by a simple piece-wise trapezoidal rule
-//note that the units of the high-res spectrum are in W m-2 cm, while the mean band values are in W m-2 mu-1
-__global__ void bandIntegrationDevice(double** spectra_high_res, int* band_indices, int* band_indices_size, int* band_start_index,
-                                      int nb_bands,
-                                      double* wavenumbers, double* wavelengths,
-                                      double* spectrum_bands)
-{
-  double band_sum = 0;
-
-  //the current band index
-  const int i = blockIdx.x;
-
-
-  //pick the correct spectrum to integrate
-  double* spectrum_high_res = spectra_high_res[i];
-
-
   //indices to navigate through the high-res spectrum
-  const int start_index = band_start_index[i];
-  const int end_index = band_start_index[i] + band_indices_size[i] - 1;
-  const int band_size = band_indices_size[i];
+  const int start_index = band_start[blockIdx.x];
+  const int end_index = band_end[blockIdx.x];
+  const int band_size = end_index - start_index + 1;
 
 
   for (int j = threadIdx.x; j < band_size-1; j += blockDim.x)
@@ -110,76 +66,53 @@ __global__ void bandIntegrationDevice(double** spectra_high_res, int* band_indic
     const int index1 = band_indices[j + start_index + 1];
     const int index2 = band_indices[j + start_index];
 
-    const double sum = (spectrum_high_res[band_indices[j + start_index + 1] ] + spectrum_high_res[band_indices[j + start_index]])
-                     * (wavenumbers[index1] - wavenumbers[index2]);
+    const double sum = (spectrum_high_res[index1] + spectrum_high_res[index2])
+    * (wavenumbers[index1] - wavenumbers[index2]);
 
     band_sum += sum;
   }
 
-
   __syncthreads();
-
 
   band_sum = blockReduceSum(band_sum);
 
-
   if (threadIdx.x == 0)
-    spectrum_bands[blockIdx.x] = band_sum * 0.5 / (wavelengths[band_indices[start_index]] - wavelengths[band_indices[end_index]]);
+  {
+    if (is_flux)
+      spectrum_bands[blockIdx.x + global_start_index] = band_sum * 0.5 / (wavelengths[band_indices[start_index]] - wavelengths[band_indices[end_index]]);
+    else
+      spectrum_bands[blockIdx.x + global_start_index] = band_sum * 0.5 / (wavenumbers[band_indices[end_index]] - wavenumbers[band_indices[start_index]]);
+  }
+
 }
 
 
 
-//host function for the band integration of the high-res spectrum
-//spectra_high_res contains the GPU pointer to the high-res spectrum
-__host__ void bandIntegrationGPU(double* spectrum_high_res, int* band_indices, int* band_indices_size, int* band_start_index,
-                                 int nb_bands,
-                                 double* wavenumbers, double* wavelengths,
-                                 double* spectrum_bands)
+__host__ void SpectralBands::bandIntegrateSpectrumGPU(
+  double* spectrum, 
+  double* spectrum_bands, 
+  const unsigned int start_index, 
+  const bool is_flux)
 {
   int threads = 128;
   int blocks = nb_bands;
+  
+  bandIntegrationDevice<<<blocks,threads>>>(
+    spectrum, 
+    spectral_indices_dev, 
+    band_start_dev, 
+    band_end_dev,
+    nb_bands,
+    spectral_grid->wavenumber_list_gpu,
+    spectral_grid->wavelength_list_gpu,
+    spectrum_bands,
+    start_index,
+    is_flux);
 
-
-  bandIntegrationDevice<<<blocks,threads>>>(spectrum_high_res, band_indices, band_indices_size, band_start_index,
-                                            nb_bands,
-                                            wavenumbers, wavelengths,
-                                            spectrum_bands);
-
- 
-  cudaDeviceSynchronize(); 
-  gpuErrchk( cudaPeekAtLastError() ); 
-}
-
-
-
-//host function for the band integration of the high-res spectrum
-//spectra_high_res contains a vector of GPU pointers, each with a differently convolved spectrum 
-__host__ void bandIntegrationGPU(std::vector<double*> spectra_high_res, int* band_indices, int* band_indices_size, int* band_start_index,
-                                 int nb_bands,
-                                 double* wavenumbers, double* wavelengths,
-                                 double* spectrum_bands)
-{
-  int threads = 128;
-  int blocks = nb_bands;
-
-
-  double** spectra_high_res_dev;
-
-  moveToDevice(spectra_high_res_dev, spectra_high_res);
-
-
-  bandIntegrationDevice<<<blocks,threads>>>(spectra_high_res_dev, band_indices, band_indices_size, band_start_index,
-                                            nb_bands,
-                                            wavenumbers, wavelengths,
-                                            spectrum_bands);
 
   cudaDeviceSynchronize(); 
-  gpuErrchk( cudaPeekAtLastError() ); 
-  
-  
-  deleteFromDevice(spectra_high_res_dev);
+  gpuErrchk( cudaPeekAtLastError() );
 }
-
 
 
 

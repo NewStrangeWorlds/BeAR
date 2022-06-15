@@ -89,6 +89,11 @@ class GasH2 : public OpacitySpecies {
     virtual ~GasH2() {}
   protected:
     virtual bool calcRalyleighCrossSections(std::vector<double>& cross_sections);
+    virtual void calcRalyleighCrossSectionsGPU(
+      const double number_density,
+      const size_t nb_grid_points, 
+      const size_t grid_point,
+      double* scattering_coeff_dev);
 };
 
 
@@ -103,6 +108,11 @@ class GasHe : public OpacitySpecies {
     virtual ~GasHe() {}
   protected:
     virtual bool calcRalyleighCrossSections(std::vector<double>& cross_sections);
+    virtual void calcRalyleighCrossSectionsGPU(
+      const double number_density,
+      const size_t nb_grid_points, 
+      const size_t grid_point,
+      double* scattering_coeff_dev);
 };
 
 }

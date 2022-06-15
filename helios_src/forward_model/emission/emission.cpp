@@ -32,9 +32,6 @@
 
 #include "../../CUDA_kernels/data_management_kernels.h"
 #include "../../CUDA_kernels/cross_section_kernels.h"
-#include "../../CUDA_kernels/filter_response_kernels.h"
-#include "../../CUDA_kernels/band_integration_kernels.h"
-#include "../../CUDA_kernels/convolution_kernels.h"
 
 
 #include "../../chemistry/chem_species.h"
@@ -230,32 +227,19 @@ bool EmissionModel::calcModelGPU(const std::vector<double>& parameter, double* m
 
 //integrate the high-res spectrum to observational bands
 //and convolve if necessary 
-void EmissionModel::postProcessSpectrum(std::vector<double>& model_spectrum, std::vector<double>& model_spectrum_bands)
+void EmissionModel::postProcessSpectrum(
+  std::vector<double>& model_spectrum, 
+  std::vector<double>& model_spectrum_bands)
 {
   model_spectrum_bands.assign(retrieval->nb_observation_points, 0.0);
   
   std::vector<double>::iterator it = model_spectrum_bands.begin();
 
-
   for (size_t i=0; i<retrieval->nb_observations; ++i)
   {
-    std::vector<double> observation_bands;
+    const bool is_flux = true;
+    std::vector<double> observation_bands = retrieval->observations[i].processModelSpectrum(model_spectrum, is_flux);
 
-    std::vector<double> spectrum = model_spectrum;
-    
-    //apply filter function if necessary
-    if (retrieval->observations[i].filter_response.size() != 0)
-      spectrum = retrieval->observations[i].applyFilterResponseFunction(spectrum);
-
-
-    if (retrieval->observations[i].instrument_profile_fwhm.size() == 0)
-      retrieval->observations[i].spectral_bands.bandIntegrateSpectrum(spectrum, observation_bands);
-    else
-    { //apply instrument line profile
-      std::vector<double> model_spectrum_convolved = retrieval->observations[i].spectral_bands.convolveSpectrum(spectrum);
-      retrieval->observations[i].spectral_bands.bandIntegrateSpectrum(model_spectrum_convolved, observation_bands);
-    }
-  
     //copy the band-integrated values for this observation into the global
     //vector of all band-integrated points, model_spectrum_bands
     std::copy(observation_bands.begin(), observation_bands.end(), it);
@@ -266,44 +250,22 @@ void EmissionModel::postProcessSpectrum(std::vector<double>& model_spectrum, std
 
 //integrate the high-res spectrum to observational bands
 //and convolve if necessary 
-void EmissionModel::postProcessSpectrumGPU(double* model_spectrum_gpu, double* model_spectrum_bands)
+void EmissionModel::postProcessSpectrumGPU(
+  double* model_spectrum_gpu, 
+  double* model_spectrum_bands)
 {
-
+  unsigned int start_index = 0;
   for (size_t i=0; i<retrieval->observations.size(); ++i)
   {
-    if (retrieval->observations[i].filter_response.size() != 0) 
-      applyFilterResponseGPU(retrieval->spectral_grid.wavenumber_list_gpu,
-                             model_spectrum_gpu, 
-                             retrieval->observations[i].filter_response_gpu, 
-                             retrieval->observations[i].filter_response_weight_gpu, 
-                             retrieval->observations[i].filter_response_normalisation,
-                             retrieval->spectral_grid.nbSpectralPoints(),
-                             retrieval->filter_response_spectra[i]);
+    const bool is_flux = true;
+    retrieval->observations[i].processModelSpectrumGPU(
+      model_spectrum_gpu, 
+      model_spectrum_bands, 
+      start_index, 
+      is_flux);
 
-
-    size_t nb_points_observation = retrieval->observations[i].spectral_bands.wavenumbers.size();
-
-    if (retrieval->observations[i].instrument_profile_fwhm.size() != 0) 
-      convolveSpectrumGPU(retrieval->filter_response_spectra[i], 
-                          retrieval->observation_wavelengths[i], 
-                          retrieval->observation_profile_sigma[i], 
-                          retrieval->observation_spectral_indices[i],
-                          retrieval->convolution_start_index[i], 
-                          retrieval->convolution_end_index[i], 
-                          nb_points_observation, 
-                          retrieval->convolved_spectra[i]);
+    start_index += retrieval->observations[i].spectral_bands.nbBands();
   }
-
-
-  //integrate the high-res spectrum to observational bands on the GPU
-  bandIntegrationGPU(retrieval->band_spectrum_id,
-                     retrieval->band_indices_gpu,
-                     retrieval->band_sizes_gpu,
-                     retrieval->band_start_index_gpu,
-                     retrieval->nb_total_bands,
-                     retrieval->spectral_grid.wavenumber_list_gpu,
-                     retrieval->spectral_grid.wavelength_list_gpu,
-                     model_spectrum_bands);
 }
 
 

@@ -57,10 +57,26 @@ class Observation{
     
     double* filter_response_gpu = nullptr;
     double* filter_response_weight_gpu = nullptr;
+    
+    double* spectrum_filter_dev = nullptr;
+    double* spectrum_convolved_dev = nullptr;
 
     void printObservationDetails();
     void setFilterResponseFunction();
+
+    void initDeviceMemory();
+    
     std::vector<double> applyFilterResponseFunction(const std::vector<double>& spectrum);
+    void applyFilterResponseGPU(double* spectrum);
+
+    std::vector<double> processModelSpectrum(
+      const std::vector<double> spectrum, 
+      const bool is_flux);
+    void processModelSpectrumGPU(
+      double* spectrum,
+      double* spectrum_bands,
+      const unsigned int start_index,
+      const bool is_flux);
   private:
     std::string observation_name = "";
     Retrieval* retrieval;

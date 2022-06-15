@@ -75,6 +75,8 @@ void Retrieval::loadObservations(const std::string file_folder, const std::vecto
     i.spectral_bands.setInstrumentProfileFWHW(i.instrument_profile_fwhm);
     i.setFilterResponseFunction();
     i.printObservationDetails();
+    i.spectral_bands.initDeviceMemory();
+    i.initDeviceMemory();
   }
 
 

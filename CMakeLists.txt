@@ -75,11 +75,19 @@ set(SRC
   helios_src/forward_model/secondary_eclipse/secondary_eclipse_init.cpp
   helios_src/forward_model/secondary_eclipse/secondary_eclipse.cpp
   helios_src/forward_model/secondary_eclipse/secondary_eclipse_test.cpp
+  helios_src/forward_model/transmission/transmission_model_config.cpp
+  helios_src/forward_model/transmission/transmission_post_process.cpp
+  helios_src/forward_model/transmission/transmission_priors.cpp
+  helios_src/forward_model/transmission/transmission_init.cpp
+  helios_src/forward_model/transmission/transmission.cpp
+  helios_src/forward_model/transmission/transmission_spectrum.cpp
+  helios_src/forward_model/transmission/transmission_test.cpp
   helios_src/forward_model/atmosphere/atmosphere.cpp
   helios_src/cloud_model/grey_cloud_model.cpp
   helios_src/cloud_model/kh_cloud_model.cpp
   helios_src/model_main/model_main.cpp
   helios_src/observations/observations.cpp
+  helios_src/observations/observations_load_data.cpp
   helios_src/observations/observations_filter_response.cpp
   helios_src/radiative_transfer/discrete_ordinate.cpp
   helios_src/radiative_transfer/short_characteristics.cpp
@@ -118,7 +126,9 @@ set(SRC_CUDA
   helios_src/CUDA_kernels/data_management_kernels.cu
   helios_src/CUDA_kernels/log_like_kernels.cu
   helios_src/CUDA_kernels/secondary_eclipse_kernels.cu
+  helios_src/CUDA_kernels/transmission_spectrum_kernels.cu
   helios_src/CUDA_kernels/short_characteristics_kernels.cu
+  helios_src/CUDA_kernels/rayleigh_scattering_kernels.cu
   helios_src/CUDA_kernels/contribution_function_kernels.cu)
 
 
