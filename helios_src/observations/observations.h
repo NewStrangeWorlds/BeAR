@@ -1,6 +1,6 @@
 /*
 * This file is part of the Helios-r2 code (https://github.com/exoclime/Helios-r2).
-* Copyright (C) 2020 Daniel Kitzmann
+* Copyright (C) 2022 Daniel Kitzmann
 *
 * Helios-r2 is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -24,15 +24,12 @@
 #include <vector>
 #include <string>
 
-
-
+#include "../spectral_grid/spectral_grid.h"
+#include "../config/global_config.h"
 #include "../spectral_grid/spectral_band.h"
 
 
 namespace helios {
-
-//forward declaration
-class Retrieval;
 
 
 //the class that describes an observation and its representation in form of a theoretical spectrum
@@ -40,8 +37,13 @@ class Retrieval;
 //it also contains the required data and methods to convert a computed high-res spectrum into a simulated observation
 class Observation{
   public:
+    Observation(GlobalConfig* config_, SpectralGrid* spectral_grid_)
+      : spectral_bands(config_, spectral_grid_)
+      , config(config_)
+      , spectral_grid(spectral_grid_)
+      {}
     ~Observation();
-    void init (Retrieval* retrieval_ptr, const std::string& file_name);  //initialisation method that will read the file with the observational data  
+    void init (const std::string& file_name);  //initialisation method that will read the file with the observational data  
     std::string observationName() const {return observation_name;} 
 
     SpectralBands spectral_bands;                                       //representation of the theoretical spectrum in the observational bands
@@ -79,7 +81,9 @@ class Observation{
       const bool is_flux);
   private:
     std::string observation_name = "";
-    Retrieval* retrieval;
+    //Retrieval* retrieval;
+    GlobalConfig* config;
+    SpectralGrid* spectral_grid;
 
     std::string filter_response_file_path = "";
     std::vector<std::vector<double>> filter_response_file;              //filter response function read from the file

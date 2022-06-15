@@ -1,6 +1,6 @@
 /*
 * This file is part of the Helios-r2 code (https://github.com/exoclime/Helios-r2).
-* Copyright (C) 2020 Daniel Kitzmann
+* Copyright (C) 2022 Daniel Kitzmann
 *
 * Helios-r2 is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,6 @@
 
 #include "observations.h"
 
-
 #include <iostream>
 #include <string>
 #include <fstream>
@@ -29,8 +28,6 @@
 #include <algorithm>
 #include <cmath>
 
-
-#include "../retrieval/retrieval.h"
 #include "../spectral_grid/spectral_grid.h"
 #include "../additional/quadrature.h"
 #include "../additional/exceptions.h"
@@ -40,7 +37,6 @@
 
 
 namespace helios{
-
 
 
 std::vector<std::vector<double>> Observation::readFilterResponseFunction(const std::string& file_path)
@@ -126,17 +122,17 @@ void Observation::setFilterResponseFunction()
 {
   if (filter_response_file.size() == 0) return;
 
-  filter_response = retrieval->spectral_grid.interpolateToWavelengthGrid(filter_response_file[0], filter_response_file[1], false);
+  filter_response = spectral_grid->interpolateToWavelengthGrid(filter_response_file[0], filter_response_file[1], false);
 
   filter_response_weight.assign(filter_response.size(), 1.0);
 
 
   if (filter_detector_type == "photon")
-    for (size_t i=0; i<retrieval->spectral_grid.nbSpectralPoints(); ++i)
-      filter_response_weight[i] = retrieval->spectral_grid.wavelength_list[i];
+    for (size_t i=0; i<spectral_grid->nbSpectralPoints(); ++i)
+      filter_response_weight[i] = spectral_grid->wavelength_list[i];
 
 
-  if (retrieval->config->use_gpu)
+  if (config->use_gpu)
   {
     moveToDevice(filter_response_gpu, filter_response);
     moveToDevice(filter_response_weight_gpu, filter_response_weight);
@@ -172,7 +168,7 @@ std::vector<double> Observation::applyFilterResponseFunction(const std::vector<d
 
   std::vector<double> filter_spectrum(spectrum.size(), 0.0);
 
-  for (size_t i=0; i<retrieval->spectral_grid.nbSpectralPoints(); ++i)
+  for (size_t i=0; i<spectral_grid->nbSpectralPoints(); ++i)
   {
 
     filter_spectrum[i] = spectrum[i] * filter_response[i] * filter_response_weight[i] / filter_response_normalisation;

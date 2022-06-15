@@ -1,6 +1,6 @@
 /*
 * This file is part of the Helios-r2 code (https://github.com/exoclime/Helios-r2).
-* Copyright (C) 2020 Daniel Kitzmann
+* Copyright (C) 2022 Daniel Kitzmann
 *
 * Helios-r2 is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -31,7 +31,6 @@
 
 #include "../spectral_grid/spectral_band_type.h"
 #include "../spectral_grid/spectral_band.h"
-#include "../retrieval/retrieval.h"
 #include "../CUDA_kernels/data_management_kernels.h"
 #include "../additional/exceptions.h"
 
@@ -39,12 +38,8 @@
 namespace helios{
 
 
-
-void Observation::init (Retrieval* retrieval_ptr, const std::string& file_name)
+void Observation::init(const std::string& file_name)
 {
-  retrieval = retrieval_ptr;
-
-
   loadFile(file_name);
 }
 
@@ -52,7 +47,7 @@ void Observation::init (Retrieval* retrieval_ptr, const std::string& file_name)
 
 Observation::~Observation()
 {
-  if (retrieval->config->use_gpu)
+  if (config->use_gpu)
   {
     deleteFromDevice(filter_response_gpu);
     deleteFromDevice(filter_response_weight_gpu);
@@ -65,13 +60,13 @@ Observation::~Observation()
 
 void Observation::initDeviceMemory()
 {
-  if (retrieval->config->use_gpu)
+  if (config->use_gpu)
   {
     if (filter_response.size() != 0)
-    allocateOnDevice(spectrum_filter_dev, retrieval->spectral_grid.nbSpectralPoints());
+    allocateOnDevice(spectrum_filter_dev, spectral_grid->nbSpectralPoints());
 
     if (instrument_profile_fwhm.size() != 0)
-      allocateOnDevice(spectrum_convolved_dev, retrieval->spectral_grid.nbSpectralPoints());
+      allocateOnDevice(spectrum_convolved_dev, spectral_grid->nbSpectralPoints());
   }
   
 }

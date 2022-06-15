@@ -1,6 +1,6 @@
 /*
 * This file is part of the Helios-r2 code (https://github.com/exoclime/Helios-r2).
-* Copyright (C) 2020 Daniel Kitzmann
+* Copyright (C) 2022 Daniel Kitzmann
 *
 * Helios-r2 is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -20,12 +20,10 @@
 
 #include "spectral_band.h"
 
-
 #include <iostream>
 #include <string>
 #include <fstream>
 #include <vector>
-
 
 #include "spectral_band_type.h"
 #include "spectral_grid.h"
@@ -36,17 +34,14 @@
 namespace helios{
 
 
-
-void SpectralBands::init(GlobalConfig* global_config, SpectralGrid* grid, 
-                        const std::vector< std::vector<double> >& band_edges, const std::vector<double>& band_centres, 
-                        const BandType type)
+void SpectralBands::init(
+  const std::vector< std::vector<double> >& band_edges, 
+  const std::vector<double>& band_centres, 
+  const BandType type)
 {
-  config = global_config;
-  spectral_grid = grid;
-
   band_type = type;
   
-  spectral_grid->sampleWavelengths(band_edges, global_config->spectral_resolution, global_spectral_indices, edge_indices);
+  spectral_grid->sampleWavelengths(band_edges, config->spectral_resolution, global_spectral_indices, edge_indices);
 
   nb_bands = edge_indices.size() - 1;
 

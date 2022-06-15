@@ -37,11 +37,12 @@ class GlobalConfig;
 
 class SpectralBands{
   public:
+    SpectralBands(GlobalConfig* config_, SpectralGrid* spectral_grid_)
+      : config(config_), spectral_grid(spectral_grid_)
+      {}
     ~SpectralBands();
     BandType bandType() const {return band_type;}
     void init(
-      GlobalConfig* global_config,
-      SpectralGrid* grid,
       const std::vector< std::vector<double> >& band_edges,
       const std::vector<double>& band_centres, const BandType type);
 
@@ -81,8 +82,8 @@ class SpectralBands{
     int* band_end_dev = nullptr;
 
   private:
-    GlobalConfig* config;
-    SpectralGrid* spectral_grid;
+    GlobalConfig* config = nullptr;
+    SpectralGrid* spectral_grid = nullptr;
     BandType band_type;
     size_t nb_points_bin = 0;
     size_t nb_bands = 0;                                                   //number of sub-bands/bins 

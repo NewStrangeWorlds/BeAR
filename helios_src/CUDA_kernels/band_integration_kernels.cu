@@ -96,7 +96,7 @@ __host__ void SpectralBands::bandIntegrateSpectrumGPU(
 {
   int threads = 128;
   int blocks = nb_bands;
-  
+
   bandIntegrationDevice<<<blocks,threads>>>(
     spectrum, 
     spectral_indices_dev, 

@@ -31,7 +31,6 @@
 
 #include "../spectral_grid/spectral_band_type.h"
 #include "../spectral_grid/spectral_band.h"
-#include "../retrieval/retrieval.h"
 #include "../CUDA_kernels/data_management_kernels.h"
 #include "../additional/exceptions.h"
 
@@ -109,7 +108,7 @@ bool Observation::readPhotometryData(std::fstream& file)
   
   //read the file name for the filter transmission function
   file >> filter_response_file_path;
-  filter_response_file_path = retrieval->config->retrieval_folder_path + filter_response_file_path;
+  filter_response_file_path = config->retrieval_folder_path + filter_response_file_path;
 
   std::getline(file, line);
   std::getline(file, line);
@@ -162,7 +161,7 @@ bool Observation::readPhotometryData(std::fstream& file)
   band_centre[0] = wavelengths[0][0] - (wavelengths[0][0] - wavelengths[0][1]) * 0.5; 
 
  
-  spectral_bands.init(retrieval->config, &retrieval->spectral_grid, wavelengths, band_centre, PHOTOMETRY);
+  spectral_bands.init(wavelengths, band_centre, PHOTOMETRY);
 
   filter_response_file = readFilterResponseFunction(filter_response_file_path);
 
@@ -252,7 +251,7 @@ bool Observation::readBandSpectroscopyData(std::fstream& file)
     band_centres[i] = bin_edges[i][0] - (bin_edges[i][0] - bin_edges[i][1]) * 0.5; 
 
     
-  spectral_bands.init(retrieval->config, &retrieval->spectral_grid, bin_edges, band_centres, BAND_SPECTROSCOPY);
+  spectral_bands.init(bin_edges, band_centres, BAND_SPECTROSCOPY);
 
 
   return true;
@@ -275,7 +274,7 @@ bool Observation::readSpectroscopyData(std::fstream& file)
   file >> filter_response_file_path;
   
   if (filter_response_file_path != "None" && filter_response_file_path != "none" && filter_response_file_path != "")
-    filter_response_file_path = retrieval->config->retrieval_folder_path + filter_response_file_path;
+    filter_response_file_path = config->retrieval_folder_path + filter_response_file_path;
   else
     filter_response_file_path = "";
 
@@ -372,7 +371,7 @@ bool Observation::readSpectroscopyData(std::fstream& file)
   }
 
 
-  spectral_bands.init(retrieval->config, &retrieval->spectral_grid, bin_edges, wavelengths, SPECTROSCOPY);
+  spectral_bands.init(bin_edges, wavelengths, SPECTROSCOPY);
 
   if (filter_response_file_path != "")
     filter_response_file = readFilterResponseFunction(filter_response_file_path);

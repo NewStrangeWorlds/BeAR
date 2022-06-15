@@ -44,11 +44,13 @@ void Retrieval::loadObservations(const std::string file_folder, const std::vecto
   nb_observations = file_list.size();
 
   //create the observation object
-  observations.resize(nb_observations);
+  //observations.resize(nb_observations);
+
+  observations.assign(nb_observations, Observation(config, &spectral_grid));
 
   for (size_t i=0; i<nb_observations; ++i)
   {
-    observations[i].init(this, file_folder + file_list[i]);
+    observations[i].init(file_folder + file_list[i]);
     
     //save all the observations and their errors in a single vector
     observation_data.insert(std::end(observation_data), std::begin(observations[i].flux), std::end(observations[i].flux));
@@ -58,6 +60,9 @@ void Retrieval::loadObservations(const std::string file_folder, const std::vecto
 
 
   nb_observation_points = observation_data.size();
+
+  for (auto & i : observations)
+    nb_total_bands += i.flux.size();
 
 
   //move the lists to the GPU, if necessary
