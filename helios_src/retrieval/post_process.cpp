@@ -236,10 +236,6 @@ PostProcess::~PostProcess()
   {
     deleteFromDevice(observation_data_gpu);
     deleteFromDevice(observation_error_gpu);
-
-    deleteFromDevice(band_sizes_gpu);
-    deleteFromDevice(band_indices_gpu);
-    deleteFromDevice(band_start_index_gpu);
   }
 
 }
