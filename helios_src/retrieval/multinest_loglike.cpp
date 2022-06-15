@@ -83,7 +83,7 @@ void Retrieval::multinestLogLike(double *cube, int &ndim, int &nb_param, double 
 
   //run the forward model with the parameter set to obtain a high-res model spectrum
   std::vector<double> model_spectrum(retrieval_ptr->spectral_grid.nbSpectralPoints(), 0.0);
-  std::vector<double> model_spectrum_bands(retrieval_ptr->nb_total_bands, 0.0);
+  std::vector<double> model_spectrum_bands(retrieval_ptr->nb_observation_points, 0.0);
 
   bool neglect = retrieval_ptr->forward_model->calcModel(parameter, model_spectrum, model_spectrum_bands);
 
@@ -172,7 +172,7 @@ void Retrieval::multinestLogLikeGPU(double *cube, int &nb_dim, int &nb_param, do
 
   //pointer to the spectrum on the GPU
   double* model_spectrum_bands = nullptr;
-  allocateOnDevice(model_spectrum_bands, retrieval_ptr->nb_total_bands);
+  allocateOnDevice(model_spectrum_bands, retrieval_ptr->nb_observation_points);
 
 
   //intialise the high-res spectrum on the GPU (set it to 0)
@@ -197,7 +197,7 @@ void Retrieval::multinestLogLikeGPU(double *cube, int &nb_dim, int &nb_param, do
                                     retrieval_ptr->observation_error_gpu,
                                     retrieval_ptr->observation_likelihood_weight_gpu,
                                     model_spectrum_bands,
-                                    retrieval_ptr->nb_total_bands, 
+                                    retrieval_ptr->nb_observation_points, 
                                     error_inflation);
   
 

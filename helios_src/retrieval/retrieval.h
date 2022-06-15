@@ -73,7 +73,6 @@ class Retrieval{
 
     size_t nb_observations = 0;                      //number of observations
     size_t nb_observation_points = 0;                //total number of observational data points
-    size_t nb_total_bands = 0;                       //total number of observational bands
 
     double* model_spectrum_gpu = nullptr;            //pointer to the high-res spectrum on the GPU
   protected:

@@ -81,7 +81,6 @@ class Observation{
       const bool is_flux);
   private:
     std::string observation_name = "";
-    //Retrieval* retrieval;
     GlobalConfig* config;
     SpectralGrid* spectral_grid;
 

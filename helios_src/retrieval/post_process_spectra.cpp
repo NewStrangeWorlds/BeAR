@@ -111,7 +111,7 @@ void PostProcess::calcSpectrumGPU(const unsigned int model_id, std::vector<doubl
 
   //integrate to observational bands and save the low-res spectrum
   double* spectrum_bands_dev = nullptr;
-  allocateOnDevice(spectrum_bands_dev, nb_total_bands);
+  allocateOnDevice(spectrum_bands_dev, nb_observation_points);
 
   intializeOnDevice(model_spectrum_gpu, nb_points);
 

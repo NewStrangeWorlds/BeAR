@@ -61,9 +61,6 @@ void Retrieval::loadObservations(const std::string file_folder, const std::vecto
 
   nb_observation_points = observation_data.size();
 
-  for (auto & i : observations)
-    nb_total_bands += i.flux.size();
-
 
   //move the lists to the GPU, if necessary
   if (config->use_gpu)

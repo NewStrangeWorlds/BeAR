@@ -156,7 +156,7 @@ bool SecondaryEclipseModel::calcModel(const std::vector<double>& parameter, std:
 
 
   model_spectrum_bands.assign(retrieval->nb_observation_points, 0);
-  std::vector<double> albedo_contribution(retrieval->nb_total_bands, 0.0);
+  std::vector<double> albedo_contribution(retrieval->nb_observation_points, 0.0);
   const double radius_ratio = parameter[1];
   
   //calculate the secondary-eclipse depth with an optional geometric albedo contribution
@@ -208,13 +208,13 @@ bool SecondaryEclipseModel::calcModelGPU(const std::vector<double>& parameter, d
 
   //post-process the planet's high-res emission spectrum and bin it to the observational bands
   double* planet_spectrum_bands = nullptr;
-  allocateOnDevice(planet_spectrum_bands, retrieval->nb_total_bands);
+  allocateOnDevice(planet_spectrum_bands, retrieval->nb_observation_points);
 
   postProcessSpectrumGPU(model_spectrum_gpu, planet_spectrum_bands);
 
 
   //std::vector<double> albedo_contribution(retrieval->nb_total_bands, geometric_albedo*radius_distance_ratio*radius_distance_ratio);
-  std::vector<double> albedo_contribution(retrieval->nb_total_bands, 0.0);
+  std::vector<double> albedo_contribution(retrieval->nb_observation_points, 0.0);
 
 
   double* albedo_contribution_gpu = nullptr;
@@ -222,7 +222,7 @@ bool SecondaryEclipseModel::calcModelGPU(const std::vector<double>& parameter, d
   moveToDevice(albedo_contribution_gpu, albedo_contribution);
 
 
-  calcSecondaryEclipseGPU(model_spectrum_bands, planet_spectrum_bands, stellar_spectrum_bands_gpu, retrieval->nb_total_bands,
+  calcSecondaryEclipseGPU(model_spectrum_bands, planet_spectrum_bands, stellar_spectrum_bands_gpu, retrieval->nb_observation_points,
                           radius_ratio, albedo_contribution_gpu);
   
   deleteFromDevice(albedo_contribution_gpu);

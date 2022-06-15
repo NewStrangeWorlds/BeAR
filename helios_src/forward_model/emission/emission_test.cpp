@@ -51,7 +51,7 @@ bool EmissionModel::testCPUvsGPU(const std::vector<double>& parameter, double* m
   std::cout << "Start test on GPU\n";
   //pointer to the spectrum on the GPU
   double* spectrum_bands_dev = nullptr;
-  allocateOnDevice(spectrum_bands_dev, retrieval->nb_total_bands);
+  allocateOnDevice(spectrum_bands_dev, retrieval->nb_observation_points);
 
   //intialise the high-res spectrum on the GPU (set it to 0)
   intializeOnDevice(retrieval->model_spectrum_gpu, retrieval->spectral_grid.nbSpectralPoints());
