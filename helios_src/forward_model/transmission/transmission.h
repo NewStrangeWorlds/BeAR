@@ -1,6 +1,6 @@
 /*
 * This file is part of the Helios-r2 code (https://github.com/exoclime/Helios-r2).
-* Copyright (C) 2020 Daniel Kitzmann
+* Copyright (C) 2022 Daniel Kitzmann
 *
 * Helios-r2 is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -45,7 +45,7 @@ constexpr double transmission_cutoff = 4.5399929e-5; //exp(-tau)
 class Retrieval;
 
 
-//this struct handles the Brown Dwarf config
+//this struct handles the Transmission Spectrum config
 //it will read in the corresponding parameter file
 //and will then be used to create a model object
 struct TransmissionModelConfig{
@@ -82,14 +82,26 @@ class TransmissionModel : public ForwardModel{
   public:
     TransmissionModel (Retrieval* retrieval_ptr, const TransmissionModelConfig model_config);
     virtual ~TransmissionModel();
-    virtual bool calcModel(const std::vector<double>& parameter, std::vector<double>& spectrum, std::vector<double>& model_spectrum_bands);
-    virtual bool calcModelGPU(const std::vector<double>& parameter, double* model_spectrum, double* model_spectrum_bands);
     
-    virtual void postProcess(const std::vector< std::vector<double> >& model_parameter, 
-                             const std::vector< std::vector<double> >& model_spectrum_bands,
-                             const size_t best_fit_model);
+    virtual bool calcModel(
+      const std::vector<double>& parameter, 
+      std::vector<double>& spectrum, 
+      std::vector<double>& model_spectrum_bands);
     
-    virtual bool testModel(const std::vector<double>& parameter, double* model_spectrum_gpu);
+    virtual bool calcModelGPU(
+      const std::vector<double>& parameter, 
+      double* model_spectrum, 
+      double* model_spectrum_bands);
+    
+    virtual void postProcess(
+      const std::vector< std::vector<double> >& model_parameter, 
+      const std::vector< std::vector<double> >& model_spectrum_bands,
+      const size_t best_fit_model);
+    
+    virtual bool testModel(
+      const std::vector<double>& parameter, 
+      double* model_spectrum_gpu);
+
   protected:
     Retrieval* retrieval;
     TransportCoefficients transport_coeff;
@@ -104,7 +116,9 @@ class TransmissionModel : public ForwardModel{
     size_t nb_temperature_param = 0;
     size_t nb_cloud_param = 0;
 
-    size_t nb_total_param() {return nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_cloud_param;}
+    size_t nb_total_param() {
+        return nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_cloud_param;
+      }
     
     size_t nb_grid_points = 0;
 
@@ -124,39 +138,71 @@ class TransmissionModel : public ForwardModel{
     double* cloud_asym_param_dev = nullptr;
 
     virtual void setPriors();
-    void readPriorConfigFile(const std::string& file_name, std::vector<std::string>& prior_type, 
-                                                           std::vector<std::string>& prior_description, 
-                                                           std::vector<std::vector<double>>& prior_parameter);
+
+    void readPriorConfigFile(
+      const std::string& file_name, 
+      std::vector<std::string>& prior_type, 
+      std::vector<std::string>& prior_description, 
+      std::vector<std::vector<double>>& prior_parameter);
+    
     void initModules(const TransmissionModelConfig& model_config);
     void initDeviceMemory();
 
     bool calcAtmosphereStructure(const std::vector<double>& parameter);
+
+    void postProcessSpectrum(
+      std::vector<double>& model_spectrum, 
+      std::vector<double>& model_spectrum_bands);
+    void postProcessSpectrumGPU(
+      double* model_spectrum, 
+      double* model_spectrum_bands);
+
+    void postProcessModel(
+      const std::vector<double>& parameter, 
+      const std::vector<double>& model_spectrum_bands, 
+      std::vector<double>& temperature_profile, 
+      std::vector<std::vector<double>>& mixing_ratios);
+
+    void savePostProcessChemistry(
+      const std::vector<std::vector<std::vector<double>>>& mixing_ratios, 
+      const unsigned int species);
+    void savePostProcessTemperatures(
+      const std::vector<std::vector<double>>& temperature_profiles);
     
-    void calcTransitRadiusGPU(double* transit_radius_dev, 
-                              double* absorption_coeff_dev, double* scattering_coeff_dev, 
-                              const Atmosphere& atmosphere, 
-                              const size_t nb_spectral_points, const double radius_planet, const double radius_star);
-    //void calcTransmissionSpectrumGPU(double* transmission_spectrum, double* stellar_spectrum_bands,
-    //                                 const int nb_points, const double radius_planet, const double radius_star);
+    void calcTransitDepthGPU(
+      double* transit_radius_dev, 
+      double* absorption_coeff_dev, 
+      double* scattering_coeff_dev, 
+      const Atmosphere& atmosphere, 
+      const size_t nb_spectral_points, 
+      const double radius_planet, 
+      const double radius_star);
 
-    void postProcessSpectrum(std::vector<double>& model_spectrum, std::vector<double>& model_spectrum_bands);
-    void postProcessSpectrumGPU(double* model_spectrum, double* model_spectrum_bands);
+    void calcTransmissionSpectrum(
+      const double bottom_radius, 
+      const double star_radius, 
+      std::vector<double>& spectrum);
+    double calcTransitRadius(
+      const unsigned int wavelength, 
+      const double bottom_radius);
+    double integrateEffectiveTangentHeight(
+      const unsigned int wavelength, 
+      const double bottom_radius);
+    std::vector<double> tangentPathsTransmission(
+      const unsigned int wavelength, 
+      const double bottom_radius);
+    double tangentOpticalDepth(
+      const unsigned int tangent_altitude, 
+      const unsigned int wavelength, 
+      const double bottom_radius);
+    double distanceToTangentCenter(
+      const unsigned int tangent_altitude, 
+      const unsigned int altitude, 
+      const double bottom_radius);
 
-    void postProcessModel(const std::vector<double>& parameter, const std::vector<double>& model_spectrum_bands, 
-                          std::vector<double>& temperature_profile, double& effective_temperature,
-                          std::vector<std::vector<double>>& mixing_ratios);
-
-    void savePostProcessChemistry(const std::vector<std::vector<std::vector<double>>>& mixing_ratios, const unsigned int species);
-    void savePostProcessTemperatures(const std::vector<std::vector<double>>& temperature_profiles);
-    
-    void calcTransmissionSpectrum(const double bottom_radius, const double star_radius, std::vector<double>& spectrum);
-    double calcTransitRadius(const unsigned int wavelength, const double bottom_radius);
-    double integrateEffectiveTangentHeight(const unsigned int wavelength, const double bottom_radius);
-    std::vector<double> tangentPathsTransmission(const unsigned int wavelength, const double bottom_radius);
-    double tangentOpticalDepth(const unsigned int tangent_altitude, const unsigned int wavelength, const double bottom_radius);
-    double distanceToTangent(const unsigned int tangent_altitude, const unsigned int altitude, const double bottom_radius);
-
-    bool testCPUvsGPU(const std::vector<double>& parameter, double* model_spectrum_gpu);
+    bool testCPUvsGPU(
+      const std::vector<double>& parameter, 
+      double* model_spectrum_gpu);
 };
 
 

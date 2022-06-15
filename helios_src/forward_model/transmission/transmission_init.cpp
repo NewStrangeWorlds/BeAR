@@ -1,6 +1,6 @@
 /*
 * This file is part of the Helios-r2 code (https://github.com/exoclime/Helios-r2).
-* Copyright (C) 2020 Daniel Kitzmann
+* Copyright (C) 2022 Daniel Kitzmann
 *
 * Helios-r2 is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -20,23 +20,18 @@
 
 #include "transmission.h"
 
-
 #include <string>
 #include <iostream>
 #include <fstream>
 #include <vector>
 #include <sstream>
 
-
 #include "../../additional/exceptions.h"
 #include "../../retrieval/retrieval.h"
-
 #include "../../chemistry/select_chemistry.h"
 #include "../../temperature/select_temperature_profile.h"
 #include "../../cloud_model/select_cloud_model.h"
-
 #include "../../CUDA_kernels/data_management_kernels.h"
-
 
 
 namespace helios{
@@ -48,25 +43,24 @@ void TransmissionModel::initModules(const TransmissionModelConfig& model_config)
   chemistry.assign(model_config.chemistry_model.size(), nullptr);
 
   for (size_t i=0; i<model_config.chemistry_model.size(); ++i)
-    chemistry[i] = selectChemistryModule(model_config.chemistry_model[i], 
-                                         model_config.chemistry_parameters[i], 
-                                         retrieval->config, 
-                                         model_config.atmos_boundaries);
-  
-  //count the total number of free parameters for the chemistry modules
+    chemistry[i] = selectChemistryModule(
+      model_config.chemistry_model[i], 
+      model_config.chemistry_parameters[i], 
+      retrieval->config, 
+      model_config.atmos_boundaries);
+
   nb_total_chemistry_param = 0;
 
   for (auto & i : chemistry)
     nb_total_chemistry_param += i->nbParameters(); 
 
 
-
-  temperature_profile = selectTemperatureProfile(model_config.temperature_profile_model, 
-                                                 model_config.temperature_profile_parameters, 
-                                                 model_config.atmos_boundaries);
+  temperature_profile = selectTemperatureProfile(
+    model_config.temperature_profile_model, 
+    model_config.temperature_profile_parameters, 
+    model_config.atmos_boundaries);
 
   nb_temperature_param = temperature_profile->nbParameters();
-
 
 
   cloud_model = selectCloudModel(model_config.cloud_model, model_config.cloud_model_parameters);
@@ -76,29 +70,27 @@ void TransmissionModel::initModules(const TransmissionModelConfig& model_config)
 
 
 
-
-//initialises the varous modules of the forward model
 void TransmissionModel::initDeviceMemory()
 {
-  allocateOnDevice(absorption_coeff_gpu, nb_grid_points*retrieval->spectral_grid.nbSpectralPoints());
-  allocateOnDevice(scattering_coeff_dev, nb_grid_points*retrieval->spectral_grid.nbSpectralPoints());
+  const size_t nb_spectral_points = retrieval->spectral_grid.nbSpectralPoints();
 
+  allocateOnDevice(absorption_coeff_gpu, nb_grid_points*nb_spectral_points);
+  allocateOnDevice(scattering_coeff_dev, nb_grid_points*nb_spectral_points);
 
   if (cloud_model != nullptr)
   { 
     const size_t nb_layers = nb_grid_points - 1;
 
-    allocateOnDevice(cloud_optical_depths_dev, nb_layers*retrieval->spectral_grid.nbSpectralPoints());
-    allocateOnDevice(cloud_single_scattering_dev, nb_layers*retrieval->spectral_grid.nbSpectralPoints());
-    allocateOnDevice(cloud_asym_param_dev, nb_layers*retrieval->spectral_grid.nbSpectralPoints());
+    allocateOnDevice(cloud_optical_depths_dev, nb_layers*nb_spectral_points);
+    allocateOnDevice(cloud_single_scattering_dev, nb_layers*nb_spectral_points);
+    allocateOnDevice(cloud_asym_param_dev, nb_layers*nb_spectral_points);
 
-    intializeOnDevice(cloud_optical_depths_dev, nb_layers*retrieval->spectral_grid.nbSpectralPoints());
-    intializeOnDevice(cloud_single_scattering_dev, nb_layers*retrieval->spectral_grid.nbSpectralPoints());
-    intializeOnDevice(cloud_asym_param_dev, nb_layers*retrieval->spectral_grid.nbSpectralPoints());
+    intializeOnDevice(cloud_optical_depths_dev, nb_layers*nb_spectral_points);
+    intializeOnDevice(cloud_single_scattering_dev, nb_layers*nb_spectral_points);
+    intializeOnDevice(cloud_asym_param_dev, nb_layers*nb_spectral_points);
   }
 
 }
 
 
 }
-

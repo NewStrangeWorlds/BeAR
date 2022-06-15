@@ -1,6 +1,6 @@
 /*
 * This file is part of the Helios-r2 code (https://github.com/exoclime/Helios-r2).
-* Copyright (C) 2020 Daniel Kitzmann
+* Copyright (C) 2022 Daniel Kitzmann
 *
 * Helios-r2 is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -26,11 +26,13 @@
 #include <omp.h>
 
 
-
 namespace helios{
 
 
-void TransmissionModel::calcTransmissionSpectrum(const double bottom_radius, const double star_radius, std::vector<double>& spectrum)
+void TransmissionModel::calcTransmissionSpectrum(
+  const double bottom_radius, 
+  const double star_radius, 
+  std::vector<double>& spectrum)
 {
 
   #pragma omp parallel for schedule(dynamic, 1)
@@ -54,7 +56,9 @@ double TransmissionModel::calcTransitRadius(const unsigned int wavelength, const
 
 
 
-double TransmissionModel::integrateEffectiveTangentHeight(const unsigned int wavelength, const double bottom_radius)
+double TransmissionModel::integrateEffectiveTangentHeight(
+  const unsigned int wavelength, 
+  const double bottom_radius)
 {
   std::vector<double> path_transmission = tangentPathsTransmission(wavelength, bottom_radius);
 
@@ -75,7 +79,9 @@ double TransmissionModel::integrateEffectiveTangentHeight(const unsigned int wav
 
 
 
-std::vector<double> TransmissionModel::tangentPathsTransmission(const unsigned int wavelength, const double bottom_radius)
+std::vector<double> TransmissionModel::tangentPathsTransmission(
+  const unsigned int wavelength, 
+  const double bottom_radius)
 {
   std::vector<double> path_transmission(nb_grid_points, 0);
   
@@ -93,14 +99,16 @@ std::vector<double> TransmissionModel::tangentPathsTransmission(const unsigned i
     //if (path_transmission[i] < transmission_cutoff) break;
   }
 
-
   return path_transmission;
 }
 
 
 
 
-double TransmissionModel::tangentOpticalDepth(const unsigned int tangent_radius, const unsigned int wavelength, const double bottom_radius)
+double TransmissionModel::tangentOpticalDepth(
+  const unsigned int tangent_radius, 
+  const unsigned int wavelength, 
+  const double bottom_radius)
 {
   double tangent_optical_depth = 0;
   
@@ -109,7 +117,8 @@ double TransmissionModel::tangentOpticalDepth(const unsigned int tangent_radius,
   //we multiply the optical depth by 2 to account for both hemispheres
   for (size_t i=tangent_radius; i<nb_grid_points-1; ++i)
   {
-    const double path_length = distanceToTangent(tangent_radius, i+1, bottom_radius) -  distanceToTangent(tangent_radius, i, bottom_radius);
+    const double path_length = distanceToTangentCenter(tangent_radius, i+1, bottom_radius) 
+                            -  distanceToTangentCenter(tangent_radius, i, bottom_radius);
 
     const double extinction_coeff1 = absorption_coeff[wavelength][i] + scattering_coeff[wavelength][i];
     const double extinction_coeff2 = absorption_coeff[wavelength][i+1] + scattering_coeff[wavelength][i+1];
@@ -127,17 +136,16 @@ double TransmissionModel::tangentOpticalDepth(const unsigned int tangent_radius,
 
 
 
-double TransmissionModel::distanceToTangent(const unsigned int tangent_altitude, const unsigned int altitude, const double bottom_radius)
+double TransmissionModel::distanceToTangentCenter(
+  const unsigned int tangent_altitude, 
+  const unsigned int altitude, 
+  const double bottom_radius)
 {
   const double a = bottom_radius + atmosphere.altitude[altitude];
   const double b = bottom_radius + atmosphere.altitude[tangent_altitude];
 
   return std::sqrt(a*a - b*b);
-
 }
-
-
-
 
 
 }

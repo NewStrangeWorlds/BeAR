@@ -1,6 +1,6 @@
 /*
 * This file is part of the Helios-r2 code (https://github.com/exoclime/Helios-r2).
-* Copyright (C) 2020 Daniel Kitzmann
+* Copyright (C) 2022 Daniel Kitzmann
 *
 * Helios-r2 is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -30,18 +30,15 @@
 #include <iomanip>
 
 
-#include "../../CUDA_kernels/data_management_kernels.h"
-#include "../../CUDA_kernels/cross_section_kernels.h"
-
-
 #include "../../chemistry/chem_species.h"
 #include "../../additional/aux_functions.h"
 #include "../../additional/physical_const.h"
 #include "../../additional/quadrature.h"
 #include "../../additional/exceptions.h"
 #include "../../retrieval/retrieval.h"
-
 #include "../atmosphere/atmosphere.h"
+#include "../../CUDA_kernels/data_management_kernels.h"
+#include "../../CUDA_kernels/cross_section_kernels.h"
 
 
 namespace helios{
@@ -79,8 +76,6 @@ TransmissionModel::TransmissionModel (
 }
 
 
-
-//determines the basic atmospheric structure (temperature profile, chemistry...) from the free parameters supplied by MultiNest
 bool TransmissionModel::calcAtmosphereStructure(const std::vector<double>& parameter)
 {
   const double surface_gravity = std::pow(10,parameter[0]);
@@ -119,10 +114,11 @@ bool TransmissionModel::calcModel(
 {
   bool neglect = calcAtmosphereStructure(parameter);
 
+  const size_t nb_spectral_points = retrieval->spectral_grid.nbSpectralPoints();
 
-  cloud_optical_depths.assign(retrieval->spectral_grid.nbSpectralPoints(), std::vector<double>(nb_grid_points-1, 0.0));
-  cloud_single_scattering.assign(retrieval->spectral_grid.nbSpectralPoints(), std::vector<double>(nb_grid_points-1, 0.0));
-  cloud_asym_param.assign(retrieval->spectral_grid.nbSpectralPoints(), std::vector<double>(nb_grid_points-1, 0.0));
+  cloud_optical_depths.assign(nb_spectral_points, std::vector<double>(nb_grid_points-1, 0.0));
+  cloud_single_scattering.assign(nb_spectral_points, std::vector<double>(nb_grid_points-1, 0.0));
+  cloud_asym_param.assign(nb_spectral_points, std::vector<double>(nb_grid_points-1, 0.0));
 
   //calculate cloud model if needed
   if (cloud_model != nullptr)
@@ -141,14 +137,14 @@ bool TransmissionModel::calcModel(
   }
 
 
-  //calculate gas absorption coefficients
-  absorption_coeff.assign(retrieval->spectral_grid.nbSpectralPoints(), std::vector<double>(nb_grid_points, 0.0));
-  scattering_coeff.assign(retrieval->spectral_grid.nbSpectralPoints(), std::vector<double>(nb_grid_points, 0.0));
+  //calculate gas transport coefficients
+  absorption_coeff.assign(nb_spectral_points, std::vector<double>(nb_grid_points, 0.0));
+  scattering_coeff.assign(nb_spectral_points, std::vector<double>(nb_grid_points, 0.0));
 
   for (size_t i=0; i<nb_grid_points; ++i)
   {
-    std::vector<double> absorption_coeff_level(retrieval->spectral_grid.nbSpectralPoints(), 0.0);
-    std::vector<double> scattering_coeff_level(retrieval->spectral_grid.nbSpectralPoints(), 0.0);
+    std::vector<double> absorption_coeff_level(nb_spectral_points, 0.0);
+    std::vector<double> scattering_coeff_level(nb_spectral_points, 0.0);
 
 
     transport_coeff.calcTransportCoefficients(
@@ -159,12 +155,12 @@ bool TransmissionModel::calcModel(
       scattering_coeff_level);
 
     
-    for (size_t j=0; j<retrieval->spectral_grid.nbSpectralPoints(); ++j)
+    for (size_t j=0; j<nb_spectral_points; ++j)
       absorption_coeff[j][i] = absorption_coeff_level[j];
   }
 
 
-  spectrum.assign(retrieval->spectral_grid.nbSpectralPoints(), 0.0);
+  spectrum.assign(nb_spectral_points, 0.0);
 
   const double bottom_radius = parameter[1] * constants::radius_jupiter;
   const double star_radius = parameter[2] * constants::radius_sun;
@@ -228,7 +224,7 @@ bool TransmissionModel::calcModelGPU(
   const double bottom_radius = parameter[1] * constants::radius_jupiter;
   const double star_radius = parameter[2] * constants::radius_sun;
 
-  calcTransitRadiusGPU(
+  calcTransitDepthGPU(
     model_spectrum_gpu, 
     absorption_coeff_gpu, 
     scattering_coeff_dev, 

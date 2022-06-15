@@ -1,6 +1,6 @@
 /*
 * This file is part of the Helios-r2 code (https://github.com/exoclime/Helios-r2).
-* Copyright (C) 2020 Daniel Kitzmann
+* Copyright (C) 2022 Daniel Kitzmann
 *
 * Helios-r2 is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -20,18 +20,15 @@
 
 #include "transmission.h"
 
-
 #include <string>
 #include <iostream>
 #include <fstream>
 #include <vector>
 #include <sstream>
 
-
 #include "../../retrieval/retrieval.h"
 #include "../../retrieval/prior.h"
 #include "../../additional/exceptions.h"
-
 
 
 namespace helios{
@@ -51,14 +48,12 @@ void TransmissionModelConfig::readConfigFile(const std::string& file_name)
   std::fstream file;
   file.open(file_name.c_str(), std::ios::in);
 
-  
   if (file.fail())  
     throw ExceptionFileNotFound(std::string ("TransmissionModelConfig::readConfigFile"), file_name);
 
-  
+
   std::string line;
   std::string input;
-
 
   std::getline(file, line);
   

@@ -1,6 +1,6 @@
 /*
 * This file is part of the Helios-r2 code (https://github.com/exoclime/Helios-r2).
-* Copyright (C) 2020 Daniel Kitzmann
+* Copyright (C) 2022 Daniel Kitzmann
 *
 * Helios-r2 is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -20,18 +20,15 @@
 
 #include "transmission.h"
 
-
 #include <string>
 #include <iostream>
 #include <fstream>
 #include <vector>
 #include <sstream>
 
-
 #include "../../retrieval/retrieval.h"
 #include "../../retrieval/prior.h"
 #include "../../additional/exceptions.h"
-
 
 
 namespace helios{
@@ -53,7 +50,11 @@ void TransmissionModel::setPriors()
   //check if we have the correct number of piors
   if (prior_type.size() != nb_total_param())
   {
-    std::string error_message = "Found " + std::to_string(prior_type.size()) + " priors in priors.config but expected " + std::to_string(nb_total_param()) + "\n";
+    std::string error_message = "Found " 
+      + std::to_string(prior_type.size()) 
+      + " priors in priors.config but expected " 
+      + std::to_string(nb_total_param()) + "\n";
+    
     throw ExceptionInvalidInput(std::string ("EmissionModel::setPriors"), error_message);
   }
 
@@ -64,13 +65,14 @@ void TransmissionModel::setPriors()
 
 
 
-void TransmissionModel::readPriorConfigFile(const std::string& file_path, std::vector<std::string>& prior_type, 
-                                                                        std::vector<std::string>& prior_description, 
-                                                                        std::vector<std::vector<double>>& prior_parameter)
+void TransmissionModel::readPriorConfigFile(
+  const std::string& file_path, 
+  std::vector<std::string>& prior_type, 
+  std::vector<std::string>& prior_description, 
+  std::vector<std::vector<double>>& prior_parameter)
 {
   std::fstream file;
   file.open(file_path.c_str(), std::ios::in);
-
 
   if (file.fail())  
     throw ExceptionFileNotFound(std::string ("TransmissionModel::readPriorConfigFile"), file_path);
@@ -92,12 +94,10 @@ void TransmissionModel::readPriorConfigFile(const std::string& file_path, std::v
     while (input >> single_parameter)
       parameter.push_back(single_parameter);
 
-
     prior_type.push_back(type);
     prior_description.push_back(description);
     prior_parameter.push_back(parameter);
   }
-
 
   file.close();
 }

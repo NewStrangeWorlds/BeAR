@@ -84,12 +84,21 @@ class EmissionModel : public ForwardModel{
   public:
     EmissionModel (Retrieval* retrieval_ptr, const EmissionModelConfig model_config);
     virtual ~EmissionModel();
-    virtual bool calcModel(const std::vector<double>& parameter, std::vector<double>& spectrum, std::vector<double>& model_spectrum_bands);
-    virtual bool calcModelGPU(const std::vector<double>& parameter, double* model_spectrum, double* model_spectrum_bands);
     
-    virtual void postProcess(const std::vector< std::vector<double> >& model_parameter, 
-                             const std::vector< std::vector<double> >& model_spectrum_bands,
-                             const size_t best_fit_model);
+    virtual bool calcModel(
+      const std::vector<double>& parameter, 
+      std::vector<double>& spectrum, 
+      std::vector<double>& model_spectrum_bands);
+    
+    virtual bool calcModelGPU(
+      const std::vector<double>& parameter, 
+      double* model_spectrum, 
+      double* model_spectrum_bands);
+    
+    virtual void postProcess(
+      const std::vector< std::vector<double> >& model_parameter, 
+      const std::vector< std::vector<double> >& model_spectrum_bands,
+      const size_t best_fit_model);
     
     virtual bool testModel(const std::vector<double>& parameter, double* model_spectrum_gpu);
   protected:
