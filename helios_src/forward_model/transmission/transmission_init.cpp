@@ -70,27 +70,4 @@ void TransmissionModel::initModules(const TransmissionModelConfig& model_config)
 
 
 
-void TransmissionModel::initDeviceMemory()
-{
-  const size_t nb_spectral_points = retrieval->spectral_grid.nbSpectralPoints();
-
-  allocateOnDevice(absorption_coeff_gpu, nb_grid_points*nb_spectral_points);
-  allocateOnDevice(scattering_coeff_dev, nb_grid_points*nb_spectral_points);
-
-  if (cloud_model != nullptr)
-  { 
-    const size_t nb_layers = nb_grid_points - 1;
-
-    allocateOnDevice(cloud_optical_depths_dev, nb_layers*nb_spectral_points);
-    allocateOnDevice(cloud_single_scattering_dev, nb_layers*nb_spectral_points);
-    allocateOnDevice(cloud_asym_param_dev, nb_layers*nb_spectral_points);
-
-    intializeOnDevice(cloud_optical_depths_dev, nb_layers*nb_spectral_points);
-    intializeOnDevice(cloud_single_scattering_dev, nb_layers*nb_spectral_points);
-    intializeOnDevice(cloud_asym_param_dev, nb_layers*nb_spectral_points);
-  }
-
-}
-
-
 }

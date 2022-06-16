@@ -42,11 +42,13 @@ class KHCloudModel: public GreyCloudModel{
                                    std::vector<std::vector<double>>& optical_depth, 
                                    std::vector<std::vector<double>>& single_scattering, 
                                    std::vector<std::vector<double>>& asym_param);
-    virtual void opticalPropertiesGPU(const std::vector<double>& parameters, const Atmosphere& atmosphere,
-                                      SpectralGrid* spectral_grid,
-                                      double* optical_depth_dev, 
-                                      double* single_scattering_dev, 
-                                      double* asym_param);
+    virtual void opticalPropertiesGPU(
+      const std::vector<double>& parameters, 
+      const Atmosphere& atmosphere,
+      SpectralGrid* spectral_grid,
+      double* optical_depth_dev, 
+      double* single_scattering_dev, 
+      double* asym_param);
 
   protected:
     double reference_wavelength = 0;

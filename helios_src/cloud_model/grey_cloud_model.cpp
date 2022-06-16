@@ -96,61 +96,9 @@ void GreyCloudModel::opticalProperties(const std::vector<double>& parameters, co
 
   //the grey cloud here only has absorption, no scattering
   for (size_t j=0; j<nb_spectral_points; ++j)
-    for (size_t i=cloud_bottom_index; i<cloud_top_index; ++i)
+    for (size_t i=cloud_top_index; i>cloud_bottom_index; --i)
       optical_depth[j][i] = optical_depth_layer;
 }
-
-
-
-
-//calculates the vertical distribution of the grey layer
-//needs three parameters: cloud top pressure, cloud bottom (fraction of top pressure), and optical depth
-//the optical depth will be distributed over the layers between the cloud's top and bottom
-void GreyCloudModel::opticalPropertiesGPU(const std::vector<double>& parameters, const Atmosphere& atmosphere,
-                                          SpectralGrid* spectral_grid,
-                                          double* optical_depth_dev, 
-                                          double* single_scattering_dev, 
-                                          double* asym_param)
-{
-  double cloud_optical_depth = parameters[0];
-  double cloud_top_pressure = parameters[1];
-  double cloud_bottom_pressure = 0;
-
-  if (fixed_bottom == false)
-    cloud_bottom_pressure = cloud_top_pressure * parameters[2];
-
-
-  if (cloud_optical_depth < 0) cloud_optical_depth = 0;
-
-
-  size_t nb_spectral_points = spectral_grid->nbSpectralPoints();
-  size_t nb_grid_points = atmosphere.nb_grid_points;
-
-  unsigned int cloud_top_index = 0;
-  unsigned int cloud_bottom_index = 0;
-
-  if (fixed_bottom == true)
-    cloudPosition(atmosphere, cloud_top_pressure, cloud_top_index, cloud_bottom_index);
-  else
-    cloudPosition(atmosphere, cloud_top_pressure, cloud_bottom_pressure, cloud_top_index, cloud_bottom_index);
-
-
-  double optical_depth_layer = cloud_optical_depth/static_cast<double>(cloud_top_index - cloud_bottom_index);
-
-  std::vector<double> optical_depth(nb_spectral_points*(nb_grid_points-1), 0.0); 
-
-  //the grey cloud here only has absorption, no scattering
-  for (size_t j=0; j<nb_spectral_points; ++j)
-    for (size_t i=cloud_bottom_index; i<cloud_top_index; ++i)
-    {
-      unsigned int index = i*nb_spectral_points + j;
-
-      optical_depth[index] = optical_depth_layer;
-    }
-
-  moveToDevice(optical_depth_dev, optical_depth, false);
-}
-
 
 
 

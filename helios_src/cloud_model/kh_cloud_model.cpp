@@ -123,74 +123,8 @@ void KHCloudModel::opticalProperties(const std::vector<double>& parameters, cons
   
   //the cloud here only has absorption, no scattering
   for (size_t j=0; j<nb_spectral_points; ++j)
-    for (size_t i=cloud_bottom_index; i<cloud_top_index; ++i)
+    for (size_t i=cloud_top_index; i>cloud_bottom_index; --i)
       optical_depth[j][i] = optical_depth_layer_reference * reference_q / (q0 * std::pow(size_parameter[j], -a0) + std::pow(size_parameter[j], 0.2) );
-}
-
-
-
-
-//calculates the vertical distribution of the grey layer
-//needs three parameters: cloud top pressure, cloud bottom (fraction of top pressure), and optical depth
-//the optical depth will be distributed over the layers between the cloud's top and bottom
-void KHCloudModel::opticalPropertiesGPU(const std::vector<double>& parameters, const Atmosphere& atmosphere,
-                                          SpectralGrid* spectral_grid,
-                                          double* optical_depth_dev, 
-                                          double* single_scattering_dev, 
-                                          double* asym_param)
-{
-  double cloud_optical_depth = parameters[0];
-  double q0 = parameters[1];
-  double a0 = parameters[2];
-  double particle_size = parameters[3];
-  double cloud_top_pressure = parameters[4];
-
-  double reference_size_parameter = 2*constants::pi * particle_size / reference_wavelength;
-
-
-  double cloud_bottom_pressure = 0;
-
-  if (fixed_bottom == false)
-    cloud_bottom_pressure = cloud_top_pressure * parameters[5];
-
-
-  if (cloud_optical_depth < 0) cloud_optical_depth = 0;
-
-
-  size_t nb_spectral_points = spectral_grid->nbSpectralPoints();
-  size_t nb_grid_points = atmosphere.nb_grid_points;
-
-  unsigned int cloud_top_index = 0;
-  unsigned int cloud_bottom_index = 0;
-
-  if (fixed_bottom == true)
-    cloudPosition(atmosphere, cloud_top_pressure, cloud_top_index, cloud_bottom_index);
-  else
-    cloudPosition(atmosphere, cloud_top_pressure, cloud_bottom_pressure, cloud_top_index, cloud_bottom_index);
-
-
-  double optical_depth_layer_reference = cloud_optical_depth/static_cast<double>(cloud_top_index - cloud_bottom_index); 
-
-
-  std::vector<double> size_parameter (nb_spectral_points, 0);
-
-  for (size_t i=0; i<nb_spectral_points; ++i)
-    size_parameter[i] = 2*constants::pi * particle_size / spectral_grid->wavelength_list[i];
-
-  std::vector<double> optical_depth(nb_spectral_points*(nb_grid_points-1), 0.0); 
-
-  double reference_q = q0 * std::pow(reference_size_parameter, -a0) + std::pow(reference_size_parameter, 0.2);
-
-  //the cloud here only has absorption, no scattering
-  for (size_t j=0; j<nb_spectral_points; ++j)
-    for (size_t i=cloud_bottom_index; i<cloud_top_index; ++i)
-    {
-      unsigned int index = i*nb_spectral_points + j;
-
-      optical_depth[index] = optical_depth_layer_reference * reference_q / (q0 * std::pow(size_parameter[j], -a0) + std::pow(size_parameter[j], 0.2) );
-    }
-
-  moveToDevice(optical_depth_dev, optical_depth, false);
 }
 
 

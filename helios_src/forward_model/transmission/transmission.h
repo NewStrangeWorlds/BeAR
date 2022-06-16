@@ -21,22 +21,26 @@
 #ifndef _transmission_h
 #define _transmission_h
 
+#include "../forward_model.h"
+
 #include <vector>
 #include <iostream>
 #include <cmath>
 #include <fstream>
 #include <string>
 
-#include "../forward_model.h"
-
+#include "../../config/global_config.h"
+#include "../../spectral_grid/spectral_grid.h"
 #include "../atmosphere/atmosphere.h"
 #include "../../cloud_model/cloud_model.h"
 #include "../../chemistry/chemistry.h"
 #include "../../temperature/temperature.h"
 #include "../../transport_coeff/transport_coeff.h"
+#include "../../transport_coeff/opacity_calc.h"
 
 
 namespace helios {
+
 
 constexpr double transmission_optical_depth_cutoff = 10;
 constexpr double transmission_cutoff = 4.5399929e-5; //exp(-tau)
@@ -55,7 +59,7 @@ struct TransmissionModelConfig{
   double atmos_top_pressure = 0;
   double atmos_bottom_pressure = 0;
 
-  bool use_cloud_layer = false;
+  //bool use_cloud_layer = false;
 
   std::string temperature_profile_model;
   std::vector<std::string> temperature_profile_parameters;
@@ -74,7 +78,6 @@ struct TransmissionModelConfig{
   void readChemistryConfig(std::fstream& file);
   void readOpacityConfig(std::fstream& file);
 };
-
 
 
 
@@ -104,9 +107,10 @@ class TransmissionModel : public ForwardModel{
 
   protected:
     Retrieval* retrieval;
-    TransportCoefficients transport_coeff;
-    
+
     Atmosphere atmosphere;
+    OpacityCalculation opacity_calc;
+
     Temperature* temperature_profile = nullptr;
     std::vector<Chemistry*> chemistry;
     CloudModel* cloud_model = nullptr;
@@ -122,21 +126,6 @@ class TransmissionModel : public ForwardModel{
     
     size_t nb_grid_points = 0;
 
-    std::vector< std::vector<double> > absorption_coeff;
-    std::vector< std::vector<double> > scattering_coeff;
-
-    std::vector< std::vector<double> > cloud_optical_depths;
-    std::vector< std::vector<double> > cloud_single_scattering;
-    std::vector< std::vector<double> > cloud_asym_param;
-
-    //pointer to the array that holds the pointers to the coefficients on the GPU
-    double* absorption_coeff_gpu = nullptr;
-    double* scattering_coeff_dev = nullptr;
-
-    double* cloud_optical_depths_dev = nullptr;
-    double* cloud_single_scattering_dev = nullptr;
-    double* cloud_asym_param_dev = nullptr;
-
     virtual void setPriors();
 
     void readPriorConfigFile(
@@ -146,7 +135,6 @@ class TransmissionModel : public ForwardModel{
       std::vector<std::vector<double>>& prior_parameter);
     
     void initModules(const TransmissionModelConfig& model_config);
-    void initDeviceMemory();
 
     bool calcAtmosphereStructure(const std::vector<double>& parameter);
 
