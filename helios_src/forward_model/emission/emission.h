@@ -35,6 +35,7 @@
 #include "../../temperature/temperature.h"
 #include "../../transport_coeff/transport_coeff.h"
 #include "../../radiative_transfer/radiative_transfer.h"
+#include "../../transport_coeff/opacity_calc.h"
 
 
 namespace helios {
@@ -103,9 +104,10 @@ class EmissionModel : public ForwardModel{
     virtual bool testModel(const std::vector<double>& parameter, double* model_spectrum_gpu);
   protected:
     Retrieval* retrieval;
-    TransportCoefficients transport_coeff;
     
     Atmosphere atmosphere;
+    OpacityCalculation opacity_calc;
+
     RadiativeTransfer* radiative_transfer = nullptr;
     Temperature* temperature_profile = nullptr;
     std::vector<Chemistry*> chemistry;
@@ -120,27 +122,11 @@ class EmissionModel : public ForwardModel{
     
     size_t nb_grid_points = 0;
 
-    std::vector< std::vector<double> > absorption_coeff;
-    std::vector< std::vector<double> > scattering_coeff;
-
-    std::vector< std::vector<double> > cloud_optical_depths;
-    std::vector< std::vector<double> > cloud_single_scattering;
-    std::vector< std::vector<double> > cloud_asym_param;
-
-    //pointer to the array that holds the pointers to the coefficients on the GPU
-    double* absorption_coeff_gpu = nullptr;
-    double* scattering_coeff_dev = nullptr;
-
-    double* cloud_optical_depths_dev = nullptr;
-    double* cloud_single_scattering_dev = nullptr;
-    double* cloud_asym_param_dev = nullptr;
-
     virtual void setPriors();
     void readPriorConfigFile(const std::string& file_name, std::vector<std::string>& prior_type, 
                                                            std::vector<std::string>& prior_description, 
                                                            std::vector<std::vector<double>>& prior_parameter);
     void initModules(const EmissionModelConfig& model_config);
-    void initDeviceMemory();
 
     bool calcAtmosphereStructure(const std::vector<double>& parameter);
     double radiusDistanceScaling(const std::vector<double>& parameter);

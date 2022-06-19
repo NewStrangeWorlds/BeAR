@@ -49,9 +49,21 @@ namespace helios{
 
 
 
-SecondaryEclipseModel::SecondaryEclipseModel (Retrieval* retrieval_ptr, const SecondaryEclipseConfig model_config) 
- : transport_coeff(retrieval_ptr->config, &retrieval_ptr->spectral_grid, model_config.opacity_species_symbol, model_config.opacity_species_folder),
-   atmosphere(model_config.nb_grid_points, model_config.atmos_boundaries, retrieval_ptr->config->use_gpu)
+SecondaryEclipseModel::SecondaryEclipseModel (
+  Retrieval* retrieval_ptr, 
+  const SecondaryEclipseConfig model_config) 
+    : atmosphere(
+        model_config.nb_grid_points, 
+        model_config.atmos_boundaries, 
+        retrieval_ptr->config->use_gpu)
+    , opacity_calc(
+        retrieval_ptr->config,
+        &retrieval_ptr->spectral_grid,
+        &atmosphere,
+        model_config.opacity_species_symbol, 
+        model_config.opacity_species_folder,
+        retrieval_ptr->config->use_gpu,
+        model_config.cloud_model != "none")
 {
   retrieval = retrieval_ptr;
   nb_grid_points = model_config.nb_grid_points;
@@ -61,16 +73,9 @@ SecondaryEclipseModel::SecondaryEclipseModel (Retrieval* retrieval_ptr, const Se
   //this forward model has three free general parameters
   nb_general_param = 3;
 
-
   //select and set up the modules
   initStellarSpectrum(model_config);
   initModules(model_config);
-
-
-  //allocate memory for the absorption coefficients on the GPU if necessary
-  if (retrieval->config->use_gpu)
-    initDeviceMemory();
-
 
   setPriors();
 }
@@ -103,51 +108,33 @@ bool SecondaryEclipseModel::calcAtmosphereStructure(const std::vector<double>& p
 
 
 //Runs the forward model on the CPU and calculates a high-resolution spectrum
-bool SecondaryEclipseModel::calcModel(const std::vector<double>& parameter, std::vector<double>& spectrum, std::vector<double>& model_spectrum_bands)
+bool SecondaryEclipseModel::calcModel(
+  const std::vector<double>& parameter, 
+  std::vector<double>& spectrum, 
+  std::vector<double>& model_spectrum_bands)
 {
   bool neglect = calcAtmosphereStructure(parameter);
 
+  std::vector<double> cloud_parameters(
+      parameter.begin() + nb_general_param + nb_total_chemistry_param + nb_temperature_param,
+      parameter.begin() + nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_cloud_param);
 
-  cloud_optical_depths.assign(retrieval->spectral_grid.nbSpectralPoints(), std::vector<double>(nb_grid_points-1, 0.0));
-  cloud_single_scattering.assign(retrieval->spectral_grid.nbSpectralPoints(), std::vector<double>(nb_grid_points-1, 0.0));
-  cloud_asym_param.assign(retrieval->spectral_grid.nbSpectralPoints(), std::vector<double>(nb_grid_points-1, 0.0));
+  std::vector<CloudModel*> cm = {cloud_model};
 
-  //calculate cloud model if needed
-  if (cloud_model != nullptr)
-  {
-    std::vector<double> cloud_parameters(parameter.begin() + nb_general_param + nb_total_chemistry_param + nb_temperature_param,
-                                      parameter.begin() + nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_cloud_param);
-   
-    cloud_model->opticalProperties(cloud_parameters, atmosphere, &retrieval->spectral_grid, cloud_optical_depths, cloud_single_scattering, cloud_asym_param);
-  }
-
-
-  absorption_coeff.assign(retrieval->spectral_grid.nbSpectralPoints(), std::vector<double>(nb_grid_points, 0.0));
-  scattering_coeff.assign(retrieval->spectral_grid.nbSpectralPoints(), std::vector<double>(nb_grid_points, 0.0));
-
-  
-  for (size_t i=0; i<nb_grid_points; ++i)
-  {
-    std::vector<double> absorption_coeff_level(retrieval->spectral_grid.nbSpectralPoints(), 0.0);
-    std::vector<double> scattering_coeff_level(retrieval->spectral_grid.nbSpectralPoints(), 0.0);
-
-
-    transport_coeff.calcTransportCoefficients(atmosphere.temperature[i], atmosphere.pressure[i], atmosphere.number_densities[i], 
-                                              absorption_coeff_level, scattering_coeff_level);
-
-    
-    for (size_t j=0; j<retrieval->spectral_grid.nbSpectralPoints(); ++j)
-      absorption_coeff[j][i] = absorption_coeff_level[j];
-  }
+  opacity_calc.calculate(cm, cloud_parameters);
 
 
   spectrum.assign(retrieval->spectral_grid.nbSpectralPoints(), 0.0);
  
-  radiative_transfer->calcSpectrum(atmosphere,
-                                   absorption_coeff, scattering_coeff, 
-                                   cloud_optical_depths, cloud_single_scattering, cloud_asym_param,
-                                   1.0, 
-                                   spectrum);
+  radiative_transfer->calcSpectrum(
+    atmosphere,
+    opacity_calc.absorption_coeff, 
+    opacity_calc.absorption_coeff, 
+    opacity_calc.cloud_optical_depths, 
+    opacity_calc.cloud_single_scattering, 
+    opacity_calc.cloud_asym_param,
+    1.0, 
+    spectrum);
 
 
   //post-process the planet's high-res emission spectrum and bin it to the observational bands
@@ -161,7 +148,9 @@ bool SecondaryEclipseModel::calcModel(const std::vector<double>& parameter, std:
   
   //calculate the secondary-eclipse depth with an optional geometric albedo contribution
   for (size_t i=0; i<model_spectrum_bands.size(); ++i)
-    model_spectrum_bands[i] = planet_spectrum_bands[i]/stellar_spectrum_bands[i] * radius_ratio*radius_ratio * 1e6 + albedo_contribution[i]*1e6;
+    model_spectrum_bands[i] = 
+      planet_spectrum_bands[i]/stellar_spectrum_bands[i] 
+      * radius_ratio*radius_ratio * 1e6 + albedo_contribution[i]*1e6;
 
 
   return neglect;
@@ -171,39 +160,34 @@ bool SecondaryEclipseModel::calcModel(const std::vector<double>& parameter, std:
 
 //run the forward model with the help of the GPU
 //the atmospheric structure itself is still done on the CPU
-bool SecondaryEclipseModel::calcModelGPU(const std::vector<double>& parameter, double* model_spectrum_gpu, double* model_spectrum_bands)
+bool SecondaryEclipseModel::calcModelGPU(
+  const std::vector<double>& parameter, 
+  double* model_spectrum_gpu, 
+  double* model_spectrum_bands)
 {
   const double radius_ratio = parameter[1];
 
   bool neglect = calcAtmosphereStructure(parameter);
 
 
-  //calculate cloud model if needed
-  if (cloud_model != nullptr)
-  { 
-    std::vector<double> cloud_parameters(parameter.begin() + nb_general_param + nb_total_chemistry_param + nb_temperature_param,
-                                      parameter.begin() + nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_cloud_param);
-   
-    cloud_model->opticalPropertiesGPU(cloud_parameters, atmosphere, &retrieval->spectral_grid, cloud_optical_depths_dev, cloud_single_scattering_dev, cloud_asym_param_dev);
-  }
+  std::vector<double> cloud_parameters(
+      parameter.begin() + nb_general_param + nb_total_chemistry_param + nb_temperature_param,
+      parameter.begin() + nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_cloud_param);
+
+  std::vector<CloudModel*> cm = {cloud_model};
+
+  opacity_calc.calculateGPU(cm, cloud_parameters);
 
 
-  initCrossSectionsHost(retrieval->spectral_grid.nbSpectralPoints()*nb_grid_points, absorption_coeff_gpu);
-
-  for (size_t i=0; i<nb_grid_points; ++i)
-    transport_coeff.calcTransportCoefficientsGPU(atmosphere.temperature[i], atmosphere.pressure[i], atmosphere.number_densities[i],
-                                                 nb_grid_points, i,
-                                                 absorption_coeff_gpu, nullptr);
-
-
-  radiative_transfer->calcSpectrumGPU(atmosphere,
-                                      absorption_coeff_gpu, 
-                                      nullptr,
-                                      cloud_optical_depths_dev,
-                                      cloud_single_scattering_dev,
-                                      cloud_asym_param_dev,
-                                      1.0,
-                                      model_spectrum_gpu);
+  radiative_transfer->calcSpectrumGPU(
+    atmosphere,
+    opacity_calc.absorption_coeff_gpu, 
+    opacity_calc.scattering_coeff_dev, 
+    opacity_calc.cloud_optical_depths_dev,
+    opacity_calc.cloud_single_scattering_dev,
+    opacity_calc.cloud_asym_param_dev,
+    1.0,
+    model_spectrum_gpu);
 
 
   //post-process the planet's high-res emission spectrum and bin it to the observational bands
@@ -222,8 +206,13 @@ bool SecondaryEclipseModel::calcModelGPU(const std::vector<double>& parameter, d
   moveToDevice(albedo_contribution_gpu, albedo_contribution);
 
 
-  calcSecondaryEclipseGPU(model_spectrum_bands, planet_spectrum_bands, stellar_spectrum_bands_gpu, retrieval->nb_observation_points,
-                          radius_ratio, albedo_contribution_gpu);
+  calcSecondaryEclipseGPU(
+    model_spectrum_bands, 
+    planet_spectrum_bands, 
+    stellar_spectrum_bands_gpu, 
+    retrieval->nb_observation_points,
+    radius_ratio, 
+    albedo_contribution_gpu);
   
   deleteFromDevice(albedo_contribution_gpu);
   deleteFromDevice(planet_spectrum_bands);
@@ -234,9 +223,11 @@ bool SecondaryEclipseModel::calcModelGPU(const std::vector<double>& parameter, d
 
 
 
-
-std::vector<double> SecondaryEclipseModel::calcSecondaryEclipse(std::vector<double>& planet_spectrum_bands, const double radius_ratio,
-                                                                const double geometric_albedo, const double radius_distance_ratio)
+std::vector<double> SecondaryEclipseModel::calcSecondaryEclipse(
+  std::vector<double>& planet_spectrum_bands, 
+  const double radius_ratio,
+  const double geometric_albedo, 
+  const double radius_distance_ratio)
 {
   std::vector<double> secondary_eclipse(planet_spectrum_bands.size(), 0.0);
 
@@ -252,7 +243,8 @@ std::vector<double> SecondaryEclipseModel::calcSecondaryEclipse(std::vector<doub
 
 //integrate the high-res spectrum to observational bands
 //and convolve if necessary 
-void SecondaryEclipseModel::postProcessSpectrum(std::vector<double>& model_spectrum, std::vector<double>& model_spectrum_bands)
+void SecondaryEclipseModel::postProcessSpectrum(
+  std::vector<double>& model_spectrum, std::vector<double>& model_spectrum_bands)
 {
   model_spectrum_bands.assign(retrieval->nb_observation_points, 0.0);
   
@@ -293,26 +285,8 @@ void SecondaryEclipseModel::postProcessSpectrumGPU(
 }
 
 
-
-
-
-
 SecondaryEclipseModel::~SecondaryEclipseModel()
 {
-  if (retrieval->config->use_gpu)
-  {
-    deleteFromDevice(absorption_coeff_gpu);
-    deleteFromDevice(scattering_coeff_dev);
-
-    if (cloud_model != nullptr)
-    {
-      deleteFromDevice(cloud_optical_depths_dev);
-      deleteFromDevice(cloud_single_scattering_dev);
-      deleteFromDevice(cloud_asym_param_dev);
-    }
-  }
-
-
   delete radiative_transfer;
   delete temperature_profile;
   delete cloud_model;

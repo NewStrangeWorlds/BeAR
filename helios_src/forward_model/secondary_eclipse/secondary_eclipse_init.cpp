@@ -138,31 +138,5 @@ void SecondaryEclipseModel::binStellarSpectrum()
 }
 
 
-
-
-//initialises the varous modules of the forward model
-void SecondaryEclipseModel::initDeviceMemory()
-{
-  allocateOnDevice(absorption_coeff_gpu, nb_grid_points*retrieval->spectral_grid.nbSpectralPoints());
-  allocateOnDevice(scattering_coeff_dev, nb_grid_points*retrieval->spectral_grid.nbSpectralPoints());
-
-
-  if (cloud_model != nullptr)
-  { 
-    const size_t nb_layers = nb_grid_points - 1;
-
-    allocateOnDevice(cloud_optical_depths_dev, nb_layers*retrieval->spectral_grid.nbSpectralPoints());
-    allocateOnDevice(cloud_single_scattering_dev, nb_layers*retrieval->spectral_grid.nbSpectralPoints());
-    allocateOnDevice(cloud_asym_param_dev, nb_layers*retrieval->spectral_grid.nbSpectralPoints());
-
-    intializeOnDevice(cloud_optical_depths_dev, nb_layers*retrieval->spectral_grid.nbSpectralPoints());
-    intializeOnDevice(cloud_single_scattering_dev, nb_layers*retrieval->spectral_grid.nbSpectralPoints());
-    intializeOnDevice(cloud_asym_param_dev, nb_layers*retrieval->spectral_grid.nbSpectralPoints());
-  }
-
-}
-
-
-
 }
 

@@ -21,7 +21,6 @@
 #ifndef _secondary_eclipse_h
 #define _secondary_eclipse_h
 
-
 #include <vector>
 #include <iostream>
 #include <cmath>
@@ -29,17 +28,14 @@
 #include <string>
 
 #include "../forward_model.h"
-
 #include "../atmosphere/atmosphere.h"
-
 #include "../../chemistry/chemistry.h"
 #include "../../cloud_model/cloud_model.h"
 #include "../../temperature/temperature.h"
 #include "../../transport_coeff/transport_coeff.h"
 #include "../../radiative_transfer/discrete_ordinate.h"
 #include "../../radiative_transfer/short_characteristics.h"
-
-
+#include "../../transport_coeff/opacity_calc.h"
 #include "../../radiative_transfer/radiative_transfer.h"
 
 
@@ -102,10 +98,11 @@ class SecondaryEclipseModel : public ForwardModel{
     virtual bool testModel(const std::vector<double>& parameter, double* model_spectrum_gpu);
   protected:
     Retrieval* retrieval;
-    TransportCoefficients transport_coeff;
-    RadiativeTransfer* radiative_transfer = nullptr;
 
     Atmosphere atmosphere;
+    OpacityCalculation opacity_calc;
+
+    RadiativeTransfer* radiative_transfer = nullptr;
     Temperature* temperature_profile = nullptr;
     std::vector<Chemistry*> chemistry;
     CloudModel* cloud_model = nullptr;
@@ -123,28 +120,12 @@ class SecondaryEclipseModel : public ForwardModel{
     std::vector<double> stellar_spectrum_bands;
     double *stellar_spectrum_bands_gpu = nullptr;
 
-
-    std::vector< std::vector<double> > absorption_coeff;
-    std::vector< std::vector<double> > scattering_coeff;
-
-    std::vector< std::vector<double> > cloud_optical_depths;
-    std::vector< std::vector<double> > cloud_single_scattering;
-    std::vector< std::vector<double> > cloud_asym_param;
-
-    //pointer to the array that holds the pointers to the coefficients on the GPU
-    double* absorption_coeff_gpu = nullptr;
-    double* scattering_coeff_dev = nullptr;
-
-    double* cloud_optical_depths_dev = nullptr;
-    double* cloud_single_scattering_dev = nullptr;
-    double* cloud_asym_param_dev = nullptr;
-    
     virtual void setPriors();
     void readPriorConfigFile(const std::string& file_name, std::vector<std::string>& prior_type, 
                                                            std::vector<std::string>& prior_description, 
                                                            std::vector<std::vector<double>>& prior_parameter);
     void initModules(const SecondaryEclipseConfig& model_config);
-    void initDeviceMemory();
+
     void initStellarSpectrum(const SecondaryEclipseConfig& model_config);
     void binStellarSpectrum();
 
@@ -162,7 +143,7 @@ class SecondaryEclipseModel : public ForwardModel{
                           std::vector<double>& temperature_profile, double& effective_temperature,
                           std::vector<std::vector<double>>& mixing_ratios);
     double postProcessEffectiveTemperature(const std::vector<double>& model_spectrum_bands);
-    void postProcessContributionFunctions();
+    void postProcessContributionFunctions(const std::vector<double>& model_parameter);
     void saveContributionFunctions(std::vector< std::vector<double>>& contribution_function, const size_t observation_index);
     void savePostProcessChemistry(const std::vector<std::vector<std::vector<double>>>& mixing_ratios, const unsigned int species);
     void savePostProcessTemperatures(const std::vector<std::vector<double>>& temperature_profiles);

@@ -63,7 +63,7 @@ void SecondaryEclipseModel::postProcess(const std::vector< std::vector<double> >
     
     if (i == 0)
     //if (i == best_fit_model)
-      postProcessContributionFunctions();
+      postProcessContributionFunctions(model_parameter[i]);
   }
 
 
@@ -163,26 +163,30 @@ void SecondaryEclipseModel::savePostProcessEffectiveTemperatures(const std::vect
 
 
 
-void SecondaryEclipseModel::postProcessContributionFunctions()
+void SecondaryEclipseModel::postProcessContributionFunctions(
+  const std::vector<double>& parameter)
 {
-  size_t nb_spectral_points = retrieval->spectral_grid.nbSpectralPoints();
+  std::vector<double> cloud_parameters(
+      parameter.begin() + nb_general_param + nb_total_chemistry_param + nb_temperature_param,
+      parameter.begin() + nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_cloud_param);
 
+  std::vector<CloudModel*> cm = {cloud_model};
 
-  initCrossSectionsHost(nb_spectral_points*nb_grid_points, absorption_coeff_gpu);
-
-  for (size_t i=0; i<nb_grid_points; ++i)
-    transport_coeff.calcTransportCoefficientsGPU(atmosphere.temperature[i], atmosphere.pressure[i], atmosphere.number_densities[i],
-                                                 nb_grid_points, i,
-                                                 absorption_coeff_gpu, nullptr);
+  opacity_calc.calculateGPU(cm, cloud_parameters);
 
   double* contribution_functions_dev = nullptr;
+  size_t nb_spectral_points = retrieval->spectral_grid.nbSpectralPoints();
 
   //intialise the high-res spectrum on the GPU (set it to 0) 
   allocateOnDevice(contribution_functions_dev, nb_spectral_points*nb_grid_points);
   
-  contributionFunctionGPU(contribution_functions_dev, absorption_coeff_gpu,
-                          retrieval->spectral_grid.wavenumber_list_gpu,
-                          atmosphere.temperature, atmosphere.altitude, nb_spectral_points);
+  contributionFunctionGPU(
+    contribution_functions_dev, 
+    opacity_calc.absorption_coeff_gpu,
+    retrieval->spectral_grid.wavenumber_list_gpu,
+    atmosphere.temperature, 
+    atmosphere.altitude,
+    nb_spectral_points);
 
 
   std::vector<double> contribution_functions_all(nb_spectral_points*nb_grid_points, 0.0);

@@ -36,7 +36,8 @@ namespace helios{
 
 
 //Integration of the high-res spectrum in each observational band
-void SpectralBands::bandIntegrateSpectrum(const std::vector<double>& spectrum, std::vector<double>& band_values)
+void SpectralBands::bandIntegrateSpectrum(
+  const std::vector<double>& spectrum, std::vector<double>& band_values)
 {
   band_values.assign(nb_bands, 0.0);
 
@@ -73,19 +74,23 @@ std::vector<double> SpectralBands::bandIntegrateSpectrum(
 
 //Integration of the high-res spectrum for a specific band
 //Note that the units of the spectrum are W m-2 cm, the integrated band values are in W m-2 mu-1
-double SpectralBands::bandIntegrateSpectrumFlux(const std::vector<double>& spectrum, const size_t& band)
+double SpectralBands::bandIntegrateSpectrumFlux(
+  const std::vector<double>& spectrum, const size_t& band)
 {
   std::vector<double> spectrum_subset(band_spectral_indices[band].size(), 0.0);
 
   for (size_t i=0; i<band_spectral_indices[band].size(); ++i)
     spectrum_subset[i] = spectrum[ band_spectral_indices[band][i] ];
-  
+
 
   double wavelength_edge_left =  1.0/band_wavenumbers[band].front() * 1e4;
   double wavelength_edge_right =  1.0/band_wavenumbers[band].back() * 1e4;
 
 
-  double band_mean = aux::quadratureTrapezoidal(band_wavenumbers[band], spectrum_subset) / (wavelength_edge_left - wavelength_edge_right);
+  double band_mean = 
+    aux::quadratureTrapezoidal(
+      band_wavenumbers[band], 
+      spectrum_subset) / (wavelength_edge_left - wavelength_edge_right);
 
 
   return band_mean;
@@ -95,19 +100,23 @@ double SpectralBands::bandIntegrateSpectrumFlux(const std::vector<double>& spect
 
 //Integration of the high-res spectrum for a specific band
 //Note that the units of the spectrum are W m-2 cm, the integrated band values are in W m-2 mu-1
-double SpectralBands::bandIntegrateSpectrum(const std::vector<double>& spectrum, const size_t& band)
+double SpectralBands::bandIntegrateSpectrum(
+  const std::vector<double>& spectrum, const size_t& band)
 {
   std::vector<double> spectrum_subset(band_spectral_indices[band].size(), 0.0);
 
   for (size_t i=0; i<band_spectral_indices[band].size(); ++i)
     spectrum_subset[i] = spectrum[ band_spectral_indices[band][i] ];
-  
+
 
   double wavenumber_edge_left =  band_wavenumbers[band].back();
   double wavenumber_edge_right = band_wavenumbers[band].front();
 
 
-  double band_mean = aux::quadratureTrapezoidal(band_wavenumbers[band], spectrum_subset) / (wavenumber_edge_left - wavenumber_edge_right);
+  double band_mean = 
+    aux::quadratureTrapezoidal(
+      band_wavenumbers[band], 
+      spectrum_subset) / (wavenumber_edge_left - wavenumber_edge_right);
 
 
   return band_mean;

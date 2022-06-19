@@ -112,7 +112,6 @@ bool TransmissionModel::calcModel(
 {
   bool neglect = calcAtmosphereStructure(parameter);
 
-
   std::vector<double> cloud_parameters(
       parameter.begin() + nb_general_param + nb_total_chemistry_param + nb_temperature_param,
       parameter.begin() + nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_cloud_param);
@@ -144,7 +143,6 @@ bool TransmissionModel::calcModelGPU(
   double* model_spectrum_bands)
 {
   bool neglect = calcAtmosphereStructure(parameter);
-  
 
   std::vector<double> cloud_parameters(
       parameter.begin() + nb_general_param + nb_total_chemistry_param + nb_temperature_param,
