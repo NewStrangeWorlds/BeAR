@@ -18,11 +18,11 @@
 */
 
 
-#include "log_like_kernels.h"
-
 #include <iostream>
 #include <cmath>
 #include <stdio.h>
+
+#include "../retrieval/retrieval.h"
 
 #include "error_check.h"
 #include "reduce_kernels.h"
@@ -34,7 +34,14 @@ namespace helios{
 
 //computes the log likelihood
 //each thread calculates one data point, the results are then summed by each block via a blockReduce method and finally all collected by thread 0 
-__global__ void logLikeDevice(double* observation, double* error, double* loglike_weight, double* model, const int nb_spectral_points, const double error_inflation_coefficient, double* d_log_like)
+__global__ void logLikeDevice(
+  double* observation,
+  double* error,
+  double* loglike_weight,
+  double* model,
+  const int nb_spectral_points,
+  const double error_inflation_coefficient,
+  double* d_log_like)
 {
   double d_log_like_sum = 0;
 
@@ -54,46 +61,45 @@ __global__ void logLikeDevice(double* observation, double* error, double* loglik
 
   if (threadIdx.x == 0)
     atomicAdd(d_log_like, d_log_like_sum);
-
 }
 
 
 
-
-
-__host__ double logLikeHost(double* observation, double* observation_error, double* observation_likelihood_weight, double* model_spectrum, const size_t nb_spectral_points, const double error_inflation_coefficient)
+__host__ double Retrieval::logLikeDev(
+  double* model_spectrum,
+  const double error_inflation_coefficient)
 {
-  double h_log_like = 0;
-
   double* d_log_like = nullptr;
 
   cudaMalloc(&d_log_like, sizeof(double));
   cudaMemset(d_log_like, 0, sizeof(double));
 
- 
-
   int threads = 256;
 
-  int blocks = nb_spectral_points / threads;
-  if (nb_spectral_points % threads) blocks++;
+  int blocks = nb_observation_points / threads;
+  if (nb_observation_points % threads) blocks++;
 
 
-  logLikeDevice<<<blocks,threads>>>(observation,observation_error,observation_likelihood_weight,model_spectrum, nb_spectral_points, error_inflation_coefficient, d_log_like);
+  logLikeDevice<<<blocks,threads>>>(
+    observation_data_gpu,
+    observation_error_gpu,
+    observation_likelihood_weight_gpu,
+    model_spectrum,
+    nb_observation_points,
+    error_inflation_coefficient,
+    d_log_like);
 
 
   cudaDeviceSynchronize();
   gpuErrchk( cudaPeekAtLastError() );
   gpuErrchk( cudaDeviceSynchronize() );
 
-
+  double h_log_like = 0;
   cudaMemcpy(&h_log_like, d_log_like, sizeof(double), cudaMemcpyDeviceToHost);
 
   cudaDeviceSynchronize();
-  
   cudaFree(d_log_like);
-  
   cudaDeviceSynchronize();
-
 
   return h_log_like;
 }

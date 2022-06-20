@@ -205,9 +205,6 @@ __host__ void shortCharacteristicsGPU(double* model_spectrum_dev,
 
 
 
-
-
-
 __host__ void shortCharacteristicsGPU(double* model_spectrum_dev,
                                       double* absorption_coeff_dev, double* wavenumber_list_dev,
                                       const std::vector<double>& temperature, const std::vector<double>& vertical_grid,

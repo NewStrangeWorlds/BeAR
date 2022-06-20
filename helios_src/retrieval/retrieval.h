@@ -54,7 +54,7 @@ class Retrieval{
     
     GlobalConfig* config;
     SpectralGrid spectral_grid;
-    std::vector<Observation> observations;           //object that holds the single observations
+    std::vector<Observation> observations;
 
     virtual bool doRetrieval();
 
@@ -68,8 +68,8 @@ class Retrieval{
     double* observation_error_gpu = nullptr;
     double* observation_likelihood_weight_gpu = nullptr;
 
-    size_t nb_observations = 0;                      //number of observations
-    size_t nb_observation_points = 0;                //total number of observational data points
+    size_t nb_observations = 0;
+    size_t nb_observation_points = 0;
 
     double* model_spectrum_gpu = nullptr;            //pointer to the high-res spectrum on the GPU
   protected:
@@ -97,6 +97,9 @@ class Retrieval{
       int &nb_param, 
       double &new_log_like, 
       void *context);
+    double logLikeDev(
+      double* model_spectrum,
+      const double error_inflation_coefficient);
 
     static void multinestDumper(
       int &nSamples, 

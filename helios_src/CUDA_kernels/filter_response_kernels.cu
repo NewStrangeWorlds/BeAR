@@ -41,11 +41,11 @@ __global__ void applyFilterResponseDevice(
   double* filter_response_weight, 
   const double filter_normalisation,
   const int nb_points, 
-  double* convolved_spectrum)
+  double* spectrum_filter)
 {
   for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < nb_points; i += blockDim.x * gridDim.x)
   {
-    convolved_spectrum[i] = spectrum[i] * filter_response_function[i] * filter_response_weight[i] / filter_normalisation;
+    spectrum_filter[i] = spectrum[i] * filter_response_function[i] * filter_response_weight[i] / filter_normalisation;
   }
 
 }

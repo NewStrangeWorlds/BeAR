@@ -18,24 +18,19 @@
 */
 
 
-#include "retrieval.h"
-
-
 #include <string>
 #include <iostream>
 #include <fstream>
 #include <algorithm>
 
+#include "retrieval.h"
 
 #include "multinest_parameter.h"
 #include "priors.h"
 #include "../forward_model/forward_model.h"
 #include "../CUDA_kernels/data_management_kernels.h"
-#include "../CUDA_kernels/log_like_kernels.h"
 #include "../observations/observations.h"
-
 #include "../additional/physical_const.h"
-
 
 
 namespace helios{
@@ -70,7 +65,6 @@ void Retrieval::multinestLogLike(double *cube, int &ndim, int &nb_param, double 
   }
 
 
-  //print the current model parameter values to the terminal
   if (retrieval_ptr->config->multinest_print_iter_values)
   {
     std::cout << "model ";
@@ -155,8 +149,7 @@ void Retrieval::multinestLogLikeGPU(double *cube, int &nb_dim, int &nb_param, do
     cube[i] = parameter[i];
   }
 
-  
-  //print the parameter values
+
   if (retrieval_ptr->config->multinest_print_iter_values)
   {
     std::cout << "model ";
@@ -192,18 +185,10 @@ void Retrieval::multinestLogLikeGPU(double *cube, int &nb_dim, int &nb_param, do
     error_inflation = std::pow(10, error_exponent);
   }
 
-
-  double new_log_like = logLikeHost(retrieval_ptr->observation_data_gpu,
-                                    retrieval_ptr->observation_error_gpu,
-                                    retrieval_ptr->observation_likelihood_weight_gpu,
-                                    model_spectrum_bands,
-                                    retrieval_ptr->nb_observation_points, 
-                                    error_inflation);
-  
+  double new_log_like = retrieval_ptr->logLikeDev(model_spectrum_bands, error_inflation);
 
   //if the forward model tells us to neglect the current set of parameters, set the likelihood to a low value
   if (neglect == true) new_log_like = -1e30;
-  
 
   //delete the spectra from the GPU
   deleteFromDevice(model_spectrum_bands);
