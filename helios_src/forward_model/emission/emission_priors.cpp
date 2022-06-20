@@ -1,6 +1,6 @@
 /*
 * This file is part of the Helios-r2 code (https://github.com/exoclime/Helios-r2).
-* Copyright (C) 2020 Daniel Kitzmann
+* Copyright (C) 2022 Daniel Kitzmann
 *
 * Helios-r2 is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -50,7 +50,7 @@ void EmissionModel::setPriors(Priors* priors)
   if (prior_type.size() != nb_total_param())
   {
     std::string error_message = "Found " + std::to_string(prior_type.size()) + " priors in priors.config but expected " + std::to_string(nb_total_param()) + "\n";
-    throw ExceptionInvalidInput(std::string ("EmissionModel::setPriors"), error_message);
+    throw InvalidInput(std::string ("EmissionModel::setPriors"), error_message);
   }
 
 
@@ -71,7 +71,7 @@ void EmissionModel::readPriorConfigFile(
 
 
   if (file.fail())  
-    throw ExceptionFileNotFound(std::string ("EmissionModel::readPriorConfigFile"), file_path);
+    throw FileNotFound(std::string ("EmissionModel::readPriorConfigFile"), file_path);
 
 
   std::string line;

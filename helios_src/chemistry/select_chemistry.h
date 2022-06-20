@@ -48,19 +48,28 @@ namespace chemistry_modules{
 
 
 
-inline Chemistry* selectChemistryModule(const std::string chemistry_type, const std::vector<std::string>& parameters, 
-                                 GlobalConfig* config, const double atmos_boundaries [2])
+inline Chemistry* selectChemistryModule(
+  const std::string chemistry_type, 
+  const std::vector<std::string>& parameters, 
+  GlobalConfig* config, 
+  const double atmos_boundaries [2])
 {
   //find the corresponding chemistry module to the supplied "type" string
-  auto it = std::find(chemistry_modules::description.begin(), chemistry_modules::description.end(), chemistry_type);
-  auto it_short = std::find(chemistry_modules::description_short.begin(), chemistry_modules::description_short.end(), chemistry_type);
+  auto it = std::find(
+    chemistry_modules::description.begin(), 
+    chemistry_modules::description.end(), 
+    chemistry_type);
+  auto it_short = std::find(
+    chemistry_modules::description_short.begin(), 
+    chemistry_modules::description_short.end(), 
+    chemistry_type);
 
 
   //no chemistry module is found
   if (it == chemistry_modules::description.end() && it_short == chemistry_modules::description_short.end())
   {
     std::string error_message = "Chemistry type " + chemistry_type + " unknown!\n";
-    throw ExceptionInvalidInput(std::string ("forward_model.config"), error_message);
+    throw InvalidInput(std::string ("forward_model.config"), error_message);
   }
 
 
@@ -68,9 +77,13 @@ inline Chemistry* selectChemistryModule(const std::string chemistry_type, const 
   chemistry_modules::id module_id = static_cast<chemistry_modules::id>(0);
 
   if (it != chemistry_modules::description.end())
-    module_id = static_cast<chemistry_modules::id>(std::distance(chemistry_modules::description.begin(), it));
+    module_id = static_cast<chemistry_modules::id>(
+      std::distance(chemistry_modules::description.begin(), 
+      it));
   else
-    module_id = static_cast<chemistry_modules::id>(std::distance(chemistry_modules::description_short.begin(), it_short));
+    module_id = static_cast<chemistry_modules::id>(
+      std::distance(chemistry_modules::description_short.begin(), 
+      it_short));
 
 
   //create the chemistry object based on the chosen module
@@ -78,38 +91,40 @@ inline Chemistry* selectChemistryModule(const std::string chemistry_type, const 
 
   switch (module_id)
   {
-    case chemistry_modules::eq :  if (parameters.size() != 1)
-                                  {
-                                    std::string error_message = "Equilibrium chemistry requires exactly one parameter!\n";
-                                    throw ExceptionInvalidInput(std::string ("forward_model.config"), error_message);
-                                  }
-                                  {
-                                    FastChemChemistry* model = new FastChemChemistry(config->retrieval_folder_path + parameters[0], config->nb_omp_processes);
-                                    chemistry_module = model;
-                                  }
-                                  break;
+    case chemistry_modules::eq :  
+      if (parameters.size() != 1) {
+        std::string error_message = "Equilibrium chemistry requires exactly one parameter!\n";
+        throw InvalidInput(std::string ("forward_model.config"), error_message);
+      }
+    {
+      FastChemChemistry* model = new FastChemChemistry(
+        config->retrieval_folder_path + parameters[0], 
+        config->nb_omp_processes);
+      chemistry_module = model;
+    }
+      break;
 
-    case chemistry_modules::iso :  {
-                                     IsoprofileChemistry* model = new IsoprofileChemistry(parameters);
-                                     chemistry_module = model;
-                                   } 
-                                   break;
+    case chemistry_modules::iso : {
+      IsoprofileChemistry* model = new IsoprofileChemistry(parameters);
+      chemistry_module = model;
+    } 
+      break;
 
-    case chemistry_modules::free : if (parameters.size() != 3)
-                                  {
-                                    std::string error_message = "Free chemistry requires exactly three parameters!\n";
-                                    throw ExceptionInvalidInput(std::string ("forward_model.config"), error_message);
-                                  }
-                                  {
-                                    FreeChemistry* model = new FreeChemistry(parameters[0], 
-                                                                             std::stoi(parameters[1]),
-                                                                             std::stoi(parameters[2]),
-                                                                             atmos_boundaries);
-                                    chemistry_module = model;
-                                  }
-                                  break;
+    case chemistry_modules::free : 
+      if (parameters.size() != 3) {
+        std::string error_message = "Free chemistry requires exactly three parameters!\n";
+        throw InvalidInput(std::string ("forward_model.config"), error_message);
+      }
+    {
+        FreeChemistry* model = new FreeChemistry(
+          parameters[0], 
+          std::stoi(parameters[1]),
+          std::stoi(parameters[2]),
+          atmos_boundaries);
+        chemistry_module = model;
+      }
+      break;
   }
-
 
   return chemistry_module;
 }

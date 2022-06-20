@@ -18,14 +18,14 @@
 */
 
 
-#include "transmission.h"
-
 #include <string>
 #include <iostream>
 #include <fstream>
 #include <vector>
 #include <sstream>
 #include <iomanip>
+
+#include "transmission.h"
 
 #include "../../chemistry/chem_species.h"
 #include "../atmosphere/atmosphere.h"
@@ -115,7 +115,6 @@ void TransmissionModel::savePostProcessChemistry(
   }
 
 }
-
 
 
 

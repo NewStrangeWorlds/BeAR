@@ -18,10 +18,6 @@
 */
 
 
-#include "kh_cloud_model.h"
-#include "grey_cloud_model.h"
-
-
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -30,6 +26,8 @@
 #include <omp.h>
 #include <iomanip>
 
+#include "kh_cloud_model.h"
+#include "grey_cloud_model.h"
 
 #include "../forward_model/atmosphere/atmosphere.h"
 #include "../CUDA_kernels/data_management_kernels.h"
@@ -48,8 +46,10 @@ KHCloudModel::KHCloudModel(const std::vector<std::string>& parameters)
 
   if (parameters.size() < 1)
   {
-    std::string error_message = "Expected at least one parameter for the KH non-grey cloud model, but only found " + std::to_string(parameters.size()) + "\n";
-    throw ExceptionInvalidInput(std::string ("forward_model.config"), error_message);
+    std::string error_message = 
+      "Expected at least one parameter for the KH non-grey cloud model, but only found " 
+      + std::to_string(parameters.size()) + "\n";
+    throw InvalidInput(std::string ("forward_model.config"), error_message);
   }
 
   reference_wavelength = std::stod(parameters[0]);
@@ -64,8 +64,7 @@ KHCloudModel::KHCloudModel(const std::vector<std::string>& parameters)
 }
 
 
-
-//calculates the vertical distribution of the grey layer
+//calculates the vertical distribution of the cloud layer
 //needs three parameters: cloud top pressure, cloud bottom (fraction of top pressure), and optical depth
 //the optical depth will be distributed over the layers between the cloud's top and bottom
 void KHCloudModel::opticalProperties(
@@ -126,9 +125,12 @@ void KHCloudModel::opticalProperties(
   //the cloud here only has absorption, no scattering
   for (size_t j=0; j<nb_spectral_points; ++j)
     for (size_t i=cloud_top_index; i>cloud_bottom_index; --i)
-      optical_depth[j][i] = optical_depth_layer_reference * reference_q / (q0 * std::pow(size_parameter[j], -a0) + std::pow(size_parameter[j], 0.2) );
+    {
+      optical_depth[j][i] = 
+        optical_depth_layer_reference * reference_q / (q0 * std::pow(size_parameter[j], -a0) 
+        + std::pow(size_parameter[j], 0.2) );
+    }
 }
-
 
 
 }

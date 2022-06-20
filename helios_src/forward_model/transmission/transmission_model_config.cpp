@@ -47,7 +47,7 @@ void TransmissionModelConfig::readConfigFile(const std::string& file_name)
   file.open(file_name.c_str(), std::ios::in);
 
   if (file.fail())  
-    throw ExceptionFileNotFound(std::string ("TransmissionModelConfig::readConfigFile"), file_name);
+    throw FileNotFound(std::string ("TransmissionModelConfig::readConfigFile"), file_name);
 
 
   std::string line;

@@ -1,6 +1,6 @@
 /*
 * This file is part of the Helios-r2 code (https://github.com/exoclime/Helios-r2).
-* Copyright (C) 2020 Daniel Kitzmann
+* Copyright (C) 2022 Daniel Kitzmann
 *
 * Helios-r2 is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,14 +18,14 @@
 */
 
 
-#include "isoprofile_chemistry.h"
-#include "chem_species.h"
-#include "../additional/exceptions.h"
-#include "../additional/physical_const.h"
-
 #include <algorithm>
 #include <vector>
 
+#include "isoprofile_chemistry.h"
+
+#include "chem_species.h"
+#include "../additional/exceptions.h"
+#include "../additional/physical_const.h"
 
 
 namespace helios {
@@ -46,8 +46,11 @@ IsoprofileChemistry::IsoprofileChemistry(const std::vector<std::string>& chemica
     //H2 and He are used as a buffer gas and are not free variables
     if (i == "H2" || i == "He")
     {
-      std::string error_message = "Chemical species " + i + " is used as a buffer gas and is not a free variable in IsoprofileChemistry. It has to be removed from the config file and as a prior!\n";
-      throw ExceptionInvalidInput(std::string ("IsoprofileChemistry::IsoprofileChemistry"), error_message);
+      std::string error_message = 
+        "Chemical species " 
+        + i 
+        + " is used as a buffer gas and is not a free variable in IsoprofileChemistry. It has to be removed from the config file and as a prior!\n";
+      throw InvalidInput(std::string ("IsoprofileChemistry::IsoprofileChemistry"), error_message);
     } 
 
     bool species_found = false;
@@ -66,9 +69,9 @@ IsoprofileChemistry::IsoprofileChemistry(const std::vector<std::string>& chemica
     if (!species_found)
     {
       std::string error_message = "Chemical species " + i + " not found in the list of species in chem_species.h \n";
-      throw ExceptionInvalidInput(std::string ("IsoprofileChemistry::IsoprofileChemistry"), error_message);
+      throw InvalidInput(std::string ("IsoprofileChemistry::IsoprofileChemistry"), error_message);
     }
-      
+
   }
 
   /*std::cout << "Isoprofile chemistry initialised with the following species: \n";
@@ -92,8 +95,12 @@ IsoprofileChemistry::IsoprofileChemistry(const std::vector<std::string>& chemica
 
 
 
-bool IsoprofileChemistry::calcChemicalComposition(const std::vector<double>& parameters, const std::vector<double>& temperature, const std::vector<double>& pressure,
-                                                  std::vector<std::vector<double>>& number_densities, std::vector<double>& mean_molecular_weight)
+bool IsoprofileChemistry::calcChemicalComposition(
+  const std::vector<double>& parameters,
+  const std::vector<double>& temperature,
+  const std::vector<double>& pressure,
+  std::vector<std::vector<double>>& number_densities,
+  std::vector<double>& mean_molecular_weight)
 {
   const double solar_h2_he = solar_h2 + solar_he;
   const double solar_na_k = 16.2181;

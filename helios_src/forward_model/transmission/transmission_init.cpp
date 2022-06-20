@@ -18,13 +18,13 @@
 */
 
 
-#include "transmission.h"
-
 #include <string>
 #include <iostream>
 #include <fstream>
 #include <vector>
 #include <sstream>
+
+#include "transmission.h"
 
 #include "../../additional/exceptions.h"
 #include "../../chemistry/select_chemistry.h"

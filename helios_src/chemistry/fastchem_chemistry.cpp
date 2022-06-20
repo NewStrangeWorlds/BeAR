@@ -59,7 +59,7 @@ FastChemChemistry::FastChemChemistry(const std::string& fastchen_parameter_file,
       || fastchem_species_indices[_C] == fastchem::FASTCHEM_UNKNOWN_SPECIES)
   {
     std::string error_message = "Critical elements (H, C, or O) not found in FastChem\n";
-    throw ExceptionInvalidInput(std::string ("FastChemChemistry::FastChemChemistry"), error_message);
+    throw InvalidInput(std::string ("FastChemChemistry::FastChemChemistry"), error_message);
   }
   
 
@@ -107,7 +107,7 @@ bool FastChemChemistry::calcChemicalComposition(const std::vector<double>& param
   if (status == fastchem::FASTCHEM_INITIALIZATION_FAILED)
   {
     std::string error_message = "FastChem initialisation failed!\n";
-    throw ExceptionInvalidInput(std::string ("FastChemChemistry::calcChemicalComposition"), error_message);
+    throw InvalidInput(std::string ("FastChemChemistry::calcChemicalComposition"), error_message);
   }
 
   if (status != fastchem::FASTCHEM_SUCCESS)

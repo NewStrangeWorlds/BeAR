@@ -1,6 +1,6 @@
 /*
 * This file is part of the Helios-r2 code (https://github.com/exoclime/Helios-r2).
-* Copyright (C) 2020 Daniel Kitzmann
+* Copyright (C) 2022 Daniel Kitzmann
 *
 * Helios-r2 is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -17,27 +17,28 @@
 * <http://www.gnu.org/licenses/>.
 */
 
+#include <algorithm>
+#include <vector>
+#include <cmath>
 
 #include "free_chemistry.h"
+
 #include "chem_species.h"
 #include "../additional/exceptions.h"
 #include "../additional/physical_const.h"
 #include "../additional/piecewise_poly.h"
 
-#include <algorithm>
-#include <vector>
-#include <cmath>
-
-
 
 namespace helios {
 
 
-
-FreeChemistry::FreeChemistry(const std::string& chemical_species,
-                             const size_t nb_elements_in, const size_t polynomial_degree_in, const double atmos_boundaries [2])
- : mixing_ratios(nb_elements_in, polynomial_degree_in, atmos_boundaries)
- , nb_elements{nb_elements_in}, polynomial_degree{polynomial_degree_in}
+FreeChemistry::FreeChemistry(
+  const std::string& chemical_species,
+  const size_t nb_elements_in, 
+  const size_t polynomial_degree_in, 
+  const double atmos_boundaries [2])
+    : mixing_ratios(nb_elements_in, polynomial_degree_in, atmos_boundaries)
+    , nb_elements{nb_elements_in}, polynomial_degree{polynomial_degree_in}
 { 
   std::cout << "- Chemistry model: " << "free chemistry" << "\n";
   std::cout << "  - Species for this model: " << chemical_species << "\n";
@@ -49,7 +50,7 @@ FreeChemistry::FreeChemistry(const std::string& chemical_species,
   if (nb_elements < 1 || polynomial_degree < 1)
   {
     std::string error_message = "Wrong number of elements or polynomial degree in free chemistry config\n";
-    throw ExceptionInvalidInput(std::string ("FreeChemistry::FreeChemistry"), error_message);
+    throw InvalidInput(std::string ("FreeChemistry::FreeChemistry"), error_message);
   }
 
 
@@ -69,7 +70,7 @@ FreeChemistry::FreeChemistry(const std::string& chemical_species,
   if (!species_found)
   {
     std::string error_message = "Chemical species " + chemical_species + " not found in the list of species in chem_species.h \n";
-    throw ExceptionInvalidInput(std::string ("FreeChemistry::FreeChemistry"), error_message);
+    throw InvalidInput(std::string ("FreeChemistry::FreeChemistry"), error_message);
   }
       
 
@@ -83,8 +84,12 @@ FreeChemistry::FreeChemistry(const std::string& chemical_species,
 
 
 //the parameters should contain the mixing ratios at the dof
-bool FreeChemistry::calcChemicalComposition(const std::vector<double>& parameters, const std::vector<double>& temperature, const std::vector<double>& pressure,
-                                            std::vector<std::vector<double>>& number_densities, std::vector<double>& mean_molecular_weight)
+bool FreeChemistry::calcChemicalComposition(
+  const std::vector<double>& parameters, 
+  const std::vector<double>& temperature, 
+  const std::vector<double>& pressure,
+  std::vector<std::vector<double>>& number_densities, 
+  std::vector<double>& mean_molecular_weight)
 {
   //first, set the total number density (in case we're the first chemistry model)
   for (size_t i=0; i<number_densities.size(); ++i)

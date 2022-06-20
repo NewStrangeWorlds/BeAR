@@ -18,14 +18,13 @@
 */
 
 
-#include "transmission.h"
-
 #include <string>
 #include <iostream>
 #include <fstream>
 #include <vector>
 #include <sstream>
 
+#include "transmission.h"
 
 #include "../../retrieval/priors.h"
 #include "../../additional/exceptions.h"
@@ -55,7 +54,7 @@ void TransmissionModel::setPriors(Priors* priors)
       + " priors in priors.config but expected " 
       + std::to_string(nb_total_param()) + "\n";
     
-    throw ExceptionInvalidInput(std::string ("EmissionModel::setPriors"), error_message);
+    throw InvalidInput(std::string ("EmissionModel::setPriors"), error_message);
   }
 
 
@@ -75,7 +74,7 @@ void TransmissionModel::readPriorConfigFile(
   file.open(file_path.c_str(), std::ios::in);
 
   if (file.fail())  
-    throw ExceptionFileNotFound(std::string ("TransmissionModel::readPriorConfigFile"), file_path);
+    throw FileNotFound(std::string ("TransmissionModel::readPriorConfigFile"), file_path);
 
 
   std::string line;

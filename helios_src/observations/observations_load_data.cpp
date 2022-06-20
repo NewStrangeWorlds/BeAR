@@ -1,6 +1,6 @@
 /*
 * This file is part of the Helios-r2 code (https://github.com/exoclime/Helios-r2).
-* Copyright (C) 2020 Daniel Kitzmann
+* Copyright (C) 2022 Daniel Kitzmann
 *
 * Helios-r2 is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,9 +18,6 @@
 */
 
 
-#include "observations.h"
-
-
 #include <vector>
 #include <iostream>
 #include <sstream>
@@ -28,6 +25,8 @@
 #include <fstream>
 #include <algorithm>
 #include <iomanip>
+
+#include "observations.h"
 
 #include "../spectral_grid/spectral_band_type.h"
 #include "../spectral_grid/spectral_band.h"
@@ -38,7 +37,6 @@
 namespace helios{
 
 
-
 void Observation::loadFile(const std::string& file_name)
 {
   std::fstream file;
@@ -47,7 +45,7 @@ void Observation::loadFile(const std::string& file_name)
 
 
   if (file.fail())
-    throw ExceptionFileNotFound(std::string ("Observation::loadFile"), file_name);
+    throw FileNotFound(std::string ("Observation::loadFile"), file_name);
  
   
   std::cout << "Reading observation file " << file_name << "\n";
@@ -81,7 +79,7 @@ void Observation::loadFile(const std::string& file_name)
   else
   {
     std::string error_message = "Unsupported observation type *" + band_type_input + "* in file: " + file_name + "\n";
-    throw ExceptionInvalidInput(std::string ("Observation::loadFile"), error_message);
+    throw InvalidInput(std::string ("Observation::loadFile"), error_message);
   }
     
 
@@ -130,7 +128,7 @@ bool Observation::readPhotometryData(std::fstream& file)
     if (nb_data_columns < 4)
     {
       std::string error_message = "Expected at least four data columns in observational file, but only found " + std::to_string(nb_data_columns) + "\n";
-      throw ExceptionInvalidInput(std::string ("Observation::readBandSpectroscopyData"), error_message);
+      throw InvalidInput(std::string ("Observation::readBandSpectroscopyData"), error_message);
     }
   }
   
@@ -196,7 +194,7 @@ bool Observation::readBandSpectroscopyData(std::fstream& file)
       if (nb_data_columns < 4)
       {
         std::string error_message = "Expected at least four data columns in observational file, but only found " + std::to_string(nb_data_columns) + "\n";
-        throw ExceptionInvalidInput(std::string ("Observation::readBandSpectroscopyData"), error_message);
+        throw InvalidInput(std::string ("Observation::readBandSpectroscopyData"), error_message);
       }
     }
 
@@ -298,7 +296,7 @@ bool Observation::readSpectroscopyData(std::fstream& file)
       if (nb_data_columns < 3)
       {
         std::string error_message = "Expected at least three data columns in observational file, but only found " + std::to_string(nb_data_columns) + "\n";
-        throw ExceptionInvalidInput(std::string ("Observation::readSpectroscopyData"), error_message);
+        throw InvalidInput(std::string ("Observation::readSpectroscopyData"), error_message);
       }
     }
 

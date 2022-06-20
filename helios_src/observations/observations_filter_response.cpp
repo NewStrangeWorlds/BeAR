@@ -18,8 +18,6 @@
 */
 
 
-#include "observations.h"
-
 #include <iostream>
 #include <string>
 #include <fstream>
@@ -27,6 +25,8 @@
 #include <vector>
 #include <algorithm>
 #include <cmath>
+
+#include "observations.h"
 
 #include "../spectral_grid/spectral_grid.h"
 #include "../additional/quadrature.h"
@@ -39,7 +39,8 @@
 namespace helios{
 
 
-std::vector<std::vector<double>> Observation::readFilterResponseFunction(const std::string& file_path)
+std::vector<std::vector<double>> Observation::readFilterResponseFunction(
+  const std::string& file_path)
 {
   std::fstream file;
   
@@ -47,7 +48,7 @@ std::vector<std::vector<double>> Observation::readFilterResponseFunction(const s
 
 
   if (file.fail())
-    throw ExceptionFileNotFound(std::string ("SpectralBands::readFilterResponseFunction"), file_path);
+    throw FileNotFound(std::string ("SpectralBands::readFilterResponseFunction"), file_path);
  
   
   std::cout << "\nReading filter response file " << file_path << "\n";
@@ -78,7 +79,7 @@ std::vector<std::vector<double>> Observation::readFilterResponseFunction(const s
   if (detector_type != "energy" && detector_type != "photon")
   {
     std::string error_message = "Unsupported detector type *" + detector_type + "* in file: " + file_path + "\n";
-    throw ExceptionInvalidInput(std::string ("Observation::readFilterResponseFunction"), error_message);
+    throw InvalidInput(std::string ("Observation::readFilterResponseFunction"), error_message);
   }
 
   filter_detector_type = detector_type;

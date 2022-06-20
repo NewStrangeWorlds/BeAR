@@ -50,7 +50,7 @@ void Priors::add(
   if (description.size() != type.size() || parameter.size() != type.size())
   {
     std::string error_message = "Incorrect prior data sizes! Type, description, and parameter should have the same length.\n";
-    throw ExceptionInvalidInput(std::string ("Retrieval::setPriors"), error_message);
+    throw InvalidInput(std::string ("Retrieval::setPriors"), error_message);
   }
 
 
@@ -68,7 +68,7 @@ void Priors::addSingle(
   if (it == helios::priors::prior_type_strings.end())
   {
     std::string error_message = "Prior type " + type + " for " + description + " unknown!\n";
-    throw ExceptionInvalidInput(std::string ("Retrieval::setPrior"), error_message);
+    throw InvalidInput(std::string ("Retrieval::setPrior"), error_message);
   }
 
 
@@ -86,7 +86,7 @@ void Priors::addSingle(
       }
       else { 
         std::string error_message = "uniform prior " + description + " requires two parameters!\n"; 
-        throw ExceptionInvalidInput(std::string ("pirors.config"), error_message);
+        throw InvalidInput(std::string ("pirors.config"), error_message);
       }
       break;
     case PriorType::log_uniform : 
@@ -97,7 +97,7 @@ void Priors::addSingle(
       }
       else { 
         std::string error_message = "log-uniform prior " + description + " requires two parameters!\n"; 
-        throw ExceptionInvalidInput(std::string ("pirors.config"), error_message);
+        throw InvalidInput(std::string ("pirors.config"), error_message);
       }
       break;
     case PriorType::gaussian :
@@ -108,7 +108,7 @@ void Priors::addSingle(
       }
       else { 
         std::string error_message = "gaussian prior " + description + " requires two parameters!\n"; 
-        throw ExceptionInvalidInput(std::string ("pirors.config"), error_message);
+        throw InvalidInput(std::string ("pirors.config"), error_message);
       }  
       break;
     case PriorType::delta :
@@ -118,7 +118,7 @@ void Priors::addSingle(
       } 
       else { 
         std::string error_message = "delta prior " + description + " requires one parameter!\n"; 
-        throw ExceptionInvalidInput(std::string ("pirors.config"), error_message);
+        throw InvalidInput(std::string ("pirors.config"), error_message);
       }  
       break;
     default :

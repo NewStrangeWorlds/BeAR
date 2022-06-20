@@ -1,6 +1,6 @@
 /*
 * This file is part of the Helios-r2 code (https://github.com/exoclime/Helios-r2).
-* Copyright (C) 2020 Daniel Kitzmann
+* Copyright (C) 2022 Daniel Kitzmann
 *
 * Helios-r2 is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,20 +18,17 @@
 */
 
 
-#include "retrieval.h"
-
-
 #include <string>
 #include <iostream>
 #include <fstream>
 #include <cmath>
 #include <vector>
 
+#include "retrieval.h"
 
 #include "../observations/observations.h"
 #include "../CUDA_kernels/data_management_kernels.h"
 #include "../additional/exceptions.h"
-
 
 
 namespace helios{
@@ -39,12 +36,10 @@ namespace helios{
 
 //load the observational data
 //input value is the location of the retrieval folder
-void Retrieval::loadObservations(const std::string file_folder, const std::vector<std::string>& file_list)
+void Retrieval::loadObservations(
+  const std::string file_folder, const std::vector<std::string>& file_list)
 {
   nb_observations = file_list.size();
-
-  //create the observation object
-  //observations.resize(nb_observations);
 
   observations.assign(nb_observations, Observation(config, &spectral_grid));
 
@@ -53,14 +48,21 @@ void Retrieval::loadObservations(const std::string file_folder, const std::vecto
     observations[i].init(file_folder + file_list[i]);
     
     //save all the observations and their errors in a single vector
-    observation_data.insert(std::end(observation_data), std::begin(observations[i].flux), std::end(observations[i].flux));
-    observation_error.insert(std::end(observation_error), std::begin(observations[i].flux_error), std::end(observations[i].flux_error));
-    observation_likelihood_weight.insert(std::end(observation_likelihood_weight), std::begin(observations[i].likelihood_weight), std::end(observations[i].likelihood_weight));
+    observation_data.insert(
+      std::end(observation_data),
+      std::begin(observations[i].flux),
+      std::end(observations[i].flux));
+    observation_error.insert(
+      std::end(observation_error),
+      std::begin(observations[i].flux_error),
+      std::end(observations[i].flux_error));
+    observation_likelihood_weight.insert(
+      std::end(observation_likelihood_weight),
+      std::begin(observations[i].likelihood_weight),
+      std::end(observations[i].likelihood_weight));
   }
 
-
   nb_observation_points = observation_data.size();
-
 
   //move the lists to the GPU, if necessary
   if (config->use_gpu)
@@ -97,7 +99,8 @@ void Retrieval::loadObservations(const std::string file_folder, const std::vecto
 
 //load the observational file list
 //input value is the location of the retrival folder
-void Retrieval::loadObservationFileList(const std::string file_folder, std::vector<std::string>& file_list)
+void Retrieval::loadObservationFileList(
+  const std::string file_folder, std::vector<std::string>& file_list)
 {
   //we are look for the file observations.list in the folder
   std::string file_name = file_folder + "observations.list";
@@ -107,7 +110,7 @@ void Retrieval::loadObservationFileList(const std::string file_folder, std::vect
 
   
   if (file.fail())
-    throw ExceptionFileNotFound(std::string ("Retrieval::loadObservationFileList"), file_name);
+    throw FileNotFound(std::string ("Retrieval::loadObservationFileList"), file_name);
 
 
   //read the list of observation data files
@@ -122,7 +125,7 @@ void Retrieval::loadObservationFileList(const std::string file_folder, std::vect
   if (nb_observations == 0)
   {
     std::string error_message = "No observations found in observations.list file.\n";
-    throw ExceptionInvalidInput(std::string ("Retrieval::loadObservationFileList"), error_message);
+    throw InvalidInput(std::string ("Retrieval::loadObservationFileList"), error_message);
   }
 }
 

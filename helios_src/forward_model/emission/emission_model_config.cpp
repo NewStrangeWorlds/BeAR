@@ -1,6 +1,6 @@
 /*
 * This file is part of the Helios-r2 code (https://github.com/exoclime/Helios-r2).
-* Copyright (C) 2020 Daniel Kitzmann
+* Copyright (C) 2022 Daniel Kitzmann
 *
 * Helios-r2 is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,19 +18,15 @@
 */
 
 
-#include "emission.h"
-
-
 #include <string>
 #include <iostream>
 #include <fstream>
 #include <vector>
 #include <sstream>
 
+#include "emission.h"
 
-#include "../../retrieval/retrieval.h"
 #include "../../additional/exceptions.h"
-
 
 
 namespace helios{
@@ -52,7 +48,7 @@ void EmissionModelConfig::readConfigFile(const std::string& file_name)
 
   
   if (file.fail())  
-    throw ExceptionFileNotFound(std::string ("EmissionModelConfig::readConfigFile"), file_name);
+    throw FileNotFound(std::string ("EmissionModelConfig::readConfigFile"), file_name);
 
   
   std::string line;

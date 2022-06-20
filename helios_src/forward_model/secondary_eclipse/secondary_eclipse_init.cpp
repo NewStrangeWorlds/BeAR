@@ -90,7 +90,7 @@ void SecondaryEclipseModel::initStellarSpectrum(const SecondaryEclipseConfig& mo
 
 
   if (file.fail())
-    throw ExceptionFileNotFound(std::string ("SecondaryEclipseModel::initStellarSpectrum"), file_path);
+    throw FileNotFound(std::string ("SecondaryEclipseModel::initStellarSpectrum"), file_path);
  
   
   std::cout << "Reading stellar spectrum file " << file_path << "\n";
@@ -133,7 +133,6 @@ void SecondaryEclipseModel::initStellarSpectrum(const SecondaryEclipseConfig& mo
 void SecondaryEclipseModel::binStellarSpectrum()
 {
   postProcessSpectrum(stellar_spectrum, stellar_spectrum_bands);
-
 
   if (config->use_gpu)
     moveToDevice(stellar_spectrum_bands_gpu, stellar_spectrum_bands);

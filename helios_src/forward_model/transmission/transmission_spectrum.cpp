@@ -18,12 +18,12 @@
 */
 
 
-#include "transmission.h"
-
 #include <iostream>
 #include <vector>
 #include <algorithm>
 #include <omp.h>
+
+#include "transmission.h"
 
 
 namespace helios{

@@ -32,13 +32,9 @@
 #include "../../spectral_grid/spectral_grid.h"
 #include "../../retrieval/priors.h"
 #include "../../observations/observations.h"
-#include "../../chemistry/chem_species.h"
-#include "../../additional/aux_functions.h"
 #include "../../additional/physical_const.h"
-#include "../../additional/quadrature.h"
 #include "../../additional/exceptions.h"
 #include "../atmosphere/atmosphere.h"
-#include "../../CUDA_kernels/data_management_kernels.h"
 #include "../../transport_coeff/opacity_calc.h"
 
 

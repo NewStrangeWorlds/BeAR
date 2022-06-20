@@ -1,6 +1,6 @@
 /*
 * This file is part of the Helios-r2 code (https://github.com/exoclime/Helios-r2).
-* Copyright (C) 2020 Daniel Kitzmann
+* Copyright (C) 2022 Daniel Kitzmann
 *
 * Helios-r2 is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,9 +18,6 @@
 */
 
 
-#include "post_process.h"
-
-
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -30,6 +27,7 @@
 #include <vector>
 #include <algorithm>
 
+#include "post_process.h"
 
 #include "../observations/observations.h"
 #include "../forward_model/forward_model.h"
@@ -37,8 +35,6 @@
 #include "../CUDA_kernels/data_management_kernels.h"
 #include "../additional/exceptions.h"
 #include "retrieval.h"
-
-
 
 
 namespace helios{
@@ -113,8 +109,6 @@ bool PostProcess::doRetrieval()
 }
 
 
-
-//Read the posterior data from the Multinest output file
 void PostProcess::readPosteriorData()
 { 
   //first, we load the results from the written file
@@ -127,7 +121,7 @@ void PostProcess::readPosteriorData()
 
 
   if (file.fail())
-    throw ExceptionFileNotFound(std::string ("PostProcess::readPosteriorData"), file_name);
+    throw FileNotFound(std::string ("PostProcess::readPosteriorData"), file_name);
 
 
   std::string line;
@@ -146,7 +140,7 @@ void PostProcess::readPosteriorData()
   nb_param--;
 
 
-  //return to the beginning of the file     
+  //return to the beginning of the file
   file.seekg(0, std::ios::beg);
 
 
@@ -189,8 +183,6 @@ void PostProcess::readPosteriorData()
 }
 
 
-
-//Save the post-process output to the disk
 void PostProcess::saveOutput(const std::vector< std::vector<double> >& model_spectrum_bands)
 {
   const size_t nb_models = model_parameter.size();
@@ -225,8 +217,6 @@ void PostProcess::saveOutput(const std::vector< std::vector<double> >& model_spe
   }
 
 }
-
-
 
 
 

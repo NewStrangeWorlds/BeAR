@@ -21,18 +21,16 @@
 #ifndef _select_radiative_transfer_h
 #define _select_radiative_transfer_h
 
+#include <vector>
+#include <string>
+#include <algorithm>
 
 #include "radiative_transfer.h"
 
 #include "short_characteristics.h"
 #include "discrete_ordinate.h"
-
 #include "../config/global_config.h"
 #include "../additional/exceptions.h"
-
-#include <vector>
-#include <string>
-#include <algorithm>
 
 
 namespace helios {
@@ -46,24 +44,32 @@ namespace rt_modules{
 
 
 
-inline RadiativeTransfer* selectRadiativeTransfer(const std::string rt_type, const std::vector<std::string>& parameters, 
-                                                  const size_t nb_grid_points, 
-                                                  GlobalConfig* config, SpectralGrid* spectral_grid)
+inline RadiativeTransfer* selectRadiativeTransfer(
+  const std::string rt_type,
+  const std::vector<std::string>& parameters,
+  const size_t nb_grid_points, 
+  GlobalConfig* config,
+  SpectralGrid* spectral_grid)
 {
   //find the corresponding radiative transfer module to the supplied "type" string
-  auto it = std::find(rt_modules::description.begin(), rt_modules::description.end(), rt_type);
+  auto it = std::find(
+    rt_modules::description.begin(),
+    rt_modules::description.end(),
+    rt_type);
 
 
   //no module is found
   if (it == rt_modules::description.end())
   {
     std::string error_message = "Radiative transfer type " + rt_type + " unknown!\n";
-    throw ExceptionInvalidInput(std::string ("forward_model.config"), error_message);
+    throw InvalidInput(std::string ("forward_model.config"), error_message);
   }
 
 
   //get the id of the chosen module
-  rt_modules::id module_id = static_cast<rt_modules::id>(std::distance(rt_modules::description.begin(), it));
+  rt_modules::id module_id = static_cast<rt_modules::id>(
+    std::distance(rt_modules::description.begin(),
+    it));
 
 
   //create the radiative transfer object based on the chosen module
@@ -82,10 +88,14 @@ inline RadiativeTransfer* selectRadiativeTransfer(const std::string rt_type, con
       if (parameters.size() != 1)
       {
         std::string error_message = "Discrete ordinate radiative transfer requires exactly one parameter (number of streams)!\n";
-        throw ExceptionInvalidInput(std::string ("forward_model.config"), error_message);
+        throw InvalidInput(std::string ("forward_model.config"), error_message);
       }
       {
-        DiscreteOrdinates* disort = new DiscreteOrdinates(spectral_grid, std::stoi(parameters[0]), nb_grid_points, config->use_gpu); 
+        DiscreteOrdinates* disort = new DiscreteOrdinates(
+          spectral_grid, 
+          std::stoi(parameters[0]), 
+          nb_grid_points, 
+          config->use_gpu); 
         radiative_transfer = disort;
       }
       break;

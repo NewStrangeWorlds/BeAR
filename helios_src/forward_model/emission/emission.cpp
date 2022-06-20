@@ -1,6 +1,6 @@
 /*
 * This file is part of the Helios-r2 code (https://github.com/exoclime/Helios-r2).
-* Copyright (C) 2020 Daniel Kitzmann
+* Copyright (C) 2022 Daniel Kitzmann
 *
 * Helios-r2 is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,8 +18,6 @@
 */
 
 
-#include "emission.h"
-
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -28,13 +26,14 @@
 #include <omp.h>
 #include <iomanip>
 
-#include "../../CUDA_kernels/data_management_kernels.h"
-#include "../../chemistry/chem_species.h"
-#include "../../additional/aux_functions.h"
+#include "emission.h"
+
+#include "../../config/global_config.h"
+#include "../../spectral_grid/spectral_grid.h"
+#include "../../retrieval/priors.h"
+#include "../../observations/observations.h"
 #include "../../additional/physical_const.h"
-#include "../../additional/quadrature.h"
 #include "../../additional/exceptions.h"
-#include "../forward_model.h"
 #include "../atmosphere/atmosphere.h"
 #include "../../transport_coeff/opacity_calc.h"
 

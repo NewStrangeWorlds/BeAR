@@ -1,6 +1,6 @@
 /*
 * This file is part of the Helios-r2 code (https://github.com/exoclime/Helios-r2).
-* Copyright (C) 2020 Daniel Kitzmann
+* Copyright (C) 2022 Daniel Kitzmann
 *
 * Helios-r2 is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,9 +18,6 @@
 */
 
 
-#include "spectral_grid.h"
-
-
 #include <iostream>
 #include <string>
 #include <fstream>
@@ -28,6 +25,7 @@
 #include <algorithm>
 #include <cmath>
 
+#include "spectral_grid.h"
 
 #include "spectral_band_type.h"
 #include "../config/global_config.h"
@@ -61,7 +59,7 @@ void SpectralGrid::loadWavenumberList()
 
 
   if (file.fail())
-    throw ExceptionFileNotFound(std::string ("SpectralGrid::loadWavenumberList"), file_name);
+    throw FileNotFound(std::string ("SpectralGrid::loadWavenumberList"), file_name);
 
 
   size_t nb_wavenumbers;
@@ -81,8 +79,11 @@ void SpectralGrid::loadWavenumberList()
 
 //identifies the indices from the opacity data related to the observational wavelengths
 //distributes wavenumber points according to a given (constant) resolution
-void SpectralGrid::sampleWavelengths(const std::vector< std::vector<double> >& wavelength_edges, const double resolution,
-                                     std::vector<size_t>& band_indices, std::vector<size_t>& bin_edge_indices)
+void SpectralGrid::sampleWavelengths(
+  const std::vector< std::vector<double> >& wavelength_edges,
+  const double resolution,
+  std::vector<size_t>& band_indices,
+  std::vector<size_t>& bin_edge_indices)
 {
   std::vector< std::vector<double> > wavenumber_edges(wavelength_edges.size(), std::vector<double>(2, 0));
 
@@ -161,7 +162,10 @@ void SpectralGrid::sampleWavelengths(const std::vector< std::vector<double> >& w
 
 
 
-void SpectralGrid::findBinEdges(const std::vector< std::vector<double> >& wavenumber_edges, std::vector<double>& bin_edges, std::vector<size_t>& edge_indices)
+void SpectralGrid::findBinEdges(
+  const std::vector< std::vector<double> >& wavenumber_edges,
+  std::vector<double>& bin_edges,
+  std::vector<size_t>& edge_indices)
 {
   bin_edges.assign(wavenumber_edges.size()+1, 0.0);
   edge_indices.assign(wavenumber_edges.size()+1, 0);
@@ -219,7 +223,10 @@ void SpectralGrid::findBinEdges(const std::vector< std::vector<double> >& wavenu
 
 
 //identifies the indices from the opacity data related to the observational wavelengths
-std::vector<size_t> SpectralGrid::sampleWavelengths(const std::vector<double>& wavelengths, const size_t nb_points_bin, std::vector<size_t>& edge_indices)
+std::vector<size_t> SpectralGrid::sampleWavelengths(
+  const std::vector<double>& wavelengths,
+  const size_t nb_points_bin,
+  std::vector<size_t>& edge_indices)
 {
   std::vector<double> wavenumbers;
   convertWavelengthsToWavenumbers(wavelengths, wavenumbers);
@@ -326,12 +333,11 @@ void SpectralGrid::addSampledIndices(const std::vector<size_t>& new_index_list)
 }
 
 
-
 //finds the local spectral index in the sampled list based on the global index
-std::vector<size_t> SpectralGrid::globalToLocalIndex(const std::vector<size_t>& global_indices)
+std::vector<size_t> SpectralGrid::globalToLocalIndex(
+  const std::vector<size_t>& global_indices)
 {
   std::vector<size_t> local_indices(global_indices.size(), 0);
-
 
   for (size_t i=0; i<global_indices.size(); ++i)
     for (size_t j=0; j<index_list.size(); ++j)
@@ -342,7 +348,6 @@ std::vector<size_t> SpectralGrid::globalToLocalIndex(const std::vector<size_t>& 
         break;
       }
 
-
   return local_indices;
 }
 
@@ -352,14 +357,11 @@ std::vector<double> SpectralGrid::wavenumberList(const std::vector<size_t>& indi
 {
   std::vector<double> output(indices.size(), 0.0);
 
-
   for (size_t i=0; i<indices.size(); ++i)
     output[i] = wavenumber_list[indices[i]];
 
-
   return output;
 }
-
 
 
 
@@ -372,7 +374,6 @@ SpectralGrid::~SpectralGrid()
   }
 
 }
-
 
 
 }

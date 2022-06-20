@@ -19,15 +19,14 @@
 
 
 #include "retrieval.h"
+
 #include "../forward_model/forward_model.h"
 #include "../additional/exceptions.h"
-
 
 //the header files for all forward models
 #include "../forward_model/emission/emission.h"
 #include "../forward_model/secondary_eclipse/secondary_eclipse.h"
 #include "../forward_model/transmission/transmission.h"
-
 
 
 namespace helios{
@@ -76,7 +75,7 @@ ForwardModel* Retrieval::selectForwardModel(const std::string model_description)
 
 
   std::string error_message = "Unkown forward model found in retrieval config file: " + model_description + "\n";
-  throw ExceptionInvalidInput(std::string ("retrieval.config"), error_message);
+  throw InvalidInput(std::string ("retrieval.config"), error_message);
 
   return nullptr;
 }

@@ -1,6 +1,6 @@
 /*
 * This file is part of the Helios-r2 code (https://github.com/exoclime/Helios-r2).
-* Copyright (C) 2020 Daniel Kitzmann
+* Copyright (C) 2022 Daniel Kitzmann
 *
 * Helios-r2 is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,9 +18,6 @@
 */
 
 
-#include "emission.h"
-
-
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -28,10 +25,10 @@
 #include <sstream>
 #include <iomanip>
 
+#include "emission.h"
 
 #include "../../retrieval/retrieval.h"
 #include "../../chemistry/chem_species.h"
-
 #include "../atmosphere/atmosphere.h"
 
 
@@ -39,7 +36,10 @@ namespace helios{
 
 
 //calls the model specific posterior calculations
-void EmissionModel::postProcess(const std::vector< std::vector<double> >& model_parameter, const std::vector< std::vector<double> >& model_spectrum_bands, const size_t best_fit_model)
+void EmissionModel::postProcess(
+  const std::vector< std::vector<double> >& model_parameter, 
+  const std::vector< std::vector<double> >& model_spectrum_bands, 
+  const size_t best_fit_model)
 {
   const size_t nb_models = model_parameter.size();
 
@@ -66,9 +66,12 @@ void EmissionModel::postProcess(const std::vector< std::vector<double> >& model_
 
 
 
-void EmissionModel::postProcessModel(const std::vector<double>& model_parameter, const std::vector<double>& model_spectrum_bands, 
-                                       std::vector<double>& temperature_profile, double& effective_temperature,
-                                       std::vector<std::vector<double>>& mixing_ratios)
+void EmissionModel::postProcessModel(
+  const std::vector<double>& model_parameter, 
+  const std::vector<double>& model_spectrum_bands, 
+  std::vector<double>& temperature_profile, 
+  double& effective_temperature,
+  std::vector<std::vector<double>>& mixing_ratios)
 {
   calcAtmosphereStructure(model_parameter);
 
@@ -89,7 +92,9 @@ void EmissionModel::postProcessModel(const std::vector<double>& model_parameter,
 
 
 
-void EmissionModel::savePostProcessChemistry(const std::vector<std::vector<std::vector<double>>>& mixing_ratios, const unsigned int species)
+void EmissionModel::savePostProcessChemistry(
+  const std::vector<std::vector<std::vector<double>>>& mixing_ratios, 
+  const unsigned int species)
 {
   std::fstream file;
   std::string file_name = config->retrieval_folder_path + "/chem_";
@@ -117,7 +122,8 @@ void EmissionModel::savePostProcessChemistry(const std::vector<std::vector<std::
 
 
 
-void EmissionModel::savePostProcessTemperatures(const std::vector<std::vector<double>>& temperature_profiles)
+void EmissionModel::savePostProcessTemperatures(
+  const std::vector<std::vector<double>>& temperature_profiles)
 {
   std::fstream file;
   std::string file_name = config->retrieval_folder_path + "/temperature_structures.dat";
@@ -139,7 +145,8 @@ void EmissionModel::savePostProcessTemperatures(const std::vector<std::vector<do
 
 
 
-void EmissionModel::savePostProcessEffectiveTemperatures(const std::vector<double>& effective_temperatures)
+void EmissionModel::savePostProcessEffectiveTemperatures(
+  const std::vector<double>& effective_temperatures)
 {
   std::string file_name = config->retrieval_folder_path + "/effective_temperatures.dat";
   

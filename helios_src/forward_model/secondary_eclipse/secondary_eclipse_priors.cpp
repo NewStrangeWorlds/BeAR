@@ -1,6 +1,6 @@
 /*
 * This file is part of the Helios-r2 code (https://github.com/exoclime/Helios-r2).
-* Copyright (C) 2020 Daniel Kitzmann
+* Copyright (C) 2022 Daniel Kitzmann
 *
 * Helios-r2 is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,15 +18,13 @@
 */
 
 
-#include "secondary_eclipse.h"
-
-
 #include <string>
 #include <iostream>
 #include <fstream>
 #include <vector>
 #include <sstream>
 
+#include "secondary_eclipse.h"
 
 #include "../../retrieval/priors.h"
 #include "../../additional/exceptions.h"
@@ -52,7 +50,7 @@ void SecondaryEclipseModel::setPriors(Priors* priors)
   if (prior_type.size() != nb_total_param())
   {
     std::string error_message = "Found " + std::to_string(prior_type.size()) + " priors in priors.config but expected " + std::to_string(nb_total_param()) + "\n";
-    throw ExceptionInvalidInput(std::string ("SecondaryEclipseModel::setPriors"), error_message);
+    throw InvalidInput(std::string ("SecondaryEclipseModel::setPriors"), error_message);
   }
 
 
@@ -71,7 +69,7 @@ void SecondaryEclipseModel::readPriorConfigFile(const std::string& file_path, st
 
 
   if (file.fail())  
-    throw ExceptionFileNotFound(std::string ("SecondaryEclipseModel::readPriorConfigFile"), file_path);
+    throw FileNotFound(std::string ("SecondaryEclipseModel::readPriorConfigFile"), file_path);
 
 
   std::string line;

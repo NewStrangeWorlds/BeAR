@@ -21,18 +21,17 @@
 #ifndef _select_temperature_h
 #define _select_temperature_h
 
+#include <vector>
+#include <string>
+#include <algorithm>
 
 #include "temperature.h"
-
-#include "piecewise_poly_temperature.h"
-#include "constant_temperature.h"
 
 #include "../config/global_config.h"
 #include "../additional/exceptions.h"
 
-#include <vector>
-#include <string>
-#include <algorithm>
+#include "piecewise_poly_temperature.h"
+#include "constant_temperature.h"
 
 
 namespace helios {
@@ -46,26 +45,32 @@ namespace temp_profile_modules{
 
 
 
-inline Temperature* selectTemperatureProfile(const std::string profile_type, const std::vector<std::string>& parameters, 
-                                             const double atmos_boundaries [2])
+inline Temperature* selectTemperatureProfile(
+  const std::string profile_type,
+  const std::vector<std::string>& parameters, 
+  const double atmos_boundaries [2])
 {
   //find the corresponding radiative transfer module to the supplied type string
-  auto it = std::find(temp_profile_modules::description.begin(), temp_profile_modules::description.end(), profile_type);
+  auto it = std::find(
+    temp_profile_modules::description.begin(),
+    temp_profile_modules::description.end(),
+    profile_type);
 
 
   //no module is found
   if (it == temp_profile_modules::description.end())
   {
     std::string error_message = "Temperature profile type " + profile_type + " unknown!\n";
-    throw ExceptionInvalidInput(std::string ("forward_model.config"), error_message);
+    throw InvalidInput(std::string ("forward_model.config"), error_message);
   }
 
 
   //get the id of the chosen module
-  temp_profile_modules::id module_id = static_cast<temp_profile_modules::id>(std::distance(temp_profile_modules::description.begin(), it));
+  temp_profile_modules::id module_id = static_cast<temp_profile_modules::id>(
+    std::distance(temp_profile_modules::description.begin(), it));
 
 
-  //create the radiative transfer object based on the chosen module
+  //create the temperature profile object based on the chosen module
   Temperature* temperature_profile = nullptr;
 
   switch (module_id)
@@ -73,13 +78,16 @@ inline Temperature* selectTemperatureProfile(const std::string profile_type, con
     case temp_profile_modules::poly :
       if (parameters.size() != 2)
       {
-        std::string error_message = "Piesewise polynomial temperature profile requires exactly two parameters!\n";
-        throw ExceptionInvalidInput(std::string ("forward_model.config"), error_message);
+        std::string error_message = 
+          "Piesewise polynomial temperature profile requires exactly two parameters!\n";
+        throw InvalidInput(std::string ("forward_model.config"), error_message);
       }
       {
-        PiecewisePolynomialTemperature* temp = new PiecewisePolynomialTemperature(std::stoi(parameters[0]),
-                                                                                  std::stoi(parameters[1]),
-                                                                                  atmos_boundaries);
+        PiecewisePolynomialTemperature* temp = 
+          new PiecewisePolynomialTemperature(
+            std::stoi(parameters[0]),
+            std::stoi(parameters[1]),
+            atmos_boundaries);
         temperature_profile = temp;  
       }
       break;

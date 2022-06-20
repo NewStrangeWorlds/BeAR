@@ -55,7 +55,7 @@ inline CloudModel* selectCloudModel(const std::string type, const std::vector<st
   if (it == cloud_modules::description.end())
   {
     std::string error_message = "Cloud module type " + type + " unknown!\n";
-    throw ExceptionInvalidInput(std::string ("forward_model.config"), error_message);
+    throw InvalidInput(std::string ("forward_model.config"), error_message);
   }
 
 

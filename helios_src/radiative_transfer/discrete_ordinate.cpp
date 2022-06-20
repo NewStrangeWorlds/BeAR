@@ -1,6 +1,6 @@
 /*
 * This file is part of the Helios-r2 code (https://github.com/exoclime/Helios-r2).
-* Copyright (C) 2020 Daniel Kitzmann
+* Copyright (C) 2022 Daniel Kitzmann
 *
 * Helios-r2 is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,9 +18,6 @@
 */
 
 
-#include "discrete_ordinate.h"
-
-
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -28,12 +25,12 @@
 #include <vector>
 #include <omp.h>
 
+#include "discrete_ordinate.h"
 
 #include "../forward_model/atmosphere/atmosphere.h"
 #include "../additional/aux_functions.h"
 #include "../additional/physical_const.h"
 #include "../additional/quadrature.h"
-#include "../CUDA_kernels/data_management_kernels.h"
 #include "../spectral_grid/spectral_grid.h"
 #include "../additional/exceptions.h"
 
@@ -66,12 +63,16 @@ namespace helios{
 #define UTAU(lu)   ds.utau[lu-1]
 
 
-DiscreteOrdinates::DiscreteOrdinates(SpectralGrid* spectral_grid_ptr, const size_t nb_streams, const size_t nb_grid_points, const bool use_gpu)
+DiscreteOrdinates::DiscreteOrdinates(
+  SpectralGrid* spectral_grid_ptr,
+  const size_t nb_streams,
+  const size_t nb_grid_points,
+  const bool use_gpu)
 { 
   if (use_gpu)
   {
     std::string error_message = "Radiative transfer model CDISORT cannot run on the GPU\n";
-    throw ExceptionInvalidInput(std::string ("DiscreteOrdinates::DiscreteOrdinates"), error_message);
+    throw InvalidInput(std::string ("DiscreteOrdinates::DiscreteOrdinates"), error_message);
   }
 
   spectral_grid = spectral_grid_ptr;
@@ -80,14 +81,15 @@ DiscreteOrdinates::DiscreteOrdinates(SpectralGrid* spectral_grid_ptr, const size
 
 
 
-void DiscreteOrdinates::calcSpectrum(const Atmosphere& atmosphere,
-                                    const std::vector< std::vector<double> >& absorption_coeff, 
-                                    const std::vector< std::vector<double> >& scattering_coeff,
-                                    const std::vector< std::vector<double> >& cloud_optical_depth,
-                                    const std::vector< std::vector<double> >& cloud_single_scattering,
-                                    const std::vector< std::vector<double> >& cloud_asym_param,
-                                    const double spectrum_scaling,
-                                    std::vector<double>& spectrum)
+void DiscreteOrdinates::calcSpectrum(
+  const Atmosphere& atmosphere,
+  const std::vector< std::vector<double> >& absorption_coeff, 
+  const std::vector< std::vector<double> >& scattering_coeff,
+  const std::vector< std::vector<double> >& cloud_optical_depth,
+  const std::vector< std::vector<double> >& cloud_single_scattering,
+  const std::vector< std::vector<double> >& cloud_asym_param,
+  const double spectrum_scaling,
+  std::vector<double>& spectrum)
 {
   receiveTemperatureStructure(atmosphere.temperature, atmosphere.temperature[0]);
 
@@ -99,8 +101,12 @@ void DiscreteOrdinates::calcSpectrum(const Atmosphere& atmosphere,
 
 
 
-double DiscreteOrdinates::calcSpectrum(const std::vector<double> absorption_coeff, const std::vector<double> scattering_coeff, const std::vector<double>& cloud_optical_depth,
-                                       const std::vector<double>& vertical_grid, const size_t nu_index)
+double DiscreteOrdinates::calcSpectrum(
+  const std::vector<double> absorption_coeff,
+  const std::vector<double> scattering_coeff,
+  const std::vector<double>& cloud_optical_depth,
+  const std::vector<double>& vertical_grid,
+  const size_t nu_index)
 {
   size_t nb_grid_points = absorption_coeff.size();
 
@@ -137,8 +143,12 @@ double DiscreteOrdinates::calcSpectrum(const std::vector<double> absorption_coef
 
 
 
-void DiscreteOrdinates::calcRadiativeTransfer(double incident_stellar_radiation, double zenith_angle,
-                                              std::vector<double>& flux_up, std::vector<double>& flux_down, std::vector<double>& mean_intensity)
+void DiscreteOrdinates::calcRadiativeTransfer(
+  double incident_stellar_radiation,
+  double zenith_angle,
+  std::vector<double>& flux_up,
+  std::vector<double>& flux_down,
+  std::vector<double>& mean_intensity)
 {
   ds.bc.fbeam = incident_stellar_radiation;
   ds.bc.umu0  = zenith_angle;
@@ -149,8 +159,9 @@ void DiscreteOrdinates::calcRadiativeTransfer(double incident_stellar_radiation,
 
 
 
-
-void DiscreteOrdinates::receiveTemperatureStructure(const std::vector<double>& temperature_structure, const double& surface_temperature)
+void DiscreteOrdinates::receiveTemperatureStructure(
+  const std::vector<double>& temperature_structure,
+  const double& surface_temperature)
 {
   ds.bc.btemp   = surface_temperature;
 
@@ -160,9 +171,12 @@ void DiscreteOrdinates::receiveTemperatureStructure(const std::vector<double>& t
 
 
 
-void DiscreteOrdinates::receiveTransportCoefficients(const double wavenumber_input, const std::vector<double>& optical_depth,
-	                                                      const std::vector<double>& single_scattering_albedo, const std::vector<double>& asymmetry_parameter,
-	                                                      const double surface_albedo)
+void DiscreteOrdinates::receiveTransportCoefficients(
+  const double wavenumber_input,
+  const std::vector<double>& optical_depth,
+	const std::vector<double>& single_scattering_albedo,
+  const std::vector<double>& asymmetry_parameter,
+	const double surface_albedo)
 {
   ds.bc.albedo  = surface_albedo;
 
@@ -247,7 +261,10 @@ void DiscreteOrdinates::finaliseDISORT()
 
 
 
-void DiscreteOrdinates::runDISORT(std::vector<double>& flux_up, std::vector<double>& flux_down, std::vector<double>& mean_intensity)
+void DiscreteOrdinates::runDISORT(
+  std::vector<double>& flux_up,
+  std::vector<double>& flux_down,
+  std::vector<double>& mean_intensity)
 {
   int lc;
 

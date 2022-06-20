@@ -1,6 +1,6 @@
 /*
 * This file is part of the Helios-r2 code (https://github.com/exoclime/Helios-r2).
-* Copyright (C) 2020 Daniel Kitzmann
+* Copyright (C) 2022 Daniel Kitzmann
 *
 * Helios-r2 is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,9 +18,6 @@
 */
 
 
-#include "secondary_eclipse.h"
-
-
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -29,15 +26,11 @@
 #include <vector>
 #include <algorithm>
 
+#include "secondary_eclipse.h"
 
-
-#include "../../retrieval/retrieval.h"
 #include "../../chemistry/chem_species.h"
-
 #include "../../CUDA_kernels/data_management_kernels.h"
-#include "../../CUDA_kernels/cross_section_kernels.h"
 #include "../../CUDA_kernels/contribution_function_kernels.h"
-
 #include "../atmosphere/atmosphere.h"
 
 
