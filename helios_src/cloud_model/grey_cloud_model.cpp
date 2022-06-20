@@ -56,11 +56,13 @@ GreyCloudModel::GreyCloudModel(const std::vector<std::string>& parameters)
 //calculates the vertical distribution of the grey layer
 //needs three parameters: cloud top pressure, cloud bottom (fraction of top pressure), and optical depth
 //the optical depth will be distributed over the layers between the cloud's top and bottom
-void GreyCloudModel::opticalProperties(const std::vector<double>& parameters, const Atmosphere& atmosphere,
-                                       SpectralGrid* spectral_grid,
-                                       std::vector<std::vector<double>>& optical_depth, 
-                                       std::vector<std::vector<double>>& single_scattering, 
-                                       std::vector<std::vector<double>>& asym_param)
+void GreyCloudModel::opticalProperties(
+  const std::vector<double>& parameters, 
+  const Atmosphere& atmosphere,
+  SpectralGrid* spectral_grid,
+  std::vector<std::vector<double>>& optical_depth, 
+  std::vector<std::vector<double>>& single_scattering, 
+  std::vector<std::vector<double>>& asym_param)
 {
   double cloud_optical_depth = parameters[0];
   double cloud_top_pressure = parameters[1];
@@ -87,12 +89,15 @@ void GreyCloudModel::opticalProperties(const std::vector<double>& parameters, co
   unsigned int cloud_bottom_index = 0;
 
   if (fixed_bottom == true)
-    cloudPosition(atmosphere, cloud_top_pressure, cloud_top_index, cloud_bottom_index);
+    cloudPosition(
+      atmosphere, cloud_top_pressure, cloud_top_index, cloud_bottom_index);
   else
-    cloudPosition(atmosphere, cloud_top_pressure, cloud_bottom_pressure, cloud_top_index, cloud_bottom_index);
+    cloudPosition(
+      atmosphere, cloud_top_pressure, cloud_bottom_pressure, cloud_top_index, cloud_bottom_index);
 
 
-  double optical_depth_layer = cloud_optical_depth/static_cast<double>(cloud_top_index - cloud_bottom_index); 
+  double optical_depth_layer = 
+    cloud_optical_depth/static_cast<double>(cloud_top_index - cloud_bottom_index); 
 
   //the grey cloud here only has absorption, no scattering
   for (size_t j=0; j<nb_spectral_points; ++j)
@@ -104,15 +109,21 @@ void GreyCloudModel::opticalProperties(const std::vector<double>& parameters, co
 
 
 //calculates the upper and lower grid point of the cloud based on the top and bottom pressure
-void GreyCloudModel::cloudPosition(const Atmosphere& atmosphere, const double top_pressure, const double bottom_pressure, 
-                                   unsigned int& top_index, unsigned int& bottom_index)
+void GreyCloudModel::cloudPosition(
+  const Atmosphere& atmosphere, 
+  const double top_pressure, 
+  const double bottom_pressure, 
+  unsigned int& top_index, 
+  unsigned int& bottom_index)
 {
   for (size_t i=0; i<atmosphere.nb_grid_points-1; ++i)
   {
-    if ((atmosphere.pressure[i] > top_pressure && atmosphere.pressure[i+1] < top_pressure) || atmosphere.pressure[i] == top_pressure)
+    if ((atmosphere.pressure[i] > top_pressure && atmosphere.pressure[i+1] < top_pressure) 
+      || atmosphere.pressure[i] == top_pressure)
       top_index = i;
 
-    if ((atmosphere.pressure[i] > bottom_pressure && atmosphere.pressure[i+1] < bottom_pressure) || atmosphere.pressure[i] == bottom_pressure)
+    if ((atmosphere.pressure[i] > bottom_pressure && atmosphere.pressure[i+1] < bottom_pressure) 
+      || atmosphere.pressure[i] == bottom_pressure)
       bottom_index = i;
   }
 
@@ -140,7 +151,8 @@ void GreyCloudModel::cloudPosition(const Atmosphere& atmosphere, const double to
   //find the top pressure index first
   for (size_t i=0; i<atmosphere.nb_grid_points-1; ++i)
   {
-    if ((atmosphere.pressure[i] > top_pressure && atmosphere.pressure[i+1] < top_pressure) || atmosphere.pressure[i] == top_pressure)
+    if ((atmosphere.pressure[i] > top_pressure && atmosphere.pressure[i+1] < top_pressure) 
+      || atmosphere.pressure[i] == top_pressure)
       top_index = i;
   }
 
@@ -155,7 +167,8 @@ void GreyCloudModel::cloudPosition(const Atmosphere& atmosphere, const double to
 
   for (size_t i=0; i<atmosphere.nb_grid_points-1; ++i)
   {
-    if ((atmosphere.altitude[i] < bottom_altitude && atmosphere.altitude[i+1] > bottom_altitude) || atmosphere.altitude[i] == bottom_altitude)
+    if ((atmosphere.altitude[i] < bottom_altitude && atmosphere.altitude[i+1] > bottom_altitude) 
+      || atmosphere.altitude[i] == bottom_altitude)
       bottom_index = i;
   }
 

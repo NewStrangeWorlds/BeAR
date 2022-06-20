@@ -27,7 +27,7 @@
 #include <sstream>
 
 #include "../../retrieval/retrieval.h"
-#include "../../retrieval/prior.h"
+#include "../../retrieval/prior_types.h"
 #include "../../additional/exceptions.h"
 
 
@@ -59,7 +59,7 @@ void TransmissionModel::setPriors()
   }
 
 
-  retrieval->setPriors(prior_type, prior_description, prior_parameter);
+  retrieval->priors.add(prior_type, prior_description, prior_parameter);
 }
 
 

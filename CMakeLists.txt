@@ -96,9 +96,9 @@ set(SRC
   helios_src/retrieval/post_process_spectra.cpp
   helios_src/retrieval/post_process.cpp
   helios_src/retrieval/select_forward_model.cpp
-  helios_src/retrieval/retrieval_set_priors.cpp
   helios_src/retrieval/retrieval_load_observations.cpp
   helios_src/retrieval/retrieval.cpp
+  helios_src/retrieval/priors.cpp
   helios_src/spectral_grid/convert.cpp
   helios_src/spectral_grid/spectral_band_convolve.cpp
   helios_src/spectral_grid/spectral_band_integrate.cpp

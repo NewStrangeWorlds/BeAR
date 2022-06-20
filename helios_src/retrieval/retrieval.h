@@ -30,6 +30,7 @@
 #include "../spectral_grid/spectral_grid.h"
 #include "../observations/observations.h"
 #include "../config/global_config.h"
+#include "priors.h"
 
 
 namespace helios {
@@ -40,7 +41,6 @@ void signalHandler(int sig);
 
 //forward declaration
 class ForwardModel;
-class BasicPrior;
 
 
 
@@ -50,16 +50,13 @@ class Retrieval{
   public:
     Retrieval(GlobalConfig* global_config);
     ~Retrieval();
-
+    Priors priors;
+    
     GlobalConfig* config;
     SpectralGrid spectral_grid;
     std::vector<Observation> observations;           //object that holds the single observations
 
     virtual bool doRetrieval();
-    void setPriors(
-      const std::vector<std::string>& type, 
-      const std::vector<std::string>& description, 
-      const std::vector<std::vector<double>>& parameter);
 
     size_t nbObservations() {return observations.size();}
 
@@ -76,7 +73,9 @@ class Retrieval{
 
     double* model_spectrum_gpu = nullptr;            //pointer to the high-res spectrum on the GPU
   protected:
+   
     ForwardModel* forward_model = nullptr;
+    void setAdditionalPriors();
     void loadObservations(
       const std::string file_folder, 
       const std::vector<std::string>& file_list);
@@ -86,14 +85,6 @@ class Retrieval{
     
     ForwardModel* selectForwardModel(const std::string model_description);
   private:
-    std::vector<BasicPrior*> priors;
-
-    void setAdditionalPriors();
-    void setPrior(
-      const std::string& type, 
-      const std::string& description, 
-      const std::vector<double>& parameter);
-
     static void multinestLogLike(
       double *Cube, 
       int &ndim, 

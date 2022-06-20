@@ -29,9 +29,7 @@
 
 
 #include "../../retrieval/retrieval.h"
-#include "../../retrieval/prior.h"
 #include "../../additional/exceptions.h"
-
 
 
 namespace helios{

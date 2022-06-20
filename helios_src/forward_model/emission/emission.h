@@ -45,7 +45,7 @@ namespace helios {
 class Retrieval;
 
 
-//this struct handles the Brown Dwarf config
+//this struct handles the Emission config
 //it will read in the corresponding parameter file
 //and will then be used to create a model object
 struct EmissionModelConfig{
@@ -79,11 +79,10 @@ struct EmissionModelConfig{
 };
 
 
-
-
 class EmissionModel : public ForwardModel{
   public:
-    EmissionModel (Retrieval* retrieval_ptr, const EmissionModelConfig model_config);
+    EmissionModel (
+      Retrieval* retrieval_ptr, const EmissionModelConfig model_config);
     virtual ~EmissionModel();
     
     virtual bool calcModel(
@@ -101,7 +100,8 @@ class EmissionModel : public ForwardModel{
       const std::vector< std::vector<double> >& model_spectrum_bands,
       const size_t best_fit_model);
     
-    virtual bool testModel(const std::vector<double>& parameter, double* model_spectrum_gpu);
+    virtual bool testModel(
+      const std::vector<double>& parameter, double* model_spectrum_gpu);
   protected:
     Retrieval* retrieval;
     
@@ -118,31 +118,45 @@ class EmissionModel : public ForwardModel{
     size_t nb_temperature_param = 0;
     size_t nb_cloud_param = 0;
 
-    size_t nb_total_param() {return nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_cloud_param;}
+    size_t nb_total_param() 
+      {return nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_cloud_param;}
     
     size_t nb_grid_points = 0;
 
     virtual void setPriors();
-    void readPriorConfigFile(const std::string& file_name, std::vector<std::string>& prior_type, 
-                                                           std::vector<std::string>& prior_description, 
-                                                           std::vector<std::vector<double>>& prior_parameter);
+    void readPriorConfigFile(
+      const std::string& file_name, 
+      std::vector<std::string>& prior_type, 
+      std::vector<std::string>& prior_description, 
+      std::vector<std::vector<double>>& prior_parameter);
     void initModules(const EmissionModelConfig& model_config);
 
     bool calcAtmosphereStructure(const std::vector<double>& parameter);
     double radiusDistanceScaling(const std::vector<double>& parameter);
 
-    void postProcessSpectrum(std::vector<double>& model_spectrum, std::vector<double>& model_spectrum_bands);
-    void postProcessSpectrumGPU(double* model_spectrum, double* model_spectrum_bands);
+    void postProcessSpectrum(
+      std::vector<double>& model_spectrum, std::vector<double>& model_spectrum_bands);
+    void postProcessSpectrumGPU(
+      double* model_spectrum, double* model_spectrum_bands);
 
-    void postProcessModel(const std::vector<double>& parameter, const std::vector<double>& model_spectrum_bands, 
-                          std::vector<double>& temperature_profile, double& effective_temperature,
-                          std::vector<std::vector<double>>& mixing_ratios);
-    double postProcessEffectiveTemperature(const std::vector<double>& model_spectrum_bands, const double radius_distance_scaling);
-    void savePostProcessChemistry(const std::vector<std::vector<std::vector<double>>>& mixing_ratios, const unsigned int species);
-    void savePostProcessTemperatures(const std::vector<std::vector<double>>& temperature_profiles);
-    void savePostProcessEffectiveTemperatures(const std::vector<double>& effective_temperatures);
+    void postProcessModel(
+      const std::vector<double>& parameter, 
+      const std::vector<double>& model_spectrum_bands, 
+      std::vector<double>& temperature_profile, 
+      double& effective_temperature,
+      std::vector<std::vector<double>>& mixing_ratios);
+    double postProcessEffectiveTemperature(
+      const std::vector<double>& model_spectrum_bands, const double radius_distance_scaling);
+    void savePostProcessChemistry(
+      const std::vector<std::vector<std::vector<double>>>& mixing_ratios, 
+      const unsigned int species);
+    void savePostProcessTemperatures(
+      const std::vector<std::vector<double>>& temperature_profiles);
+    void savePostProcessEffectiveTemperatures(
+      const std::vector<double>& effective_temperatures);
 
-    bool testCPUvsGPU(const std::vector<double>& parameter, double* model_spectrum_gpu);
+    bool testCPUvsGPU(
+      const std::vector<double>& parameter, double* model_spectrum_gpu);
 };
 
 

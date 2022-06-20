@@ -35,24 +35,34 @@ class GreyCloudModel: public CloudModel{
   public:
     GreyCloudModel(const std::vector<std::string>& parameters);
     virtual ~GreyCloudModel() {}
-    virtual void opticalProperties(const std::vector<double>& parameters, const Atmosphere& atmosphere,
-                                   SpectralGrid* spectral_grid,
-                                   std::vector<std::vector<double>>& optical_depth, 
-                                   std::vector<std::vector<double>>& single_scattering, 
-                                   std::vector<std::vector<double>>& asym_param);
-    virtual void opticalPropertiesGPU(const std::vector<double>& parameters, const Atmosphere& atmosphere,
-                                      SpectralGrid* spectral_grid,
-                                      double* optical_depth_dev, 
-                                      double* single_scattering_dev, 
-                                      double* asym_param);
+    virtual void opticalProperties(
+      const std::vector<double>& parameters, 
+      const Atmosphere& atmosphere,
+      SpectralGrid* spectral_grid,
+      std::vector<std::vector<double>>& optical_depth, 
+      std::vector<std::vector<double>>& single_scattering, 
+      std::vector<std::vector<double>>& asym_param);
+    virtual void opticalPropertiesGPU(
+      const std::vector<double>& parameters, const Atmosphere& atmosphere,
+      SpectralGrid* spectral_grid,
+      double* optical_depth_dev, 
+      double* single_scattering_dev, 
+      double* asym_param);
 
   protected:
     bool fixed_bottom = false;
 
-    void cloudPosition(const Atmosphere& atmosphere, const double top_pressure, const double bottom_pressure, 
-                       unsigned int& top_index, unsigned int& bottom_index);
-    void cloudPosition(const Atmosphere& atmosphere, const double top_pressure, 
-                       unsigned int& top_index, unsigned int& bottom_index);
+    void cloudPosition(
+      const Atmosphere& atmosphere, 
+      const double top_pressure, 
+      const double bottom_pressure, 
+      unsigned int& top_index, 
+      unsigned int& bottom_index);
+    void cloudPosition(
+      const Atmosphere& atmosphere, 
+      const double top_pressure, 
+      unsigned int& top_index, 
+      unsigned int& bottom_index);
 };
 
 

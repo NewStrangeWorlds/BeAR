@@ -68,11 +68,13 @@ KHCloudModel::KHCloudModel(const std::vector<std::string>& parameters)
 //calculates the vertical distribution of the grey layer
 //needs three parameters: cloud top pressure, cloud bottom (fraction of top pressure), and optical depth
 //the optical depth will be distributed over the layers between the cloud's top and bottom
-void KHCloudModel::opticalProperties(const std::vector<double>& parameters, const Atmosphere& atmosphere,
-                                       SpectralGrid* spectral_grid,
-                                       std::vector<std::vector<double>>& optical_depth, 
-                                       std::vector<std::vector<double>>& single_scattering, 
-                                       std::vector<std::vector<double>>& asym_param)
+void KHCloudModel::opticalProperties(
+  const std::vector<double>& parameters, 
+  const Atmosphere& atmosphere,
+  SpectralGrid* spectral_grid,
+  std::vector<std::vector<double>>& optical_depth, 
+  std::vector<std::vector<double>>& single_scattering, 
+  std::vector<std::vector<double>>& asym_param)
 { 
   double cloud_optical_depth = parameters[0];
   double q0 = parameters[1];

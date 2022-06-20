@@ -37,11 +37,13 @@ class KHCloudModel: public GreyCloudModel{
   public:
     KHCloudModel(const std::vector<std::string>& parameters);
     virtual ~KHCloudModel() {}
-    virtual void opticalProperties(const std::vector<double>& parameters, const Atmosphere& atmosphere,
-                                   SpectralGrid* spectral_grid,
-                                   std::vector<std::vector<double>>& optical_depth, 
-                                   std::vector<std::vector<double>>& single_scattering, 
-                                   std::vector<std::vector<double>>& asym_param);
+    virtual void opticalProperties(
+      const std::vector<double>& parameters, 
+      const Atmosphere& atmosphere,
+      SpectralGrid* spectral_grid,
+      std::vector<std::vector<double>>& optical_depth, 
+      std::vector<std::vector<double>>& single_scattering, 
+      std::vector<std::vector<double>>& asym_param);
     virtual void opticalPropertiesGPU(
       const std::vector<double>& parameters, 
       const Atmosphere& atmosphere,

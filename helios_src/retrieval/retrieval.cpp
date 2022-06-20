@@ -31,7 +31,7 @@
 
 
 #include "multinest_parameter.h"
-#include "prior.h"
+#include "priors.h"
 #include "../observations/observations.h"
 #include "../forward_model/forward_model.h"
 
@@ -98,20 +98,13 @@ bool Retrieval::doRetrieval()
   //any required, additional priors that are not part of the forward model
   setAdditionalPriors();
 
-
-  //print the prior list to terminal
-  std::cout << "\n" << "List of priors: \n";
-
-  for (auto & i : priors)
-    std::cout << i->priorName() << "\t" << i->parameterName() << "\n";
-
-  std::cout << "\n";
+  priors.printInfo();
 
 
   //Configure Multinest
   MultinestParameter param(config);
 
-  size_t nb_priors = priors.size();
+  size_t nb_priors = priors.number();
 
   param.ndims = nb_priors;
   param.nPar = nb_priors;
@@ -141,16 +134,33 @@ bool Retrieval::doRetrieval()
                 param.context);
 
 
-
-  //And finish by deleting stuff
-  for (size_t i=0; i<priors.size(); ++i)
-    delete priors[i];
-
-
   delete forward_model;
 
 
   return true;
+}
+
+
+
+//Add additional priors that are not set by the forward model
+void Retrieval::setAdditionalPriors()
+{
+  if (config->use_error_inflation)
+  {
+    //this creates the prior distribution for the error exponent
+    //first, we need to find the minimum and maximum values of the observational data errors
+    std::vector<double>::iterator it = std::min_element(std::begin(observation_error), std::end(observation_error));
+    const double error_min = std::log10(0.1 * *it * *it);
+
+    it = std::max_element(std::begin(observation_error), std::end(observation_error));
+    const double error_max = std::log10(100.0 * *it * *it);
+    std::cout << "test\n";
+    priors.add(
+      std::vector<std::string>{std::string("uniform")}, 
+      std::vector<std::string>{std::string("error exponent")}, 
+      std::vector<std::vector<double>>{std::vector<double> {error_min, error_max}});
+  }
+
 }
 
 

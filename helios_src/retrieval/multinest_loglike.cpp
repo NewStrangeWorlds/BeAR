@@ -1,6 +1,6 @@
 /*
 * This file is part of the Helios-r2 code (https://github.com/exoclime/Helios-r2).
-* Copyright (C) 2020 Daniel Kitzmann
+* Copyright (C) 2022 Daniel Kitzmann
 *
 * Helios-r2 is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@
 
 
 #include "multinest_parameter.h"
-#include "prior.h"
+#include "priors.h"
 #include "../forward_model/forward_model.h"
 #include "../CUDA_kernels/data_management_kernels.h"
 #include "../CUDA_kernels/log_like_kernels.h"
@@ -65,7 +65,7 @@ void Retrieval::multinestLogLike(double *cube, int &ndim, int &nb_param, double 
 
   for (size_t i=0; i<parameter.size(); ++i)
   {
-    parameter[i] = retrieval_ptr->priors[i]->priorParameterValue(cube[i]);
+    parameter[i] = retrieval_ptr->priors.distributions[i]->parameterValue(cube[i]);
     cube[i] = parameter[i];
   }
 
@@ -151,7 +151,7 @@ void Retrieval::multinestLogLikeGPU(double *cube, int &nb_dim, int &nb_param, do
 
   for (size_t i=0; i<parameter.size(); ++i)
   {
-    parameter[i] = retrieval_ptr->priors[i]->priorParameterValue(cube[i]);
+    parameter[i] = retrieval_ptr->priors.distributions[i]->parameterValue(cube[i]);
     cube[i] = parameter[i];
   }
 
@@ -223,7 +223,18 @@ void Retrieval::multinestLogLikeGPU(double *cube, int &nb_dim, int &nb_param, do
 //The dumper routine from MultiNest, will be called every updInt*10 iterations
 //At the moment it's empty
 //If you need to print/test stuff during a MultiNest run, add it here
-void Retrieval::multinestDumper(int &nSamples, int &nlive, int &nPar, double **physLive, double **posterior, double **paramConstr, double &maxLogLike, double &logZ, double &INSlogZ, double &logZerr, void *context)
+void Retrieval::multinestDumper(
+  int &nSamples,
+  int &nlive,
+  int &nPar,
+  double **physLive,
+  double **posterior,
+  double **paramConstr,
+  double &maxLogLike,
+  double &logZ,
+  double &INSlogZ,
+  double &logZerr,
+  void *context)
 {
   
 }

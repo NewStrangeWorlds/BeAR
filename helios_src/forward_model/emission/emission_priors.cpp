@@ -29,7 +29,7 @@
 
 
 #include "../../retrieval/retrieval.h"
-#include "../../retrieval/prior.h"
+#include "../../retrieval/priors.h"
 #include "../../additional/exceptions.h"
 
 
@@ -58,7 +58,7 @@ void EmissionModel::setPriors()
   }
 
 
-  retrieval->setPriors(prior_type, prior_description, prior_parameter);
+  retrieval->priors.add(prior_type, prior_description, prior_parameter);
 }
 
 
