@@ -21,7 +21,6 @@
 #ifndef _transmission_h
 #define _transmission_h
 
-#include "../forward_model.h"
 
 #include <vector>
 #include <iostream>
@@ -29,8 +28,12 @@
 #include <fstream>
 #include <string>
 
+#include "../forward_model.h"
+
 #include "../../config/global_config.h"
 #include "../../spectral_grid/spectral_grid.h"
+#include "../../retrieval/priors.h"
+#include "../../observations/observations.h"
 #include "../atmosphere/atmosphere.h"
 #include "../../cloud_model/cloud_model.h"
 #include "../../chemistry/chemistry.h"
@@ -44,9 +47,6 @@ namespace helios {
 
 constexpr double transmission_optical_depth_cutoff = 10;
 constexpr double transmission_cutoff = 4.5399929e-5; //exp(-tau)
-
-//forward declaration
-class Retrieval;
 
 
 //this struct handles the Transmission Spectrum config
@@ -83,7 +83,12 @@ struct TransmissionModelConfig{
 
 class TransmissionModel : public ForwardModel{
   public:
-    TransmissionModel (Retrieval* retrieval_ptr, const TransmissionModelConfig model_config);
+    TransmissionModel (
+      const TransmissionModelConfig model_config,
+      Priors* priors_,
+      GlobalConfig* config_, 
+      SpectralGrid* spectral_grid_,
+      std::vector<Observation>& observations_);
     virtual ~TransmissionModel();
     
     virtual bool calcModel(
@@ -106,7 +111,8 @@ class TransmissionModel : public ForwardModel{
       double* model_spectrum_gpu);
 
   protected:
-    Retrieval* retrieval;
+    GlobalConfig* config;
+    SpectralGrid* spectral_grid;
 
     Atmosphere atmosphere;
     OpacityCalculation opacity_calc;
@@ -114,6 +120,9 @@ class TransmissionModel : public ForwardModel{
     Temperature* temperature_profile = nullptr;
     std::vector<Chemistry*> chemistry;
     CloudModel* cloud_model = nullptr;
+
+    std::vector<Observation>& observations;
+    size_t nb_observation_points = 0;
 
     size_t nb_general_param = 0;
     size_t nb_total_chemistry_param = 0;
@@ -126,7 +135,7 @@ class TransmissionModel : public ForwardModel{
     
     size_t nb_grid_points = 0;
 
-    virtual void setPriors();
+    virtual void setPriors(Priors* priors);
 
     void readPriorConfigFile(
       const std::string& file_name, 

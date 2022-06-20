@@ -44,7 +44,8 @@ class Observation{
       {}
     ~Observation();
     void init (const std::string& file_name);  //initialisation method that will read the file with the observational data  
-    std::string observationName() const {return observation_name;} 
+    std::string observationName() const {return observation_name;}
+    size_t nbPoints() {return flux.size();}
 
     SpectralBands spectral_bands;                                       //representation of the theoretical spectrum in the observational bands
 

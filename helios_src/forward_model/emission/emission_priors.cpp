@@ -18,29 +18,25 @@
 */
 
 
-#include "emission.h"
-
-
 #include <string>
 #include <iostream>
 #include <fstream>
 #include <vector>
 #include <sstream>
 
+#include "emission.h"
 
-#include "../../retrieval/retrieval.h"
 #include "../../retrieval/priors.h"
 #include "../../additional/exceptions.h"
-
 
 
 namespace helios{
 
 
 //set the model priors
-void EmissionModel::setPriors()
+void EmissionModel::setPriors(Priors* priors)
 {
-  const std::string file_name = retrieval->config->retrieval_folder_path + "priors.config";
+  const std::string file_name = config->retrieval_folder_path + "priors.config";
 
   std::vector<std::string> prior_type; 
   std::vector<std::string> prior_description; 
@@ -58,15 +54,17 @@ void EmissionModel::setPriors()
   }
 
 
-  retrieval->priors.add(prior_type, prior_description, prior_parameter);
+  priors->add(prior_type, prior_description, prior_parameter);
 }
 
 
 
 
-void EmissionModel::readPriorConfigFile(const std::string& file_path, std::vector<std::string>& prior_type, 
-                                                                        std::vector<std::string>& prior_description, 
-                                                                        std::vector<std::vector<double>>& prior_parameter)
+void EmissionModel::readPriorConfigFile(
+  const std::string& file_path, 
+  std::vector<std::string>& prior_type, 
+  std::vector<std::string>& prior_description, 
+  std::vector<std::vector<double>>& prior_parameter)
 {
   std::fstream file;
   file.open(file_path.c_str(), std::ios::in);

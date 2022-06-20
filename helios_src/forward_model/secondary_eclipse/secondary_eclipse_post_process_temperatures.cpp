@@ -18,9 +18,6 @@
 */
 
 
-#include "secondary_eclipse.h"
-
-
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -29,11 +26,10 @@
 #include <cmath>
 #include <vector>
 
+#include "secondary_eclipse.h"
 
 #include "../../observations/observations.h"
 #include "../../additional/physical_const.h"
-#include "../../retrieval/retrieval.h"
-
 
 
 namespace helios{
@@ -43,17 +39,17 @@ namespace helios{
 //it uses the "observation" at the back of the observation vector
 //assuming that this is the postprocess_spectrum_data
 //this could in principle be a multi-band "observation" here, the method will sum up all fluxes
-double SecondaryEclipseModel::postProcessEffectiveTemperature(const std::vector<double>& model_spectrum_bands)
+double SecondaryEclipseModel::postProcessEffectiveTemperature(
+  const std::vector<double>& model_spectrum_bands)
 {
   //the required "observation" is the last one
-  size_t nb_bands = retrieval->observations.back().spectral_bands.nbBands();
+  size_t nb_bands = observations.back().spectral_bands.nbBands();
 
   //the start index for this observation in the vector of band-integrated fluxes
   size_t band_start_index = 0;
 
-  for (size_t i=0; i< retrieval->observations.size()-1; ++i)
-    band_start_index += retrieval->observations[i].spectral_bands.nbBands();
-
+  for (size_t i=0; i<observations.size()-1; ++i)
+    band_start_index += observations[i].spectral_bands.nbBands();
 
 
   std::vector<double> fluxes(nb_bands, 0);
@@ -63,8 +59,8 @@ double SecondaryEclipseModel::postProcessEffectiveTemperature(const std::vector<
   //sum up the total flux
   for (size_t i=0; i<nb_bands; ++i)
   {
-    const double wavelength_edge_left =  1.0/retrieval->observations.back().spectral_bands.band_wavenumbers[i].front() * 1e4;
-    const double wavelength_edge_right =  1.0/retrieval->observations.back().spectral_bands.band_wavenumbers[i].back() * 1e4;
+    const double wavelength_edge_left =  1.0/observations.back().spectral_bands.band_wavenumbers[i].front() * 1e4;
+    const double wavelength_edge_right =  1.0/observations.back().spectral_bands.band_wavenumbers[i].back() * 1e4;
 
 
     //convert back from flux per wavelength to total flux
@@ -76,8 +72,6 @@ double SecondaryEclipseModel::postProcessEffectiveTemperature(const std::vector<
   }
 
 
-  
-  
   //use the Stefan-Boltzmann law to convert the total flux to effective temperatures
   //total_flux has units of W m-2 and needs to be converted to cgs
   double effective_temperature = std::pow(total_flux*1000.0/constants::stefan_boltzmann, 0.25);

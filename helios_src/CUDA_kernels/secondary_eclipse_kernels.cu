@@ -1,6 +1,6 @@
 /*
 * This file is part of the Helios-r2 code (https://github.com/exoclime/Helios-r2).
-* Copyright (C) 2020 Daniel Kitzmann
+* Copyright (C) 2022 Daniel Kitzmann
 *
 * Helios-r2 is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -32,10 +32,13 @@
 namespace helios{
 
 
-//computes the log likelihood
-//each thread calculates one data point, the results are then summed by each block via a blockReduce method and finally all collected by thread 0 
-__global__ void secondaryEclipseDevice(double* secondary_eclipse, double* planet_spectrum, double* stellar_spectrum,
-                                       const int nb_points, const double radius_ratio, double* albedo_contribution)
+__global__ void secondaryEclipseDevice(
+  double* secondary_eclipse,
+  double* planet_spectrum,
+  double* stellar_spectrum,
+  const int nb_points,
+  const double radius_ratio, 
+  double* albedo_contribution)
 {
   
   for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < nb_points; i += blockDim.x * gridDim.x)
@@ -51,27 +54,32 @@ __global__ void secondaryEclipseDevice(double* secondary_eclipse, double* planet
 
 
 
-
-
-__host__ void SecondaryEclipseModel::calcSecondaryEclipseGPU(double* secondary_eclipse, double* planet_spectrum_bands, double* stellar_spectrum_bands,
-                                                             const int nb_points, const double radius_ratio, double* albedo_contribution)
+__host__ void SecondaryEclipseModel::calcSecondaryEclipseGPU(
+  double* secondary_eclipse,
+  double* planet_spectrum_bands,
+  double* stellar_spectrum_bands,
+  const int nb_points,
+  const double radius_ratio,
+  double* albedo_contribution)
 {
-
   int threads = 256;
 
   int blocks = nb_points / threads;
   if (nb_points % threads) blocks++;
 
 
-  secondaryEclipseDevice<<<blocks,threads>>>(secondary_eclipse, planet_spectrum_bands, stellar_spectrum_bands, nb_points,
-                                             radius_ratio, albedo_contribution);
+  secondaryEclipseDevice<<<blocks,threads>>>(
+    secondary_eclipse,
+    planet_spectrum_bands,
+    stellar_spectrum_bands,
+    nb_points,
+    radius_ratio,
+    albedo_contribution);
 
-  
+
   cudaDeviceSynchronize();
   gpuErrchk( cudaPeekAtLastError() );
   gpuErrchk( cudaDeviceSynchronize() );
-
-  //exit(0);
 }
 
 

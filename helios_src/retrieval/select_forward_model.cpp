@@ -32,14 +32,18 @@
 
 namespace helios{
 
-
 //Selects and initialises the forward model based on the option found in retrieval.config
 //Exits with an error if the selected forward model is unkown
 ForwardModel* Retrieval::selectForwardModel(const std::string model_description)
 {
   if (model_description == "emission" || model_description == "Emission" || model_description == "em")
   {
-    EmissionModel* model = new EmissionModel(this, EmissionModelConfig (config->retrieval_folder_path));
+    EmissionModel* model = new EmissionModel(
+      EmissionModelConfig (config->retrieval_folder_path),
+      &priors,
+      config,
+      &spectral_grid,
+      observations);
 
     return model;
   }
@@ -47,7 +51,12 @@ ForwardModel* Retrieval::selectForwardModel(const std::string model_description)
 
   if (model_description == "secondary_eclipse" || model_description == "Secondary_eclipse" || model_description == "se")
   {
-    SecondaryEclipseModel* model = new SecondaryEclipseModel(this, SecondaryEclipseConfig (config->retrieval_folder_path));
+    SecondaryEclipseModel* model = new SecondaryEclipseModel(
+      SecondaryEclipseConfig (config->retrieval_folder_path),
+      &priors,
+      config,
+      &spectral_grid,
+      observations);
 
     return model;
   }
@@ -55,7 +64,12 @@ ForwardModel* Retrieval::selectForwardModel(const std::string model_description)
 
   if (model_description == "transmission" || model_description == "Transmission" || model_description == "trans")
   {
-    TransmissionModel* model = new TransmissionModel(this, TransmissionModelConfig (config->retrieval_folder_path));
+    TransmissionModel* model = new TransmissionModel(
+      TransmissionModelConfig (config->retrieval_folder_path),
+      &priors,
+      config,
+      &spectral_grid,
+      observations);
 
     return model;
   }

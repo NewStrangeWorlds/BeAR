@@ -45,7 +45,10 @@ namespace helios{
 
 
 //calls the model specific posterior calculations
-void SecondaryEclipseModel::postProcess(const std::vector< std::vector<double> >& model_parameter, const std::vector< std::vector<double> >& model_spectrum_bands, const size_t best_fit_model)
+void SecondaryEclipseModel::postProcess(
+  const std::vector< std::vector<double> >& model_parameter, 
+  const std::vector< std::vector<double> >& model_spectrum_bands, 
+  const size_t best_fit_model)
 {
   const size_t nb_models = model_parameter.size();
 
@@ -77,9 +80,12 @@ void SecondaryEclipseModel::postProcess(const std::vector< std::vector<double> >
 
 
 
-void SecondaryEclipseModel::postProcessModel(const std::vector<double>& model_parameter, const std::vector<double>& model_spectrum_bands, 
-                                       std::vector<double>& temperature_profile, double& effective_temperature,
-                                       std::vector<std::vector<double>>& mixing_ratios)
+void SecondaryEclipseModel::postProcessModel(
+  const std::vector<double>& model_parameter, 
+  const std::vector<double>& model_spectrum_bands, 
+  std::vector<double>& temperature_profile, 
+  double& effective_temperature,
+  std::vector<std::vector<double>>& mixing_ratios)
 {
   calcAtmosphereStructure(model_parameter);
 
@@ -98,10 +104,12 @@ void SecondaryEclipseModel::postProcessModel(const std::vector<double>& model_pa
 
 
 
-void SecondaryEclipseModel::savePostProcessChemistry(const std::vector<std::vector<std::vector<double>>>& mixing_ratios, const unsigned int species)
+void SecondaryEclipseModel::savePostProcessChemistry(
+  const std::vector<std::vector<std::vector<double>>>& mixing_ratios, 
+  const unsigned int species)
 {
   std::fstream file;
-  std::string file_name = retrieval->config->retrieval_folder_path + "/chem_";
+  std::string file_name = config->retrieval_folder_path + "/chem_";
   
   file_name += constants::species_data[species].symbol;
   file_name += ".dat";
@@ -126,11 +134,12 @@ void SecondaryEclipseModel::savePostProcessChemistry(const std::vector<std::vect
 
 
 
-void SecondaryEclipseModel::savePostProcessTemperatures(const std::vector<std::vector<double>>& temperature_profiles)
+void SecondaryEclipseModel::savePostProcessTemperatures(
+  const std::vector<std::vector<double>>& temperature_profiles)
 {
   //save the temperature profiles into a file
   std::fstream file;
-  std::string file_name = retrieval->config->retrieval_folder_path + "/temperature_structures.dat";
+  std::string file_name = config->retrieval_folder_path + "/temperature_structures.dat";
   file.open(file_name.c_str(), std::ios::out);
 
   for (size_t i=0; i<nb_grid_points; ++i)
@@ -152,7 +161,7 @@ void SecondaryEclipseModel::savePostProcessTemperatures(const std::vector<std::v
 void SecondaryEclipseModel::savePostProcessEffectiveTemperatures(const std::vector<double>& effective_temperatures)
 {
   //save the effective temperatures
-  std::string file_name = retrieval->config->retrieval_folder_path + "/effective_temperatures.dat";
+  std::string file_name = config->retrieval_folder_path + "/effective_temperatures.dat";
   
   std::fstream file(file_name.c_str(), std::ios::out);
 
@@ -175,7 +184,7 @@ void SecondaryEclipseModel::postProcessContributionFunctions(
   opacity_calc.calculateGPU(cm, cloud_parameters);
 
   double* contribution_functions_dev = nullptr;
-  size_t nb_spectral_points = retrieval->spectral_grid.nbSpectralPoints();
+  size_t nb_spectral_points = spectral_grid->nbSpectralPoints();
 
   //intialise the high-res spectrum on the GPU (set it to 0) 
   allocateOnDevice(contribution_functions_dev, nb_spectral_points*nb_grid_points);
@@ -183,7 +192,7 @@ void SecondaryEclipseModel::postProcessContributionFunctions(
   contributionFunctionGPU(
     contribution_functions_dev, 
     opacity_calc.absorption_coeff_gpu,
-    retrieval->spectral_grid.wavenumber_list_gpu,
+    spectral_grid->wavenumber_list_gpu,
     atmosphere.temperature, 
     atmosphere.altitude,
     nb_spectral_points);
@@ -202,20 +211,20 @@ void SecondaryEclipseModel::postProcessContributionFunctions(
       contribution_functions[j][i] = contribution_functions_all[j*nb_spectral_points + i];
 
 
-  for (size_t i=0; i<retrieval->observations.size(); ++i)
+  for (size_t i=0; i<observations.size(); ++i)
   {
     std::vector< std::vector<double> > contribution_functions_obs = contribution_functions;
 
-    if (retrieval->observations[i].filter_response.size() != 0)
+    if (observations[i].filter_response.size() != 0)
     {
       for (size_t j=0; j<nb_grid_points; ++j)
-        contribution_functions_obs[j] = retrieval->observations[i].applyFilterResponseFunction(contribution_functions[j]);
+        contribution_functions_obs[j] = observations[i].applyFilterResponseFunction(contribution_functions[j]);
     }
 
-    std::vector< std::vector<double> > contribution_functions_bands(nb_grid_points, std::vector<double>(retrieval->observations[i].spectral_bands.nbBands()));
+    std::vector< std::vector<double> > contribution_functions_bands(nb_grid_points, std::vector<double>(observations[i].spectral_bands.nbBands()));
 
     for (size_t j=0; j<nb_grid_points; ++j)
-       retrieval->observations[i].spectral_bands.bandIntegrateSpectrum(contribution_functions_obs[j], contribution_functions_bands[j]);
+       observations[i].spectral_bands.bandIntegrateSpectrum(contribution_functions_obs[j], contribution_functions_bands[j]);
 
     saveContributionFunctions(contribution_functions_bands, i);
   }
@@ -226,17 +235,17 @@ void SecondaryEclipseModel::postProcessContributionFunctions(
 
 void SecondaryEclipseModel::saveContributionFunctions(std::vector< std::vector<double>>& contribution_function, const size_t observation_index)
 {
-  std::string observation_name = retrieval->observations[observation_index].observationName();
+  std::string observation_name = observations[observation_index].observationName();
   std::replace(observation_name.begin(), observation_name.end(), ' ', '_'); 
     
-  std::string file_name = retrieval->config->retrieval_folder_path + "/contribution_function_" + observation_name + ".dat"; 
+  std::string file_name = config->retrieval_folder_path + "/contribution_function_" + observation_name + ".dat"; 
   
 
   std::fstream file(file_name.c_str(), std::ios::out);
 
   for (size_t j=0; j<nb_grid_points; ++j)
   {
-    for (size_t i=0; i<retrieval->observations[observation_index].spectral_bands.nbBands(); ++i)
+    for (size_t i=0; i<observations[observation_index].spectral_bands.nbBands(); ++i)
       file << std::setprecision(10) << std::scientific << contribution_function[j][i] << "\t";
      
     file << "\n";

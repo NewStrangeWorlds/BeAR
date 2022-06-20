@@ -27,7 +27,6 @@
 #include <sstream>
 #include <iomanip>
 
-#include "../../retrieval/retrieval.h"
 #include "../../chemistry/chem_species.h"
 #include "../atmosphere/atmosphere.h"
 
@@ -95,7 +94,7 @@ void TransmissionModel::savePostProcessChemistry(
   const unsigned int species)
 {
   std::fstream file;
-  std::string file_name = retrieval->config->retrieval_folder_path + "/chem_";
+  std::string file_name = config->retrieval_folder_path + "/chem_";
   
   file_name += constants::species_data[species].symbol;
   file_name += ".dat";
@@ -124,7 +123,7 @@ void TransmissionModel::savePostProcessTemperatures(const std::vector<std::vecto
 {
   //save the temperature profiles into a file
   std::fstream file;
-  std::string file_name = retrieval->config->retrieval_folder_path + "/temperature_structures.dat";
+  std::string file_name = config->retrieval_folder_path + "/temperature_structures.dat";
   file.open(file_name.c_str(), std::ios::out);
 
   for (size_t i=0; i<nb_grid_points; ++i)

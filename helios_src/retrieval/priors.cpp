@@ -1,6 +1,6 @@
 /*
 * This file is part of the Helios-r2 code (https://github.com/exoclime/Helios-r2).
-* Copyright (C) 2020 Daniel Kitzmann
+* Copyright (C) 2022 Daniel Kitzmann
 *
 * Helios-r2 is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,19 +18,16 @@
 */
 
 
-#include "priors.h"
-
-
 #include <string>
 #include <iostream>
 #include <fstream>
 #include <cmath>
 #include <vector>
+#include <algorithm>
 
+#include "priors.h"
 
-#include "multinest_parameter.h"
 #include "prior_types.h"
-#include "../observations/observations.h"
 #include "../additional/exceptions.h"
 
 

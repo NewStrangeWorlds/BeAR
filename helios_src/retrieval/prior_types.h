@@ -29,6 +29,7 @@
 #include "../../_deps/boost_math-src/include/boost/math/special_functions/erf.hpp"
 
 
+
 namespace helios {
 
 
@@ -128,7 +129,7 @@ class GaussianPrior : public BasicPrior {
         sigma = standard_deviation; 
         distribution_type = "Gaussian prior";}
     virtual ~GaussianPrior() {}
-    virtual double parameterValue(const double& hypercube_value) {
+    inline virtual double parameterValue(const double& hypercube_value) {
       return mu + sigma * std::sqrt(2.0) * boost::math::erf_inv(2.*hypercube_value - 1.);}
     virtual void printInfo() {
       std::cout << parameter_name << ": " << distribution_type

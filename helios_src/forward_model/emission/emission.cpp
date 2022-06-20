@@ -34,7 +34,7 @@
 #include "../../additional/physical_const.h"
 #include "../../additional/quadrature.h"
 #include "../../additional/exceptions.h"
-#include "../../retrieval/retrieval.h"
+#include "../forward_model.h"
 #include "../atmosphere/atmosphere.h"
 #include "../../transport_coeff/opacity_calc.h"
 
@@ -43,22 +43,27 @@ namespace helios{
 
 
 EmissionModel::EmissionModel (
-  Retrieval* retrieval_ptr, 
-  const EmissionModelConfig model_config)
-    : atmosphere(
-        model_config.nb_grid_points, 
-        model_config.atmos_boundaries, 
-        retrieval_ptr->config->use_gpu)
+  const EmissionModelConfig model_config,
+  Priors* priors_,
+  GlobalConfig* config_,
+  SpectralGrid* spectral_grid_,
+  std::vector<Observation>& observations_)
+    : config(config_)
+    , spectral_grid(spectral_grid_)
+    , atmosphere(
+        model_config.nb_grid_points,
+        model_config.atmos_boundaries,
+        config->use_gpu)
     , opacity_calc(
-        retrieval_ptr->config,
-        &retrieval_ptr->spectral_grid,
+        config,
+        spectral_grid,
         &atmosphere,
-        model_config.opacity_species_symbol, 
+        model_config.opacity_species_symbol,
         model_config.opacity_species_folder,
-        retrieval_ptr->config->use_gpu,
+        config->use_gpu,
         model_config.cloud_model != "none")
+    , observations(observations_)
 {
-  retrieval = retrieval_ptr;
   nb_grid_points = model_config.nb_grid_points;
   
   std::cout << "Forward model selected: Emission\n\n"; 
@@ -68,7 +73,10 @@ EmissionModel::EmissionModel (
 
   initModules(model_config);
 
-  setPriors();
+  setPriors(priors_);
+
+  for (auto & i : observations)
+    nb_observation_points += i.nbPoints();
 }
 
 
@@ -149,7 +157,7 @@ bool EmissionModel::calcModel(
   opacity_calc.calculate(cm, cloud_parameters);
 
 
-  spectrum.assign(retrieval->spectral_grid.nbSpectralPoints(), 0.0);
+  spectrum.assign(spectral_grid->nbSpectralPoints(), 0.0);
   
   const double radius_distance_scaling = radiusDistanceScaling(parameter);
 
@@ -216,16 +224,16 @@ void EmissionModel::postProcessSpectrum(
   std::vector<double>& model_spectrum, 
   std::vector<double>& model_spectrum_bands)
 {
-  model_spectrum_bands.assign(retrieval->nb_observation_points, 0.0);
+  model_spectrum_bands.assign(nb_observation_points, 0.0);
   
   std::vector<double>::iterator it = model_spectrum_bands.begin();
 
-  for (size_t i=0; i<retrieval->nb_observations; ++i)
+  for (size_t i=0; i<observations.size(); ++i)
   {
     const bool is_flux = true;
 
     std::vector<double> observation_bands = 
-      retrieval->observations[i].processModelSpectrum(model_spectrum, is_flux);
+      observations[i].processModelSpectrum(model_spectrum, is_flux);
 
     //copy the band-integrated values for this observation into the global
     //vector of all band-integrated points, model_spectrum_bands
@@ -242,17 +250,17 @@ void EmissionModel::postProcessSpectrumGPU(
   double* model_spectrum_bands)
 {
   unsigned int start_index = 0;
-  for (size_t i=0; i<retrieval->observations.size(); ++i)
+  for (size_t i=0; i<observations.size(); ++i)
   {
     const bool is_flux = true;
 
-    retrieval->observations[i].processModelSpectrumGPU(
+    observations[i].processModelSpectrumGPU(
       model_spectrum_gpu, 
       model_spectrum_bands, 
       start_index, 
       is_flux);
 
-    start_index += retrieval->observations[i].spectral_bands.nbBands();
+    start_index += observations[i].spectral_bands.nbBands();
   }
 }
 

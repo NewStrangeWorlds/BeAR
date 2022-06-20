@@ -18,9 +18,6 @@
 */
 
 
-#include "secondary_eclipse.h"
-
-
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -29,43 +26,46 @@
 #include <omp.h>
 #include <iomanip>
 
+#include "secondary_eclipse.h"
 
+#include "../../config/global_config.h"
+#include "../../spectral_grid/spectral_grid.h"
+//#include "../../retrieval/priors.h"
+#include "../../observations/observations.h"
 #include "../../CUDA_kernels/data_management_kernels.h"
-#include "../../CUDA_kernels/cross_section_kernels.h"
-
-
 #include "../../chemistry/chem_species.h"
 #include "../../additional/aux_functions.h"
 #include "../../additional/physical_const.h"
 #include "../../additional/quadrature.h"
 #include "../../additional/exceptions.h"
-#include "../../retrieval/retrieval.h"
-
 #include "../atmosphere/atmosphere.h"
-
 
 
 namespace helios{
 
 
-
 SecondaryEclipseModel::SecondaryEclipseModel (
-  Retrieval* retrieval_ptr, 
-  const SecondaryEclipseConfig model_config) 
-    : atmosphere(
-        model_config.nb_grid_points, 
-        model_config.atmos_boundaries, 
-        retrieval_ptr->config->use_gpu)
+  const SecondaryEclipseConfig model_config,
+  Priors* priors_,
+  GlobalConfig* config_,
+  SpectralGrid* spectral_grid_,
+  std::vector<Observation>& observations_) 
+    : config(config_)
+    , spectral_grid(spectral_grid_)
+    , atmosphere(
+        model_config.nb_grid_points,
+        model_config.atmos_boundaries,
+        config->use_gpu)
     , opacity_calc(
-        retrieval_ptr->config,
-        &retrieval_ptr->spectral_grid,
+        config,
+        spectral_grid,
         &atmosphere,
-        model_config.opacity_species_symbol, 
+        model_config.opacity_species_symbol,
         model_config.opacity_species_folder,
-        retrieval_ptr->config->use_gpu,
+        config->use_gpu,
         model_config.cloud_model != "none")
+    , observations(observations_)
 {
-  retrieval = retrieval_ptr;
   nb_grid_points = model_config.nb_grid_points;
 
   std::cout << "Forward model selected: Secondary Eclipse\n\n";
@@ -77,7 +77,10 @@ SecondaryEclipseModel::SecondaryEclipseModel (
   initStellarSpectrum(model_config);
   initModules(model_config);
 
-  setPriors();
+  setPriors(priors_);
+
+  for (auto & i : observations)
+    nb_observation_points += i.nbPoints();
 }
 
 
@@ -124,7 +127,7 @@ bool SecondaryEclipseModel::calcModel(
   opacity_calc.calculate(cm, cloud_parameters);
 
 
-  spectrum.assign(retrieval->spectral_grid.nbSpectralPoints(), 0.0);
+  spectrum.assign(spectral_grid->nbSpectralPoints(), 0.0);
  
   radiative_transfer->calcSpectrum(
     atmosphere,
@@ -138,12 +141,12 @@ bool SecondaryEclipseModel::calcModel(
 
 
   //post-process the planet's high-res emission spectrum and bin it to the observational bands
-  std::vector<double> planet_spectrum_bands(retrieval->nb_observation_points, 0);
+  std::vector<double> planet_spectrum_bands(nb_observation_points, 0);
   postProcessSpectrum(spectrum, planet_spectrum_bands);
 
 
-  model_spectrum_bands.assign(retrieval->nb_observation_points, 0);
-  std::vector<double> albedo_contribution(retrieval->nb_observation_points, 0.0);
+  model_spectrum_bands.assign(nb_observation_points, 0);
+  std::vector<double> albedo_contribution(nb_observation_points, 0.0);
   const double radius_ratio = parameter[1];
   
   //calculate the secondary-eclipse depth with an optional geometric albedo contribution
@@ -192,13 +195,13 @@ bool SecondaryEclipseModel::calcModelGPU(
 
   //post-process the planet's high-res emission spectrum and bin it to the observational bands
   double* planet_spectrum_bands = nullptr;
-  allocateOnDevice(planet_spectrum_bands, retrieval->nb_observation_points);
+  allocateOnDevice(planet_spectrum_bands, nb_observation_points);
 
   postProcessSpectrumGPU(model_spectrum_gpu, planet_spectrum_bands);
 
 
   //std::vector<double> albedo_contribution(retrieval->nb_total_bands, geometric_albedo*radius_distance_ratio*radius_distance_ratio);
-  std::vector<double> albedo_contribution(retrieval->nb_observation_points, 0.0);
+  std::vector<double> albedo_contribution(nb_observation_points, 0.0);
 
 
   double* albedo_contribution_gpu = nullptr;
@@ -210,7 +213,7 @@ bool SecondaryEclipseModel::calcModelGPU(
     model_spectrum_bands, 
     planet_spectrum_bands, 
     stellar_spectrum_bands_gpu, 
-    retrieval->nb_observation_points,
+    nb_observation_points,
     radius_ratio, 
     albedo_contribution_gpu);
   
@@ -246,14 +249,14 @@ std::vector<double> SecondaryEclipseModel::calcSecondaryEclipse(
 void SecondaryEclipseModel::postProcessSpectrum(
   std::vector<double>& model_spectrum, std::vector<double>& model_spectrum_bands)
 {
-  model_spectrum_bands.assign(retrieval->nb_observation_points, 0.0);
+  model_spectrum_bands.assign(nb_observation_points, 0.0);
   
   std::vector<double>::iterator it = model_spectrum_bands.begin();
 
-  for (size_t i=0; i<retrieval->nb_observations; ++i)
+  for (size_t i=0; i<observations.size(); ++i)
   {
     const bool is_flux = true;
-    std::vector<double> observation_bands = retrieval->observations[i].processModelSpectrum(model_spectrum, is_flux);
+    std::vector<double> observation_bands = observations[i].processModelSpectrum(model_spectrum, is_flux);
 
     //copy the band-integrated values for this observation into the global
     //vector of all band-integrated points, model_spectrum_bands
@@ -270,16 +273,16 @@ void SecondaryEclipseModel::postProcessSpectrumGPU(
   double* model_spectrum_bands)
 {
   unsigned int start_index = 0;
-  for (size_t i=0; i<retrieval->observations.size(); ++i)
+  for (size_t i=0; i<observations.size(); ++i)
   {
     const bool is_flux = true;
-    retrieval->observations[i].processModelSpectrumGPU(
+    observations[i].processModelSpectrumGPU(
       model_spectrum_gpu, 
       model_spectrum_bands, 
       start_index, 
       is_flux);
 
-    start_index += retrieval->observations[i].spectral_bands.nbBands();
+    start_index += observations[i].spectral_bands.nbBands();
   }
 
 }

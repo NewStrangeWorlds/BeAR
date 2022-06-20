@@ -27,7 +27,6 @@
 #include <sstream>
 
 #include "../../additional/exceptions.h"
-#include "../../retrieval/retrieval.h"
 #include "../../chemistry/select_chemistry.h"
 #include "../../temperature/select_temperature_profile.h"
 #include "../../cloud_model/select_cloud_model.h"
@@ -46,7 +45,7 @@ void TransmissionModel::initModules(const TransmissionModelConfig& model_config)
     chemistry[i] = selectChemistryModule(
       model_config.chemistry_model[i], 
       model_config.chemistry_parameters[i], 
-      retrieval->config, 
+      config, 
       model_config.atmos_boundaries);
 
   nb_total_chemistry_param = 0;

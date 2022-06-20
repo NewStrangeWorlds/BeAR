@@ -18,8 +18,6 @@
 */
 
 
-#include "transmission.h"
-
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -28,15 +26,19 @@
 #include <omp.h>
 #include <iomanip>
 
+#include "transmission.h"
+
+#include "../../config/global_config.h"
+#include "../../spectral_grid/spectral_grid.h"
+#include "../../retrieval/priors.h"
+#include "../../observations/observations.h"
 #include "../../chemistry/chem_species.h"
 #include "../../additional/aux_functions.h"
 #include "../../additional/physical_const.h"
 #include "../../additional/quadrature.h"
 #include "../../additional/exceptions.h"
-#include "../../retrieval/retrieval.h"
 #include "../atmosphere/atmosphere.h"
 #include "../../CUDA_kernels/data_management_kernels.h"
-#include "../../CUDA_kernels/cross_section_kernels.h"
 #include "../../transport_coeff/opacity_calc.h"
 
 
@@ -44,22 +46,27 @@ namespace helios{
 
 
 TransmissionModel::TransmissionModel (
-  Retrieval* retrieval_ptr, 
-  const TransmissionModelConfig model_config) 
-    : atmosphere(
-        model_config.nb_grid_points, 
-        model_config.atmos_boundaries, 
-        retrieval_ptr->config->use_gpu)
+  const TransmissionModelConfig model_config,
+  Priors* priors_,
+  GlobalConfig* config_,
+  SpectralGrid* spectral_grid_,
+  std::vector<Observation>& observations_)
+    : config(config_)
+    , spectral_grid(spectral_grid_)
+    , atmosphere(
+        model_config.nb_grid_points,
+        model_config.atmos_boundaries,
+        config->use_gpu)
     , opacity_calc(
-        retrieval_ptr->config,
-        &retrieval_ptr->spectral_grid,
+        config,
+        spectral_grid,
         &atmosphere,
-        model_config.opacity_species_symbol, 
+        model_config.opacity_species_symbol,
         model_config.opacity_species_folder,
-        retrieval_ptr->config->use_gpu,
+        config->use_gpu,
         model_config.cloud_model != "none")
+    , observations(observations_)
 {
-  retrieval = retrieval_ptr;
   nb_grid_points = model_config.nb_grid_points;
   
   std::cout << "Forward model selected: Transmission\n\n"; 
@@ -70,7 +77,10 @@ TransmissionModel::TransmissionModel (
   //select and set up the modules
   initModules(model_config);
 
-  setPriors();
+  setPriors(priors_);
+
+  for (auto & i : observations)
+    nb_observation_points += i.nbPoints();
 }
 
 
@@ -121,7 +131,7 @@ bool TransmissionModel::calcModel(
   opacity_calc.calculate(cm, cloud_parameters);
 
 
-  spectrum.assign(retrieval->spectral_grid.nbSpectralPoints(), 0.0);
+  spectrum.assign(spectral_grid->nbSpectralPoints(), 0.0);
 
   const double bottom_radius = parameter[1] * constants::radius_jupiter;
   const double star_radius = parameter[2] * constants::radius_sun;
@@ -161,7 +171,7 @@ bool TransmissionModel::calcModelGPU(
     opacity_calc.absorption_coeff_gpu, 
     opacity_calc.scattering_coeff_dev, 
     atmosphere, 
-    retrieval->spectral_grid.nbSpectralPoints(), 
+    spectral_grid->nbSpectralPoints(), 
     bottom_radius, 
     star_radius);
 
@@ -176,14 +186,14 @@ void TransmissionModel::postProcessSpectrum(
   std::vector<double>& model_spectrum, 
   std::vector<double>& model_spectrum_bands)
 {
-  model_spectrum_bands.assign(retrieval->nb_observation_points, 0.0);
+  model_spectrum_bands.assign(nb_observation_points, 0.0);
   
   std::vector<double>::iterator it = model_spectrum_bands.begin();
 
-  for (size_t i=0; i<retrieval->nb_observations; ++i)
+  for (size_t i=0; i<observations.size(); ++i)
   {
     const bool is_flux = false;
-    std::vector<double> observation_bands = retrieval->observations[i].processModelSpectrum(model_spectrum, is_flux);
+    std::vector<double> observation_bands = observations[i].processModelSpectrum(model_spectrum, is_flux);
 
     //copy the band-integrated values for this observation into the global
     //vector of all band-integrated points, model_spectrum_bands
@@ -198,16 +208,16 @@ void TransmissionModel::postProcessSpectrumGPU(
   double* model_spectrum_bands)
 {
   unsigned int start_index = 0;
-  for (size_t i=0; i<retrieval->observations.size(); ++i)
+  for (size_t i=0; i<observations.size(); ++i)
   {
     const bool is_flux = false;
-    retrieval->observations[i].processModelSpectrumGPU(
+    observations[i].processModelSpectrumGPU(
       model_spectrum_gpu, 
       model_spectrum_bands, 
       start_index, 
       is_flux);
 
-    start_index += retrieval->observations[i].spectral_bands.nbBands();
+    start_index += observations[i].spectral_bands.nbBands();
   }
 }
 

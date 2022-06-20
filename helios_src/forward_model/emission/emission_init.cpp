@@ -46,21 +46,23 @@ namespace helios{
 //initialises the varous modules of the forward model
 void EmissionModel::initModules(const EmissionModelConfig& model_config)
 {
-  radiative_transfer = selectRadiativeTransfer(model_config.radiative_transfer_model, 
-                                               model_config.radiative_transfer_parameters, 
-                                               model_config.nb_grid_points, 
-                                               retrieval->config, &retrieval->spectral_grid);
-
+  radiative_transfer = selectRadiativeTransfer(
+    model_config.radiative_transfer_model, 
+    model_config.radiative_transfer_parameters, 
+    model_config.nb_grid_points, 
+    config, 
+    spectral_grid);
 
 
   chemistry.assign(model_config.chemistry_model.size(), nullptr);
 
   for (size_t i=0; i<model_config.chemistry_model.size(); ++i)
-    chemistry[i] = selectChemistryModule(model_config.chemistry_model[i], 
-                                         model_config.chemistry_parameters[i], 
-                                         retrieval->config, 
-                                         model_config.atmos_boundaries);
-  
+    chemistry[i] = selectChemistryModule(
+      model_config.chemistry_model[i], 
+      model_config.chemistry_parameters[i], 
+      config, 
+      model_config.atmos_boundaries);
+
   //count the total number of free parameters for the chemistry modules
   nb_total_chemistry_param = 0;
 
@@ -69,15 +71,17 @@ void EmissionModel::initModules(const EmissionModelConfig& model_config)
 
 
 
-  temperature_profile = selectTemperatureProfile(model_config.temperature_profile_model, 
-                                                 model_config.temperature_profile_parameters, 
-                                                 model_config.atmos_boundaries);
+  temperature_profile = selectTemperatureProfile(
+    model_config.temperature_profile_model, 
+    model_config.temperature_profile_parameters, 
+    model_config.atmos_boundaries);
 
   nb_temperature_param = temperature_profile->nbParameters();
 
 
 
-  cloud_model = selectCloudModel(model_config.cloud_model, model_config.cloud_model_parameters);
+  cloud_model = selectCloudModel(
+    model_config.cloud_model, model_config.cloud_model_parameters);
 
   if (cloud_model != nullptr) nb_cloud_param = cloud_model->nbParameters();
 }

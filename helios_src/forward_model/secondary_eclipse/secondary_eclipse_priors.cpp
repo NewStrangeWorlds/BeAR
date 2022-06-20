@@ -28,19 +28,17 @@
 #include <sstream>
 
 
-#include "../../retrieval/retrieval.h"
 #include "../../retrieval/priors.h"
 #include "../../additional/exceptions.h"
-
 
 
 namespace helios{
 
 
 //set the model priors
-void SecondaryEclipseModel::setPriors()
+void SecondaryEclipseModel::setPriors(Priors* priors)
 {
-  const std::string file_name = retrieval->config->retrieval_folder_path + "priors.config";
+  const std::string file_name = config->retrieval_folder_path + "priors.config";
 
   std::vector<std::string> prior_type; 
   std::vector<std::string> prior_description; 
@@ -56,9 +54,9 @@ void SecondaryEclipseModel::setPriors()
     std::string error_message = "Found " + std::to_string(prior_type.size()) + " priors in priors.config but expected " + std::to_string(nb_total_param()) + "\n";
     throw ExceptionInvalidInput(std::string ("SecondaryEclipseModel::setPriors"), error_message);
   }
-  
 
-  retrieval->priors.add(prior_type, prior_description, prior_parameter);
+
+  priors->add(prior_type, prior_description, prior_parameter);
 }
 
 

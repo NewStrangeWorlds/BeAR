@@ -43,16 +43,17 @@ namespace helios{
 //it uses the "observation" at the back of the observation vector
 //assuming that this is the postprocess_spectrum_data
 //this could in principle be a multi-band "observation" here, the method will sum up all fluxes
-double EmissionModel::postProcessEffectiveTemperature(const std::vector<double>& model_spectrum_bands, const double radius_distance_scaling)
+double EmissionModel::postProcessEffectiveTemperature(
+  const std::vector<double>& model_spectrum_bands, const double radius_distance_scaling)
 {
   //the required "observation" is the last one
-  size_t nb_bands = retrieval->observations.back().spectral_bands.nbBands();
+  size_t nb_bands = observations.back().spectral_bands.nbBands();
 
   //the start index for this observation in the vector of band-integrated fluxes
   size_t band_start_index = 0;
 
-  for (size_t i=0; i< retrieval->observations.size()-1; ++i)
-    band_start_index += retrieval->observations[i].spectral_bands.nbBands();
+  for (size_t i=0; i< observations.size()-1; ++i)
+    band_start_index += observations[i].spectral_bands.nbBands();
 
 
 
@@ -63,8 +64,8 @@ double EmissionModel::postProcessEffectiveTemperature(const std::vector<double>&
   //sum up the total flux
   for (size_t i=0; i<nb_bands; ++i)
   {
-    const double wavelength_edge_left =  1.0/retrieval->observations.back().spectral_bands.band_wavenumbers[i].front() * 1e4;
-    const double wavelength_edge_right =  1.0/retrieval->observations.back().spectral_bands.band_wavenumbers[i].back() * 1e4;
+    const double wavelength_edge_left =  1.0/observations.back().spectral_bands.band_wavenumbers[i].front() * 1e4;
+    const double wavelength_edge_right =  1.0/observations.back().spectral_bands.band_wavenumbers[i].back() * 1e4;
 
 
     //convert back from flux per wavelength to total flux

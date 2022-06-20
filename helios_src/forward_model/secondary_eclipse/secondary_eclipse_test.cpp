@@ -25,7 +25,6 @@
 #include <algorithm>
 #include <omp.h>
 
-#include "../../retrieval/retrieval.h"
 #include "../../CUDA_kernels/data_management_kernels.h"
 
 
@@ -50,14 +49,14 @@ bool SecondaryEclipseModel::testCPUvsGPU(const std::vector<double>& parameter, d
   std::cout << "Start test on GPU\n";
   //pointer to the spectrum on the GPU
   double* spectrum_bands_dev = nullptr;
-  allocateOnDevice(spectrum_bands_dev, retrieval->nb_observation_points);
+  allocateOnDevice(spectrum_bands_dev, nb_observation_points);
 
   //intialise the high-res spectrum on the GPU (set it to 0)
-  intializeOnDevice(retrieval->model_spectrum_gpu, retrieval->spectral_grid.nbSpectralPoints());
+  intializeOnDevice(model_spectrum_gpu, spectral_grid->nbSpectralPoints());
 
   calcModelGPU(parameter, model_spectrum_gpu, spectrum_bands_dev);
   
-  std::vector<double> spectrum_bands_gpu(retrieval->nb_observation_points, 0);
+  std::vector<double> spectrum_bands_gpu(nb_observation_points, 0);
   moveToHost(spectrum_bands_dev, spectrum_bands_gpu);
 
 
@@ -68,7 +67,7 @@ bool SecondaryEclipseModel::testCPUvsGPU(const std::vector<double>& parameter, d
   calcModel(parameter, spectrum_cpu, spectrum_bands_cpu);
   
   std::cout << "done.\n";
-  std::vector<double> difference(retrieval->nb_observation_points, 0);
+  std::vector<double> difference(nb_observation_points, 0);
 
   for (size_t i=0; i<difference.size(); ++i)
     difference[i] = std::abs(spectrum_bands_cpu[i] - spectrum_bands_gpu[i])/spectrum_bands_cpu[i];

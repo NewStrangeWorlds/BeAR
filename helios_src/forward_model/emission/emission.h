@@ -29,6 +29,10 @@
 
 #include "../forward_model.h"
 
+#include "../../config/global_config.h"
+#include "../../spectral_grid/spectral_grid.h"
+#include "../../retrieval/priors.h"
+#include "../../observations/observations.h"
 #include "../atmosphere/atmosphere.h"
 #include "../../cloud_model/cloud_model.h"
 #include "../../chemistry/chemistry.h"
@@ -38,11 +42,8 @@
 #include "../../transport_coeff/opacity_calc.h"
 
 
+
 namespace helios {
-
-
-//forward declaration
-class Retrieval;
 
 
 //this struct handles the Emission config
@@ -82,7 +83,11 @@ struct EmissionModelConfig{
 class EmissionModel : public ForwardModel{
   public:
     EmissionModel (
-      Retrieval* retrieval_ptr, const EmissionModelConfig model_config);
+      const EmissionModelConfig model_config,
+      Priors* priors_,
+      GlobalConfig* config_, 
+      SpectralGrid* spectral_grid_,
+      std::vector<Observation>& observations_);
     virtual ~EmissionModel();
     
     virtual bool calcModel(
@@ -103,8 +108,9 @@ class EmissionModel : public ForwardModel{
     virtual bool testModel(
       const std::vector<double>& parameter, double* model_spectrum_gpu);
   protected:
-    Retrieval* retrieval;
-    
+    GlobalConfig* config;
+    SpectralGrid* spectral_grid;
+
     Atmosphere atmosphere;
     OpacityCalculation opacity_calc;
 
@@ -112,6 +118,9 @@ class EmissionModel : public ForwardModel{
     Temperature* temperature_profile = nullptr;
     std::vector<Chemistry*> chemistry;
     CloudModel* cloud_model = nullptr;
+
+    std::vector<Observation>& observations;
+    size_t nb_observation_points = 0;
     
     size_t nb_general_param = 0;
     size_t nb_total_chemistry_param = 0;
@@ -123,7 +132,7 @@ class EmissionModel : public ForwardModel{
     
     size_t nb_grid_points = 0;
 
-    virtual void setPriors();
+    virtual void setPriors(Priors* priors);
     void readPriorConfigFile(
       const std::string& file_name, 
       std::vector<std::string>& prior_type, 

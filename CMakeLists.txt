@@ -223,6 +223,7 @@ find_package(LAPACK REQUIRED)
 #compilation target for the CUDA files
 #CUDA requires different compiler options, so it's compiled separately
 add_library(helios_r_cuda ${SRC_CUDA})
+target_include_directories(helios_r_cuda PUBLIC ${boost_math_SOURCE_DIR}/include/)
 
 
 # build application for Helios-r

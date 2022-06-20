@@ -18,24 +18,19 @@
 */
 
 
-#include "secondary_eclipse.h"
-
-
 #include <string>
 #include <iostream>
 #include <fstream>
 #include <vector>
 #include <sstream>
 
+#include "secondary_eclipse.h"
 
 #include "../../additional/exceptions.h"
-#include "../../retrieval/retrieval.h"
-
 #include "../../chemistry/select_chemistry.h"
 #include "../../radiative_transfer/select_radiative_transfer.h"
 #include "../../temperature/select_temperature_profile.h"
 #include "../../cloud_model/select_cloud_model.h"
-
 #include "../../CUDA_kernels/data_management_kernels.h"
 
 
@@ -45,16 +40,22 @@ namespace helios{
 //initialises the varous modules of the forward model
 void SecondaryEclipseModel::initModules(const SecondaryEclipseConfig& model_config)
 {
-  radiative_transfer = selectRadiativeTransfer(model_config.radiative_transfer_model, 
-                                               model_config.radiative_transfer_parameters, 
-                                               model_config.nb_grid_points, 
-                                               retrieval->config, &retrieval->spectral_grid);
+  radiative_transfer = selectRadiativeTransfer(
+    model_config.radiative_transfer_model, 
+    model_config.radiative_transfer_parameters, 
+    model_config.nb_grid_points, 
+    config, 
+    spectral_grid);
 
 
   chemistry.assign(model_config.chemistry_model.size(), nullptr);
 
   for (size_t i=0; i<model_config.chemistry_model.size(); ++i)
-    chemistry[i] = selectChemistryModule(model_config.chemistry_model[i], model_config.chemistry_parameters[i], retrieval->config, model_config.atmos_boundaries);
+    chemistry[i] = selectChemistryModule(
+      model_config.chemistry_model[i], 
+      model_config.chemistry_parameters[i], 
+      config, 
+      model_config.atmos_boundaries);
   
   //count the total number of free parameters for the chemistry modules
   nb_total_chemistry_param = 0;
@@ -63,9 +64,10 @@ void SecondaryEclipseModel::initModules(const SecondaryEclipseConfig& model_conf
     nb_total_chemistry_param += i->nbParameters();
 
 
-  temperature_profile = selectTemperatureProfile(model_config.temperature_profile_model, 
-                                                 model_config.temperature_profile_parameters, 
-                                                 model_config.atmos_boundaries);
+  temperature_profile = selectTemperatureProfile(
+    model_config.temperature_profile_model, 
+    model_config.temperature_profile_parameters, 
+    model_config.atmos_boundaries);
 
   nb_temperature_param = temperature_profile->nbParameters();
 
@@ -82,7 +84,7 @@ void SecondaryEclipseModel::initStellarSpectrum(const SecondaryEclipseConfig& mo
 {
   std::fstream file;
   
-  std::string file_path = retrieval->config->retrieval_folder_path + model_config.stellar_spectrum_file;
+  std::string file_path = config->retrieval_folder_path + model_config.stellar_spectrum_file;
 
   file.open(file_path.c_str(), std::ios::in);
 
@@ -120,7 +122,7 @@ void SecondaryEclipseModel::initStellarSpectrum(const SecondaryEclipseConfig& mo
   for (size_t i=0; i<spectrum.size(); ++i)
     spectrum[i] = spectrum[i]*wavelength[i]*wavelength[i]/10000.;
     
-  stellar_spectrum = retrieval->spectral_grid.interpolateToWavelengthGrid(wavelength, spectrum, false);
+  stellar_spectrum = spectral_grid->interpolateToWavelengthGrid(wavelength, spectrum, false);
 
 
   binStellarSpectrum();
@@ -133,7 +135,7 @@ void SecondaryEclipseModel::binStellarSpectrum()
   postProcessSpectrum(stellar_spectrum, stellar_spectrum_bands);
 
 
-  if (retrieval->config->use_gpu)
+  if (config->use_gpu)
     moveToDevice(stellar_spectrum_bands_gpu, stellar_spectrum_bands);
 }
 

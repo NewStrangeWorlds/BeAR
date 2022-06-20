@@ -26,8 +26,8 @@
 #include <vector>
 #include <sstream>
 
-#include "../../retrieval/retrieval.h"
-#include "../../retrieval/prior_types.h"
+
+#include "../../retrieval/priors.h"
 #include "../../additional/exceptions.h"
 
 
@@ -35,9 +35,9 @@ namespace helios{
 
 
 //set the model priors
-void TransmissionModel::setPriors()
+void TransmissionModel::setPriors(Priors* priors)
 {
-  const std::string file_name = retrieval->config->retrieval_folder_path + "priors.config";
+  const std::string file_name = config->retrieval_folder_path + "priors.config";
 
   std::vector<std::string> prior_type; 
   std::vector<std::string> prior_description; 
@@ -59,7 +59,7 @@ void TransmissionModel::setPriors()
   }
 
 
-  retrieval->priors.add(prior_type, prior_description, prior_parameter);
+  priors->add(prior_type, prior_description, prior_parameter);
 }
 
 

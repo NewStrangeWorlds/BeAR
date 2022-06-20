@@ -28,22 +28,21 @@
 #include <string>
 
 #include "../forward_model.h"
+
+#include "../../config/global_config.h"
+#include "../../spectral_grid/spectral_grid.h"
+#include "../../retrieval/priors.h"
+#include "../../observations/observations.h"
 #include "../atmosphere/atmosphere.h"
 #include "../../chemistry/chemistry.h"
 #include "../../cloud_model/cloud_model.h"
 #include "../../temperature/temperature.h"
 #include "../../transport_coeff/transport_coeff.h"
-#include "../../radiative_transfer/discrete_ordinate.h"
-#include "../../radiative_transfer/short_characteristics.h"
 #include "../../transport_coeff/opacity_calc.h"
 #include "../../radiative_transfer/radiative_transfer.h"
 
 
 namespace helios {
-
-
-//forward declaration
-class Retrieval;
 
 
 //this struct handles the Brown Dwarf config
@@ -86,7 +85,12 @@ struct SecondaryEclipseConfig{
 
 class SecondaryEclipseModel : public ForwardModel{
   public:
-    SecondaryEclipseModel (Retrieval* retrieval_ptr, const SecondaryEclipseConfig model_config);
+    SecondaryEclipseModel (
+      const SecondaryEclipseConfig model_config,
+      Priors* priors_,
+      GlobalConfig* config_, 
+      SpectralGrid* spectral_grid_,
+      std::vector<Observation>& observations_);
     virtual ~SecondaryEclipseModel();
     virtual bool calcModel(const std::vector<double>& parameter, std::vector<double>& spectrum, std::vector<double>& model_spectrum_bands);
     virtual bool calcModelGPU(const std::vector<double>& parameter, double* model_spectrum, double* model_spectrum_bands);
@@ -97,7 +101,8 @@ class SecondaryEclipseModel : public ForwardModel{
 
     virtual bool testModel(const std::vector<double>& parameter, double* model_spectrum_gpu);
   protected:
-    Retrieval* retrieval;
+    GlobalConfig* config;
+    SpectralGrid* spectral_grid;
 
     Atmosphere atmosphere;
     OpacityCalculation opacity_calc;
@@ -106,8 +111,10 @@ class SecondaryEclipseModel : public ForwardModel{
     Temperature* temperature_profile = nullptr;
     std::vector<Chemistry*> chemistry;
     CloudModel* cloud_model = nullptr;
-    
-    
+
+    std::vector<Observation>& observations;
+    size_t nb_observation_points = 0;
+
     size_t nb_grid_points = 0;
     size_t nb_general_param = 0;
     size_t nb_total_chemistry_param = 0;
@@ -120,7 +127,7 @@ class SecondaryEclipseModel : public ForwardModel{
     std::vector<double> stellar_spectrum_bands;
     double *stellar_spectrum_bands_gpu = nullptr;
 
-    virtual void setPriors();
+    virtual void setPriors(Priors* priors);
     void readPriorConfigFile(const std::string& file_name, std::vector<std::string>& prior_type, 
                                                            std::vector<std::string>& prior_description, 
                                                            std::vector<std::vector<double>>& prior_parameter);

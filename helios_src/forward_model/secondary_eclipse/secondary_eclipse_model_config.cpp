@@ -18,17 +18,14 @@
 */
 
 
-#include "secondary_eclipse.h"
-
-
 #include <string>
 #include <iostream>
 #include <fstream>
 #include <vector>
 #include <sstream>
 
+#include "secondary_eclipse.h"
 
-#include "../../retrieval/retrieval.h"
 #include "../../additional/exceptions.h"
 
 

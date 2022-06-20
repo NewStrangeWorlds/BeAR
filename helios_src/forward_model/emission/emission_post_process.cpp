@@ -92,7 +92,7 @@ void EmissionModel::postProcessModel(const std::vector<double>& model_parameter,
 void EmissionModel::savePostProcessChemistry(const std::vector<std::vector<std::vector<double>>>& mixing_ratios, const unsigned int species)
 {
   std::fstream file;
-  std::string file_name = retrieval->config->retrieval_folder_path + "/chem_";
+  std::string file_name = config->retrieval_folder_path + "/chem_";
   
   file_name += constants::species_data[species].symbol;
   file_name += ".dat";
@@ -119,9 +119,8 @@ void EmissionModel::savePostProcessChemistry(const std::vector<std::vector<std::
 
 void EmissionModel::savePostProcessTemperatures(const std::vector<std::vector<double>>& temperature_profiles)
 {
-  //save the temperature profiles into a file
   std::fstream file;
-  std::string file_name = retrieval->config->retrieval_folder_path + "/temperature_structures.dat";
+  std::string file_name = config->retrieval_folder_path + "/temperature_structures.dat";
   file.open(file_name.c_str(), std::ios::out);
 
   for (size_t i=0; i<nb_grid_points; ++i)
@@ -142,8 +141,7 @@ void EmissionModel::savePostProcessTemperatures(const std::vector<std::vector<do
 
 void EmissionModel::savePostProcessEffectiveTemperatures(const std::vector<double>& effective_temperatures)
 {
-  //save the effective temperatures
-  std::string file_name = retrieval->config->retrieval_folder_path + "/effective_temperatures.dat";
+  std::string file_name = config->retrieval_folder_path + "/effective_temperatures.dat";
   
   std::fstream file(file_name.c_str(), std::ios::out);
 

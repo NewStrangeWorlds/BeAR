@@ -23,6 +23,7 @@
 
 #include <vector>
 
+#include "../retrieval/priors.h"
 
 
 namespace helios {
@@ -55,7 +56,7 @@ class ForwardModel{
       const std::vector<double>& parameter, 
       double* model_spectrum) = 0;
   protected:
-    virtual void setPriors() = 0;
+    virtual void setPriors(Priors* priors) = 0;
 };
 
 
