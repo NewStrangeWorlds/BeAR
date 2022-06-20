@@ -189,7 +189,7 @@ void SecondaryEclipseConfig::readOpacityConfig(std::fstream& file)
     
   }
 
-  
+
   std::cout << "- Opacity species:\n";
   for (size_t i=0; i<opacity_species_symbol.size(); ++i)
     std::cout << "   species " << opacity_species_symbol[i] << "\t folder: " << opacity_species_folder[i] << "\n"; 

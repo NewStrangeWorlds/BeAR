@@ -41,6 +41,8 @@
 #include "../../transport_coeff/opacity_calc.h"
 #include "../../radiative_transfer/radiative_transfer.h"
 
+#include "../stellar_spectrum.h"
+
 
 namespace helios {
 
@@ -88,18 +90,27 @@ class SecondaryEclipseModel : public ForwardModel{
     SecondaryEclipseModel (
       const SecondaryEclipseConfig model_config,
       Priors* priors_,
-      GlobalConfig* config_, 
+      GlobalConfig* config_,
       SpectralGrid* spectral_grid_,
       std::vector<Observation>& observations_);
     virtual ~SecondaryEclipseModel();
-    virtual bool calcModel(const std::vector<double>& parameter, std::vector<double>& spectrum, std::vector<double>& model_spectrum_bands);
-    virtual bool calcModelGPU(const std::vector<double>& parameter, double* model_spectrum, double* model_spectrum_bands);
+    virtual bool calcModel(
+      const std::vector<double>& parameter,
+      std::vector<double>& spectrum,
+      std::vector<double>& model_spectrum_bands);
+    virtual bool calcModelGPU(
+      const std::vector<double>& parameter,
+      double* model_spectrum,
+      double* model_spectrum_bands);
     
-    virtual void postProcess(const std::vector< std::vector<double> >& model_parameter, 
-                             const std::vector< std::vector<double> >& model_spectrum_bands,
-                             const size_t best_fit_model);
+    virtual void postProcess(
+      const std::vector< std::vector<double> >& model_parameter, 
+      const std::vector< std::vector<double> >& model_spectrum_bands,
+      const size_t best_fit_model);
 
-    virtual bool testModel(const std::vector<double>& parameter, double* model_spectrum_gpu);
+    virtual bool testModel(
+      const std::vector<double>& parameter,
+      double* model_spectrum_gpu);
   protected:
     GlobalConfig* config;
     SpectralGrid* spectral_grid;
@@ -121,40 +132,60 @@ class SecondaryEclipseModel : public ForwardModel{
     size_t nb_temperature_param = 0;
     size_t nb_cloud_param = 0;
 
-    size_t nb_total_param() {return nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_cloud_param;}
+    size_t nb_total_param() {
+      return nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_cloud_param;
+    }
 
-    std::vector<double> stellar_spectrum;
-    std::vector<double> stellar_spectrum_bands;
-    double *stellar_spectrum_bands_gpu = nullptr;
+    StellarSpectrum stellar_spectrum;
 
     virtual void setPriors(Priors* priors);
-    void readPriorConfigFile(const std::string& file_name, std::vector<std::string>& prior_type, 
-                                                           std::vector<std::string>& prior_description, 
-                                                           std::vector<std::vector<double>>& prior_parameter);
+    void readPriorConfigFile(
+      const std::string& file_name,
+      std::vector<std::string>& prior_type,
+      std::vector<std::string>& prior_description, 
+      std::vector<std::vector<double>>& prior_parameter);
     void initModules(const SecondaryEclipseConfig& model_config);
 
-    void initStellarSpectrum(const SecondaryEclipseConfig& model_config);
-    void binStellarSpectrum();
-
-    std::vector<double> calcSecondaryEclipse(std::vector<double>& planet_spectrum_bands, const double radius_ratio,
-                                             const double geometric_albedo, const double radius_distance_ratio);
-    void calcSecondaryEclipseGPU(double* secondary_eclipse, double* planet_spectrum_bands, double* stellar_spectrum_bands,
-                                 const int nb_points, const double radius_ratio, double* albedo_contribution);
+    std::vector<double> calcSecondaryEclipse(
+      std::vector<double>& planet_spectrum_bands,
+      const double radius_ratio,
+      const double geometric_albedo,
+      const double radius_distance_ratio);
+    void calcSecondaryEclipseGPU(
+      double* secondary_eclipse,
+      double* planet_spectrum_bands,
+      double* stellar_spectrum_bands,
+      const int nb_points,
+      const double radius_ratio,
+      double* albedo_contribution);
 
     bool calcAtmosphereStructure(const std::vector<double>& parameter);
 
-    void postProcessSpectrum(std::vector<double>& model_spectrum, std::vector<double>& model_spectrum_bands);
-    void postProcessSpectrumGPU(double* model_spectrum, double* model_spectrum_bands);
+    void postProcessSpectrum(
+      std::vector<double>& model_spectrum, std::vector<double>& model_spectrum_bands);
+    void postProcessSpectrumGPU(
+      double* model_spectrum, double* model_spectrum_bands);
 
-    void postProcessModel(const std::vector<double>& parameter, const std::vector<double>& model_spectrum_bands, 
-                          std::vector<double>& temperature_profile, double& effective_temperature,
-                          std::vector<std::vector<double>>& mixing_ratios);
-    double postProcessEffectiveTemperature(const std::vector<double>& model_spectrum_bands);
-    void postProcessContributionFunctions(const std::vector<double>& model_parameter);
-    void saveContributionFunctions(std::vector< std::vector<double>>& contribution_function, const size_t observation_index);
-    void savePostProcessChemistry(const std::vector<std::vector<std::vector<double>>>& mixing_ratios, const unsigned int species);
-    void savePostProcessTemperatures(const std::vector<std::vector<double>>& temperature_profiles);
-    void savePostProcessEffectiveTemperatures(const std::vector<double>& effective_temperatures);
+    void postProcessModel(
+      const std::vector<double>& parameter,
+      const std::vector<double>& model_spectrum_bands,
+      std::vector<double>& temperature_profile,
+      double& effective_temperature,
+      std::vector<std::vector<double>>& mixing_ratios);
+    double postProcessEffectiveTemperature(
+      const std::vector<double>& model_spectrum_bands);
+    void postProcessContributionFunctions(
+      const std::vector<double>& model_parameter);
+    void saveContributionFunctions(
+      std::vector< std::vector<double>>& contribution_function,
+      const size_t observation_index);
+    void savePostProcessChemistry(
+      const std::vector<std::vector<std::vector<double>>>& mixing_ratios,
+      const unsigned int species);
+    void savePostProcessTemperatures(
+      const std::vector<std::vector<double>>& temperature_profiles);
+    void savePostProcessEffectiveTemperatures(
+      const std::vector<double>& effective_temperatures);
 
     bool testCPUvsGPU(const std::vector<double>& parameter, double* model_spectrum_gpu);
 };

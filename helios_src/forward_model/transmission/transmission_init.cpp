@@ -26,11 +26,9 @@
 
 #include "transmission.h"
 
-#include "../../additional/exceptions.h"
 #include "../../chemistry/select_chemistry.h"
 #include "../../temperature/select_temperature_profile.h"
 #include "../../cloud_model/select_cloud_model.h"
-#include "../../CUDA_kernels/data_management_kernels.h"
 
 
 namespace helios{
@@ -62,7 +60,8 @@ void TransmissionModel::initModules(const TransmissionModelConfig& model_config)
   nb_temperature_param = temperature_profile->nbParameters();
 
 
-  cloud_model = selectCloudModel(model_config.cloud_model, model_config.cloud_model_parameters);
+  cloud_model = selectCloudModel(
+    model_config.cloud_model, model_config.cloud_model_parameters);
 
   if (cloud_model != nullptr) nb_cloud_param = cloud_model->nbParameters();
 }

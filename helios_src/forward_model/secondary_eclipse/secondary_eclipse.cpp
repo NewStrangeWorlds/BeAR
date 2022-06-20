@@ -37,6 +37,7 @@
 #include "../../additional/exceptions.h"
 #include "../atmosphere/atmosphere.h"
 
+#include "../stellar_spectrum.h"
 
 namespace helios{
 
@@ -62,6 +63,11 @@ SecondaryEclipseModel::SecondaryEclipseModel (
         config->use_gpu,
         model_config.cloud_model != "none")
     , observations(observations_)
+    , stellar_spectrum(
+        config->retrieval_folder_path + model_config.stellar_spectrum_file,
+        config->use_gpu,
+        spectral_grid,
+        observations)
 {
   nb_grid_points = model_config.nb_grid_points;
 
@@ -70,14 +76,12 @@ SecondaryEclipseModel::SecondaryEclipseModel (
   //this forward model has three free general parameters
   nb_general_param = 3;
 
-  //select and set up the modules
-  initStellarSpectrum(model_config);
+  for (auto & i : observations)
+    nb_observation_points += i.nbPoints();
+
   initModules(model_config);
 
   setPriors(priors_);
-
-  for (auto & i : observations)
-    nb_observation_points += i.nbPoints();
 }
 
 
@@ -149,7 +153,7 @@ bool SecondaryEclipseModel::calcModel(
   //calculate the secondary-eclipse depth with an optional geometric albedo contribution
   for (size_t i=0; i<model_spectrum_bands.size(); ++i)
     model_spectrum_bands[i] = 
-      planet_spectrum_bands[i]/stellar_spectrum_bands[i] 
+      planet_spectrum_bands[i]/stellar_spectrum.flux[i] 
       * radius_ratio*radius_ratio * 1e6 + albedo_contribution[i]*1e6;
 
 
@@ -209,7 +213,7 @@ bool SecondaryEclipseModel::calcModelGPU(
   calcSecondaryEclipseGPU(
     model_spectrum_bands, 
     planet_spectrum_bands, 
-    stellar_spectrum_bands_gpu, 
+    stellar_spectrum.flux_dev, 
     nb_observation_points,
     radius_ratio, 
     albedo_contribution_gpu);
@@ -232,7 +236,7 @@ std::vector<double> SecondaryEclipseModel::calcSecondaryEclipse(
   std::vector<double> secondary_eclipse(planet_spectrum_bands.size(), 0.0);
 
   for (size_t i=0; i<secondary_eclipse.size(); ++i)
-    secondary_eclipse[i] = planet_spectrum_bands[i]/stellar_spectrum_bands[i] * radius_ratio*radius_ratio
+    secondary_eclipse[i] = planet_spectrum_bands[i]/stellar_spectrum.flux[i] * radius_ratio*radius_ratio
                            + geometric_albedo * radius_distance_ratio*radius_distance_ratio;
   
   return secondary_eclipse;
@@ -247,11 +251,11 @@ void SecondaryEclipseModel::postProcessSpectrum(
   std::vector<double>& model_spectrum, std::vector<double>& model_spectrum_bands)
 {
   model_spectrum_bands.assign(nb_observation_points, 0.0);
-  
+
   std::vector<double>::iterator it = model_spectrum_bands.begin();
 
   for (size_t i=0; i<observations.size(); ++i)
-  {
+  { 
     const bool is_flux = true;
     std::vector<double> observation_bands = observations[i].processModelSpectrum(model_spectrum, is_flux);
 

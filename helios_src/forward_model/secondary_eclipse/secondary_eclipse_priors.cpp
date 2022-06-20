@@ -33,7 +33,6 @@
 namespace helios{
 
 
-//set the model priors
 void SecondaryEclipseModel::setPriors(Priors* priors)
 {
   const std::string file_name = config->retrieval_folder_path + "priors.config";
@@ -49,7 +48,10 @@ void SecondaryEclipseModel::setPriors(Priors* priors)
   //check if we have the correct number of piors
   if (prior_type.size() != nb_total_param())
   {
-    std::string error_message = "Found " + std::to_string(prior_type.size()) + " priors in priors.config but expected " + std::to_string(nb_total_param()) + "\n";
+    std::string error_message = 
+      "Found " + std::to_string(prior_type.size()) 
+      + " priors in priors.config but expected " + std::to_string(nb_total_param()) + "\n";
+
     throw InvalidInput(std::string ("SecondaryEclipseModel::setPriors"), error_message);
   }
 
@@ -59,10 +61,11 @@ void SecondaryEclipseModel::setPriors(Priors* priors)
 
 
 
-
-void SecondaryEclipseModel::readPriorConfigFile(const std::string& file_path, std::vector<std::string>& prior_type, 
-                                                                        std::vector<std::string>& prior_description, 
-                                                                        std::vector<std::vector<double>>& prior_parameter)
+void SecondaryEclipseModel::readPriorConfigFile(
+  const std::string& file_path,
+  std::vector<std::string>& prior_type,
+  std::vector<std::string>& prior_description, 
+  std::vector<std::vector<double>>& prior_parameter)
 {
   std::fstream file;
   file.open(file_path.c_str(), std::ios::in);
@@ -93,7 +96,6 @@ void SecondaryEclipseModel::readPriorConfigFile(const std::string& file_path, st
     prior_description.push_back(description);
     prior_parameter.push_back(parameter);
   }
-
 
   file.close();
 }

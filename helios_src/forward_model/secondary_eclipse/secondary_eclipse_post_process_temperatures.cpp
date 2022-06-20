@@ -76,7 +76,6 @@ double SecondaryEclipseModel::postProcessEffectiveTemperature(
   //total_flux has units of W m-2 and needs to be converted to cgs
   double effective_temperature = std::pow(total_flux*1000.0/constants::stefan_boltzmann, 0.25);
 
-  
   return effective_temperature;
 }
 

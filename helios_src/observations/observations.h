@@ -43,8 +43,8 @@ class Observation{
       , spectral_grid(spectral_grid_)
       {}
     ~Observation();
-    void init (const std::string& file_name);  //initialisation method that will read the file with the observational data  
-    std::string observationName() const {return observation_name;}
+    void init (const std::string& file_name);
+    std::string observationName() {return observation_name;}
     size_t nbPoints() {return flux.size();}
 
     SpectralBands spectral_bands;                                       //representation of the theoretical spectrum in the observational bands
@@ -57,10 +57,10 @@ class Observation{
     std::vector<double> likelihood_weight;                              //weight for the likelihood computation
     std::string filter_detector_type = "";
     double filter_response_normalisation = 0.0;
-    
+
     double* filter_response_gpu = nullptr;
     double* filter_response_weight_gpu = nullptr;
-    
+
     double* spectrum_filter_dev = nullptr;
     double* spectrum_convolved_dev = nullptr;
 
@@ -68,7 +68,7 @@ class Observation{
     void setFilterResponseFunction();
 
     void initDeviceMemory();
-    
+
     std::vector<double> applyFilterResponseFunction(const std::vector<double>& spectrum);
     void applyFilterResponseGPU(double* spectrum);
 
@@ -82,15 +82,18 @@ class Observation{
       const bool is_flux);
   private:
     std::string observation_name = "";
-    GlobalConfig* config;
-    SpectralGrid* spectral_grid;
+    GlobalConfig* config = nullptr;
+    SpectralGrid* spectral_grid = nullptr;
 
     std::string filter_response_file_path = "";
     std::vector<std::vector<double>> filter_response_file;              //filter response function read from the file
 
     void loadFile(const std::string& file_name);
+
     std::vector<std::vector<double>> readFilterResponseFunction(const std::string& file_path);
-    double filterResponseNormalisation(const std::vector<double>& filter_wavelength, const std::vector<double>& filter_response);
+    double filterResponseNormalisation(
+      const std::vector<double>& filter_wavelength, const std::vector<double>& filter_response);
+
     bool readPhotometryData(std::fstream& file);
     bool readSpectroscopyData(std::fstream& file);
     bool readBandSpectroscopyData(std::fstream& file);
@@ -101,4 +104,3 @@ class Observation{
 
 
 #endif
-

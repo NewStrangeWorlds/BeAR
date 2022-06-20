@@ -50,12 +50,19 @@ void SecondaryEclipseModel::postProcess(
   std::vector<std::vector<double>> temperature_profiles(nb_models, std::vector<double>(nb_grid_points, 0));
 
   std::vector<chemical_species_id> postprocess_species {_H2O, _Na, _K, _TiO};
-  std::vector<std::vector<std::vector<double>>> mixing_ratios(nb_models, std::vector<std::vector<double>>(constants::species_data.size(), std::vector<double>(nb_grid_points,0)));
+  std::vector<std::vector<std::vector<double>>> mixing_ratios(
+    nb_models, 
+    std::vector<std::vector<double>>(constants::species_data.size(), std::vector<double>(nb_grid_points,0)));
 
 
   for (size_t i=0; i<nb_models; ++i)
   {
-    postProcessModel(model_parameter[i], model_spectrum_bands[i], temperature_profiles[i], effective_temperatures[i], mixing_ratios[i]);
+    postProcessModel(
+      model_parameter[i],
+      model_spectrum_bands[i],
+      temperature_profiles[i],
+      effective_temperatures[i],
+      mixing_ratios[i]);
     
     if (i == 0)
     //if (i == best_fit_model)
@@ -69,7 +76,6 @@ void SecondaryEclipseModel::postProcess(
   //savePostProcessEffectiveTemperatures(effective_temperatures);
   savePostProcessTemperatures(temperature_profiles);
 }
-
 
 
 
@@ -149,9 +155,8 @@ void SecondaryEclipseModel::savePostProcessTemperatures(
 
 
 
-
-
-void SecondaryEclipseModel::savePostProcessEffectiveTemperatures(const std::vector<double>& effective_temperatures)
+void SecondaryEclipseModel::savePostProcessEffectiveTemperatures(
+  const std::vector<double>& effective_temperatures)
 {
   //save the effective temperatures
   std::string file_name = config->retrieval_folder_path + "/effective_temperatures.dat";
@@ -214,10 +219,14 @@ void SecondaryEclipseModel::postProcessContributionFunctions(
         contribution_functions_obs[j] = observations[i].applyFilterResponseFunction(contribution_functions[j]);
     }
 
-    std::vector< std::vector<double> > contribution_functions_bands(nb_grid_points, std::vector<double>(observations[i].spectral_bands.nbBands()));
+    std::vector< std::vector<double> > contribution_functions_bands(
+      nb_grid_points,
+      std::vector<double>(observations[i].spectral_bands.nbBands()));
 
     for (size_t j=0; j<nb_grid_points; ++j)
-       observations[i].spectral_bands.bandIntegrateSpectrum(contribution_functions_obs[j], contribution_functions_bands[j]);
+       observations[i].spectral_bands.bandIntegrateSpectrum(
+         contribution_functions_obs[j],
+         contribution_functions_bands[j]);
 
     saveContributionFunctions(contribution_functions_bands, i);
   }
@@ -226,7 +235,8 @@ void SecondaryEclipseModel::postProcessContributionFunctions(
 
 
 
-void SecondaryEclipseModel::saveContributionFunctions(std::vector< std::vector<double>>& contribution_function, const size_t observation_index)
+void SecondaryEclipseModel::saveContributionFunctions(
+  std::vector< std::vector<double>>& contribution_function, const size_t observation_index)
 {
   std::string observation_name = observations[observation_index].observationName();
   std::replace(observation_name.begin(), observation_name.end(), ' ', '_'); 

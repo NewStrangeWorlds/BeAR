@@ -101,7 +101,7 @@ void TransmissionModel::savePostProcessChemistry(
 
   file.open(file_name.c_str(), std::ios::out);
 
-  
+
   const size_t nb_models = mixing_ratios.size();
 
   for (size_t i=0; i<nb_grid_points; ++i)
