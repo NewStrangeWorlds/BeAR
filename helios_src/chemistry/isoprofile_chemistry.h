@@ -35,8 +35,12 @@ class IsoprofileChemistry : public Chemistry{
   public:
     IsoprofileChemistry(const std::vector<std::string>& chemical_species);
     virtual ~IsoprofileChemistry() {}
-    virtual bool calcChemicalComposition(const std::vector<double>& parameters, const std::vector<double>& temperature, const std::vector<double>& pressure,
-                                         std::vector<std::vector<double>>& number_densities, std::vector<double>& mean_molecular_weight);
+    virtual bool calcChemicalComposition(
+      const std::vector<double>& parameters,
+      const std::vector<double>& temperature,
+      const std::vector<double>& pressure,
+      std::vector<std::vector<double>>& number_densities,
+      std::vector<double>& mean_molecular_weight);
   protected:
     const double solar_h2 = 0.5;
     const double solar_he = 0.085114;

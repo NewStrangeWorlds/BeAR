@@ -1,6 +1,6 @@
 /*
 * This file is part of the Helios-r2 code (https://github.com/exoclime/Helios-r2).
-* Copyright (C) 2020 Daniel Kitzmann
+* Copyright (C) 2022 Daniel Kitzmann
 *
 * Helios-r2 is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,15 +18,13 @@
 */
 
 
-#include "short_characteristics.h"
-
-
 #include <string>
 #include <iostream>
 #include <fstream>
 #include <cmath>
 #include <vector>
 
+#include "short_characteristics.h"
 
 #include "../forward_model/atmosphere/atmosphere.h"
 #include "../spectral_grid/spectral_grid.h"
@@ -37,19 +35,18 @@
 #include "../CUDA_kernels/short_characteristics_kernels.h"
 
 
-
-
 namespace helios{
 
 
-void ShortCharacteristics::calcSpectrum(const Atmosphere& atmosphere,
-                                        const std::vector< std::vector<double> >& absorption_coeff, 
-                                        const std::vector< std::vector<double> >& scattering_coeff,
-                                        const std::vector< std::vector<double> >& cloud_optical_depth,
-                                        const std::vector< std::vector<double> >& cloud_single_scattering,
-                                        const std::vector< std::vector<double> >& cloud_asym_param,
-                                        const double spectrum_scaling,
-                                        std::vector<double>& spectrum)
+void ShortCharacteristics::calcSpectrum(
+  const Atmosphere& atmosphere,
+  const std::vector< std::vector<double> >& absorption_coeff,
+  const std::vector< std::vector<double> >& scattering_coeff,
+  const std::vector< std::vector<double> >& cloud_optical_depth,
+  const std::vector< std::vector<double> >& cloud_single_scattering,
+  const std::vector< std::vector<double> >& cloud_asym_param,
+  const double spectrum_scaling,
+  std::vector<double>& spectrum)
 {
 
   #pragma omp parallel for schedule(dynamic, 1)
@@ -62,9 +59,12 @@ void ShortCharacteristics::calcSpectrum(const Atmosphere& atmosphere,
 
 
 
-double ShortCharacteristics::calcSpectrum(const std::vector<double>& absorption_coeff, const std::vector<double>& cloud_optical_depth,
-                                          const std::vector<double>& temperature, const std::vector<double>& vertical_grid,
-                                          const size_t nu_index)
+double ShortCharacteristics::calcSpectrum(
+  const std::vector<double>& absorption_coeff,
+  const std::vector<double>& cloud_optical_depth,
+  const std::vector<double>& temperature,
+  const std::vector<double>& vertical_grid,
+  const size_t nu_index)
 {
   size_t nb_grid_points = absorption_coeff.size();
 
@@ -115,7 +115,10 @@ double ShortCharacteristics::calcSpectrum(const std::vector<double>& absorption_
   }
 
   
-  const double flux = 2.0 * constants::pi * (intensity_mu1 * gauss_nodes[0] * gauss_weights[0] + intensity_mu2 * gauss_nodes[1] * gauss_weights[1]) * 1e-3; //in W m-2 cm-1
+  const double flux = 
+    2.0 * constants::pi 
+    * (intensity_mu1 * gauss_nodes[0] * gauss_weights[0] 
+     + intensity_mu2 * gauss_nodes[1] * gauss_weights[1]) * 1e-3; //in W m-2 cm-1
 
 
   return flux;
@@ -123,30 +126,33 @@ double ShortCharacteristics::calcSpectrum(const std::vector<double>& absorption_
 
 
 
-void ShortCharacteristics::calcSpectrumGPU(const Atmosphere& atmosphere,
-                                           double* absorption_coeff_dev,
-                                           double* scattering_coeff_dev,
-                                           double* cloud_optical_depth_dev,
-                                           double* cloud_single_scattering_dev,
-                                           double* cloud_asym_param_dev,
-                                           const double spectrum_scaling,
-                                           double* model_spectrum_dev)
+void ShortCharacteristics::calcSpectrumGPU(
+  const Atmosphere& atmosphere,
+  double* absorption_coeff_dev,
+  double* scattering_coeff_dev,
+  double* cloud_optical_depth_dev,
+  double* cloud_single_scattering_dev,
+  double* cloud_asym_param_dev,
+  const double spectrum_scaling,
+  double* model_spectrum_dev)
 {
   if (cloud_optical_depth_dev != nullptr)
-    helios::shortCharacteristicsGPU(model_spectrum_dev,
-                                    absorption_coeff_dev, 
-                                    spectral_grid->wavenumber_list_gpu,
-                                    cloud_optical_depth_dev,
-                                    atmosphere.temperature, atmosphere.altitude,
-                                    spectrum_scaling,
-                                    spectral_grid->nbSpectralPoints());
+    helios::shortCharacteristicsGPU(
+      model_spectrum_dev,
+      absorption_coeff_dev, 
+      spectral_grid->wavenumber_list_gpu,
+      cloud_optical_depth_dev,
+      atmosphere.temperature, atmosphere.altitude,
+      spectrum_scaling,
+      spectral_grid->nbSpectralPoints());
   else
-    helios::shortCharacteristicsGPU(model_spectrum_dev,
-                                    absorption_coeff_dev, 
-                                    spectral_grid->wavenumber_list_gpu,
-                                    atmosphere.temperature, atmosphere.altitude,
-                                    spectrum_scaling,
-                                    spectral_grid->nbSpectralPoints());
+    helios::shortCharacteristicsGPU(
+      model_spectrum_dev,
+      absorption_coeff_dev, 
+      spectral_grid->wavenumber_list_gpu,
+      atmosphere.temperature, atmosphere.altitude,
+      spectrum_scaling,
+      spectral_grid->nbSpectralPoints());
 }
 
 

@@ -83,37 +83,36 @@ void Retrieval::multinestLogLike(double *cube, int &ndim, int &nb_param, double 
 
 
   double error_inflation = 0;
-  
-  //calculate error inflation from prior, if required
+
   if (retrieval_ptr->config->use_error_inflation)
-  {
-    const double error_exponent = parameter.back();
-    error_inflation = std::pow(10, error_exponent);
-  }
-  
+    error_inflation = std::pow(10, parameter.back());
+
 
   double log_like = 0;
 
   for (size_t i=0; i<retrieval_ptr->nb_observation_points; ++i)
   {
     //Eq. 22 from Paper I
-    const double error_square = retrieval_ptr->observation_error[i]*retrieval_ptr->observation_error[i] + error_inflation;
+    const double error_square = 
+      retrieval_ptr->observation_error[i]*retrieval_ptr->observation_error[i] + error_inflation;
     
     //Eq. 23 from Paper I
-    log_like += (- 0.5 * std::log(error_square* 2.0 * constants::pi)
-                - 0.5 * (retrieval_ptr->observation_data[i] - model_spectrum_bands[i])*(retrieval_ptr->observation_data[i] - model_spectrum_bands[i]) / error_square)
-                * retrieval_ptr->observation_likelihood_weight[i];
+    log_like += 
+      (- 0.5 * std::log(error_square* 2.0 * constants::pi)
+       - 0.5 * (retrieval_ptr->observation_data[i] - model_spectrum_bands[i])
+             *(retrieval_ptr->observation_data[i] - model_spectrum_bands[i]) / error_square)
+       * retrieval_ptr->observation_likelihood_weight[i];
   }
 
   
-  //if the forward model tells us to neglect the current set of parameters, set the likelihood to a low value
+  //if the forward model tells us to neglect the current set of parameters,
+  //set the likelihood to a low value
   if (neglect == true) log_like = -1e30;
 
 
-  //print the calculated log-like value
   if (retrieval_ptr->config->multinest_print_iter_values)
     std::cout << log_like << "\n";
-  
+
 
   lnew = log_like;
 }
@@ -159,42 +158,33 @@ void Retrieval::multinestLogLikeGPU(double *cube, int &nb_dim, int &nb_param, do
     std::cout << "\n";
   }
   
-  
-  //allocate the memory for the spectra on the GPU
-  size_t nb_points = retrieval_ptr->spectral_grid.nbSpectralPoints();
-
   //pointer to the spectrum on the GPU
   double* model_spectrum_bands = nullptr;
+  
+  size_t nb_points = retrieval_ptr->spectral_grid.nbSpectralPoints();
   allocateOnDevice(model_spectrum_bands, retrieval_ptr->nb_observation_points);
-
-
-  //intialise the high-res spectrum on the GPU (set it to 0)
   intializeOnDevice(retrieval_ptr->model_spectrum_gpu, nb_points);
-
 
   //call the forward model
   bool neglect = retrieval_ptr->forward_model->calcModelGPU(parameter, retrieval_ptr->model_spectrum_gpu, model_spectrum_bands);
 
 
   double error_inflation = 0;
-  
-  //calculate error inflation from prior, if required
+
   if (retrieval_ptr->config->use_error_inflation)
-  {
-    const double error_exponent = parameter.back();
-    error_inflation = std::pow(10, error_exponent);
-  }
+    error_inflation = std::pow(10, parameter.back());
+
 
   double new_log_like = retrieval_ptr->logLikeDev(model_spectrum_bands, error_inflation);
 
-  //if the forward model tells us to neglect the current set of parameters, set the likelihood to a low value
+  //if the forward model tells us to neglect the current set of parameters,
+  //set the likelihood to a low value
   if (neglect == true) new_log_like = -1e30;
 
-  //delete the spectra from the GPU
+
   deleteFromDevice(model_spectrum_bands);
 
-  
-  //print the calculated likelihood
+
   if (retrieval_ptr->config->multinest_print_iter_values)
     std::cout << new_log_like << "\n";
 

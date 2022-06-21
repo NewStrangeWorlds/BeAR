@@ -36,11 +36,19 @@ namespace helios {
 
 class FreeChemistry : public Chemistry{
   public:
-    FreeChemistry(const std::string& chemical_species,
-                  const size_t nb_elements_in, const size_t polynomial_degree_in, const double atmos_boundaries [2]);
+    FreeChemistry(
+      const std::string& chemical_species,
+      const size_t nb_elements_in,
+      const size_t polynomial_degree_in,
+      const double atmos_boundaries [2]);
     virtual ~FreeChemistry() {}
-    virtual bool calcChemicalComposition(const std::vector<double>& parameters, const std::vector<double>& temperature, const std::vector<double>& pressure,
-                                         std::vector<std::vector<double>>& number_densities, std::vector<double>& mean_molecular_weight);
+
+    virtual bool calcChemicalComposition(
+      const std::vector<double>& parameters,
+      const std::vector<double>& temperature,
+      const std::vector<double>& pressure,
+      std::vector<std::vector<double>>& number_densities,
+      std::vector<double>& mean_molecular_weight);
   private:
     PiecewisePolynomial mixing_ratios;
     const size_t nb_elements {}; 

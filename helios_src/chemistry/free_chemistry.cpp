@@ -122,7 +122,9 @@ bool FreeChemistry::calcChemicalComposition(
     number_densities[i][species.front()] = number_densities[i][_TOTAL] * mixing_ratio;
     
     //adjust the mean molecular weight
-    mean_molecular_weight[i] += number_densities[i][species.front()]/number_densities[i][_TOTAL] * constants::species_data[species.front()].molecular_weight;
+    mean_molecular_weight[i] += 
+      number_densities[i][species.front()]/number_densities[i][_TOTAL] 
+      * constants::species_data[species.front()].molecular_weight;
   }
   
 

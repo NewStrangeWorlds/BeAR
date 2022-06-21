@@ -145,8 +145,11 @@ void GreyCloudModel::cloudPosition(
 
 //calculates the upper and lower grid point of the cloud based on the top and bottom pressure
 //this version assumes that the cloud extends one atmospheric scale height
-void GreyCloudModel::cloudPosition(const Atmosphere& atmosphere, const double top_pressure, 
-                                   unsigned int& top_index, unsigned int& bottom_index)
+void GreyCloudModel::cloudPosition(
+  const Atmosphere& atmosphere,
+  const double top_pressure, 
+  unsigned int& top_index,
+  unsigned int& bottom_index)
 { 
   //find the top pressure index first
   for (size_t i=0; i<atmosphere.nb_grid_points-1; ++i)

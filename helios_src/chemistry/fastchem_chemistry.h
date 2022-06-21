@@ -37,10 +37,16 @@ namespace helios {
 
 class FastChemChemistry : public Chemistry{
   public:
-    FastChemChemistry(const std::string& fastchen_parameter_file, const size_t nb_openmp_proc);
+    FastChemChemistry(
+      const std::string& fastchen_parameter_file, const size_t nb_openmp_proc);
     virtual ~FastChemChemistry() {}
-    virtual bool calcChemicalComposition(const std::vector<double>& parameters, const std::vector<double>& temperature, const std::vector<double>& pressure,
-                                         std::vector<std::vector<double>>& number_densities, std::vector<double>& mean_molecular_weight);
+    
+    virtual bool calcChemicalComposition(
+      const std::vector<double>& parameters,
+      const std::vector<double>& temperature,
+      const std::vector<double>& pressure,
+      std::vector<std::vector<double>>& number_densities,
+      std::vector<double>& mean_molecular_weight);
   private:
     fastchem::FastChem<long double> fastchem;
     const size_t nb_processes = 0;

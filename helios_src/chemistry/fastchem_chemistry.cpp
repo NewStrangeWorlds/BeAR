@@ -1,6 +1,6 @@
 /*
 * This file is part of the Helios-r2 code (https://github.com/exoclime/Helios-r2).
-* Copyright (C) 2020 Daniel Kitzmann
+* Copyright (C) 2022 Daniel Kitzmann
 *
 * Helios-r2 is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -36,7 +36,8 @@
 namespace helios {
 
 
-FastChemChemistry::FastChemChemistry(const std::string& fastchen_parameter_file, const size_t nb_openmp_proc)
+FastChemChemistry::FastChemChemistry(
+  const std::string& fastchen_parameter_file, const size_t nb_openmp_proc)
   : fastchem(fastchen_parameter_file, 1) 
   , nb_processes{nb_openmp_proc}
 {
@@ -69,8 +70,12 @@ FastChemChemistry::FastChemChemistry(const std::string& fastchen_parameter_file,
 
 
 
-bool FastChemChemistry::calcChemicalComposition(const std::vector<double>& parameters, const std::vector<double>& temperature, const std::vector<double>& pressure,
-                                                  std::vector<std::vector<double>>& number_densities, std::vector<double>& mean_molecular_weight)
+bool FastChemChemistry::calcChemicalComposition(
+  const std::vector<double>& parameters,
+  const std::vector<double>& temperature,
+  const std::vector<double>& pressure,
+  std::vector<std::vector<double>>& number_densities,
+  std::vector<double>& mean_molecular_weight)
 {
   const double metallicity_factor = parameters[0];
   const double co_ratio = parameters[1];

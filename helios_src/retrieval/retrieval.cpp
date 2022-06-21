@@ -1,6 +1,6 @@
 /*
 * This file is part of the Helios-r2 code (https://github.com/exoclime/Helios-r2).
-* Copyright (C) 2020 Daniel Kitzmann
+* Copyright (C) 2022 Daniel Kitzmann
 *
 * Helios-r2 is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -57,7 +57,8 @@ void signalHandler(int sig)
 }
 
 
-Retrieval::Retrieval(GlobalConfig* global_config) : spectral_grid(global_config)
+Retrieval::Retrieval(GlobalConfig* global_config) 
+  : spectral_grid(global_config)
 {
 
   config = global_config;
@@ -79,14 +80,12 @@ bool Retrieval::doRetrieval()
   //if there is an error, we exit the retrieval
   try
   {
-    //load the observational data
     std::vector<std::string> file_list;
     loadObservationFileList(observation_folder, file_list);
     loadObservations(observation_folder, file_list);
 
     std::cout << "\nTotal number of wavelength points: " << spectral_grid.nbSpectralPoints() << "\n\n";
 
-    //Initialise the forward model
     forward_model = selectForwardModel(config->forward_model_type);
   }
   catch(std::runtime_error& e) 
@@ -96,7 +95,6 @@ bool Retrieval::doRetrieval()
   } 
 
 
-  //any required, additional priors that are not part of the forward model
   setAdditionalPriors();
 
   priors.printInfo();
@@ -122,17 +120,57 @@ bool Retrieval::doRetrieval()
 
 	//Call MultiNest
   if (config->use_gpu == false)
-	  nested::run(param.is, param.mmodal, param.ceff, param.nlive, param.tol, param.efr, param.ndims, param.nPar, param.nClsPar,
-                param.maxModes, param.updInt, param.Ztol, param.root, param.seed, param.pWrap, param.fb, param.resume,
-                param.outfile, param.initMPI, param.logZero, param.maxiter,
-                Retrieval::multinestLogLike, Retrieval::multinestDumper,
-                param.context);
+	  nested::run(
+      param.is,
+      param.mmodal,
+      param.ceff,
+      param.nlive,
+      param.tol,
+      param.efr,
+      param.ndims,
+      param.nPar,
+      param.nClsPar,
+      param.maxModes,
+      param.updInt,
+      param.Ztol,
+      param.root,
+      param.seed,
+      param.pWrap,
+      param.fb,
+      param.resume,
+      param.outfile,
+      param.initMPI,
+      param.logZero,
+      param.maxiter,
+      Retrieval::multinestLogLike,
+      Retrieval::multinestDumper,
+      param.context);
   else
-    nested::run(param.is, param.mmodal, param.ceff, param.nlive, param.tol, param.efr, param.ndims, param.nPar, param.nClsPar,
-                param.maxModes, param.updInt, param.Ztol, param.root, param.seed, param.pWrap, param.fb, param.resume,
-                param.outfile, param.initMPI, param.logZero, param.maxiter,
-                Retrieval::multinestLogLikeGPU, Retrieval::multinestDumper,
-                param.context);
+    nested::run(
+      param.is,
+      param.mmodal,
+      param.ceff,
+      param.nlive,
+      param.tol,
+      param.efr,
+      param.ndims,
+      param.nPar,
+      param.nClsPar,
+      param.maxModes,
+      param.updInt,
+      param.Ztol,
+      param.root,
+      param.seed,
+      param.pWrap,
+      param.fb,
+      param.resume,
+      param.outfile,
+      param.initMPI,
+      param.logZero,
+      param.maxiter,
+      Retrieval::multinestLogLikeGPU,
+      Retrieval::multinestDumper,
+      param.context);
 
 
   delete forward_model;
@@ -143,7 +181,6 @@ bool Retrieval::doRetrieval()
 
 
 
-//Add additional priors that are not set by the forward model
 void Retrieval::setAdditionalPriors()
 {
   if (config->use_error_inflation)
@@ -166,8 +203,6 @@ void Retrieval::setAdditionalPriors()
 
 
 
-//the destructor
-//deletes all remaining data on the GPU
 Retrieval::~Retrieval()
 {
   if (config->use_gpu)
