@@ -92,7 +92,7 @@ bool Retrieval::doRetrieval()
   {
     std::cout << e.what() << std::endl;
     return false;
-  } 
+  }
 
 
   setAdditionalPriors();
@@ -111,7 +111,6 @@ bool Retrieval::doRetrieval()
 
   for (size_t i = 0; i < nb_priors; ++i) 
     param.pWrap[i] = 0;
-  
 
   //We give the MultiNest function a pointer to the retrieval class
   //That way, we can access the current retrieval object in its static member routines
@@ -192,13 +191,12 @@ void Retrieval::setAdditionalPriors()
 
     it = std::max_element(std::begin(observation_error), std::end(observation_error));
     const double error_max = std::log10(100.0 * *it * *it);
-    std::cout << "test\n";
+
     priors.add(
       std::vector<std::string>{std::string("uniform")}, 
       std::vector<std::string>{std::string("error exponent")}, 
       std::vector<std::vector<double>>{std::vector<double> {error_min, error_max}});
   }
-
 }
 
 
@@ -206,14 +204,13 @@ void Retrieval::setAdditionalPriors()
 Retrieval::~Retrieval()
 {
   if (config->use_gpu)
-  { 
+  {
     deleteFromDevice(model_spectrum_gpu);
 
     deleteFromDevice(observation_data_gpu);
     deleteFromDevice(observation_error_gpu);
     deleteFromDevice(observation_likelihood_weight_gpu);
   }
-
 }
 
 

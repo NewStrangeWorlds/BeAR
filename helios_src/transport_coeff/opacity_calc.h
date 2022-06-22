@@ -279,7 +279,7 @@ inline OpacityCalculation::~OpacityCalculation()
       deleteFromDevice(cloud_single_scattering_dev);
       deleteFromDevice(cloud_asym_param_dev);
     }
-  }
+  }     
 }
 
 

@@ -94,23 +94,38 @@ void Observation::processModelSpectrumGPU(
   const unsigned int start_index,
   const bool is_flux)
 {
-  if (filter_response.size() != 0)
+  if (filter_response.size() != 0 && instrument_profile_fwhm.size() != 0)
+  {
     applyFilterResponseGPU(spectrum);
-  else
-    spectrum_filter_dev = spectrum;
 
-  if (instrument_profile_fwhm.size() != 0)
     spectral_bands.convolveSpectrumGPU(
-      spectrum_filter_dev, 
+      spectrum_filter_dev,
       spectrum_convolved_dev);
-  else
-    spectrum_convolved_dev = spectrum_filter_dev;
 
-  spectral_bands.bandIntegrateSpectrumGPU(
-    spectrum_convolved_dev, 
-    spectrum_bands, 
-    start_index, 
-    is_flux);
+    spectral_bands.bandIntegrateSpectrumGPU(
+      spectrum_convolved_dev,
+      spectrum_bands,
+      start_index,
+      is_flux);
+  }
+  else if (instrument_profile_fwhm.size() != 0)
+  {
+    spectral_bands.convolveSpectrumGPU(
+      spectrum,
+      spectrum_convolved_dev);
+
+    spectral_bands.bandIntegrateSpectrumGPU(
+      spectrum_convolved_dev,
+      spectrum_bands,
+      start_index,
+      is_flux);
+  }
+  else
+    spectral_bands.bandIntegrateSpectrumGPU(
+      spectrum,
+      spectrum_bands,
+      start_index,
+      is_flux);
 }
 
 
