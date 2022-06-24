@@ -166,9 +166,9 @@ bool TransmissionModel::calcModelGPU(
     model_spectrum_gpu, 
     opacity_calc.absorption_coeff_gpu, 
     opacity_calc.scattering_coeff_dev, 
-    atmosphere, 
+    atmosphere,
     spectral_grid->nbSpectralPoints(), 
-    bottom_radius, 
+    bottom_radius,
     star_radius);
 
   postProcessSpectrumGPU(model_spectrum_gpu, model_spectrum_bands);

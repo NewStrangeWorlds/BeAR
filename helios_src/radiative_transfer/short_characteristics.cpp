@@ -31,8 +31,6 @@
 #include "../additional/aux_functions.h"
 #include "../additional/physical_const.h"
 #include "../additional/quadrature.h"
-#include "../CUDA_kernels/data_management_kernels.h"
-#include "../CUDA_kernels/short_characteristics_kernels.h"
 
 
 namespace helios{
@@ -123,38 +121,6 @@ double ShortCharacteristics::calcSpectrum(
 
   return flux;
 }
-
-
-
-void ShortCharacteristics::calcSpectrumGPU(
-  const Atmosphere& atmosphere,
-  double* absorption_coeff_dev,
-  double* scattering_coeff_dev,
-  double* cloud_optical_depth_dev,
-  double* cloud_single_scattering_dev,
-  double* cloud_asym_param_dev,
-  const double spectrum_scaling,
-  double* model_spectrum_dev)
-{
-  if (cloud_optical_depth_dev != nullptr)
-    helios::shortCharacteristicsGPU(
-      model_spectrum_dev,
-      absorption_coeff_dev, 
-      spectral_grid->wavenumber_list_gpu,
-      cloud_optical_depth_dev,
-      atmosphere.temperature, atmosphere.altitude,
-      spectrum_scaling,
-      spectral_grid->nbSpectralPoints());
-  else
-    helios::shortCharacteristicsGPU(
-      model_spectrum_dev,
-      absorption_coeff_dev, 
-      spectral_grid->wavenumber_list_gpu,
-      atmosphere.temperature, atmosphere.altitude,
-      spectrum_scaling,
-      spectral_grid->nbSpectralPoints());
-}
-
 
 
 }
