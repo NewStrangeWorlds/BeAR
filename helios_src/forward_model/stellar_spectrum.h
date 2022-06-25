@@ -48,6 +48,8 @@ class StellarSpectrum {
     ~StellarSpectrum();
 
     std::vector<double> flux;
+    std::vector<double> flux_bands;
+    double* flux_bands_dev = nullptr;
     double* flux_dev = nullptr;
   private:
     void readSpectrum(
@@ -77,15 +79,18 @@ inline StellarSpectrum::StellarSpectrum (
   binSpectrum(spectrum_file, wavelength_file, spectral_grid, observations);
 
   if (use_gpu)
+  {
     moveToDevice(flux_dev, flux);
+    moveToDevice(flux_bands_dev, flux_bands);
+  }
 }
 
 
 
 inline StellarSpectrum::~StellarSpectrum()
 {
-  if (flux_dev != nullptr)
-    deleteFromDevice(flux_dev);
+  deleteFromDevice(flux_bands_dev);
+  deleteFromDevice(flux_dev);
 }
 
 
@@ -141,29 +146,25 @@ inline void StellarSpectrum::binSpectrum(
   SpectralGrid* spectral_grid,
   std::vector<Observation>& observations)
 { 
-  std::vector<double> flux_high_res = 
-    spectral_grid->interpolateToWavelengthGrid(wavelength_file, spectrum_file, false);
+  flux = spectral_grid->interpolateToWavelengthGrid(wavelength_file, spectrum_file, false);
   
   size_t nb_observation_points = 0;
 
   for (auto & i : observations)
     nb_observation_points += i.nbPoints();
 
-  flux.assign(nb_observation_points, 0.0);
+  flux_bands.assign(nb_observation_points, 0.0);
 
-  std::vector<double>::iterator it = flux.begin();
+  std::vector<double>::iterator it = flux_bands.begin();
 
   for (size_t i=0; i<observations.size(); ++i)
   {
     const bool is_flux = true;
-    std::vector<double> flux_bands = observations[i].processModelSpectrum(flux_high_res, is_flux);
+    std::vector<double> flux_bands_single = observations[i].processModelSpectrum(flux, is_flux);
 
-    std::copy(flux_bands.begin(), flux_bands.end(), it);
-    it += flux_bands.size();
+    std::copy(flux_bands_single.begin(), flux_bands_single.end(), it);
+    it += flux_bands_single.size();
   }
-  std::cout << "obs " << nb_observation_points << "\n";
-  for (size_t i=0; i<flux.size(); ++i)
-    std::cout << i << "\t" << flux[i] << "\n";
 }
 
 

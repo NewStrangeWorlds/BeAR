@@ -153,11 +153,11 @@ class SecondaryEclipseModel : public ForwardModel{
       const double radius_distance_ratio);
     void calcSecondaryEclipseGPU(
       double* secondary_eclipse,
-      double* planet_spectrum_bands,
-      double* stellar_spectrum_bands,
+      double* planet_spectrum,
+      const double* stellar_spectrum,
       const int nb_points,
       const double radius_ratio,
-      double* albedo_contribution);
+      const double* albedo_contribution);
 
     bool calcAtmosphereStructure(const std::vector<double>& parameter);
 

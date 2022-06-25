@@ -155,7 +155,7 @@ class DeltaPrior : public BasicPrior {
       return const_value;}
     virtual void printInfo() {
       std::cout << parameter_name << ": " << distribution_type
-        << ", constant valuie: " << const_value << "\n";
+        << ", constant value: " << const_value << "\n";
     }
   private:
     double const_value = 0;

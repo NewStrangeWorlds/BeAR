@@ -149,13 +149,16 @@ bool SecondaryEclipseModel::calcModel(
   model_spectrum_bands.assign(nb_observation_points, 0);
   std::vector<double> albedo_contribution(nb_observation_points, 0.0);
   const double radius_ratio = parameter[1];
-  
+
   //calculate the secondary-eclipse depth with an optional geometric albedo contribution
   for (size_t i=0; i<model_spectrum_bands.size(); ++i)
     model_spectrum_bands[i] = 
-      planet_spectrum_bands[i]/stellar_spectrum.flux[i] 
+      planet_spectrum_bands[i]/stellar_spectrum.flux_bands[i] 
       * radius_ratio*radius_ratio * 1e6 + albedo_contribution[i]*1e6;
 
+  //convert the high-res spectrum to an eclipse depth as well
+  for (size_t i=0; i<spectral_grid->nbSpectralPoints(); ++i)
+    spectrum[i] = spectrum[i]/stellar_spectrum.flux[i] * radius_ratio*radius_ratio * 1e6;
 
   return neglect;
 }
@@ -204,23 +207,29 @@ bool SecondaryEclipseModel::calcModelGPU(
   //std::vector<double> albedo_contribution(retrieval->nb_total_bands, geometric_albedo*radius_distance_ratio*radius_distance_ratio);
   std::vector<double> albedo_contribution(nb_observation_points, 0.0);
 
-
   double* albedo_contribution_gpu = nullptr;
-
-  moveToDevice(albedo_contribution_gpu, albedo_contribution);
+  //moveToDevice(albedo_contribution_gpu, albedo_contribution);
 
 
   calcSecondaryEclipseGPU(
     model_spectrum_bands, 
     planet_spectrum_bands, 
-    stellar_spectrum.flux_dev, 
+    stellar_spectrum.flux_bands_dev, 
     nb_observation_points,
     radius_ratio, 
     albedo_contribution_gpu);
-  
+
   deleteFromDevice(albedo_contribution_gpu);
   deleteFromDevice(planet_spectrum_bands);
 
+  //convert the original high-res spectrum also to a secondary eclipse
+  calcSecondaryEclipseGPU(
+    model_spectrum_gpu, 
+    model_spectrum_gpu, 
+    stellar_spectrum.flux_dev, 
+    spectral_grid->nbSpectralPoints(),
+    radius_ratio, 
+    albedo_contribution_gpu);
 
   return neglect;
 }

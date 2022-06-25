@@ -18,11 +18,11 @@
 */
 
 
-#include "../forward_model/secondary_eclipse/secondary_eclipse.h"
-
 #include <iostream>
 #include <cmath>
 #include <stdio.h>
+
+#include "../forward_model/secondary_eclipse/secondary_eclipse.h"
 
 #include "error_check.h"
 #include "reduce_kernels.h"
@@ -35,32 +35,30 @@ namespace helios{
 __global__ void secondaryEclipseDevice(
   double* secondary_eclipse,
   double* planet_spectrum,
-  double* stellar_spectrum,
+  const double* stellar_spectrum,
   const int nb_points,
   const double radius_ratio, 
-  double* albedo_contribution)
+  const double* albedo_contribution)
 {
   
   for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < nb_points; i += blockDim.x * gridDim.x)
   {
+    secondary_eclipse[i] = planet_spectrum[i]/stellar_spectrum[i] * radius_ratio*radius_ratio * 1e6; 
 
-    secondary_eclipse[i] = planet_spectrum[i]/stellar_spectrum[i] * radius_ratio*radius_ratio * 1e6 + albedo_contribution[i]*1e6;
-
-    //printf("%d  %1.5e  %1.5e  %1.5e  %f\n",  i, secondary_eclipse[i], planet_spectrum[i], stellar_spectrum[i], radius_ratio);
-  
+    if (albedo_contribution != nullptr)
+      secondary_eclipse[i] += albedo_contribution[i]*1e6;
   }
-
 }
 
 
 
 __host__ void SecondaryEclipseModel::calcSecondaryEclipseGPU(
   double* secondary_eclipse,
-  double* planet_spectrum_bands,
-  double* stellar_spectrum_bands,
+  double* planet_spectrum,
+  const double* stellar_spectrum,
   const int nb_points,
   const double radius_ratio,
-  double* albedo_contribution)
+  const double* albedo_contribution)
 {
   int threads = 256;
 
@@ -70,8 +68,8 @@ __host__ void SecondaryEclipseModel::calcSecondaryEclipseGPU(
 
   secondaryEclipseDevice<<<blocks,threads>>>(
     secondary_eclipse,
-    planet_spectrum_bands,
-    stellar_spectrum_bands,
+    planet_spectrum,
+    stellar_spectrum,
     nb_points,
     radius_ratio,
     albedo_contribution);
