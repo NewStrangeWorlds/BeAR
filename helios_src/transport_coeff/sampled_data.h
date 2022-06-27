@@ -63,7 +63,8 @@ class SampledData{
         , use_gpu(gpu_avail) 
         {}
     ~SampledData();
-    void sampleCrossSections(const std::vector<size_t>& sampling_list, const double species_mass);
+    void sampleCrossSections(
+      const std::vector<size_t>& sampling_list, const double species_mass);
     void deleteSampledData();
 
     const double pressure = 0.0;

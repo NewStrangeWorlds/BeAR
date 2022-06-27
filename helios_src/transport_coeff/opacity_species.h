@@ -1,3 +1,21 @@
+/*
+* This file is part of the Helios-r2 code (https://github.com/exoclime/Helios-r2).
+* Copyright (C) 2022 Daniel Kitzmann
+*
+* Helios-r2 is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* Helios-r2 is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You find a copy of the GNU General Public License in the main
+* Helios-r2 directory under <LICENSE>. If not, see
+* <http://www.gnu.org/licenses/>.
+*/
 
 
 #ifndef OPACITY_SPECIES_H
@@ -9,30 +27,40 @@
 #include <iostream>
 
 #include "../chemistry/chem_species.h"
+#include "../spectral_grid/spectral_grid.h"
+#include "../config/global_config.h"
 #include "sampled_data.h"
 
 
 namespace helios{
 
 
-class GlobalConfig;
-class SpectralGrid;
-
-
-
 class OpacitySpecies {
   public:
-    OpacitySpecies(const unsigned int index, const std::string name, const std::string folder) 
-                  : species_index(index), species_name(name), species_folder(folder) 
-                  {}
+    OpacitySpecies(
+      const unsigned int index,
+      const std::string name,
+      const std::string folder) 
+        : species_index(index), species_name(name), species_folder(folder) 
+        {}
     virtual ~OpacitySpecies() {}
    
     bool dataAvailable() {return cross_section_available;}
-    virtual void calcTransportCoefficients(const double temperature, const double pressure, const std::vector<double>& number_densities,
-                                           std::vector<double>& absorption_coeff, std::vector<double>& scattering_coeff);
-    virtual void calcTransportCoefficientsGPU(const double temperature, const double pressure, const std::vector<double>& number_densities,
-                                              const size_t nb_grid_points, const size_t grid_point,
-                                              double* absorption_coeff_device, double* scattering_coeff_device);
+
+    virtual void calcTransportCoefficients(
+      const double temperature,
+      const double pressure,
+      const std::vector<double>& number_densities,
+      std::vector<double>& absorption_coeff,
+      std::vector<double>& scattering_coeff);
+    virtual void calcTransportCoefficientsGPU(
+      const double temperature,
+      const double pressure,
+      const std::vector<double>& number_densities,
+      const size_t nb_grid_points,
+      const size_t grid_point,
+      double* absorption_coeff_device,
+      double* scattering_coeff_device);
     
     const size_t species_index = 0;
     const std::string species_name = "";
@@ -54,7 +82,11 @@ class OpacitySpecies {
     void init();
     void orderDataList();
 
-    virtual bool calcContinuumAbsorption(const double temperature, const std::vector<double>& number_densities, std::vector<double>& absorption_coeff) {return false;};
+    virtual bool calcContinuumAbsorption(
+      const double temperature,
+      const std::vector<double>& number_densities,
+      std::vector<double>& absorption_coeff) {
+        return false;};
     virtual void calcContinuumAbsorptionGPU(
       const double temperature, 
       const std::vector<double>& number_densities,
@@ -62,7 +94,9 @@ class OpacitySpecies {
       const size_t grid_point,
       double* absorption_coeff_device) {};
     
-    virtual bool calcRalyleighCrossSections(std::vector<double>& cross_sections) {return false;};
+    virtual bool calcRalyleighCrossSections(std::vector<double>& cross_sections) {
+      return false;};
+
     virtual void calcRalyleighCrossSectionsGPU(
       const double number_density,
       const size_t nb_grid_points, 
@@ -71,17 +105,31 @@ class OpacitySpecies {
 
     void readFileList(const std::string file_path);
     
-    std::vector<SampledData*> findClosestDataPoints(const double sampling_pressure, const double sampling_temperature);
+    std::vector<SampledData*> findClosestDataPoints(
+      const double sampling_pressure,
+      const double sampling_temperature);
     void checkDataAvailability(std::vector<SampledData*>& data_points);
 
-    void calcAbsorptionCrossSections(const double local_pressure, const double local_temperature, std::vector<double>& cross_sections);
+    void calcAbsorptionCrossSections(
+      const double local_pressure,
+      const double local_temperature,
+      std::vector<double>& cross_sections);
     bool calcScatteringCrossSections(std::vector<double>& cross_sections);
 
-    void calcAbsorptionCoefficientsGPU(const double pressure, const double temperature, const double number_density,
-                                       const size_t nb_grid_points, const size_t grid_point,
-                                       double* absorption_coeff_device, double* scattering_coeff_device);
+    void calcAbsorptionCoefficientsGPU(
+      const double pressure,
+      const double temperature,
+      const double number_density,
+      const size_t nb_grid_points,
+      const size_t grid_point,
+      double* absorption_coeff_device,
+      double* scattering_coeff_device);
     
-    double generalRayleighCrossSection(double reference_density, double refractive_index, double king_correction_factor, double wavenumber);
+    double generalRayleighCrossSection(
+      double reference_density,
+      double refractive_index,
+      double king_correction_factor,
+      double wavenumber);
 };
 
 

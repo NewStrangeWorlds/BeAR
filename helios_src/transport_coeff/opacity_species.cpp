@@ -1,14 +1,21 @@
-
-#include "opacity_species.h"
-
-
-#include "../config/global_config.h"
-#include "../additional/physical_const.h"
-#include "../CUDA_kernels/cross_section_kernels.h"
-#include "../CUDA_kernels/data_management_kernels.h"
-#include "../spectral_grid/spectral_grid.h"
-
-
+/*
+* This file is part of the Helios-r2 code (https://github.com/exoclime/Helios-r2).
+* Copyright (C) 2022 Daniel Kitzmann
+*
+* Helios-r2 is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* Helios-r2 is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You find a copy of the GNU General Public License in the main
+* Helios-r2 directory under <LICENSE>. If not, see
+* <http://www.gnu.org/licenses/>.
+*/
 
 #include <vector>
 #include <string>
@@ -19,10 +26,16 @@
 #include <omp.h>
 #include <sstream>
 #include <algorithm> 
-
-
 #include <assert.h>
 #include <cmath>
+
+#include "opacity_species.h"
+
+#include "../config/global_config.h"
+#include "../additional/physical_const.h"
+#include "../CUDA_kernels/cross_section_kernels.h"
+#include "../CUDA_kernels/data_management_kernels.h"
+#include "../spectral_grid/spectral_grid.h"
 
 
 namespace helios{
@@ -47,7 +60,9 @@ void OpacitySpecies::readFileList(const std::string file_path)
 
   if (file.fail())
   {
-    std::cout << "No line absorption data for species " << species_name << " found! Ignoring line absorption from here on.\n";
+    std::cout << "No line absorption data for species " 
+      << species_name 
+      << " found! Ignoring line absorption from here on.\n";
     cross_section_available = false;
 
     return;
@@ -84,7 +99,9 @@ void OpacitySpecies::readFileList(const std::string file_path)
 
     std::string file_name = file_path+species_folder+"/"+name;
 
-    sampled_cross_sections.push_back(SampledData (temperature, pressure, file_name, log_storage, config->use_gpu) );
+    sampled_cross_sections.push_back(
+      SampledData (
+        temperature, pressure, file_name, log_storage, config->use_gpu) );
   }
 
   file.close();
@@ -128,8 +145,8 @@ void OpacitySpecies::orderDataList()
 
 
 
-
-std::vector<SampledData*> OpacitySpecies::findClosestDataPoints(const double sampling_pressure, const double sampling_temperature)
+std::vector<SampledData*> OpacitySpecies::findClosestDataPoints(
+  const double sampling_pressure, const double sampling_temperature)
 {
   std::vector<SampledData*> interpol_points(4, nullptr);
   
@@ -160,7 +177,8 @@ std::vector<SampledData*> OpacitySpecies::findClosestDataPoints(const double sam
 
         break;
       }
-      else if (ordered_data_list[i].front()->temperature < sampling_temperature && ordered_data_list[i+1].front()->temperature > sampling_temperature)
+      else if (ordered_data_list[i].front()->temperature < sampling_temperature 
+        && ordered_data_list[i+1].front()->temperature > sampling_temperature)
       {
         lower_temperature = &ordered_data_list[i];
         upper_temperature = &ordered_data_list[i+1];
@@ -193,7 +211,8 @@ std::vector<SampledData*> OpacitySpecies::findClosestDataPoints(const double sam
 
         break;
       }
-      else if (lower_temperature->at(i)->pressure < sampling_pressure && lower_temperature->at(i+1)->pressure > sampling_pressure)
+      else if (lower_temperature->at(i)->pressure < sampling_pressure 
+        && lower_temperature->at(i+1)->pressure > sampling_pressure)
       {
         interpol_points[0] = lower_temperature->at(i);
         interpol_points[1] = lower_temperature->at(i+1);
@@ -226,7 +245,8 @@ std::vector<SampledData*> OpacitySpecies::findClosestDataPoints(const double sam
 
         break;
       }
-      else if (upper_temperature->at(i)->pressure < sampling_pressure && upper_temperature->at(i+1)->pressure > sampling_pressure)
+      else if (upper_temperature->at(i)->pressure < sampling_pressure 
+        && upper_temperature->at(i+1)->pressure > sampling_pressure)
       {
         interpol_points[2] = upper_temperature->at(i);
         interpol_points[3] = upper_temperature->at(i+1);
@@ -242,7 +262,8 @@ std::vector<SampledData*> OpacitySpecies::findClosestDataPoints(const double sam
 
 
 
-void OpacitySpecies::calcAbsorptionCrossSections(const double pressure, const double temperature, std::vector<double>& cross_sections)
+void OpacitySpecies::calcAbsorptionCrossSections(
+  const double pressure, const double temperature, std::vector<double>& cross_sections)
 { 
   std::vector<SampledData*> data_points = findClosestDataPoints(pressure, temperature);
 
@@ -259,8 +280,9 @@ void OpacitySpecies::calcAbsorptionCrossSections(const double pressure, const do
   }
   
   
-  auto linearInterpolation = [](const double x1, const double x2, const double y1, const double y2, const double x)
-                               {return y1 + (y2 - y1) * (x - x1)/(x2 - x1);};
+  auto linearInterpolation = [](
+    const double x1, const double x2, const double y1, const double y2, const double x) {
+      return y1 + (y2 - y1) * (x - x1)/(x2 - x1);};
 
   
   //we first interpolate the cross section in pressure for the two different temperatures
@@ -272,26 +294,32 @@ void OpacitySpecies::calcAbsorptionCrossSections(const double pressure, const do
   if (data_points[0] != data_points[1])
     #pragma omp parallel for
     for (size_t i=0; i<cross_sections_upper_t.size(); ++i)
-      cross_sections_lower_t[i] = linearInterpolation(data_points[0]->log_pressure, data_points[1]->log_pressure,
-                                                      data_points[0]->cross_sections[i], 
-                                                      data_points[1]->cross_sections[i],
-                                                      std::log10(pressure));
+      cross_sections_lower_t[i] = linearInterpolation(
+        data_points[0]->log_pressure,
+        data_points[1]->log_pressure,
+        data_points[0]->cross_sections[i], 
+        data_points[1]->cross_sections[i],
+        std::log10(pressure));
 
   if (data_points[2] != data_points[3])
     #pragma omp parallel for
     for (size_t i=0; i<cross_sections_upper_t.size(); ++i)
-      cross_sections_upper_t[i] = linearInterpolation(data_points[2]->log_pressure, data_points[3]->log_pressure,
-                                                      data_points[2]->cross_sections[i], 
-                                                      data_points[3]->cross_sections[i],
-                                                      std::log10(pressure));
+      cross_sections_upper_t[i] = linearInterpolation(
+        data_points[2]->log_pressure,
+        data_points[3]->log_pressure,
+        data_points[2]->cross_sections[i], 
+        data_points[3]->cross_sections[i],
+        std::log10(pressure));
 
   if (data_points[0] != data_points[2])
     #pragma omp parallel for
     for (size_t i=0; i<cross_sections_lower_t.size(); ++i)
-      cross_sections[i] = linearInterpolation(data_points[0]->temperature, data_points[2]->temperature,
-                                              cross_sections_lower_t[i], 
-                                              cross_sections_upper_t[i],
-                                              temperature);
+      cross_sections[i] = linearInterpolation(
+        data_points[0]->temperature,
+        data_points[2]->temperature,
+        cross_sections_lower_t[i], 
+        cross_sections_upper_t[i],
+        temperature);
   else
     cross_sections = cross_sections_lower_t;
   
@@ -322,39 +350,48 @@ void OpacitySpecies::checkDataAvailability(std::vector<SampledData*>& data_point
 }
 
 
-
-
 //calculation of the absorption coefficients for a specific temperature and pressure
 //the method interpolates within a two-dimensional, tabulated cross section grid
 //this is version for doing the calculation on the GPU
 //the four data points for the interpolation are still obtained on the CPU and then passed to the GPU
-void OpacitySpecies::calcAbsorptionCoefficientsGPU(const double pressure, const double temperature, const double number_density,
-                                                                       const size_t nb_grid_points, const size_t grid_point,
-                                                                       double* absorption_coeff_device, double* scattering_coeff_device)
+void OpacitySpecies::calcAbsorptionCoefficientsGPU(
+  const double pressure,
+  const double temperature,
+  const double number_density,
+  const size_t nb_grid_points,
+  const size_t grid_point,
+  double* absorption_coeff_device,
+  double* scattering_coeff_device)
 {
   std::vector<SampledData*> data_points = findClosestDataPoints(pressure, temperature);
 
   checkDataAvailability(data_points);
 
 
-  calcCrossSectionsHost(data_points[0]->cross_sections_device,
-                        data_points[1]->cross_sections_device,
-                        data_points[2]->cross_sections_device,
-                        data_points[3]->cross_sections_device,
-                        data_points[0]->temperature,
-                        data_points[2]->temperature,
-                        data_points[0]->log_pressure,
-                        data_points[1]->log_pressure,
-                        temperature, std::log10(pressure), number_density,
-                        spectral_grid->nbSpectralPoints(), nb_grid_points, grid_point,
-                        absorption_coeff_device, scattering_coeff_device);
+  calcCrossSectionsHost(
+    data_points[0]->cross_sections_device,
+    data_points[1]->cross_sections_device,
+    data_points[2]->cross_sections_device,
+    data_points[3]->cross_sections_device,
+    data_points[0]->temperature,
+    data_points[2]->temperature,
+    data_points[0]->log_pressure,
+    data_points[1]->log_pressure,
+    temperature, std::log10(pressure),
+    number_density,
+    spectral_grid->nbSpectralPoints(),
+    nb_grid_points, grid_point,
+    absorption_coeff_device,
+    scattering_coeff_device);
 }
 
 
-
-
-void OpacitySpecies::calcTransportCoefficients(const double temperature, const double pressure, const std::vector<double>& number_densities,
-                                                                   std::vector<double>& absorption_coeff, std::vector<double>& scattering_coeff)
+void OpacitySpecies::calcTransportCoefficients(
+  const double temperature,
+  const double pressure,
+  const std::vector<double>& number_densities,
+  std::vector<double>& absorption_coeff,
+  std::vector<double>& scattering_coeff)
 { 
   double number_density = number_densities[species_index];
 
@@ -404,9 +441,14 @@ void OpacitySpecies::calcTransportCoefficients(const double temperature, const d
 
 
 
-void OpacitySpecies::calcTransportCoefficientsGPU(const double temperature, const double pressure, const std::vector<double>& number_densities,
-                                                                      const size_t nb_grid_points, const size_t grid_point,
-                                                                      double* absorption_coeff_device, double* scattering_coeff_device)
+void OpacitySpecies::calcTransportCoefficientsGPU(
+  const double temperature,
+  const double pressure,
+  const std::vector<double>& number_densities,
+  const size_t nb_grid_points,
+  const size_t grid_point,
+  double* absorption_coeff_device,
+  double* scattering_coeff_device)
 {
   double number_density = number_densities[species_index];
 
@@ -423,15 +465,21 @@ void OpacitySpecies::calcTransportCoefficientsGPU(const double temperature, cons
   if (pressure_reference_species != _TOTAL)
     reference_pressure *= number_densities[pressure_reference_species]/number_densities[_TOTAL];
 
-  if (cross_section_available == true) calcAbsorptionCoefficientsGPU(pressure, temperature, number_density,
-                                                                     nb_grid_points, grid_point,
-                                                                     absorption_coeff_device, scattering_coeff_device);
+  if (cross_section_available == true) calcAbsorptionCoefficientsGPU(
+    pressure,
+    temperature,
+    number_density,
+    nb_grid_points,
+    grid_point,
+    absorption_coeff_device,
+    scattering_coeff_device);
   
-  calcRalyleighCrossSectionsGPU(number_density, nb_grid_points, grid_point, scattering_coeff_device);
+  calcRalyleighCrossSectionsGPU(
+    number_density, nb_grid_points, grid_point, scattering_coeff_device);
 
-  calcContinuumAbsorptionGPU(temperature, number_densities, nb_grid_points, grid_point, absorption_coeff_device);
+  calcContinuumAbsorptionGPU(
+    temperature, number_densities, nb_grid_points, grid_point, absorption_coeff_device);
 }
-
 
 
 
@@ -444,12 +492,15 @@ bool OpacitySpecies::calcScatteringCrossSections(std::vector<double>& cross_sect
 
 
 
-
-double OpacitySpecies::generalRayleighCrossSection(double reference_density, double refractive_index, double king_correction_factor,
-                                                          double wavenumber)
+double OpacitySpecies::generalRayleighCrossSection(
+  double reference_density,
+  double refractive_index,
+  double king_correction_factor,
+  double wavenumber)
 {
   return 24. * pow(constants::pi, 3) * pow(wavenumber, 4) / (reference_density*reference_density)
-         * pow((refractive_index*refractive_index - 1) / (refractive_index*refractive_index + 2),2) * king_correction_factor;
+         * pow((refractive_index*refractive_index - 1) 
+         / (refractive_index*refractive_index + 2),2) * king_correction_factor;
 }
 
 

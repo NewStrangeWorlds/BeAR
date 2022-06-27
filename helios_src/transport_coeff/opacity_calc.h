@@ -33,7 +33,6 @@
 #include "../CUDA_kernels/cross_section_kernels.h"
 
 
-
 namespace helios{
 
 
@@ -112,7 +111,7 @@ inline void OpacityCalculation::calculateGPU(
     scattering_coeff_dev);
 
   for (size_t i=0; i<nb_grid_points; ++i)
-    transport_coeff.calcTransportCoefficientsGPU(
+    transport_coeff.calculateGPU(
       atmosphere->temperature[i], 
       atmosphere->pressure[i], 
       atmosphere->number_densities[i],
@@ -170,7 +169,7 @@ inline void OpacityCalculation::calculate(
     std::vector<double> absorption_coeff_level(nb_spectral_points, 0.0);
     std::vector<double> scattering_coeff_level(nb_spectral_points, 0.0);
 
-    transport_coeff.calcTransportCoefficients(
+    transport_coeff.calculate(
       atmosphere->temperature[i],
       atmosphere->pressure[i], 
       atmosphere->number_densities[i], 

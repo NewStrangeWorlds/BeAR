@@ -1,6 +1,22 @@
 
-
-#include "sampled_data.h"
+/*
+* This file is part of the Helios-r2 code (https://github.com/exoclime/Helios-r2).
+* Copyright (C) 2022 Daniel Kitzmann
+*
+* Helios-r2 is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* Helios-r2 is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You find a copy of the GNU General Public License in the main
+* Helios-r2 directory under <LICENSE>. If not, see
+* <http://www.gnu.org/licenses/>.
+*/
 
 
 #include <vector>
@@ -11,6 +27,7 @@
 #include <iomanip>
 #include <cmath>
 
+#include "sampled_data.h"
 
 #include "../CUDA_kernels/cross_section_kernels.h"
 #include "../CUDA_kernels/data_management_kernels.h"
@@ -28,7 +45,8 @@ void SampledData::deleteSampledData()
 
 
 
-void SampledData::sampleCrossSections(const std::vector<size_t>& sampling_list_indices, const double species_mass)
+void SampledData::sampleCrossSections(
+  const std::vector<size_t>& sampling_list_indices, const double species_mass)
 {
   if (!data_file.is_loaded) data_file.loadFile();
 
@@ -73,8 +91,6 @@ SampledData::~SampledData()
 {
   deleteFromDevice(cross_sections_device);
 }
-
-
 
 
 }
