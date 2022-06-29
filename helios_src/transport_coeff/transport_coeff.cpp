@@ -132,7 +132,8 @@ bool TransportCoefficients::addOpacitySpecies(
     if (constants::species_data[i].symbol == species_symbol)
     {
       gas_species.push_back(
-        new GasGeneric(config, spectral_grid, constants::species_data[i].id, constants::species_data[i].symbol, species_folder));
+        new GasGeneric(
+          config, spectral_grid, constants::species_data[i].id, constants::species_data[i].symbol, species_folder));
 
       return true;
     } 
