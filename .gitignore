@@ -17,5 +17,6 @@ multinest/libmultinest.so.3.10
 # Some test directories
 RetrievalTest/*
 TransmissionTest/*
+EmissionTest/*
 WASP-43b/*
 WASP-12b_test/*

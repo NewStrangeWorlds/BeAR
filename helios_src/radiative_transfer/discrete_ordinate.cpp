@@ -90,12 +90,16 @@ void DiscreteOrdinates::calcSpectrum(
   const std::vector< std::vector<double> >& cloud_asym_param,
   const double spectrum_scaling,
   std::vector<double>& spectrum)
-{
-  receiveTemperatureStructure(atmosphere.temperature, atmosphere.temperature[0]);
+{ 
+  for (size_t i=0; i<ds.size(); ++i)
+  {
+    setTemperatureStructure(atmosphere.temperature, atmosphere.temperature[0]);
+  }
 
 
+  #pragma omp parallel for
   for (size_t i=0; i<spectrum.size(); ++i)
-    spectrum[i] = calcSpectrum(absorption_coeff[i], scattering_coeff[i], cloud_optical_depth[i], atmosphere.altitude, i);
+    spectrum[i] = calcSpectrum(absorption_coeff[i], scattering_coeff[i], cloud_optical_depth[i], atmosphere.altitude, i) * spectrum_scaling;
 }
 
 
@@ -125,8 +129,7 @@ double DiscreteOrdinates::calcSpectrum(
   double surface_albedo = 0;
 
 
-  receiveTransportCoefficients(wavenumber, optical_depth, single_scattering_albedo, single_scattering_albedo, surface_albedo);
-
+  setOpticalDepth(wavenumber, optical_depth, single_scattering_albedo, single_scattering_albedo, surface_albedo);
 
   double incident_radiation = 0;
   double zenith_angle = 0.5;
@@ -149,9 +152,11 @@ void DiscreteOrdinates::calcRadiativeTransfer(
   std::vector<double>& flux_up,
   std::vector<double>& flux_down,
   std::vector<double>& mean_intensity)
-{
-  ds.bc.fbeam = incident_stellar_radiation;
-  ds.bc.umu0  = zenith_angle;
+{ 
+  const int thread(omp_get_thread_num());
+
+  ds[thread].bc.fbeam = incident_stellar_radiation;
+  ds[thread].bc.umu0  = zenith_angle;
 
 
   runDISORT(flux_up, flux_down, mean_intensity);
@@ -159,103 +164,126 @@ void DiscreteOrdinates::calcRadiativeTransfer(
 
 
 
-void DiscreteOrdinates::receiveTemperatureStructure(
+void DiscreteOrdinates::setTemperatureStructure(
   const std::vector<double>& temperature_structure,
   const double& surface_temperature)
 {
-  ds.bc.btemp   = surface_temperature;
 
-  for (size_t i=0; i<temperature_structure.size(); i++)
-    ds.temper[i] = temperature_structure[temperature_structure.size() - i - 1];
+  for (size_t j=0; j<ds.size(); ++j)
+  {
+    ds[j].bc.btemp = surface_temperature;
+
+    for (size_t i=0; i<temperature_structure.size(); i++)
+      ds[j].temper[i] = temperature_structure[temperature_structure.size() - i - 1];
+  }
+
 }
 
 
 
-void DiscreteOrdinates::receiveTransportCoefficients(
+void DiscreteOrdinates::setOpticalDepth(
   const double wavenumber_input,
   const std::vector<double>& optical_depth,
 	const std::vector<double>& single_scattering_albedo,
   const std::vector<double>& asymmetry_parameter,
 	const double surface_albedo)
-{
-  ds.bc.albedo  = surface_albedo;
+{ 
+  const int thread(omp_get_thread_num());
 
-  ds.wvnmlo = wavenumber_input;
-  ds.wvnmhi = wavenumber_input;
+  ds[thread].bc.albedo  = surface_albedo;
+
+  ds[thread].wvnmlo = wavenumber_input;
+  ds[thread].wvnmhi = wavenumber_input;
 
 
-  for (int lc = 0; lc < ds.nlyr; lc++)
+  for (int lc = 0; lc < ds[thread].nlyr; lc++)
   {
-    ds.dtauc[lc] = optical_depth[ds.nlyr - lc - 1];
-    ds.ssalb[lc] = single_scattering_albedo[ds.nlyr - lc - 1];
+    ds[thread].dtauc[lc] = optical_depth[ds[thread].nlyr - lc - 1];
+    ds[thread].ssalb[lc] = single_scattering_albedo[ds[thread].nlyr - lc - 1];
   }
 
-  for (int lc = 0; lc < ds.nlyr; lc++)
+  for (int lc = 0; lc < ds[thread].nlyr; lc++)
   {
-    double gg = asymmetry_parameter[ds.nlyr - lc - 1];
+    double gg = asymmetry_parameter[ds[thread].nlyr - lc - 1];
 
     if (gg > 0)
-      c_getmom(HENYEY_GREENSTEIN,gg,ds.nmom,&ds.pmom[0 + (lc)*(ds.nmom_nstr+1)]);
+      c_getmom(HENYEY_GREENSTEIN,gg,ds[thread].nmom,&ds[thread].pmom[0 + (lc)*(ds[thread].nmom_nstr+1)]);
     else
-      c_getmom(RAYLEIGH,gg,ds.nmom,&ds.pmom[0 + (lc)*(ds.nmom_nstr+1)]);
+      c_getmom(RAYLEIGH,gg,ds[thread].nmom,&ds[thread].pmom[0 + (lc)*(ds[thread].nmom_nstr+1)]);
   }
 
 }
 
 
 void DiscreteOrdinates::initDISORT(unsigned int nb_streams, unsigned int nb_layers)
-{
-  ds.nstr   = nb_streams;
-  ds.nphase = ds.nstr;
-  ds.nlyr   = nb_layers;
-  ds.nmom   = nb_streams;
-  ds.ntau   = 0;
-  ds.numu   = 0;
-  ds.nphi   = 0;
-  ds.flag.usrtau = 0;
-  ds.flag.planck = 1;
+{ 
+  disort_state ds_gen;
+
+  ds_gen.nstr   = nb_streams;
+  ds_gen.nphase = ds_gen.nstr;
+  ds_gen.nlyr   = nb_layers;
+  ds_gen.nmom   = nb_streams;
+  ds_gen.ntau   = 0;
+  ds_gen.numu   = 0;
+  ds_gen.nphi   = 0;
+  ds_gen.flag.usrtau = 0;
+  ds_gen.flag.planck = 1;
 
 
-  ds.accur = 0.;
-  //ds.flag.prnt[0]=TRUE, ds.flag.prnt[1]=TRUE, ds.flag.prnt[2]=TRUE, ds.flag.prnt[3]=TRUE, ds.flag.prnt[4]=TRUE;
-  ds.flag.prnt[0]=FALSE, ds.flag.prnt[1]=FALSE, ds.flag.prnt[2]=FALSE, ds.flag.prnt[3]=FALSE, ds.flag.prnt[4]=FALSE;
+  ds_gen.accur = 0.;
+  //ds_gen.flag.prnt[0]=TRUE, ds_gen.flag.prnt[1]=TRUE, ds_gen.flag.prnt[2]=TRUE, ds_gen.flag.prnt[3]=TRUE, ds_gen.flag.prnt[4]=TRUE;
+  ds_gen.flag.prnt[0]=FALSE, ds_gen.flag.prnt[1]=FALSE, ds_gen.flag.prnt[2]=FALSE, ds_gen.flag.prnt[3]=FALSE, ds_gen.flag.prnt[4]=FALSE;
 
-  ds.flag.ibcnd  = GENERAL_BC;
-  ds.flag.usrtau = FALSE;
-  ds.flag.usrang = FALSE;
-  ds.flag.lamber = TRUE;
-  ds.flag.onlyfl = TRUE;
-  ds.flag.quiet  = TRUE;
-  ds.flag.spher  = FALSE;
-  ds.flag.general_source = FALSE;
-  ds.flag.output_uum = FALSE;
-  ds.flag.intensity_correction = TRUE;
-  ds.flag.old_intensity_correction = FALSE;
+  ds_gen.flag.ibcnd  = GENERAL_BC;
+  ds_gen.flag.usrtau = FALSE;
+  ds_gen.flag.usrang = FALSE;
+  ds_gen.flag.lamber = TRUE;
+  ds_gen.flag.onlyfl = TRUE;
+  ds_gen.flag.quiet  = TRUE;
+  ds_gen.flag.spher  = FALSE;
+  ds_gen.flag.general_source = FALSE;
+  ds_gen.flag.output_uum = FALSE;
+  ds_gen.flag.intensity_correction = TRUE;
+  ds_gen.flag.old_intensity_correction = FALSE;
 
 
-  ds.bc.fisot = 0;
-  ds.bc.phi0  = 0.0;
-  ds.bc.fluor = 0.;
+  ds_gen.bc.fisot = 0;
+  ds_gen.bc.phi0  = 0.0;
+  ds_gen.bc.fluor = 0.;
 
-  ds.flag.brdf_type = BRDF_NONE;
+  ds_gen.flag.brdf_type = BRDF_NONE;
 
-  ds.bc.ttemp   = 0;
-  ds.bc.temis   = 0;
+  ds_gen.bc.ttemp   = 0;
+  ds_gen.bc.temis   = 0;
+
+
+  const int nb_cores(omp_get_max_threads());
+  
+  ds.assign(nb_cores, ds_gen);
+  out.resize(nb_cores);
 
 
   /* Allocate memory */
-  c_disort_state_alloc(&ds);
-  c_disort_out_alloc(&ds,&out);
+  for (int i=0; i<nb_cores; ++i)
+  {
+    c_disort_state_alloc(&ds[i]);
+    c_disort_out_alloc(&ds[i],&out[i]);
+  }
+
 }
 
 
 
 void DiscreteOrdinates::finaliseDISORT()
 {
+   const int nb_cores(omp_get_max_threads());
 
   //free allocated memory
-  c_disort_out_free(&ds,&out);
-  c_disort_state_free(&ds);
+  for (int i=0; i<nb_cores; ++i)
+  {
+    c_disort_out_free(&ds[i],&out[i]);
+    c_disort_state_free(&ds[i]);
+  }
 
 }
 
@@ -265,24 +293,23 @@ void DiscreteOrdinates::runDISORT(
   std::vector<double>& flux_up,
   std::vector<double>& flux_down,
   std::vector<double>& mean_intensity)
-{
-  int lc;
+{ 
+  const int thread(omp_get_thread_num());
 
-
-  if (c_planck_func2(ds.wvnmlo, ds.wvnmlo, ds.bc.btemp) > 1.e-35)
-    ds.flag.planck = TRUE;
+  if (c_planck_func2(ds[thread].wvnmlo, ds[thread].wvnmlo, ds[thread].bc.btemp) > 1.e-35)
+    ds[thread].flag.planck = TRUE;
   else
-    ds.flag.planck = FALSE;
+    ds[thread].flag.planck = FALSE;
 
 
-  c_disort(&ds,&out);
+  c_disort(&ds[thread],&out[thread]);
 
 
-  for (lc = 0; lc <= ds.nlyr; lc++)
+  for (int lc = 0; lc <= ds[thread].nlyr; lc++)
   {
-    flux_down[ds.nlyr - lc] = out.rad[lc].rfldir + out.rad[lc].rfldn;
-    flux_up[ds.nlyr - lc] = out.rad[lc].flup;
-    mean_intensity[ds.nlyr - lc] = out.rad[lc].uavg;
+    flux_down[ds[thread].nlyr - lc] = out[thread].rad[lc].rfldir + out[thread].rad[lc].rfldn;
+    flux_up[ds[thread].nlyr - lc] = out[thread].rad[lc].flup;
+    mean_intensity[ds[thread].nlyr - lc] = out[thread].rad[lc].uavg;
   }
 
 }

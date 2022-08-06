@@ -72,8 +72,8 @@ class DiscreteOrdinates : public RadiativeTransfer{
   private:
     SpectralGrid* spectral_grid;
 
-    disort_state ds;
-    disort_output out;
+    std::vector<disort_state> ds;
+    std::vector<disort_output> out;
 
     double calcSpectrum(
       const std::vector<double> absorption_coeff,
@@ -85,10 +85,10 @@ class DiscreteOrdinates : public RadiativeTransfer{
       std::vector<double>& flux_up,
       std::vector<double>& flux_down,
       std::vector<double>& mean_intensity);
-    void receiveTemperatureStructure(
+    void setTemperatureStructure(
       const std::vector<double>& temperature_structure,
       const double& surface_temperature);
-    void receiveTransportCoefficients(
+    void setOpticalDepth(
       const double wavenumber_input,
       const std::vector<double>& optical_depth,
 	    const std::vector<double>& single_scattering_albedo,
