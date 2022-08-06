@@ -31,7 +31,9 @@
 #include "../additional/exceptions.h"
 
 #include "piecewise_poly_temperature.h"
+#include "milne_solution_temperature.h"
 #include "constant_temperature.h"
+#include "cubic_b_spline_temperature.h"
 
 
 namespace helios {
@@ -39,8 +41,8 @@ namespace helios {
 //definition of the different chemistry modules with an
 //identifier, a keyword to be located in the config file and a short version of the keyword
 namespace temp_profile_modules{
-  enum id {poly, constant}; 
-  const std::vector<std::string> description {"poly", "const"};
+  enum id {poly, milne, constant, cubicbspline}; 
+  const std::vector<std::string> description {"poly", "milne", "const", "cubicbspline"};
 }
 
 
@@ -89,6 +91,28 @@ inline Temperature* selectTemperatureProfile(
             std::stoi(parameters[1]),
             atmos_boundaries);
         temperature_profile = temp;  
+      }
+      break;
+
+    case temp_profile_modules::milne :
+      {
+        MilneTemperature* temp = new MilneTemperature();
+        temperature_profile = temp;
+      }
+      break;
+
+    case temp_profile_modules::cubicbspline :
+      {
+        if (parameters.size() != 1)
+        {
+          std::string error_message = 
+            "Cubic B spline temperature profile requires exactly one parameter!\n";
+          throw InvalidInput(std::string ("forward_model.config"), error_message);
+        }
+        {
+          CubicBSplineTemperature* temp = new CubicBSplineTemperature(std::stoi(parameters[0]));
+          temperature_profile = temp;
+        }
       }
       break;
 

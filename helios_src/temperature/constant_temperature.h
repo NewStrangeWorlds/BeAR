@@ -35,7 +35,14 @@ class ConstantTemperature : public Temperature{
   public:
     ConstantTemperature() {nb_parameters = 1;}
     virtual ~ConstantTemperature() {}
-    virtual bool calcProfile(const std::vector<double>& parameters, const std::vector<double>& pressure, std::vector<double>& temperature) {temperature.assign(pressure.size(), parameters[0]); return false;}
+    virtual bool calcProfile(
+      const std::vector<double>& parameters,
+      const double surface_gravity,
+      const std::vector<double>& pressure,
+      std::vector<double>& temperature) {
+        temperature.assign(pressure.size(), parameters[0]);
+        return false;
+      }
 };
 
 

@@ -1,6 +1,6 @@
 /*
 * This file is part of the Helios-r2 code (https://github.com/exoclime/Helios-r2).
-* Copyright (C) 2020 Daniel Kitzmann
+* Copyright (C) 2022 Daniel Kitzmann
 *
 * Helios-r2 is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -18,33 +18,28 @@
 */
 
 
-#ifndef _piecewise_poly_temperature_h
-#define _piecewise_poly_temperature_h
+#ifndef _cubic_b_spline_temperature_h
+#define _cubic_b_spline_temperature_h
 
 #include "temperature.h"
 
-#include "../additional/piecewise_poly.h"
-
 #include <vector>
-
 
 
 namespace helios {
 
 
-class PiecewisePolynomialTemperature : public Temperature{
+class CubicBSplineTemperature : public Temperature{
   public:
-    PiecewisePolynomialTemperature(const size_t nb_elements_in, const size_t polynomial_degree_in, const double atmos_boundaries [2]);
-    virtual ~PiecewisePolynomialTemperature() {}
+    CubicBSplineTemperature(const size_t nb_control_points_);
+    virtual ~CubicBSplineTemperature() {}
     virtual bool calcProfile(
       const std::vector<double>& parameters,
       const double surface_gravity,
       const std::vector<double>& pressure,
       std::vector<double>& temperature);
   private:
-    PiecewisePolynomial temperature_profile;
-    const size_t nb_elements {}; 
-    const size_t polynomial_degree {};
+     const size_t nb_control_points;
 };
 
 

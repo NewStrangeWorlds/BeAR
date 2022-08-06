@@ -30,7 +30,11 @@ namespace helios {
 class Temperature{
   public:
     virtual ~Temperature() {}
-    virtual bool calcProfile(const std::vector<double>& parameters, const std::vector<double>& vertical_grid, std::vector<double>& temperature_profile) = 0;
+    virtual bool calcProfile(
+      const std::vector<double>& parameters,
+      const double surface_gravity,
+      const std::vector<double>& vertical_grid,
+      std::vector<double>& temperature_profile) = 0;
     size_t nbParameters() {return nb_parameters;}
   protected:
     size_t nb_parameters {};

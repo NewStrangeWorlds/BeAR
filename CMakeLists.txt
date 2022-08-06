@@ -114,6 +114,8 @@ set(SRC
   helios_src/chemistry/fastchem_chemistry.cpp
   helios_src/chemistry/free_chemistry.cpp
   helios_src/temperature/piecewise_poly_temperature.cpp
+  helios_src/temperature/cubic_b_spline_temperature.cpp
+  helios_src/temperature/milne_solution_temperature.cpp
   helios_src/radiative_transfer/cdisort_src/cdisort.c
   helios_src/radiative_transfer/cdisort_src/locate.c)
   

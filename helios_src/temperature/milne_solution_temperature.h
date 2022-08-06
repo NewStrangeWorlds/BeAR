@@ -18,33 +18,36 @@
 */
 
 
-#ifndef _piecewise_poly_temperature_h
-#define _piecewise_poly_temperature_h
+#ifndef _milne_solution_temperature_h
+#define _milne_solution_temperature_h
 
-#include "temperature.h"
-
-#include "../additional/piecewise_poly.h"
-
+#include <iostream>
 #include <vector>
 
+#include "temperature.h"
 
 
 namespace helios {
 
 
-class PiecewisePolynomialTemperature : public Temperature{
+class MilneTemperature : public Temperature{
   public:
-    PiecewisePolynomialTemperature(const size_t nb_elements_in, const size_t polynomial_degree_in, const double atmos_boundaries [2]);
-    virtual ~PiecewisePolynomialTemperature() {}
+    MilneTemperature() {
+        nb_parameters = 2;
+        std::cout << "\n- Temperature profile: Milne's solution\n\n";
+      }
+    virtual ~MilneTemperature() {}
     virtual bool calcProfile(
       const std::vector<double>& parameters,
       const double surface_gravity,
       const std::vector<double>& pressure,
       std::vector<double>& temperature);
   private:
-    PiecewisePolynomial temperature_profile;
-    const size_t nb_elements {}; 
-    const size_t polynomial_degree {};
+    //fit coefficients for the Hopf function
+    const std::vector<double> fit_p {0.6162, -0.3799, 2.395, -2.041, 2.578};
+    const std::vector<double> fit_q {-0.9799, 3.917, -3.17, 3.69};
+
+    double hopfFunction(const double optical_depth);
 };
 
 

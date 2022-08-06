@@ -43,7 +43,11 @@ PiecewisePolynomialTemperature::PiecewisePolynomialTemperature(const size_t nb_e
 
 //calculate the temperature by a piecewise polynomial 
 //the temperature will be evaluated on all points given by the pressure vector
-bool PiecewisePolynomialTemperature::calcProfile(const std::vector<double>& parameters, const std::vector<double>& pressure, std::vector<double>& temperature)
+bool PiecewisePolynomialTemperature::calcProfile(
+  const std::vector<double>& parameters,
+  const double surface_gravity,
+  const std::vector<double>& pressure,
+  std::vector<double>& temperature)
 {
   temperature.assign(pressure.size(), 0);
 

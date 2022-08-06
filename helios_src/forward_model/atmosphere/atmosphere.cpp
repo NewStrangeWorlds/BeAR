@@ -70,7 +70,7 @@ bool Atmosphere::calcAtmosphereStructure(
 
   //temperature profile
   bool neglect_temperature = temperature_profile->calcProfile(
-    temp_parameters, pressure, temperature);
+    temp_parameters, surface_gravity, pressure, temperature);
 
   if (neglect_temperature) neglect_model = true;
 
