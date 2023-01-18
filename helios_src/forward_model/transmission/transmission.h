@@ -59,7 +59,7 @@ struct TransmissionModelConfig{
   double atmos_top_pressure = 0;
   double atmos_bottom_pressure = 0;
 
-  //bool use_cloud_layer = false;
+  bool use_cloud_model = false;
 
   std::string temperature_profile_model;
   std::vector<std::string> temperature_profile_parameters;
@@ -67,14 +67,15 @@ struct TransmissionModelConfig{
   std::vector<std::string> chemistry_model;
   std::vector<std::vector<std::string>> chemistry_parameters;
 
-  std::string cloud_model;
-  std::vector<std::string> cloud_model_parameters;
+  std::vector<std::string> cloud_model;
+  std::vector<std::vector<std::string>> cloud_model_parameters;
 
   std::vector<std::string> opacity_species_symbol;
   std::vector<std::string> opacity_species_folder;
 
   TransmissionModelConfig (const std::string& folder_path);
   void readConfigFile(const std::string& file_name);
+  void readCloudConfig(std::fstream& file);
   void readChemistryConfig(std::fstream& file);
   void readOpacityConfig(std::fstream& file);
 };
@@ -105,6 +106,8 @@ class TransmissionModel : public ForwardModel{
       const std::vector< std::vector<double> >& model_parameter, 
       const std::vector< std::vector<double> >& model_spectrum_bands,
       const size_t best_fit_model);
+
+    virtual std::vector<double> convertSpectrumToModel(const std::vector<double>& spectrum);
     
     virtual bool testModel(
       const std::vector<double>& parameter, 
@@ -120,6 +123,7 @@ class TransmissionModel : public ForwardModel{
     Temperature* temperature_profile = nullptr;
     std::vector<Chemistry*> chemistry;
     CloudModel* cloud_model = nullptr;
+    std::vector<CloudModel*> cloud_models;
 
     std::vector<Observation>& observations;
     size_t nb_observation_points = 0;
@@ -127,13 +131,16 @@ class TransmissionModel : public ForwardModel{
     size_t nb_general_param = 0;
     size_t nb_total_chemistry_param = 0;
     size_t nb_temperature_param = 0;
-    size_t nb_cloud_param = 0;
+    size_t nb_total_cloud_param = 0;
 
     size_t nb_total_param() {
-        return nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_cloud_param;
+        return nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_total_cloud_param;
       }
     
     size_t nb_grid_points = 0;
+
+    std::vector<std::vector<double>> cloud_extinction;
+    double* cloud_extinction_gpu = nullptr;
 
     virtual void setPriors(Priors* priors);
 
@@ -170,6 +177,7 @@ class TransmissionModel : public ForwardModel{
       double* transit_radius_dev, 
       double* absorption_coeff_dev, 
       double* scattering_coeff_dev, 
+      double* cloud_extinction_coeff_dev, 
       const Atmosphere& atmosphere, 
       const size_t nb_spectral_points, 
       const double radius_planet, 

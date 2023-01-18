@@ -120,9 +120,15 @@ double TransmissionModel::tangentOpticalDepth(
     const double path_length = distanceToTangentCenter(tangent_radius, i+1, bottom_radius) 
                             -  distanceToTangentCenter(tangent_radius, i, bottom_radius);
 
-    const double extinction_coeff1 = opacity_calc.absorption_coeff[wavelength][i] + opacity_calc.scattering_coeff[wavelength][i];
-    const double extinction_coeff2 = opacity_calc.absorption_coeff[wavelength][i+1] + opacity_calc.scattering_coeff[wavelength][i+1];
-    
+    const double extinction_coeff1 = 
+        opacity_calc.absorption_coeff[wavelength][i] 
+      + opacity_calc.scattering_coeff[wavelength][i]
+      + cloud_extinction[wavelength][i];
+    const double extinction_coeff2 = 
+        opacity_calc.absorption_coeff[wavelength][i+1] 
+      + opacity_calc.scattering_coeff[wavelength][i+1]
+      + cloud_extinction[wavelength][i+1];
+
     //account for both hemispheres by multiplying the results by 2
     //note: this cancels the factor of 0.5 from the trapezoidal rule
     tangent_optical_depth += path_length * (extinction_coeff1 + extinction_coeff2);

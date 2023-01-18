@@ -33,7 +33,7 @@ class Temperature{
     virtual bool calcProfile(
       const std::vector<double>& parameters,
       const double surface_gravity,
-      const std::vector<double>& vertical_grid,
+      const std::vector<double>& pressure,
       std::vector<double>& temperature_profile) = 0;
     size_t nbParameters() {return nb_parameters;}
   protected:

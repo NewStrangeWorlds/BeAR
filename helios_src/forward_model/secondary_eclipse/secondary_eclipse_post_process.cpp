@@ -258,6 +258,15 @@ void SecondaryEclipseModel::saveContributionFunctions(
 }
 
 
+std::vector<double> SecondaryEclipseModel::convertSpectrumToModel(const std::vector<double>& spectrum)
+{
+  //the high-res spectrum is already a secondary eclipse depth in ppm
+  std::vector<double> model_spectrum = spectrum;
+
+  return model_spectrum;
+}
+
+
 
 }
 

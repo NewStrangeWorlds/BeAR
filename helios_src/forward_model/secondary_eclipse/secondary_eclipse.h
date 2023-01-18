@@ -108,6 +108,8 @@ class SecondaryEclipseModel : public ForwardModel{
       const std::vector< std::vector<double> >& model_spectrum_bands,
       const size_t best_fit_model);
 
+    virtual std::vector<double> convertSpectrumToModel(const std::vector<double>& spectrum);
+
     virtual bool testModel(
       const std::vector<double>& parameter,
       double* model_spectrum_gpu);

@@ -138,6 +138,15 @@ void TransmissionModel::savePostProcessTemperatures(const std::vector<std::vecto
 }
 
 
+std::vector<double> TransmissionModel::convertSpectrumToModel(const std::vector<double>& spectrum)
+{
+  //the high-res spectrum is already a transit depth
+  std::vector<double> model_spectrum = spectrum;
+
+  return model_spectrum;
+}
+
+
 
 }
 

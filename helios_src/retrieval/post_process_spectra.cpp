@@ -67,7 +67,9 @@ void PostProcess::postProcessSpectra(std::vector< std::vector<double> >& model_s
 //Save the high-res spectrum of the best-fit model
 //the saved spectrum will have units of W m-2 mu-1 instead of W m-2 cm used internally 
 void PostProcess::saveBestFitSpectrum(const std::vector<double>& spectrum)
-{
+{ 
+  std::vector<double> model_spectrum = forward_model->convertSpectrumToModel(spectrum);
+
   std::string file_name = config->retrieval_folder_path + "/spectrum_best_fit_hr.dat";
 
   std::fstream file(file_name.c_str(), std::ios::out);
@@ -76,7 +78,7 @@ void PostProcess::saveBestFitSpectrum(const std::vector<double>& spectrum)
   for (size_t i=0; i<spectrum.size(); ++i)
     file << std::setprecision(10) << std::scientific
          << spectral_grid.wavelength_list[i] << "\t"
-         << spectrum[i]/spectral_grid.wavelength_list[i]/spectral_grid.wavelength_list[i]*10000.0 << "\n";
+         << model_spectrum[i] << "\n";
 
 
   file.close();

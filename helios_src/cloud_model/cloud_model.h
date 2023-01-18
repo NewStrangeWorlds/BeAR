@@ -47,11 +47,45 @@ class CloudModel{
       double* optical_depth_dev, 
       double* single_scattering_dev, 
       double* asym_param) = 0;
-
+    void convertOpticalDepth(
+      std::vector<std::vector<double>>& optical_depth,
+      std::vector<std::vector<double>>& extinction_coeff,
+      std::vector<double>& altitude);
+    void convertOpticalDepthGPU(
+      double* optical_depth_dev,
+      double* altitude,
+      const size_t nb_grid_points,
+      const size_t nb_spectral_points,
+      double* extinction_coeff_dev);
     size_t nbParameters() {return nb_parameters;}
   protected:
     size_t nb_parameters {};
 };
+
+
+//converts the layer optical depth to a level-based extinction coefficient
+inline void CloudModel::convertOpticalDepth(
+  std::vector<std::vector<double>>& optical_depth,
+  std::vector<std::vector<double>>& extinction_coeff,
+  std::vector<double>& altitude)
+{ 
+  size_t nb_spectral_points = optical_depth.size();
+  size_t nb_grid_points = optical_depth[0].size() + 1;
+
+  extinction_coeff.assign(nb_spectral_points, std::vector<double>(nb_grid_points, 0.0));
+
+  for (size_t i=0; i<nb_spectral_points; ++i)
+    for (size_t j=1; j<nb_grid_points; ++j)
+    {
+      double delta_z = altitude[j] - altitude[j-1];
+
+      //convert optical depth to extinction coefficient
+      //uses a finite difference to approximate the derivative
+      extinction_coeff[i][j] = optical_depth[i][j-1] / delta_z;
+    }
+
+
+}
 
 
 }

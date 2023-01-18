@@ -60,7 +60,7 @@ TransmissionModel::TransmissionModel (
         model_config.opacity_species_symbol,
         model_config.opacity_species_folder,
         config->use_gpu,
-        model_config.cloud_model != "none")
+        model_config.use_cloud_model)
     , observations(observations_)
 {
   nb_grid_points = model_config.nb_grid_points;
@@ -120,17 +120,26 @@ bool TransmissionModel::calcModel(
 
   std::vector<double> cloud_parameters(
       parameter.begin() + nb_general_param + nb_total_chemistry_param + nb_temperature_param,
-      parameter.begin() + nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_cloud_param);
+      parameter.begin() + nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_total_cloud_param);
 
-  std::vector<CloudModel*> cm = {cloud_model};
-
-  opacity_calc.calculate(cm, cloud_parameters);
-
+  opacity_calc.calculate(cloud_models, cloud_parameters);
 
   spectrum.assign(spectral_grid->nbSpectralPoints(), 0.0);
 
   const double bottom_radius = parameter[1] * constants::radius_jupiter;
   const double star_radius = parameter[2] * constants::radius_sun;
+  
+  cloud_extinction.assign(
+      spectral_grid->nbSpectralPoints(), 
+      std::vector<double>(nb_grid_points, 0.0));
+
+  if (cloud_models.size() > 0)
+  {
+    cloud_models[0]->convertOpticalDepth(
+      opacity_calc.cloud_optical_depths, 
+      cloud_extinction, 
+      atmosphere.altitude);
+  }
 
   calcTransmissionSpectrum(bottom_radius, star_radius, spectrum);
 
@@ -152,11 +161,26 @@ bool TransmissionModel::calcModelGPU(
 
   std::vector<double> cloud_parameters(
       parameter.begin() + nb_general_param + nb_total_chemistry_param + nb_temperature_param,
-      parameter.begin() + nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_cloud_param);
+      parameter.begin() + nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_total_cloud_param);
 
-  std::vector<CloudModel*> cm = {cloud_model};
 
-  opacity_calc.calculateGPU(cm, cloud_parameters);
+  opacity_calc.calculateGPU(cloud_models, cloud_parameters);
+
+
+  if (cloud_extinction_gpu == nullptr)
+    allocateOnDevice(cloud_extinction_gpu, nb_grid_points*spectral_grid->nbSpectralPoints());
+
+  if (cloud_models.size() > 0)
+  { 
+    intializeOnDevice(cloud_extinction_gpu, nb_grid_points*spectral_grid->nbSpectralPoints());
+
+    cloud_models[0]->convertOpticalDepthGPU(
+      opacity_calc.cloud_optical_depths_dev,
+      atmosphere.altitude_dev,
+      nb_grid_points,
+      spectral_grid->nbSpectralPoints(),
+      cloud_extinction_gpu);
+  }
 
 
   const double bottom_radius = parameter[1] * constants::radius_jupiter;
@@ -166,6 +190,7 @@ bool TransmissionModel::calcModelGPU(
     model_spectrum_gpu, 
     opacity_calc.absorption_coeff_gpu, 
     opacity_calc.scattering_coeff_dev, 
+    cloud_extinction_gpu,
     atmosphere,
     spectral_grid->nbSpectralPoints(), 
     bottom_radius,
@@ -225,6 +250,9 @@ TransmissionModel::~TransmissionModel()
   
   for (auto & i : chemistry)
     delete i;
+
+  if (cloud_extinction_gpu != nullptr)
+    deleteFromDevice(cloud_extinction_gpu);
 }
 
 

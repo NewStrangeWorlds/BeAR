@@ -54,7 +54,7 @@ void TransmissionModel::setPriors(Priors* priors)
       + " priors in priors.config but expected " 
       + std::to_string(nb_total_param()) + "\n";
     
-    throw InvalidInput(std::string ("EmissionModel::setPriors"), error_message);
+    throw InvalidInput(std::string ("TransmissionModel::setPriors"), error_message);
   }
 
 

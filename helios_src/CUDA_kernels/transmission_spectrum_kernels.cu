@@ -72,7 +72,8 @@ __forceinline__ __device__ double tangentPathsTransmission(
   const int nb_spectral_points, 
   double* altitudes, 
   double* absorption_coeff, 
-  double* scattering_coeff)
+  double* scattering_coeff,
+  double* cloud_extinction_coeff)
 {
   double optical_depth = 0;
   double altitude1 = altitudes[tangent_radius_index]+0.01;
@@ -80,7 +81,8 @@ __forceinline__ __device__ double tangentPathsTransmission(
   const double tangent_radius = altitudes[tangent_radius_index];
 
   double extinction_coeff1 = absorption_coeff[(tangent_radius_index)*nb_spectral_points + wavelength_index] 
-                           + scattering_coeff[(tangent_radius_index)*nb_spectral_points + wavelength_index];
+                           + scattering_coeff[(tangent_radius_index)*nb_spectral_points + wavelength_index] 
+                           + cloud_extinction_coeff[(tangent_radius_index)*nb_spectral_points + wavelength_index];
   double extinction_coeff2;
 
   for (int i=tangent_radius_index; i<nb_grid_points-1; ++i)
@@ -88,7 +90,8 @@ __forceinline__ __device__ double tangentPathsTransmission(
     altitude2 = altitudes[i+1];
 
     extinction_coeff2 = absorption_coeff[(i+1)*nb_spectral_points + wavelength_index] 
-                      + scattering_coeff[(i+1)*nb_spectral_points + wavelength_index];
+                      + scattering_coeff[(i+1)*nb_spectral_points + wavelength_index]
+                      + cloud_extinction_coeff[(i+1)*nb_spectral_points + wavelength_index];
 
     optical_depth += tangentOpticalDepth(
       tangent_radius, 
@@ -115,7 +118,8 @@ __device__ double effectiveTangentHeight(
   const int nb_spectral_points, 
   double* altitudes, 
   double* absorption_coeff, 
-  double* scattering_coeff, 
+  double* scattering_coeff,
+  double* cloud_extinction_coeff,
   const double radius_planet)
 {
   double effective_tangent_height = 0;
@@ -137,7 +141,8 @@ __device__ double effectiveTangentHeight(
       nb_spectral_points, 
       altitudes, 
       absorption_coeff, 
-      scattering_coeff);
+      scattering_coeff,
+      cloud_extinction_coeff);
 
     effective_tangent_height += 2. * ( (radius_planet + altitude1) * (1. - path_transmission1)
                                      + (radius_planet + altitude2) * (1. - path_transmission2) )
@@ -165,6 +170,7 @@ __global__ void transitDepthDev(
   double* transit_radius,
   double* absorption_coeff, 
   double* scattering_coeff,
+  double* cloud_extinction_coeff,
   double* altitudes, 
   const int nb_spectral_points, 
   const int nb_grid_points,
@@ -179,7 +185,8 @@ __global__ void transitDepthDev(
       nb_spectral_points, 
       altitudes, 
       absorption_coeff, 
-      scattering_coeff, 
+      scattering_coeff,
+      cloud_extinction_coeff,
       radius_planet) + radius_planet;
 
     transit_radius[i] = transit_radius[i]*transit_radius[i]/(radius_star_sqr) * 1e6;
@@ -193,6 +200,7 @@ __host__ void  TransmissionModel::calcTransitDepthGPU(
   double* transit_radius_dev, 
   double* absorption_coeff_dev, 
   double* scattering_coeff_dev, 
+  double* cloud_extinction_dev, 
   const Atmosphere& atmosphere, 
   const size_t nb_spectral_points, 
   const double radius_planet, 
@@ -208,6 +216,7 @@ __host__ void  TransmissionModel::calcTransitDepthGPU(
     transit_radius_dev, 
     absorption_coeff_dev, 
     scattering_coeff_dev, 
+    cloud_extinction_dev,
     atmosphere.altitude_dev, 
     nb_spectral_points, 
     nb_grid_points, 

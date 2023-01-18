@@ -51,6 +51,8 @@ class ForwardModel{
       const std::vector< std::vector<double> >& model_parameter, 
       const std::vector< std::vector<double> >& model_spectrum_bands,
       const size_t best_fit_model) = 0;
+    //converts a high-resolution spectrum to a model observation (e.g. a transit depth)
+    virtual std::vector<double> convertSpectrumToModel(const std::vector<double>& spectrum) = 0;
     //model-specific tests
     virtual bool testModel(
       const std::vector<double>& parameter, 

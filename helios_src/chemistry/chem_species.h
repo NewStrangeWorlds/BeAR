@@ -27,7 +27,7 @@
 
 namespace helios{
 
-enum chemical_species_id {_TOTAL, _H, _He, _C, _O, _Fe, _Fep, _Ca, _Ti, _Tip, _H2, _H2O, _CO2, _CO, _CH4, _HCN, _NH3, _C2H2, _N2, _Na, _K, _H2S, _Hm, _TiO, _VO, _FeH, _SH, _MgO, _AlO, _CaO, _CrH, _MgH, _CaH, _TiH, _e, _V, _Vp, _Mn, _Si, _Cr, _Crp};
+enum chemical_species_id {_TOTAL, _H, _He, _C, _O, _Fe, _Fep, _Ca, _Ti, _Tip, _H2, _H2O, _CO2, _CO, _CH4, _HCN, _NH3, _C2H2, _N2, _Na, _K, _H2S, _Hm, _TiO, _VO, _FeH, _SH, _MgO, _AlO, _CaO, _CrH, _MgH, _CaH, _TiH, _OH, _e, _V, _Vp, _Mn, _Si, _Cr, _Crp};
 
 
 struct chemistry_data{
@@ -75,6 +75,7 @@ const std::vector<chemistry_data> species_data{ {_TOTAL, "Total", "Total",  0.0}
                                                 {_MgH,   "MgH",   "H1Mg1",  26.3209},
                                                 {_CaH,   "CaH",   "Ca1H1",  41.0859},
                                                 {_TiH,   "TiH",   "H1Ti1",  48.87484},
+                                                {_OH,    "OH",    "H1O1",   17.008},
                                                 {_e,     "e-",    "e-",     5.4857990907e-4},
                                                 {_V,     "V",     "V",      50.9415},
                                                 {_Vp,    "V+",    "V1+",    50.9415},
