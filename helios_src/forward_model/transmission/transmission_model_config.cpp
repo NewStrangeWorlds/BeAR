@@ -96,8 +96,6 @@ void TransmissionModelConfig::readConfigFile(const std::string& file_name)
   if (cloud_model.front() != "none") use_cloud_model = true;
 
 
-  //std::getline(file, line);
-
   readChemistryConfig(file);
 
   readOpacityConfig(file);

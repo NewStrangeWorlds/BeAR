@@ -72,9 +72,18 @@ void SecondaryEclipseModel::initModules(const SecondaryEclipseConfig& model_conf
   nb_temperature_param = temperature_profile->nbParameters();
 
 
-  cloud_model = selectCloudModel(model_config.cloud_model, model_config.cloud_model_parameters);
-
-  if (cloud_model != nullptr) nb_cloud_param = cloud_model->nbParameters();
+  cloud_models.assign(model_config.cloud_model.size(), nullptr);
+  
+  for (size_t i=0; i<model_config.cloud_model.size(); ++i)
+    cloud_models[i] = selectCloudModel(
+      model_config.cloud_model[i], 
+      model_config.cloud_model_parameters[i]);
+  
+  //count the total number of free parameters for the cloud modules
+  nb_total_cloud_param = 0;
+  
+  for (auto & i : cloud_models)
+    nb_total_cloud_param += i->nbParameters();
 }
 
 

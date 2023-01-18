@@ -90,30 +90,16 @@ void EmissionModelConfig::readConfigFile(const std::string& file_name)
   std::cout << "\n";
 
 
-  std::getline(file, line);
-  std::getline(file, line);
-
-
   //cloud model input
   std::getline(file, line);
 
-  input_stream.str(line); input_stream.clear();
+  readCloudConfig(file);
 
-  input_stream >> cloud_model;
-
-  while (input_stream >> input)
-    cloud_model_parameters.push_back(input);
-
-  std::cout << "- Cloud model: " << cloud_model;
-  for (auto & i : cloud_model_parameters) std::cout << "  " << i;
-  std::cout << "\n";
-
-
-  std::getline(file, line);
-  std::getline(file, line);
+  if (cloud_model.front() != "none") use_cloud_model = true;
 
 
   //the radiative transfer input
+  std::getline(file, line);
   std::getline(file, line);
 
   input_stream.str(line); input_stream.clear();
@@ -160,6 +146,33 @@ void EmissionModelConfig::readChemistryConfig(std::fstream& file)
 
     while (input >> param)
       chemistry_parameters.back().push_back(param);
+  }
+
+}
+
+
+
+void EmissionModelConfig::readCloudConfig(std::fstream& file)
+{
+  std::string line;
+  std::getline(file, line);
+
+  while (std::getline(file, line) && line.size() != 0)
+  { 
+    std::istringstream input(line);
+    
+    std::string model;
+    input >> model;
+
+    std::cout << "- Cloud model: " << model << "\n";
+    
+    cloud_model.push_back(model);
+    cloud_model_parameters.resize(cloud_model_parameters.size()+1);
+
+    std::string param;
+
+    while (input >> param)
+      cloud_model_parameters.back().push_back(param);
   }
 
 }

@@ -59,7 +59,7 @@ struct SecondaryEclipseConfig{
 
   std::string stellar_spectrum_file = "";
 
-  bool use_cloud_layer = false;
+  bool use_cloud_model = false;
 
   std::string temperature_profile_model;
   std::vector<std::string> temperature_profile_parameters;
@@ -70,14 +70,15 @@ struct SecondaryEclipseConfig{
   std::vector<std::string> chemistry_model;
   std::vector<std::vector<std::string>> chemistry_parameters;
 
-  std::string cloud_model;
-  std::vector<std::string> cloud_model_parameters;
+  std::vector<std::string> cloud_model;
+  std::vector<std::vector<std::string>> cloud_model_parameters;
 
   std::vector<std::string> opacity_species_symbol;
   std::vector<std::string> opacity_species_folder;
 
   SecondaryEclipseConfig (const std::string& folder_path);
   void readConfigFile(const std::string& file_name);
+  void readCloudConfig(std::fstream& file);
   void readChemistryConfig(std::fstream& file);
   void readOpacityConfig(std::fstream& file);
 };
@@ -123,7 +124,7 @@ class SecondaryEclipseModel : public ForwardModel{
     RadiativeTransfer* radiative_transfer = nullptr;
     Temperature* temperature_profile = nullptr;
     std::vector<Chemistry*> chemistry;
-    CloudModel* cloud_model = nullptr;
+    std::vector<CloudModel*> cloud_models;
 
     std::vector<Observation>& observations;
     size_t nb_observation_points = 0;
@@ -132,10 +133,10 @@ class SecondaryEclipseModel : public ForwardModel{
     size_t nb_general_param = 0;
     size_t nb_total_chemistry_param = 0;
     size_t nb_temperature_param = 0;
-    size_t nb_cloud_param = 0;
+    size_t nb_total_cloud_param = 0;
 
     size_t nb_total_param() {
-      return nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_cloud_param;
+      return nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_total_cloud_param;
     }
 
     StellarSpectrum stellar_spectrum;

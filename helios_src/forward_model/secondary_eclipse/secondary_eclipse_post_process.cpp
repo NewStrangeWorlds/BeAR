@@ -175,11 +175,9 @@ void SecondaryEclipseModel::postProcessContributionFunctions(
 {
   std::vector<double> cloud_parameters(
       parameter.begin() + nb_general_param + nb_total_chemistry_param + nb_temperature_param,
-      parameter.begin() + nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_cloud_param);
+      parameter.begin() + nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_total_cloud_param);
 
-  std::vector<CloudModel*> cm = {cloud_model};
-
-  opacity_calc.calculateGPU(cm, cloud_parameters);
+  opacity_calc.calculateGPU(cloud_models, cloud_parameters);
 
   double* contribution_functions_dev = nullptr;
   size_t nb_spectral_points = spectral_grid->nbSpectralPoints();

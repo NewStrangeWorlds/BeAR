@@ -1,0 +1,12 @@
+#observation description
+#instrument
+CHEOPS Photometry
+
+#type
+photometry
+
+#filter transmission function
+../telescope_data/CHEOPS_bandpass.dat
+
+#lower wavelength (micron)  upper wavelength (micron)   eclipse depth   error
+0.33	                    1.10	                    80              60

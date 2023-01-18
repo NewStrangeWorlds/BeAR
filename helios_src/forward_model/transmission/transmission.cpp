@@ -246,7 +246,9 @@ void TransmissionModel::postProcessSpectrumGPU(
 TransmissionModel::~TransmissionModel()
 {
   delete temperature_profile;
-  delete cloud_model;
+
+  for (auto & i : cloud_models)
+    delete i;
   
   for (auto & i : chemistry)
     delete i;

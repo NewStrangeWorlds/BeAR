@@ -60,7 +60,7 @@ EmissionModel::EmissionModel (
         model_config.opacity_species_symbol,
         model_config.opacity_species_folder,
         config->use_gpu,
-        model_config.cloud_model != "none")
+        model_config.use_cloud_model)
     , observations(observations_)
 {
   nb_grid_points = model_config.nb_grid_points;
@@ -149,11 +149,9 @@ bool EmissionModel::calcModel(
 
   std::vector<double> cloud_parameters(
       parameter.begin() + nb_general_param + nb_total_chemistry_param + nb_temperature_param,
-      parameter.begin() + nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_cloud_param);
+      parameter.begin() + nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_total_cloud_param);
 
-  std::vector<CloudModel*> cm = {cloud_model};
-
-  opacity_calc.calculate(cm, cloud_parameters);
+  opacity_calc.calculate(cloud_models, cloud_parameters);
 
 
   spectrum.assign(spectral_grid->nbSpectralPoints(), 0.0);
@@ -190,11 +188,9 @@ bool EmissionModel::calcModelGPU(
 
   std::vector<double> cloud_parameters(
       parameter.begin() + nb_general_param + nb_total_chemistry_param + nb_temperature_param,
-      parameter.begin() + nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_cloud_param);
+      parameter.begin() + nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_total_cloud_param);
 
-  std::vector<CloudModel*> cm = {cloud_model};
-
-  opacity_calc.calculateGPU(cm, cloud_parameters);
+  opacity_calc.calculateGPU(cloud_models, cloud_parameters);
 
 
   const double radius_distance_scaling = radiusDistanceScaling(parameter);
@@ -269,8 +265,10 @@ EmissionModel::~EmissionModel()
 {
   delete radiative_transfer;
   delete temperature_profile;
-  delete cloud_model;
   
+  for (auto & i : cloud_models)
+    delete i;
+
   for (auto & i : chemistry)
     delete i;
 }

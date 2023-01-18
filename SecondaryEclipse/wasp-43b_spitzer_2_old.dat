@@ -1,0 +1,12 @@
+#observation description
+#instrument
+Spitzer Photometry 2
+
+#type
+photometry
+
+#filter transmission function
+Spitzer_irac2_bandpass.dat
+
+#lower wavelength (micron)  upper wavelength (micron)   flux (W m-2 mu-1)   error
+3.725160   5.221980   3830		80

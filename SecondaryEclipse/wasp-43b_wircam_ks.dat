@@ -1,0 +1,12 @@
+#observation description
+#instrument
+Wircam Ks Photometry
+
+#type
+photometry
+
+#filter transmission function
+../telescope_data/CFHT_Wircam_Ks_bandpass.dat
+
+#lower wavelength (micron)  upper wavelength (micron)   eclipse depth   error
+1.9525	2.3475	 1940 	290

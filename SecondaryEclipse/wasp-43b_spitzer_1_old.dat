@@ -1,0 +1,12 @@
+#observation description
+#instrument
+Spitzer Photometry 1
+
+#type
+photometry
+
+#filter transmission function
+Spitzer_irac1_bandpass.dat
+
+#lower wavelength (micron)  upper wavelength (micron)   eclipse_depth   error
+3.082890	4.007280	3230   60

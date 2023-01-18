@@ -122,7 +122,6 @@ class TransmissionModel : public ForwardModel{
 
     Temperature* temperature_profile = nullptr;
     std::vector<Chemistry*> chemistry;
-    CloudModel* cloud_model = nullptr;
     std::vector<CloudModel*> cloud_models;
 
     std::vector<Observation>& observations;
