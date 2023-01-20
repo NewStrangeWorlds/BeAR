@@ -1,0 +1,12 @@
+#observation description
+#instrument
+HST UVIS Photometry
+
+#type
+photometry
+
+#filter transmission function
+../telescope_data/HST_WFC3_UVIS2_F350LP_bandpass.dat
+
+#lower wavelength (micron)  upper wavelength (micron)   eclipse depth   error
+0.2985	1.100	 140.0 	100.0

@@ -1,9 +1,0 @@
-#observation description
-#instrument
-PostProcessSpectrum
-
-#type
-photometry
-
-#lower wavelength (micron)  upper wavelength (micron)   flux (W m-2 mu-1)   error
-0.500000e+00	2.000000e+01	1.000000e+05	1.000000e+03
