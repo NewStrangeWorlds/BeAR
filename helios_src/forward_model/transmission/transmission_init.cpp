@@ -60,12 +60,15 @@ void TransmissionModel::initModules(const TransmissionModelConfig& model_config)
   nb_temperature_param = temperature_profile->nbParameters();
 
 
-  cloud_models.assign(model_config.cloud_model.size(), nullptr);
-  
   for (size_t i=0; i<model_config.cloud_model.size(); ++i)
-    cloud_models[i] = selectCloudModel(
+  {
+    CloudModel* model = selectCloudModel(
       model_config.cloud_model[i], 
       model_config.cloud_model_parameters[i]);
+    
+    if (model != nullptr)
+      cloud_models.push_back(model);
+  }
   
   nb_total_cloud_param = 0;
   
