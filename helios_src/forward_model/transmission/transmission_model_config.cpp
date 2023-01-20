@@ -62,16 +62,16 @@ void TransmissionModelConfig::readConfigFile(const std::string& file_name)
 
   std::getline(file, line);
 
-  file >> atmos_top_pressure >> line;
-  std::cout << "- Top of atmosphere pressure: " << atmos_top_pressure << "\n";
+  file >> atmos_bottom_pressure >> line;
+  std::cout << "- Bottom of atmosphere pressure: " << atmos_bottom_pressure << "\n";
 
   std::getline(file, line);
 
-  file >> atmos_bottom_pressure >> line;
-  std::cout << "- Bottom of atmosphere pressure: " << atmos_bottom_pressure << "\n";
-  
-  atmos_boundaries[0] = atmos_top_pressure;
-  atmos_boundaries[1] = atmos_bottom_pressure;
+  file >> atmos_top_pressure >> line;
+  std::cout << "- Top of atmosphere pressure: " << atmos_top_pressure << "\n";
+
+  atmos_boundaries[0] = atmos_bottom_pressure;
+  atmos_boundaries[1] = atmos_top_pressure;
 
 
   //temperature profile input
@@ -112,7 +112,7 @@ void TransmissionModelConfig::readChemistryConfig(std::fstream& file)
   std::getline(file, line);
 
   while (std::getline(file, line) && line.size() != 0)
-  { 
+  {
     std::istringstream input(line);
     
     std::string chem_model;
