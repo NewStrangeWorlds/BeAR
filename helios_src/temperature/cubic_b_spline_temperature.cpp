@@ -39,7 +39,7 @@ CubicBSplineTemperature::CubicBSplineTemperature(const size_t nb_control_points_
   if (nb_control_points < 5)
   {
     std::string error_message = "Cubic B spline temperature profile requires at least 5 control points!";
-    throw InvalidInput(std::string ("FastChemChemistry::FastChemChemistry"), error_message);
+    throw InvalidInput(std::string ("CubicBSplineTemperature::CubicBSplineTemperature"), error_message);
   }
 
   nb_parameters = nb_control_points;

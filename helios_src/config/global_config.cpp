@@ -25,7 +25,7 @@
 #include <iomanip>
 #include <string>
 #include <sstream>
-
+#include <omp.h>
 #include <stdlib.h>
 
 namespace helios {
@@ -75,6 +75,10 @@ bool GlobalConfig::loadConfigFile(std::string retrieval_folder)
   std::getline(file, line);
 
   file >> nb_omp_processes >> line;
+
+  if (nb_omp_processes == 0)
+    nb_omp_processes = omp_get_max_threads();
+
   std::cout << "- #OpenMP threads: " << nb_omp_processes << "\n";
 
 
