@@ -91,7 +91,6 @@ void SpectralGrid::sampleWavelengths(
   for (size_t i=0; i<wavelength_edges.size(); ++i)
     convertWavelengthsToWavenumbers(wavelength_edges[i], wavenumber_edges[i]);
 
-  
   std::vector<double> bin_edges;
   std::vector<size_t> edge_indices;
   
@@ -112,13 +111,11 @@ void SpectralGrid::sampleWavelengths(
   //distribute the points within each bin
   for (size_t i=0; i<nb_bins; ++i)
   {
-    size_t nb_bin_points = (bin_edges[i+1] - bin_edges[i]) / resolution;
-    
+    size_t nb_bin_points = static_cast<size_t>(std::ceil((bin_edges[i+1] - bin_edges[i]) / resolution)) + 1;
+
     std::vector<size_t> single_bin_indices;
     single_bin_indices.reserve(nb_bin_points);
 
-    
-    double step = (edge_indices[i+1] - edge_indices[i]) / (1.0 * nb_bin_points-1);
 
     //in case there are less points available in a bin than desired, we simply take all points
     if (edge_indices[i+1] - edge_indices[i] < nb_bin_points)
@@ -130,17 +127,15 @@ void SpectralGrid::sampleWavelengths(
     {
       single_bin_indices.push_back(edge_indices[i]);
 
-      for (size_t j=1; j<nb_bin_points-1; ++j)
-      {
-        size_t index = single_bin_indices[0] + size_t (j * step);
-
-        single_bin_indices.push_back(index);
-      }
-
+      for (size_t j=edge_indices[i]; j<edge_indices[i+1]; ++j)
+        {
+          if (wavenumber_list_full[single_bin_indices.back()] + resolution == wavenumber_list_full[j] 
+            || (wavenumber_list_full[j] < wavenumber_list_full[single_bin_indices.back()] + resolution && wavenumber_list_full[j+1] > wavenumber_list_full[single_bin_indices.back()]+ resolution))
+            single_bin_indices.push_back(j);
+        }
 
       single_bin_indices.push_back(edge_indices[i+1]);
     }
-
 
     //add the points of each bin to the band's list and identify the local indices of the bin edges
     if (i==0)
