@@ -27,6 +27,7 @@
 #include "fastchem_chemistry.h"
 #include "isoprofile_chemistry.h"
 #include "free_chemistry.h"
+#include "free_cbspline_chemistry.h"
 
 #include "../config/global_config.h"
 #include "../additional/exceptions.h"
@@ -41,9 +42,9 @@ namespace helios {
 //definition of the different chemistry modules with an
 //identifier, a keyword to be located in the config file and a short version of the keyword
 namespace chemistry_modules{
-  enum id {free, iso, eq}; 
-  const std::vector<std::string> description {"free", "isoprofile", "equilibrium"};
-  const std::vector<std::string> description_short {"free", "iso", "eq"};
+  enum id {free, iso, eq, cspline}; 
+  const std::vector<std::string> description {"free", "isoprofile", "equilibrium", "free_cspline"};
+  const std::vector<std::string> description_short {"free", "iso", "eq", "free_cs"};
 }
 
 
@@ -122,7 +123,20 @@ inline Chemistry* selectChemistryModule(
           std::stoi(parameters[2]),
           atmos_boundaries);
         chemistry_module = model;
+    }
+      break;
+
+    case chemistry_modules::cspline : 
+      if (parameters.size() != 2) {
+        std::string error_message = "Free cubic spline chemistry requires exactly two parameters!\n";
+        throw InvalidInput(std::string ("forward_model.config"), error_message);
       }
+    {
+        FreeCBSplineChemistry* model = new FreeCBSplineChemistry(
+          parameters[0],
+          std::stoi(parameters[1]));
+        chemistry_module = model;
+    }
       break;
   }
 
