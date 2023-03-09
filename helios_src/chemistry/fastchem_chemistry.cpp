@@ -101,7 +101,7 @@ bool FastChemChemistry::calcChemicalComposition(
   input.pressure = pressure;
 
   for (auto & i : input.temperature)
-    if (i < 500) i = 500;
+    if (i < 100) i = 100;
 
 
   bool neglect_model = false;
