@@ -86,6 +86,11 @@ class SpectralGrid{
       const std::vector<double>& data_x,
       const std::vector<double>& data_y,
       const bool log_interpolation);
+    std::vector<double> interpolateToWavelengthGrid(
+      const std::vector<double>& data_x,
+      const std::vector<double>& data_y,
+      const std::vector<double>& new_x,
+      const bool log_interpolation);
 
     std::vector<double> wavenumber_list;      //wavenumber list used to calculate the high-res spectra
     std::vector<double> wavelength_list;      //wavelength list used to calculate the high-res spectra

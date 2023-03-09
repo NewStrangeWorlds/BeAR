@@ -35,19 +35,36 @@ namespace helios{
 
 
 void SpectralBands::init(
-  const std::vector< std::vector<double> >& band_edges, 
-  const std::vector<double>& band_centres, 
+  const std::vector<double>& extended_edges, 
+  const std::vector< std::vector<double> >& obs_band_edges, 
+  const std::vector<double>& obs_band_centres, 
   const BandType type)
 {
   band_type = type;
-  
-  spectral_grid->sampleWavelengths(band_edges, config->spectral_resolution, global_spectral_indices, edge_indices);
+
+  if (extended_edges.size() > 0)
+  {
+    std::vector< std::vector<double> > band_edges;
+    band_edges.reserve(obs_band_edges.size() + 2);
+
+    band_edges.push_back(std::vector<double> {extended_edges[0], obs_band_edges[0][0]});
+    band_edges.insert(band_edges.end(), obs_band_edges.begin(), obs_band_edges.end());
+    band_edges.push_back(std::vector<double> {obs_band_edges.back()[1], extended_edges[1]});
+    
+    std::vector<size_t> all_edge_indices;
+
+    spectral_grid->sampleWavelengths(band_edges, config->spectral_resolution, global_spectral_indices, all_edge_indices);
+
+    edge_indices = {all_edge_indices.begin()+1, all_edge_indices.end() - 1};
+  }
+  else
+    spectral_grid->sampleWavelengths(obs_band_edges, config->spectral_resolution, global_spectral_indices, edge_indices);
 
   nb_bands = edge_indices.size() - 1;
 
  
-  band_centers_wavelength = band_centres;
-  band_edges_wavelength = band_edges;
+  band_centers_wavelength = obs_band_centres;
+  band_edges_wavelength = obs_band_edges;
 }
 
 
@@ -79,30 +96,30 @@ void SpectralBands::setLocalIndices()
 
 
 
-void SpectralBands::setInstrumentProfileFWHW(std::vector<double>& profile_fwhm)
+void SpectralBands::setInstrumentProfileFWHW(std::vector<double>& obs_profile_fwhm)
 {
-  if (profile_fwhm.size() == 0)
+  if (obs_profile_fwhm.size() == 0)
     return;
 
 
-  if (profile_fwhm.size() != band_centers_wavelength.size())
+  if (obs_profile_fwhm.size() != band_centers_wavelength.size())
   {
     std::cout << "Profile FWHM vector has incorrect size \n";
     return;
   }
+  
+  std::vector<double> profile_fwhm = spectral_grid->interpolateToWavelengthGrid(
+    band_centers_wavelength,
+    obs_profile_fwhm,
+    wavelengths,
+    false);
 
 
   instrument_profile_sigma.assign(wavenumbers.size(), 0.0);
-  
 
-  for (size_t i=0; i<wavenumbers.size(); ++i)
-  {
-    for (size_t j=0; j<nb_bands; ++j)
-    {
-      if (wavenumbers[i] >= band_wavenumbers[j].front() && wavenumbers[i] <= band_wavenumbers[j].back())
-        instrument_profile_sigma[i] = profile_fwhm[j] / 2.355;  //convert FWHM to standard deviation
-    }
-  }
+
+  for (size_t i=0; i<wavelengths.size(); ++i)
+    instrument_profile_sigma[i] = profile_fwhm[i]/ 2.355;  //convert FWHM to standard deviation
 
 
   setConvolutionQuadratureIntervals();
@@ -120,13 +137,10 @@ void SpectralBands::initDeviceMemory()
   std::vector<int> band_start(nb_bands, 0);
   std::vector<int> band_end(nb_bands, 0);
 
-  band_start[0] = 0;
-  band_end[0] = band_spectral_indices[0].size()-1;
-
-  for (size_t i=1; i<nb_bands; ++i)
+  for (size_t i=0; i<nb_bands; ++i)
   {
-    band_start[i] = band_end[i-1];
-    band_end[i] = band_start[i] + band_spectral_indices[i].size()-1;
+    band_start[i] = band_spectral_indices[i].front();
+    band_end[i] = band_spectral_indices[i].back();
   }
 
   moveToDevice(band_start_dev, band_start);

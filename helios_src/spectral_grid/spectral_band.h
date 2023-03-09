@@ -43,8 +43,10 @@ class SpectralBands{
     ~SpectralBands();
     BandType bandType() const {return band_type;}
     void init(
+      const std::vector<double>& extended_edges,
       const std::vector< std::vector<double> >& band_edges,
-      const std::vector<double>& band_centres, const BandType type);
+      const std::vector<double>& band_centres,
+      const BandType type);
 
     void setLocalIndices();
     void initDeviceMemory();

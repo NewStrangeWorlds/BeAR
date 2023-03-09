@@ -53,27 +53,34 @@ void SpectralBands::setConvolutionQuadratureIntervals()
 
     const double cutoff_distance = 5.0 * instrument_profile_sigma[i];
 
-    setConvolutionQuadratureIntervals(i, cutoff_distance);    
+    setConvolutionQuadratureIntervals(i, cutoff_distance);
   }
-  
 }
 
 
 
 //find the edges of the quadruature intervalls for a wavenumber at a certain distance
 void SpectralBands::setConvolutionQuadratureIntervals(const unsigned int index, const double cutoff_distance)
-{
-  for (size_t j=0; j< wavelengths.size()-1; ++j)
+{ 
+  if (cutoff_distance == 0)
   {
-    if ( (wavelengths[j] - wavelengths[index]) > cutoff_distance && (wavelengths[j+1] - wavelengths[index]) < cutoff_distance )
-      convolution_quadrature_intervals[index][0] = j;
+    convolution_quadrature_intervals[index][0] = index;
+    convolution_quadrature_intervals[index][1] = index;
   }
-
-
-  for (size_t j=convolution_quadrature_intervals[index][0]; j< wavelengths.size()-1; ++j)
+  else
   {
-    if ( (wavelengths[index] - wavelengths[j]) < cutoff_distance && (wavelengths[index] - wavelengths[j+1]) > cutoff_distance )
-      convolution_quadrature_intervals[index][1] = j;
+    for (size_t j=0; j< wavelengths.size()-1; ++j)
+    { 
+      if ( (wavelengths[j] - wavelengths[index]) > cutoff_distance && (wavelengths[j+1] - wavelengths[index]) < cutoff_distance )
+        convolution_quadrature_intervals[index][0] = j;
+    }
+
+
+    for (size_t j=convolution_quadrature_intervals[index][0]; j< wavelengths.size()-1; ++j)
+    {
+      if ( (wavelengths[index] - wavelengths[j]) < cutoff_distance && (wavelengths[index] - wavelengths[j+1]) > cutoff_distance )
+        convolution_quadrature_intervals[index][1] = j;
+    }
   }
 
 }
@@ -116,7 +123,8 @@ double SpectralBands::convolveSpectrum(const std::vector<double>& spectrum, cons
   const size_t lower = convolution_quadrature_intervals[index][0];
   const size_t upper = convolution_quadrature_intervals[index][1];
   const size_t length = (upper - lower) + 1;
-
+  
+  if (lower == upper) return spectrum[index];
 
   //copy the relevant part from the wavelength vector
   const std::vector<double> x(wavelengths.begin()+lower, wavelengths.begin()+upper+1);

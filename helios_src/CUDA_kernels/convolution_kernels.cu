@@ -66,7 +66,19 @@ __global__ void convolveSpectrumDevice(
   //we only integrate a part of the full spectrum (up to a certain number of sigmas from the central wavelength)
   const int start = start_index[i];
   const int end = end_index[i];
-  const int sub_spectrum_size = end - start + 1; 
+  const int sub_spectrum_size = end - start + 1;
+
+
+  if (start == end)
+  {
+    if (threadIdx.x == 0)
+      convolved_spectrum[band_indices[i]] = spectrum[band_indices[i]];
+
+    __syncthreads();
+
+    return;
+  }
+
 
   //the pointer to the data vector shared by all threads
   __shared__ double* data;
@@ -75,7 +87,6 @@ __global__ void convolveSpectrumDevice(
   if (threadIdx.x == 0)
   {
     data = (double*) malloc(sub_spectrum_size * sizeof(double));
-  
 
     //this probably needs a more sophisticated backup procedure
     if (data == nullptr)
@@ -90,11 +101,11 @@ __global__ void convolveSpectrumDevice(
     }
     
   } 
-    
+
 
   __syncthreads();
 
-  
+
   //we create the data vector for the convolution
   for (int j = threadIdx.x; j < sub_spectrum_size; j += blockDim.x)
   {
@@ -138,7 +149,7 @@ __global__ void convolveSpectrumDevice(
 
 __host__ void SpectralBands::convolveSpectrumGPU(double* spectrum, double* spectrum_processed_dev)
 {
-  int threads = 128;
+  int threads = 256; //128;
   int blocks = wavelengths.size();
 
   convolveSpectrumDevice<<<blocks,threads>>>(

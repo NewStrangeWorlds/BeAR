@@ -158,8 +158,9 @@ bool Observation::readPhotometryData(std::fstream& file)
   std::vector<double> band_centre(1, 0);
   band_centre[0] = wavelengths[0][0] - (wavelengths[0][0] - wavelengths[0][1]) * 0.5; 
 
- 
-  spectral_bands.init(wavelengths, band_centre, PHOTOMETRY);
+  std::vector<double> extended_edges;
+
+  spectral_bands.init(extended_edges, wavelengths, band_centre, PHOTOMETRY);
 
   filter_response_file = readFilterResponseFunction(filter_response_file_path);
 
@@ -212,7 +213,7 @@ bool Observation::readBandSpectroscopyData(std::fstream& file)
     {
       bin_edges.push_back({left_edge, right_edge});
       flux.push_back(flux_single);
-      flux_error.push_back(error);    
+      flux_error.push_back(error);
     }
 
 
@@ -235,6 +236,7 @@ bool Observation::readBandSpectroscopyData(std::fstream& file)
       std::reverse(flux.begin(), flux.end());
       std::reverse(flux_error.begin(), flux_error.end());
       std::reverse(instrument_profile_fwhm.begin(), instrument_profile_fwhm.end());
+      std::reverse(likelihood_weight.begin(), likelihood_weight.end());
     }
   }
 
@@ -248,8 +250,10 @@ bool Observation::readBandSpectroscopyData(std::fstream& file)
   for (size_t i=0; i<band_centres.size(); ++i)
     band_centres[i] = bin_edges[i][0] - (bin_edges[i][0] - bin_edges[i][1]) * 0.5; 
 
-    
-  spectral_bands.init(bin_edges, band_centres, BAND_SPECTROSCOPY);
+
+  std::vector<double> extended_edges;
+  
+  spectral_bands.init(extended_edges, bin_edges, band_centres, BAND_SPECTROSCOPY);
 
 
   return true;
@@ -336,13 +340,13 @@ bool Observation::readSpectroscopyData(std::fstream& file)
       std::reverse(flux.begin(), flux.end());
       std::reverse(flux_error.begin(), flux_error.end());
       std::reverse(instrument_profile_fwhm.begin(), instrument_profile_fwhm.end());
+      std::reverse(likelihood_weight.begin(), likelihood_weight.end());
     }
   }
 
 
   std::vector< std::vector<double> > bin_edges(wavelengths.size(), std::vector<double>(2, 0));
 
-  
 
   //set up the bin edges
   for (size_t i=0; i<wavelengths.size(); ++i)
@@ -369,7 +373,15 @@ bool Observation::readSpectroscopyData(std::fstream& file)
   }
 
 
-  spectral_bands.init(bin_edges, wavelengths, SPECTROSCOPY);
+  std::vector<double> extended_edges;
+
+  if (instrument_profile_fwhm.size() != 0)
+  {
+    extended_edges.push_back(bin_edges.front()[0] + 5.0 * instrument_profile_fwhm.front()/ 2.355);
+    extended_edges.push_back(bin_edges.back()[1] - 5.0 * instrument_profile_fwhm.back()/ 2.355);
+  }
+
+  spectral_bands.init(extended_edges, bin_edges, wavelengths, SPECTROSCOPY);
 
   if (filter_response_file_path != "")
     filter_response_file = readFilterResponseFunction(filter_response_file_path);

@@ -107,6 +107,72 @@ std::vector<double> SpectralGrid::interpolateToWavelengthGrid(const std::vector<
 
 
 
+std::vector<double> SpectralGrid::interpolateToWavelengthGrid(
+  const std::vector<double>& data_x, 
+  const std::vector<double>& data_y, 
+  const std::vector<double>& new_x,
+  const bool log_interpolation)
+{
+  std::vector<double> x = data_x;
+  std::vector<double> y = data_y;
+
+  size_t nb_points = new_x.size();
+
+  if (x[0] < x[1])
+  {
+    std::reverse(x.begin(), x.end());
+    std::reverse(y.begin(), y.end());
+  }
+
+  if (log_interpolation == true)
+    for (auto & i : y) i = std::log10(i);
+
+  std::vector<double> interpolated_data(nb_points, 0.0);
+
+
+  auto linearInterpolation = [] (
+    const double x1,
+    const double x2,
+    const double y1,
+    const double y2,
+    const double x)
+      {return y1 + (y2 - y1) * (x - x1)/(x2 - x1);};
+
+
+  size_t x_start = 0;
+
+  for (size_t i=0; i<nb_points; ++i)
+  {
+    if (new_x[i] > x.front()) continue;
+    if (new_x[i] < x.back()) break;
+
+    auto it = std::find_if(
+      x.cbegin()+x_start, 
+      x.cend(), 
+      [new_x, i] (double val)
+        {return (val <= new_x[i]); } );
+
+    std::size_t index = std::distance(x.cbegin(), it);
+
+    if (*it == new_x[i])
+      interpolated_data[i] = y[index];
+    else
+      interpolated_data[i] = linearInterpolation(*(it-1), *it, y[index-1], y[index], new_x[i]);
+    
+    if (x_start > 0)
+      x_start = index-1;
+  }
+
+
+  if (log_interpolation == true)
+    for (auto & i : interpolated_data) if (i != 0.0) i = std::pow(10, i);
+
+
+  return interpolated_data;
+}
+
+
+
 
 
 
