@@ -139,8 +139,19 @@ void SpectralBands::initDeviceMemory()
 
   for (size_t i=0; i<nb_bands; ++i)
   {
-    band_start[i] = band_spectral_indices[i].front();
-    band_end[i] = band_spectral_indices[i].back();
+    for (size_t j=0; j<spectral_indices.size(); ++j)
+      if (band_spectral_indices[i].front() == spectral_indices[j])
+      {
+        band_start[i] = j;
+        break;
+      }
+
+    for (size_t j=0; j<spectral_indices.size(); ++j)
+      if (band_spectral_indices[i].back() == spectral_indices[j])
+      {
+        band_end[i] = j;
+        break;
+      }
   }
 
   moveToDevice(band_start_dev, band_start);
