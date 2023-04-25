@@ -222,9 +222,10 @@ void SecondaryEclipseModel::postProcessContributionFunctions(
       std::vector<double>(observations[i].spectral_bands.nbBands()));
 
     for (size_t j=0; j<nb_grid_points; ++j)
-       observations[i].spectral_bands.bandIntegrateSpectrum(
-         contribution_functions_obs[j],
-         contribution_functions_bands[j]);
+      contribution_functions_bands[j] = observations[i].spectral_bands.bandIntegrateSpectrum(
+        contribution_functions_obs[j],
+        false,
+        observations[i].filter_response.size() != 0);
 
     saveContributionFunctions(contribution_functions_bands, i);
   }

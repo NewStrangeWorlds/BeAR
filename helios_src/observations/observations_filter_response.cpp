@@ -146,13 +146,13 @@ void Observation::setFilterResponseFunction()
 
 double Observation::filterResponseNormalisation(const std::vector<double>& wavelength, const std::vector<double>& response_function)
 {
-  std::vector<double> x = response_function;
+  std::vector<double> y = response_function;
   
   if (filter_detector_type == "photon")
-    for (size_t i=0; i<x.size(); ++i)
-      x[i] *= wavelength[i];
+    for (size_t i=0; i<y.size(); ++i)
+      y[i] *= wavelength[i];
 
-  double normalisation = aux::quadratureTrapezoidal(x, wavelength);
+  double normalisation = aux::quadratureTrapezoidal(wavelength, y);
 
   if (normalisation < 0) normalisation = std::abs(normalisation);
 

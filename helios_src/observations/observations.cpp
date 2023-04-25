@@ -81,7 +81,10 @@ std::vector<double> Observation::processModelSpectrum(
 
   std::vector<double> convolved_spectrum = spectral_bands.convolveSpectrum(spectrum_filter);
 
-  std::vector<double> spectrum_bands = spectral_bands.bandIntegrateSpectrum(convolved_spectrum, is_flux);
+  std::vector<double> spectrum_bands = spectral_bands.bandIntegrateSpectrum(
+    convolved_spectrum, 
+    is_flux,
+    filter_response.size() != 0);
 
   return spectrum_bands;
 }
@@ -93,8 +96,10 @@ void Observation::processModelSpectrumGPU(
   double* spectrum_bands,
   const unsigned int start_index,
   const bool is_flux)
-{
-  if (filter_response.size() != 0)
+{ 
+  bool use_filter_response = filter_response.size() != 0;
+
+  if (use_filter_response)
   {
     applyFilterResponseGPU(spectrum);
 
@@ -108,7 +113,8 @@ void Observation::processModelSpectrumGPU(
         spectrum_convolved_dev,
         spectrum_bands,
         start_index,
-        is_flux);
+        is_flux,
+        use_filter_response);
     }
     else
     {
@@ -116,7 +122,8 @@ void Observation::processModelSpectrumGPU(
         spectrum_filter_dev,
         spectrum_bands,
         start_index,
-        is_flux);
+        is_flux,
+        use_filter_response);
     }
   }
   else if (instrument_profile_fwhm.size() != 0)
@@ -129,14 +136,16 @@ void Observation::processModelSpectrumGPU(
       spectrum_convolved_dev,
       spectrum_bands,
       start_index,
-      is_flux);
+      is_flux,
+      use_filter_response);
   }
   else
     spectral_bands.bandIntegrateSpectrumGPU(
       spectrum,
       spectrum_bands,
       start_index,
-      is_flux);
+      is_flux,
+      use_filter_response);
 }
 
 

@@ -59,6 +59,8 @@ class SpectralGrid{
       return index_list;}
     std::vector<double> wavenumberList(
       const std::vector<size_t>& indices);
+    std::vector<double> wavelengthList(
+      const std::vector<size_t>& indices);
     
     void sampleWavelengths(
       const std::vector< std::vector<double> >& band_edges,

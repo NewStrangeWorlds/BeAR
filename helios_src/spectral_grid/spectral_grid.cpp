@@ -360,6 +360,18 @@ std::vector<double> SpectralGrid::wavenumberList(const std::vector<size_t>& indi
 
 
 
+std::vector<double> SpectralGrid::wavelengthList(const std::vector<size_t>& indices)
+{
+  std::vector<double> output(indices.size(), 0.0);
+
+  for (size_t i=0; i<indices.size(); ++i)
+    output[i] = wavelength_list[indices[i]];
+
+  return output;
+}
+
+
+
 SpectralGrid::~SpectralGrid()
 {
   if (config->use_gpu)

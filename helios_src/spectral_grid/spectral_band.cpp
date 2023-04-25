@@ -80,6 +80,7 @@ void SpectralBands::setLocalIndices()
 
   band_spectral_indices.resize(nb_bands);
   band_wavenumbers.resize(nb_bands);
+  band_wavelengths.resize(nb_bands);
 
 
   //setting up the structures for the sub-bands
@@ -89,6 +90,7 @@ void SpectralBands::setLocalIndices()
       band_spectral_indices[i].push_back(spectral_indices[j]);
 
     band_wavenumbers[i] = spectral_grid->wavenumberList(band_spectral_indices[i]);
+    band_wavelengths[i] = spectral_grid->wavelengthList(band_spectral_indices[i]);
   }
 
 }

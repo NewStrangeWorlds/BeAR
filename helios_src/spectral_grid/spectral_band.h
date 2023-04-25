@@ -52,10 +52,17 @@ class SpectralBands{
     void initDeviceMemory();
     void setInstrumentProfileFWHW(std::vector<double>& profile_fwhm);
     
-    void bandIntegrateSpectrum(const std::vector<double>& spectrum, std::vector<double>& band_values);
-    std::vector<double> bandIntegrateSpectrum(const std::vector<double>& spectrum, const bool is_flux);
-    void bandIntegrateSpectrumGPU(double* spectrum, double* spectrum_bands, const unsigned int start_index, const bool is_flux);
-    
+    std::vector<double> bandIntegrateSpectrum(
+      const std::vector<double>& spectrum, 
+      const bool is_flux,
+      const bool use_filter_transmission);
+    void bandIntegrateSpectrumGPU(
+      double* spectrum, 
+      double* spectrum_bands, 
+      const unsigned int start_index, 
+      const bool is_flux,
+      const bool use_filter_transmission);
+
     std::vector<double> convolveSpectrum(const std::vector<double>& spectrum);
     void convolveSpectrumGPU(double* spectrum, double* spectrum_processed_dev);
 
@@ -68,6 +75,7 @@ class SpectralBands{
 
     std::vector< std::vector<size_t> > band_spectral_indices;             //the spectral indices for each band separately
     std::vector< std::vector<double> > band_wavenumbers;                  //the high-res wavenumbers for each band separately
+    std::vector< std::vector<double> > band_wavelengths;                  //the high-res wavenumbers for each band separately
 
     std::vector<double> band_centers_wavelength;                          //center wavelengths for each spectral bin
     std::vector< std::vector<double> > band_edges_wavelength;             //wavelengths of the spectral bin edges
@@ -94,7 +102,10 @@ class SpectralBands{
     std::vector<size_t> global_edge_indices;                               //indices of the bin edges in the global spectral grid
   
     double bandIntegrateSpectrumFlux(const std::vector<double>& spectrum, const size_t& band);
-    double bandIntegrateSpectrum(const std::vector<double>& spectrum, const size_t& band);
+    double bandIntegrateSpectrum(
+      const std::vector<double>& spectrum, 
+      const size_t& band,
+      const bool use_filter_transmission);
     double convolveSpectrum(const std::vector<double>& spectrum, const unsigned int index);
     void setConvolutionQuadratureIntervals();
     void setConvolutionQuadratureIntervals(const unsigned int index, const double cutoff_distance);

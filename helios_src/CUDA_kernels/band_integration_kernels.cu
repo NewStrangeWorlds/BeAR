@@ -51,7 +51,8 @@ __global__ void bandIntegrationDevice(
   double* wavelengths,
   double* spectrum_bands,
   const int global_start_index,
-  const bool is_flux)
+  const bool is_flux,
+  const bool use_filter_transmission)
 {
   double band_sum = 0;
   
@@ -66,8 +67,14 @@ __global__ void bandIntegrationDevice(
     const int index1 = band_indices[j + start_index + 1];
     const int index2 = band_indices[j + start_index];
 
-    const double sum = (spectrum_high_res[index1] + spectrum_high_res[index2])
-    * (wavenumbers[index1] - wavenumbers[index2]);
+    double delta = 0;
+
+    if (is_flux) 
+      delta = (wavenumbers[index1] - wavenumbers[index2]);
+    else
+      delta = (wavelengths[index2] - wavelengths[index1]);
+
+    const double sum = (spectrum_high_res[index1] + spectrum_high_res[index2]) * delta;
 
     band_sum += sum;
   }
@@ -80,8 +87,15 @@ __global__ void bandIntegrationDevice(
   {
     if (is_flux)
       spectrum_bands[blockIdx.x + global_start_index] = band_sum * 0.5 / (wavelengths[band_indices[start_index]] - wavelengths[band_indices[end_index]]);
-    else
-      spectrum_bands[blockIdx.x + global_start_index] = band_sum * 0.5 / (wavenumbers[band_indices[end_index]] - wavenumbers[band_indices[start_index]]);
+    else 
+    {
+      if (use_filter_transmission)
+        spectrum_bands[blockIdx.x + global_start_index] = band_sum * 0.5;
+      else
+        spectrum_bands[blockIdx.x + global_start_index] = band_sum * 0.5 / (wavelengths[band_indices[start_index]] - wavelengths[band_indices[end_index]]);
+
+    }
+      
   }
 
 }
@@ -92,7 +106,8 @@ __host__ void SpectralBands::bandIntegrateSpectrumGPU(
   double* spectrum, 
   double* spectrum_bands, 
   const unsigned int start_index, 
-  const bool is_flux)
+  const bool is_flux,
+  const bool use_filter_transmission)
 {
   int threads = 128;
   int blocks = nb_bands;
@@ -107,7 +122,8 @@ __host__ void SpectralBands::bandIntegrateSpectrumGPU(
     spectral_grid->wavelength_list_gpu,
     spectrum_bands,
     start_index,
-    is_flux);
+    is_flux,
+    use_filter_transmission);
 
 
   cudaDeviceSynchronize(); 
