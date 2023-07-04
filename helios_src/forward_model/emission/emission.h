@@ -165,6 +165,11 @@ class EmissionModel : public ForwardModel{
       const std::vector<std::vector<double>>& temperature_profiles);
     void savePostProcessEffectiveTemperatures(
       const std::vector<double>& effective_temperatures);
+    void postProcessContributionFunctions(
+      const std::vector<double>& model_parameter);
+    void saveContributionFunctions(
+      std::vector< std::vector<double>>& contribution_function,
+      const size_t observation_index);
 
     bool testCPUvsGPU(
       const std::vector<double>& parameter, double* model_spectrum_gpu);

@@ -245,6 +245,7 @@ void EmissionModel::postProcessSpectrumGPU(
   double* model_spectrum_bands)
 {
   unsigned int start_index = 0;
+  
   for (size_t i=0; i<observations.size(); ++i)
   {
     const bool is_flux = true;

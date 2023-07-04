@@ -63,9 +63,8 @@ void SecondaryEclipseModel::postProcess(
       temperature_profiles[i],
       effective_temperatures[i],
       mixing_ratios[i]);
-    
-    if (i == 0)
-    //if (i == best_fit_model)
+
+    if (i == best_fit_model)
       postProcessContributionFunctions(model_parameter[i]);
   }
 
@@ -206,28 +205,20 @@ void SecondaryEclipseModel::postProcessContributionFunctions(
     for (size_t j=0; j<nb_grid_points; ++j)
       contribution_functions[j][i] = contribution_functions_all[j*nb_spectral_points + i];
 
-
+  
   for (size_t i=0; i<observations.size(); ++i)
   {
-    std::vector< std::vector<double> > contribution_functions_obs = contribution_functions;
-
-    if (observations[i].filter_response.size() != 0)
-    {
-      for (size_t j=0; j<nb_grid_points; ++j)
-        contribution_functions_obs[j] = observations[i].applyFilterResponseFunction(contribution_functions[j]);
-    }
-
-    std::vector< std::vector<double> > contribution_functions_bands(
+    std::vector<std::vector<double>> contribution_functions_band(
       nb_grid_points,
-      std::vector<double>(observations[i].spectral_bands.nbBands()));
+      std::vector<double>(observations[i].nbPoints(), 0));
 
+    const bool is_flux = false;
+      
     for (size_t j=0; j<nb_grid_points; ++j)
-      contribution_functions_bands[j] = observations[i].spectral_bands.bandIntegrateSpectrum(
-        contribution_functions_obs[j],
-        false,
-        observations[i].filter_response.size() != 0);
+      contribution_functions_band[j] = 
+        observations[i].processModelSpectrum(contribution_functions[j], is_flux);
 
-    saveContributionFunctions(contribution_functions_bands, i);
+    saveContributionFunctions(contribution_functions_band, i);
   }
 
 }
@@ -247,6 +238,8 @@ void SecondaryEclipseModel::saveContributionFunctions(
 
   for (size_t j=0; j<nb_grid_points; ++j)
   {
+    file << std::setprecision(10) << std::scientific << atmosphere.pressure[j] << "\t";
+
     for (size_t i=0; i<observations[observation_index].spectral_bands.nbBands(); ++i)
       file << std::setprecision(10) << std::scientific << contribution_function[j][i] << "\t";
      

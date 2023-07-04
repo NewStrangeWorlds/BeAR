@@ -30,6 +30,8 @@
 #include "../../retrieval/retrieval.h"
 #include "../../chemistry/chem_species.h"
 #include "../atmosphere/atmosphere.h"
+#include "../../CUDA_kernels/data_management_kernels.h"
+#include "../../CUDA_kernels/contribution_function_kernels.h"
 
 
 namespace helios{
@@ -52,7 +54,17 @@ void EmissionModel::postProcess(
 
 
   for (size_t i=0; i<nb_models; ++i)
-    postProcessModel(model_parameter[i], model_spectrum_bands[i], temperature_profiles[i], effective_temperatures[i], mixing_ratios[i]);
+  {
+    postProcessModel(
+      model_parameter[i], 
+      model_spectrum_bands[i], 
+      temperature_profiles[i], 
+      effective_temperatures[i], 
+      mixing_ratios[i]);
+
+    if (i == best_fit_model)
+      postProcessContributionFunctions(model_parameter[i]);
+  }
 
 
   for (auto & i : postprocess_species)
@@ -154,6 +166,88 @@ void EmissionModel::savePostProcessEffectiveTemperatures(
 
   for (size_t i=0; i<effective_temperatures.size(); ++i)
     file << std::setprecision(10) << std::scientific << effective_temperatures[i] << "\n";
+}
+
+
+
+
+void EmissionModel::postProcessContributionFunctions(
+  const std::vector<double>& parameter)
+{
+  std::vector<double> cloud_parameters(
+      parameter.begin() + nb_general_param + nb_total_chemistry_param + nb_temperature_param,
+      parameter.begin() + nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_total_cloud_param);
+
+  opacity_calc.calculateGPU(cloud_models, cloud_parameters);
+
+  double* contribution_functions_dev = nullptr;
+  size_t nb_spectral_points = spectral_grid->nbSpectralPoints();
+
+  //intialise the high-res spectrum on the GPU (set it to 0) 
+  allocateOnDevice(contribution_functions_dev, nb_spectral_points*nb_grid_points);
+  
+  contributionFunctionGPU(
+    contribution_functions_dev, 
+    opacity_calc.absorption_coeff_gpu,
+    spectral_grid->wavenumber_list_gpu,
+    atmosphere.temperature, 
+    atmosphere.altitude,
+    nb_spectral_points);
+
+  std::vector<double> contribution_functions_all(nb_spectral_points*nb_grid_points, 0.0);
+
+  moveToHost(contribution_functions_dev, contribution_functions_all);
+  deleteFromDevice(contribution_functions_dev);
+
+  std::vector< std::vector<double> > contribution_functions(nb_grid_points, std::vector<double>(nb_spectral_points, 0));
+
+
+  for (size_t i=0; i<nb_spectral_points; ++i)
+    for (size_t j=0; j<nb_grid_points; ++j)
+      contribution_functions[j][i] = contribution_functions_all[j*nb_spectral_points + i];
+
+
+  for (size_t i=0; i<observations.size(); ++i)
+  {
+    std::vector<std::vector<double>> contribution_functions_band(
+      nb_grid_points,
+      std::vector<double>(observations[i].nbPoints(), 0));
+
+    const bool is_flux = false;
+      
+    for (size_t j=0; j<nb_grid_points; ++j)
+      contribution_functions_band[j] = 
+        observations[i].processModelSpectrum(contribution_functions[j], is_flux);
+
+    saveContributionFunctions(contribution_functions_band, i);
+  }
+
+}
+
+
+
+void EmissionModel::saveContributionFunctions(
+  std::vector< std::vector<double>>& contribution_function, const size_t observation_index)
+{
+  std::string observation_name = observations[observation_index].observationName();
+  std::replace(observation_name.begin(), observation_name.end(), ' ', '_'); 
+    
+  std::string file_name = config->retrieval_folder_path + "/contribution_function_" + observation_name + ".dat"; 
+  
+
+  std::fstream file(file_name.c_str(), std::ios::out);
+
+  for (size_t j=0; j<nb_grid_points; ++j)
+  { 
+    file << std::setprecision(10) << std::scientific << atmosphere.pressure[j] << "\t";
+
+    for (size_t i=0; i<observations[observation_index].spectral_bands.nbBands(); ++i)
+      file << std::setprecision(10) << std::scientific << contribution_function[j][i] << "\t";
+     
+    file << "\n";
+  }
+
+  file.close();
 }
 
 
