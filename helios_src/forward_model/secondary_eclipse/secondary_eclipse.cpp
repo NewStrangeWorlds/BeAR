@@ -141,7 +141,9 @@ bool SecondaryEclipseModel::calcModel(
 
   //post-process the planet's high-res emission spectrum and bin it to the observational bands
   std::vector<double> planet_spectrum_bands(nb_observation_points, 0);
-  postProcessSpectrum(spectrum, planet_spectrum_bands);
+  postProcessSpectrum(
+    spectrum, 
+    planet_spectrum_bands);
 
 
   model_spectrum_bands.assign(nb_observation_points, 0);
@@ -153,6 +155,20 @@ bool SecondaryEclipseModel::calcModel(
     model_spectrum_bands[i] = 
       planet_spectrum_bands[i]/stellar_spectrum.flux_bands[i] 
       * radius_ratio*radius_ratio * 1e6 + albedo_contribution[i]*1e6;
+
+
+  //apply a shift to the spectrum if necessary
+  size_t start_index = 0;
+
+  for (size_t i=0; i<observations.size(); ++i)
+  { 
+    const double spectrum_shift = 0;
+    
+    if (spectrum_shift != 0)
+      for (size_t j=start_index; j<start_index+observations[i].nbPoints(); ++j)
+        model_spectrum_bands[j] += spectrum_shift;
+  }
+
 
   //convert the high-res spectrum to an eclipse depth as well
   for (size_t i=0; i<spectral_grid->nbSpectralPoints(); ++i)
@@ -197,7 +213,9 @@ bool SecondaryEclipseModel::calcModelGPU(
   double* planet_spectrum_bands = nullptr;
   allocateOnDevice(planet_spectrum_bands, nb_observation_points);
 
-  postProcessSpectrumGPU(model_spectrum_gpu, planet_spectrum_bands);
+  postProcessSpectrumGPU(
+    model_spectrum_gpu, 
+    planet_spectrum_bands);
 
 
   //std::vector<double> albedo_contribution(retrieval->nb_total_bands, geometric_albedo*radius_distance_ratio*radius_distance_ratio);
@@ -205,7 +223,6 @@ bool SecondaryEclipseModel::calcModelGPU(
 
   double* albedo_contribution_gpu = nullptr;
   //moveToDevice(albedo_contribution_gpu, albedo_contribution);
-
 
   calcSecondaryEclipseGPU(
     model_spectrum_bands, 
@@ -217,6 +234,23 @@ bool SecondaryEclipseModel::calcModelGPU(
 
   deleteFromDevice(albedo_contribution_gpu);
   deleteFromDevice(planet_spectrum_bands);
+
+  //apply spectrum shift if necessary
+  unsigned int start_index = 0;
+  
+  for (size_t i=0; i<observations.size(); ++i)
+  {
+    const double spectrum_shift = 0;
+    
+    if (spectrum_shift != 0)
+      observations[i].addShiftToSpectrumGPU(
+        model_spectrum_bands, 
+        start_index, 
+        spectrum_shift);
+
+    start_index += observations[i].spectral_bands.nbBands();
+  }
+
 
   //convert the original high-res spectrum also to a secondary eclipse
   calcSecondaryEclipseGPU(
@@ -253,7 +287,8 @@ std::vector<double> SecondaryEclipseModel::calcSecondaryEclipse(
 //integrate the high-res spectrum to observational bands
 //and convolve if necessary 
 void SecondaryEclipseModel::postProcessSpectrum(
-  std::vector<double>& model_spectrum, std::vector<double>& model_spectrum_bands)
+  std::vector<double>& model_spectrum, 
+  std::vector<double>& model_spectrum_bands)
 {
   model_spectrum_bands.assign(nb_observation_points, 0.0);
 
@@ -262,7 +297,10 @@ void SecondaryEclipseModel::postProcessSpectrum(
   for (size_t i=0; i<observations.size(); ++i)
   { 
     const bool is_flux = true;
-    std::vector<double> observation_bands = observations[i].processModelSpectrum(model_spectrum, is_flux);
+
+    std::vector<double> observation_bands = observations[i].processModelSpectrum(
+      model_spectrum, 
+      is_flux);
 
     //copy the band-integrated values for this observation into the global
     //vector of all band-integrated points, model_spectrum_bands
@@ -282,6 +320,7 @@ void SecondaryEclipseModel::postProcessSpectrumGPU(
   for (size_t i=0; i<observations.size(); ++i)
   {
     const bool is_flux = true;
+
     observations[i].processModelSpectrumGPU(
       model_spectrum_gpu, 
       model_spectrum_bands, 

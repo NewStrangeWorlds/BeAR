@@ -150,5 +150,17 @@ void Observation::processModelSpectrumGPU(
 
 
 
+void Observation::addShiftToSpectrum(
+  std::vector<double>& spectrum_bands,
+  const double spectrum_shift)
+{
+
+  for (auto & s : spectrum_bands)
+    s += spectrum_shift;
+
+}
+
+
+
 
 }

@@ -80,6 +80,15 @@ class Observation{
       double* spectrum_bands,
       const unsigned int start_index,
       const bool is_flux);
+
+    void addShiftToSpectrumGPU(
+      double* spectrum_bands,
+      const unsigned int start_index,
+      const double spectrum_shift);
+    void addShiftToSpectrum(
+      std::vector<double>& spectrum_bands,
+      const double spectrum_shift);
+
   private:
     std::string observation_name = "";
     GlobalConfig* config = nullptr;

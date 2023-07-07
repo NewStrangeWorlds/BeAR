@@ -165,9 +165,11 @@ class SecondaryEclipseModel : public ForwardModel{
     bool calcAtmosphereStructure(const std::vector<double>& parameter);
 
     void postProcessSpectrum(
-      std::vector<double>& model_spectrum, std::vector<double>& model_spectrum_bands);
+      std::vector<double>& model_spectrum, 
+      std::vector<double>& model_spectrum_bands);
     void postProcessSpectrumGPU(
-      double* model_spectrum, double* model_spectrum_bands);
+      double* model_spectrum, 
+      double* model_spectrum_bands);
 
     void postProcessModel(
       const std::vector<double>& parameter,

@@ -133,7 +133,8 @@ set(SRC_CUDA
   helios_src/CUDA_kernels/short_characteristics_kernels.cu
   helios_src/CUDA_kernels/rayleigh_scattering_kernels.cu
   helios_src/CUDA_kernels/cloud_model_kernels.cu
-  helios_src/CUDA_kernels/contribution_function_kernels.cu)
+  helios_src/CUDA_kernels/contribution_function_kernels.cu
+  helios_src/CUDA_kernels/observation_kernels.cu)
 
 
 #check for OpenMP

@@ -145,6 +145,18 @@ bool TransmissionModel::calcModel(
 
   postProcessSpectrum(spectrum, model_spectrum_bands);
 
+  //apply a shift to the spectrum if necessary
+  size_t start_index = 0;
+
+  for (size_t i=0; i<observations.size(); ++i)
+  { 
+    const double spectrum_shift = 0;
+    
+    if (spectrum_shift != 0)
+      for (size_t j=start_index; j<start_index+observations[i].nbPoints(); ++j)
+        model_spectrum_bands[j] += spectrum_shift;
+  }
+
   return neglect;
 }
 
@@ -197,6 +209,23 @@ bool TransmissionModel::calcModelGPU(
     star_radius);
 
   postProcessSpectrumGPU(model_spectrum_gpu, model_spectrum_bands);
+
+
+  //apply spectrum shift if necessary
+  unsigned int start_index = 0;
+  
+  for (size_t i=0; i<observations.size(); ++i)
+  {
+    const double spectrum_shift = 0;
+    
+    if (spectrum_shift != 0)
+      observations[i].addShiftToSpectrumGPU(
+        model_spectrum_bands, 
+        start_index, 
+        spectrum_shift);
+
+    start_index += observations[i].spectral_bands.nbBands();
+  }
 
   return neglect;
 }
