@@ -80,9 +80,16 @@ bool Retrieval::doRetrieval()
   //if there is an error, we exit the retrieval
   try
   {
-    std::vector<std::string> file_list;
-    loadObservationFileList(observation_folder, file_list);
-    loadObservations(observation_folder, file_list);
+    std::vector<std::string> file_list, modifier_list;
+
+    loadObservationFileList(
+      observation_folder, 
+      file_list,
+      modifier_list);
+    loadObservations(
+      observation_folder, 
+      file_list,
+      modifier_list);
 
     std::cout << "\nTotal number of wavelength points: " << spectral_grid.nbSpectralPoints() << "\n\n";
 

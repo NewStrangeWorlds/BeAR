@@ -60,8 +60,11 @@ bool PostProcess::doRetrieval()
   //if there is an error, we exit the post process
   try
   {
-    std::vector<std::string> file_list;
-    loadObservationFileList(observation_folder, file_list);
+    std::vector<std::string> file_list, modifier_list;
+    loadObservationFileList(
+      observation_folder,
+      file_list,
+      modifier_list);
   
     //if we do postprocessing, we may need to read in the file that describes the maximum wavelength range
     //spectra will be generated for
@@ -72,10 +75,14 @@ bool PostProcess::doRetrieval()
     if (!file.fail())
     {
       file_list.push_back("postprocess_spectrum_data.dat");
+      modifier_list.push_back("none");
       file.close(); 
     }
 
-    loadObservations(observation_folder, file_list);
+    loadObservations(
+      observation_folder,
+      file_list,
+      modifier_list);
 
     std::cout << "\nTotal number of wavelength points: " << spectral_grid.nbSpectralPoints() << "\n\n";
 

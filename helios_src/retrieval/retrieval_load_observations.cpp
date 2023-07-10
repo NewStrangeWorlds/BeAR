@@ -37,7 +37,9 @@ namespace helios{
 //load the observational data
 //input value is the location of the retrieval folder
 void Retrieval::loadObservations(
-  const std::string file_folder, const std::vector<std::string>& file_list)
+  const std::string file_folder, 
+  const std::vector<std::string>& file_list,
+  const std::vector<std::string>& modifier_list)
 {
   nb_observations = file_list.size();
 
@@ -45,7 +47,7 @@ void Retrieval::loadObservations(
 
   for (size_t i=0; i<nb_observations; ++i)
   {
-    observations[i].init(file_folder + file_list[i]);
+    observations[i].init(file_folder + file_list[i], modifier_list[i]);
     
     //save all the observations and their errors in a single vector
     observation_data.insert(
@@ -100,7 +102,9 @@ void Retrieval::loadObservations(
 //load the observational file list
 //input value is the location of the retrival folder
 void Retrieval::loadObservationFileList(
-  const std::string file_folder, std::vector<std::string>& file_list)
+  const std::string file_folder, 
+  std::vector<std::string>& file_list,
+  std::vector<std::string>& modifier_list)
 {
   //we are look for the file observations.list in the folder
   std::string file_name = file_folder + "observations.list";
@@ -112,12 +116,20 @@ void Retrieval::loadObservationFileList(
   if (file.fail())
     throw FileNotFound(std::string ("Retrieval::loadObservationFileList"), file_name);
 
+  std::string line;
+  
+  while (std::getline(file, line))
+  {
+    std::string observation_file = "";
+    std::string observation_modifier = "";
 
-  //read the list of observation data files
-  std::string observation_file;
+    std::stringstream ss(line);
 
-  while (file >> observation_file)
+    ss >> observation_file >> observation_modifier;
+
     file_list.push_back(observation_file);
+    modifier_list.push_back(observation_modifier);
+  }
 
   nb_observations = file_list.size();
 

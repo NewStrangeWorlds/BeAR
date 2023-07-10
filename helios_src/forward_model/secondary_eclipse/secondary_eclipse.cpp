@@ -77,7 +77,10 @@ SecondaryEclipseModel::SecondaryEclipseModel (
   nb_general_param = 3;
 
   for (auto & i : observations)
+  {
     nb_observation_points += i.nbPoints();
+    nb_spectrum_modifier_param += i.nb_modifier_param;
+  }
 
   initModules(model_config);
 
@@ -157,16 +160,31 @@ bool SecondaryEclipseModel::calcModel(
       * radius_ratio*radius_ratio * 1e6 + albedo_contribution[i]*1e6;
 
 
-  //apply a shift to the spectrum if necessary
+  size_t nb_previous_param = nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_total_cloud_param;
+
+  std::vector<double> modifier_parameters(
+      parameter.begin() + nb_previous_param,
+      parameter.begin() + nb_previous_param + nb_spectrum_modifier_param);
+
+  auto param_it = modifier_parameters.begin();
+
+  //apply spectrum modifier if necessary
   size_t start_index = 0;
 
   for (size_t i=0; i<observations.size(); ++i)
-  { 
-    const double spectrum_shift = 0;
-    
-    if (spectrum_shift != 0)
-      for (size_t j=start_index; j<start_index+observations[i].nbPoints(); ++j)
-        model_spectrum_bands[j] += spectrum_shift;
+  {
+    if (observations[i].nb_modifier_param != 0)
+    {
+      const double spectrum_modifier = *param_it;
+
+      if (spectrum_modifier != 0)
+        for (size_t j=start_index; j<start_index+observations[i].nbPoints(); ++j)
+          model_spectrum_bands[j] += spectrum_modifier;
+
+      param_it += observations[i].nb_modifier_param;
+    }
+
+    start_index += observations[i].spectral_bands.nbBands();
   }
 
 
@@ -235,18 +253,32 @@ bool SecondaryEclipseModel::calcModelGPU(
   deleteFromDevice(albedo_contribution_gpu);
   deleteFromDevice(planet_spectrum_bands);
 
-  //apply spectrum shift if necessary
+
+  size_t nb_previous_param = nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_total_cloud_param;
+
+  std::vector<double> modifier_parameters(
+      parameter.begin() + nb_previous_param,
+      parameter.begin() + nb_previous_param + nb_spectrum_modifier_param);
+
+  auto param_it = modifier_parameters.begin();
+
+  //apply spectrum modifier if necessary
   unsigned int start_index = 0;
   
   for (size_t i=0; i<observations.size(); ++i)
   {
-    const double spectrum_shift = 0;
-    
-    if (spectrum_shift != 0)
-      observations[i].addShiftToSpectrumGPU(
-        model_spectrum_bands, 
-        start_index, 
-        spectrum_shift);
+    if (observations[i].nb_modifier_param != 0)
+    {
+      const double spectrum_modifier = *param_it;
+
+      if (spectrum_modifier != 0)
+        observations[i].addShiftToSpectrumGPU(
+          model_spectrum_bands, 
+          start_index, 
+          spectrum_modifier);
+
+      param_it += observations[i].nb_modifier_param;
+    }
 
     start_index += observations[i].spectral_bands.nbBands();
   }

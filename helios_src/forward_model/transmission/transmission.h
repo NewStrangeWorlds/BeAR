@@ -131,9 +131,14 @@ class TransmissionModel : public ForwardModel{
     size_t nb_total_chemistry_param = 0;
     size_t nb_temperature_param = 0;
     size_t nb_total_cloud_param = 0;
+    size_t nb_spectrum_modifier_param = 0;
 
     size_t nb_total_param() {
-        return nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_total_cloud_param;
+        return nb_general_param 
+          + nb_total_chemistry_param 
+          + nb_temperature_param 
+          + nb_total_cloud_param 
+          + nb_spectrum_modifier_param;
       }
     
     size_t nb_grid_points = 0;

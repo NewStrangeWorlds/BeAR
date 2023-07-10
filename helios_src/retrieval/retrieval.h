@@ -78,10 +78,12 @@ class Retrieval{
     void setAdditionalPriors();
     void loadObservations(
       const std::string file_folder, 
-      const std::vector<std::string>& file_list);
+      const std::vector<std::string>& file_list,
+      const std::vector<std::string>& modifier_list);
     void loadObservationFileList(
       const std::string file_folder, 
-      std::vector<std::string>& file_list);
+      std::vector<std::string>& file_list,
+      std::vector<std::string>& modifier_list);
     
     ForwardModel* selectForwardModel(const std::string model_description);
   private:

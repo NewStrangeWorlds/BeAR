@@ -32,6 +32,14 @@
 namespace helios {
 
 
+//definition of different modifiers for an observation
+//e.g. constants shifts
+namespace observation_modifiers{
+  enum id {none, shift_const}; 
+  const std::vector<std::string> description {"none", "shift_const"};
+}
+
+
 //the class that describes an observation and its representation in form of a theoretical spectrum
 //the class SpectralBand contains the computed represenation of the observation in the observational bands
 //it also contains the required data and methods to convert a computed high-res spectrum into a simulated observation
@@ -43,7 +51,9 @@ class Observation{
       , spectral_grid(spectral_grid_)
       {}
     ~Observation();
-    void init (const std::string& file_name);
+    void init (
+      const std::string& file_name,
+      const std::string spectrum_modifier_id);
     std::string observationName() {return observation_name;}
     size_t nbPoints() {return flux.size();}
 
@@ -88,7 +98,8 @@ class Observation{
     void addShiftToSpectrum(
       std::vector<double>& spectrum_bands,
       const double spectrum_shift);
-
+    
+    unsigned int nb_modifier_param = 0;
   private:
     std::string observation_name = "";
     GlobalConfig* config = nullptr;
@@ -106,6 +117,10 @@ class Observation{
     bool readPhotometryData(std::fstream& file);
     bool readSpectroscopyData(std::fstream& file);
     bool readBandSpectroscopyData(std::fstream& file);
+
+    observation_modifiers::id spectrum_modifier = observation_modifiers::id::none;
+
+    void setSpectrumModifier(const std::string modifier_id);
 };
 
 

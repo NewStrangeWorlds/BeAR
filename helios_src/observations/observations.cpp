@@ -38,8 +38,9 @@
 namespace helios{
 
 
-void Observation::init(const std::string& file_name)
+void Observation::init(const std::string& file_name, const std::string spectrum_modifier_id)
 {
+  setSpectrumModifier(spectrum_modifier_id);
   loadFile(file_name);
 }
 
@@ -157,6 +158,28 @@ void Observation::addShiftToSpectrum(
 
   for (auto & s : spectrum_bands)
     s += spectrum_shift;
+
+}
+
+
+
+void Observation::setSpectrumModifier(const std::string modifier_id)
+{
+  if (modifier_id == "none" or modifier_id == "")
+  {
+    spectrum_modifier = observation_modifiers::id::none;
+    nb_modifier_param = 0;
+  }
+  else if (modifier_id == "shift_const")
+  {
+    spectrum_modifier = observation_modifiers::id::shift_const;
+    nb_modifier_param = 1;
+  }
+  else
+  {
+    std::string error_message = "Observation modifier " + modifier_id + " in observations.list unknown.\n";
+    throw InvalidInput(std::string ("Observation::setSpectrumModifier"), error_message);
+  }
 
 }
 
