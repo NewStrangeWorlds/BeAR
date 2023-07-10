@@ -40,11 +40,16 @@ class Priors{
     void printInfo();
 
     std::vector<BasicPrior*> distributions;
+    std::vector<size_t> prior_links;
   protected:
     void addSingle(
       const std::string& type, 
       const std::string& description, 
       const std::vector<double>& parameter);
+    void setupLinkedPriors(
+      const std::vector<std::string>& type,
+      const std::vector<std::string>& description,
+      const std::vector<std::vector<double>>& parameter);
 
   private:
 };

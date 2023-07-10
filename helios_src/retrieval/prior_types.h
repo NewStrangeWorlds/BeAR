@@ -34,19 +34,21 @@ namespace helios {
 
 
 //types of priors
-enum class PriorType { uniform, log_uniform, gaussian, delta };
+enum class PriorType { uniform, log_uniform, gaussian, delta, linked };
 
 namespace priors{  
   const std::vector<PriorType> prior_types{
     PriorType::uniform, 
     PriorType::log_uniform, 
     PriorType::gaussian, 
-    PriorType::delta};
+    PriorType::delta,
+    PriorType::linked};
   const std::vector<std::string> prior_type_strings{
     "uniform", 
     "log_uniform", 
     "gaussian", 
-    "delta"};
+    "delta",
+    "linked"};
 }
 
 
@@ -159,6 +161,28 @@ class DeltaPrior : public BasicPrior {
     }
   private:
     double const_value = 0;
+};
+
+
+
+//Prior linked to another prior
+//the constructor requires one parameters: the linked prior
+class LinkedPrior : public BasicPrior {
+  public:
+    LinkedPrior (
+      const std::string& parameter,
+      BasicPrior* prior)
+      : linked_prior(prior)
+      { parameter_name = parameter; distribution_type = "Linked prior";}
+    virtual ~LinkedPrior() {}
+    virtual double parameterValue(const double& hypercube_value) {
+      return linked_prior->parameterValue(hypercube_value);}
+    virtual void printInfo() {
+      std::cout << parameter_name << ": " << distribution_type << ", linked to: "; 
+      linked_prior->printInfo();
+    }
+  private:
+    BasicPrior* linked_prior;
 };
 
 

@@ -56,6 +56,8 @@ void Priors::add(
 
   for (size_t i=0; i<type.size(); ++i)
     addSingle(type[i], description[i], parameter[i]);
+
+  setupLinkedPriors(type, description, parameter);
 }
 
 
@@ -119,6 +121,16 @@ void Priors::addSingle(
       else { 
         std::string error_message = "delta prior " + description + " requires one parameter!\n"; 
         throw InvalidInput(std::string ("pirors.config"), error_message);
+      }
+      break;
+    case PriorType::linked :
+      if (parameter.size() == 1) {
+        DeltaPrior* delta_prior = new DeltaPrior(description, 0.0);
+        distributions.push_back(delta_prior);
+      } 
+      else { 
+        std::string error_message = "linked prior " + description + " requires one parameter!\n"; 
+        throw InvalidInput(std::string ("pirors.config"), error_message);
       }  
       break;
     default :
@@ -136,6 +148,43 @@ void Priors::printInfo()
     i->printInfo();
 
   std::cout << "\n";
+}
+
+
+
+void Priors::setupLinkedPriors(
+  const std::vector<std::string>& type,
+  const std::vector<std::string>& description,
+  const std::vector<std::vector<double>>& parameter)
+{
+  prior_links.assign(type.size(), 0);
+
+  for (size_t i=0; i<type.size(); ++i)
+  {
+    if (type[i] == "linked")
+    {
+      //delete the place holder
+      delete(distributions[i]);
+      
+      size_t prior_index = static_cast<int>(parameter[i][0]) - 1;
+
+      if (prior_index > type.size())
+      {
+        std::string error_message = "Linked prior " + description[i] + " wrong index for link!\n";
+        throw InvalidInput(std::string ("pirors.config"), error_message);
+      }
+      
+      if (type[prior_index] == "linked")
+      {
+        std::string error_message = "Linked prior " + description[i] + " Can not link prior to another linked prior!\n";
+        throw InvalidInput(std::string ("pirors.config"), error_message);
+      }
+ 
+      LinkedPrior* linked_prior = new LinkedPrior(description[i], distributions[prior_index]);
+      distributions[i] = linked_prior;
+      prior_links[i] = prior_index;
+    }
+  }
 }
 
 
