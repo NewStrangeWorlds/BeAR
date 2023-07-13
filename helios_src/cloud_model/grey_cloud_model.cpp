@@ -139,7 +139,11 @@ void GreyCloudModel::cloudPosition(
   if (top_index == bottom_index)
     bottom_index -= 2;
 
-  if (bottom_index < 0) bottom_index = 0;
+  if (top_index < 2)
+  {
+    top_index = 2;
+    bottom_index = 0;
+  }
 }
 
 
@@ -180,7 +184,14 @@ void GreyCloudModel::cloudPosition(
   if (top_index == bottom_index)
     bottom_index -= 2;
 
-  if (bottom_index < 0) bottom_index = 0;
+  if (top_index == bottom_index)
+    bottom_index -= 2;
+
+  if (top_index < 2)
+  {
+    top_index = 2;
+    bottom_index = 0;
+  }
 }
 
 
