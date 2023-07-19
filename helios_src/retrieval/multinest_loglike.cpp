@@ -152,6 +152,8 @@ void Retrieval::multinestLogLikeGPU(double *cube, int &nb_dim, int &nb_param, do
       parameter[i] = retrieval_ptr->priors.distributions[i]->parameterValue(cube[retrieval_ptr->priors.prior_links[i]]);
     else
       parameter[i] = retrieval_ptr->priors.distributions[i]->parameterValue(cube[i]);
+
+    cube[i] = parameter[i];
   }
 
 
