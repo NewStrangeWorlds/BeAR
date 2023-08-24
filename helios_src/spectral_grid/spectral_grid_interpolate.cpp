@@ -50,7 +50,7 @@ std::vector<double> SpectralGrid::interpolateToWavenumberGrid(const std::vector<
     std::reverse(y.begin(), y.end());
   }
 
-  x = convertWavenumbersToWavelengths(x);
+  x = wavenumberToWavelength(x);
 
   return interpolateToWavelengthGrid(x, y, log_interpolation);
 }

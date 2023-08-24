@@ -23,6 +23,7 @@
 
 #include <vector>
 #include <string>
+#include <iostream>
 
 #include "../spectral_grid/spectral_grid.h"
 #include "../config/global_config.h"
@@ -58,6 +59,7 @@ class Observation{
     size_t nbPoints() {return flux.size();}
 
     SpectralBands spectral_bands;                                       //representation of the theoretical spectrum in the observational bands
+    std::vector<double> wavelength_edges = {0, 0};                      //the wavelength boundaries this observation needs from the high-res spectrum
 
     std::vector<double> flux;                                           //observational data
     std::vector<double> flux_error;                                     //observational error

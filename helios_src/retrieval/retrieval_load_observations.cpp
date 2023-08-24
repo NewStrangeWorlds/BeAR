@@ -75,9 +75,11 @@ void Retrieval::loadObservations(
   }
 
 
+  spectral_grid.sampleSpectralGrid(observations);
+
+
   for (auto & i : observations)
   {
-    i.spectral_bands.setLocalIndices();
     i.spectral_bands.setInstrumentProfileFWHW(i.instrument_profile_fwhm);
     i.setFilterResponseFunction();
     i.printObservationDetails();

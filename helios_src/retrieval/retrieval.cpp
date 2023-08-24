@@ -91,6 +91,8 @@ bool Retrieval::doRetrieval()
       file_list,
       modifier_list);
 
+    //spectral_grid.sampleSpectralGrid(observations);
+
     std::cout << "\nTotal number of wavelength points: " << spectral_grid.nbSpectralPoints() << "\n\n";
 
     forward_model = selectForwardModel(config->forward_model_type);
@@ -100,7 +102,6 @@ bool Retrieval::doRetrieval()
     std::cout << e.what() << std::endl;
     return false;
   }
-
 
   setAdditionalPriors();
 

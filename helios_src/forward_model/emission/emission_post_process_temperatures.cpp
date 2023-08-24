@@ -60,8 +60,8 @@ double EmissionModel::postProcessEffectiveTemperature(
   //sum up the total flux
   for (size_t i=0; i<nb_bands; ++i)
   {
-    const double wavelength_edge_left =  1.0/observations.back().spectral_bands.band_wavenumbers[i].front() * 1e4;
-    const double wavelength_edge_right =  1.0/observations.back().spectral_bands.band_wavenumbers[i].back() * 1e4;
+    const double wavelength_edge_left =  1.0/observations.back().spectral_bands.edge_wavenumbers[i].front() * 1e4;
+    const double wavelength_edge_right =  1.0/observations.back().spectral_bands.edge_wavenumbers[i].back() * 1e4;
 
 
     //convert back from flux per wavelength to total flux

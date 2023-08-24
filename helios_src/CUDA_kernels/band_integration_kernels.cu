@@ -43,7 +43,6 @@ namespace helios{
 //note that the units of the high-res spectrum are in W m-2 cm, while the mean band values are in W m-2 mu-1
 __global__ void bandIntegrationDevice(
   double* spectrum_high_res, 
-  int* band_indices, 
   int* band_start, 
   int* band_end,
   int nb_bands,
@@ -64,8 +63,8 @@ __global__ void bandIntegrationDevice(
 
   for (int j = threadIdx.x; j < band_size-1; j += blockDim.x)
   {
-    const int index1 = band_indices[j + start_index + 1];
-    const int index2 = band_indices[j + start_index];
+    const int index1 = j + start_index + 1;
+    const int index2 = j + start_index;
 
     double delta = 0;
 
@@ -86,13 +85,13 @@ __global__ void bandIntegrationDevice(
   if (threadIdx.x == 0)
   {
     if (is_flux)
-      spectrum_bands[blockIdx.x + global_start_index] = band_sum * 0.5 / (wavelengths[band_indices[start_index]] - wavelengths[band_indices[end_index]]);
+      spectrum_bands[blockIdx.x + global_start_index] = band_sum * 0.5 / (wavelengths[start_index] - wavelengths[end_index]);
     else 
     {
       if (use_filter_transmission)
         spectrum_bands[blockIdx.x + global_start_index] = band_sum * 0.5;
       else
-        spectrum_bands[blockIdx.x + global_start_index] = band_sum * 0.5 / (wavelengths[band_indices[start_index]] - wavelengths[band_indices[end_index]]);
+        spectrum_bands[blockIdx.x + global_start_index] = band_sum * 0.5 / (wavelengths[start_index] - wavelengths[end_index]);
 
     }
       
@@ -114,7 +113,6 @@ __host__ void SpectralBands::bandIntegrateSpectrumGPU(
 
   bandIntegrationDevice<<<blocks,threads>>>(
     spectrum, 
-    spectral_indices_dev, 
     band_start_dev, 
     band_end_dev,
     nb_bands,

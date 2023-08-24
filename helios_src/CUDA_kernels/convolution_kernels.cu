@@ -30,6 +30,7 @@
 
 #include "error_check.h"
 #include "reduce_kernels.h"
+#include "../spectral_grid/spectral_grid.h"
 
 
 namespace helios{
@@ -47,9 +48,9 @@ __forceinline__ __device__ double normalDistribution(const double sigma, const d
 //each block convolves one specific wavelength
 __global__ void convolveSpectrumDevice(
   double* spectrum, 
-  double* band_wavelengths, 
+  const int index_start,
+  double* wavelengths, 
   double* band_sigma,
-  int* band_indices, 
   int* start_index, 
   int* end_index,
   double* convolved_spectrum)
@@ -58,9 +59,9 @@ __global__ void convolveSpectrumDevice(
   const int i = blockIdx.x;
 
   //the current wavelength
-  const double mu = band_wavelengths[i];
+  const double mu = wavelengths[i + index_start];
   
-  const double sigma = band_sigma[i];
+  const double sigma = band_sigma[i + index_start];
 
   //the length of the spectrum we need to convolve
   //we only integrate a part of the full spectrum (up to a certain number of sigmas from the central wavelength)
@@ -72,7 +73,7 @@ __global__ void convolveSpectrumDevice(
   if (start == end)
   {
     if (threadIdx.x == 0)
-      convolved_spectrum[band_indices[i]] = spectrum[band_indices[i]];
+      convolved_spectrum[i+index_start] = spectrum[i+index_start];
 
     __syncthreads();
 
@@ -109,14 +110,11 @@ __global__ void convolveSpectrumDevice(
   //we create the data vector for the convolution
   for (int j = threadIdx.x; j < sub_spectrum_size; j += blockDim.x)
   {
-    //the wavelength index of the full spectrum
-    const int index = band_indices[start + j];
-
     //distance from the central wavelength
-    const double distance = abs(mu - band_wavelengths[start + j]);
+    const double distance = abs(mu - wavelengths[j+index_start + start]);
 
     //the data for the convolution 
-    data[j] = spectrum[index] * normalDistribution(sigma, distance);
+    data[j] = spectrum[j+index_start+start] * normalDistribution(sigma, distance);
   }
 
 
@@ -127,7 +125,7 @@ __global__ void convolveSpectrumDevice(
   double quad_sum = 0;
 
   for (int j = threadIdx.x; j < sub_spectrum_size-1; j += blockDim.x) 
-    quad_sum += (data[j] + data[j+1]) * (band_wavelengths[start + j + 1] - band_wavelengths[start + j]);
+    quad_sum += (data[j] + data[j+1]) * (wavelengths[j + index_start + 1 + start] - wavelengths[j + index_start + start]);
   
 
   __syncthreads();
@@ -137,7 +135,7 @@ __global__ void convolveSpectrumDevice(
 
 
   if (threadIdx.x == 0)
-    convolved_spectrum[band_indices[i]] = abs(quad_sum * 0.5);
+    convolved_spectrum[i + index_start] = abs(quad_sum * 0.5);
 
 
   //first thread frees the memory
@@ -149,14 +147,16 @@ __global__ void convolveSpectrumDevice(
 
 __host__ void SpectralBands::convolveSpectrumGPU(double* spectrum, double* spectrum_processed_dev)
 {
+  const size_t nb_high_res_points = obs_index_range.second - obs_index_range.first + 1;
+
   int threads = 256; //128;
-  int blocks = wavelengths.size();
+  int blocks = nb_high_res_points;
 
   convolveSpectrumDevice<<<blocks,threads>>>(
     spectrum, 
-    wavelengths_dev, 
+    obs_index_range.first,
+    spectral_grid->wavelength_list_gpu, 
     instrument_profile_sigma_dev,
-    spectral_indices_dev, 
     convolution_start_dev, 
     convolution_end_dev,
     spectrum_processed_dev);

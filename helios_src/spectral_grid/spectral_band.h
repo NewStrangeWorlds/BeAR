@@ -23,6 +23,7 @@
 
 #include <vector>
 #include <string>
+#include <iostream>
 
 #include "spectral_band_type.h"
 
@@ -37,20 +38,25 @@ class GlobalConfig;
 
 class SpectralBands{
   public:
-    SpectralBands(GlobalConfig* config_, SpectralGrid* spectral_grid_)
-      : config(config_), spectral_grid(spectral_grid_)
+    SpectralBands(
+      GlobalConfig* config_,
+      SpectralGrid* spectral_grid_)
+      : config(config_),
+        spectral_grid(spectral_grid_)
       {}
     ~SpectralBands();
     BandType bandType() const {return band_type;}
     void init(
-      const std::vector<double>& extended_edges,
+      const std::vector<double>& obs_wavelength_range,
       const std::vector< std::vector<double> >& band_edges,
       const std::vector<double>& band_centres,
       const BandType type);
+    void init();
 
-    void setLocalIndices();
     void initDeviceMemory();
     void setInstrumentProfileFWHW(std::vector<double>& profile_fwhm);
+
+    void setBandEdgeIndices(std::vector<double>& wavenumber_grid);
     
     std::vector<double> bandIntegrateSpectrum(
       const std::vector<double>& spectrum, 
@@ -68,26 +74,22 @@ class SpectralBands{
 
     size_t nbBands() {return nb_bands;}
 
-    std::vector<double> wavenumbers;                                      //high-res wavenumbers of this observational range
-    std::vector<double> wavelengths;                                      //high-res wavelengths of this observational range
-    std::vector<size_t> spectral_indices;                                 //index of the full spectral grid that are part of this observation
-    std::vector<size_t> edge_indices;                                     //spectral indices corresponding to the edges of the spectral bins
-
-    std::vector< std::vector<size_t> > band_spectral_indices;             //the spectral indices for each band separately
-    std::vector< std::vector<double> > band_wavenumbers;                  //the high-res wavenumbers for each band separately
-    std::vector< std::vector<double> > band_wavelengths;                  //the high-res wavenumbers for each band separately
-
-    std::vector<double> band_centers_wavelength;                          //center wavelengths for each spectral bin
-    std::vector< std::vector<double> > band_edges_wavelength;             //wavelengths of the spectral bin edges
+    std::pair<double, double> obs_wavelength_range = {0.0, 0.0};          //the wavelength range required for the observation
+    std::pair<double, double> obs_wavenumber_range = {0.0, 0.0};          //the wavelength range required for the observation
+    std::pair<size_t , size_t> obs_index_range = {0, 0};                  //the spectral indices of the observational range
+    
+    std::vector<double> center_wavelengths;                               //center wavelengths for each spectral bin
+    std::vector< std::vector<double> > edge_wavelengths;                  //wavelengths of the spectral bin edges
+    std::vector< std::vector<double> > edge_wavenumbers;                  //wavelengths of the spectral bin edges
+    std::vector<std::vector<size_t>> edge_indices;                       //spectral indices corresponding to the edges of the spectral bins
 
     std::vector<double> instrument_profile_sigma;                         //standard deviation of the instruments profile
     std::vector< std::vector<size_t> > convolution_quadrature_intervals;  //pre-determined limits (indices) for the convolution integration
-
+    
+    int* edge_indices_dev;
     int* convolution_start_dev = nullptr;
     int* convolution_end_dev = nullptr;
     double* instrument_profile_sigma_dev = nullptr;
-    int* spectral_indices_dev = nullptr;
-    double* wavelengths_dev = nullptr;
     int* band_start_dev = nullptr;
     int* band_end_dev = nullptr;
 
@@ -95,20 +97,22 @@ class SpectralBands{
     GlobalConfig* config = nullptr;
     SpectralGrid* spectral_grid = nullptr;
     BandType band_type;
-    size_t nb_points_bin = 0;
     size_t nb_bands = 0;                                                   //number of sub-bands/bins 
 
-    std::vector<size_t> global_spectral_indices;                           //indices of the high-res wavelenghts in the global spectral grid  
-    std::vector<size_t> global_edge_indices;                               //indices of the bin edges in the global spectral grid
-  
-    double bandIntegrateSpectrumFlux(const std::vector<double>& spectrum, const size_t& band);
+    double bandIntegrateSpectrumFlux(
+      const std::vector<double>& spectrum,
+      const size_t& band);
     double bandIntegrateSpectrum(
       const std::vector<double>& spectrum, 
       const size_t& band,
       const bool use_filter_transmission);
-    double convolveSpectrum(const std::vector<double>& spectrum, const unsigned int index);
+    double convolveSpectrum(
+      const std::vector<double>& spectrum,
+      const unsigned int index);
     void setConvolutionQuadratureIntervals();
-    void setConvolutionQuadratureIntervals(const unsigned int index, const double cutoff_distance);
+    void setConvolutionQuadratureIntervals(
+      const size_t index,
+      const double cutoff_distance);
 };
 
 

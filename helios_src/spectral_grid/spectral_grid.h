@@ -31,6 +31,7 @@ namespace helios {
 
 //forward declaration
 class GlobalConfig;
+class Observation;
 
 
 
@@ -39,16 +40,21 @@ class SpectralGrid{
     SpectralGrid (GlobalConfig* global_config);
     ~SpectralGrid();
 
-    void convertWavenumbersToWavelengths(
-      const std::vector<double>& wavenumbers,
-      std::vector<double>& wavelengths);
-    void convertWavelengthsToWavenumbers(
-      const std::vector<double>& wavelengths,
-      std::vector<double>& wavenumbers);
-    std::vector<double> convertWavelengthsToWavenumbers(
+    std::vector<double> wavenumber_list;      //wavenumber list used to calculate the high-res spectra
+    std::vector<double> wavelength_list;      //wavelength list used to calculate the high-res spectra
+
+    double * wavenumber_list_gpu = nullptr;   //corresponding pointer to data on the GPU 
+    double * wavelength_list_gpu = nullptr;
+
+    std::vector<double> wavelengthToWavenumber(
       const std::vector<double>& wavelengths);
-    std::vector<double> convertWavenumbersToWavelengths(
+    std::vector<double> wavenumberToWavelength(
       const std::vector<double>& wavenumbers);
+
+    double wavelengthToWavenumber(const double wavelength)
+     {return 1.0/wavelength * 1e4;}
+    double wavenumberToWavelength(const double wavenumber)
+     {return 1.0/wavenumber * 1e4;}
 
     size_t nbSpectralPointsFull() {
       return nb_spectral_points_full;}
@@ -57,28 +63,17 @@ class SpectralGrid{
 
     std::vector<size_t> spectralIndexList() {
       return index_list;}
-    std::vector<double> wavenumberList(
-      const std::vector<size_t>& indices);
-    std::vector<double> wavelengthList(
-      const std::vector<size_t>& indices);
-    
-    void sampleWavelengths(
-      const std::vector< std::vector<double> >& band_edges,
-      const double resolution,
-      std::vector<size_t>& band_indices,
-      std::vector<size_t>& bin_edge_indices);
-    
-    std::vector<size_t> sampleWavelengths(
-      const std::vector<double>& wavelengths,
-      const size_t nb_points_bin,
-      std::vector<size_t>& edge_indices);
-    std::vector<size_t> globalToLocalIndex(
-      const std::vector<size_t>& global_indices);
+
+    void sampleSpectralGrid(std::vector<Observation>& observations);
 
     void findBinEdges(
       const std::vector< std::vector<double> >& wavenumber_edges,
-      std::vector<double>& bin_edges,
-      std::vector<size_t>& edge_indices);
+      std::vector<std::vector<size_t>>& edge_indices);
+
+    size_t findClosestIndex(
+      const double search_value,
+      std::vector<double>& data,
+      std::vector<double>::iterator it_start);
 
     std::vector<double> interpolateToWavenumberGrid(
       const std::vector<double>& data_x,
@@ -93,12 +88,6 @@ class SpectralGrid{
       const std::vector<double>& data_y,
       const std::vector<double>& new_x,
       const bool log_interpolation);
-
-    std::vector<double> wavenumber_list;      //wavenumber list used to calculate the high-res spectra
-    std::vector<double> wavelength_list;      //wavelength list used to calculate the high-res spectra
-
-    double * wavenumber_list_gpu = nullptr;   //corresponding pointer to data on the GPU 
-    double * wavelength_list_gpu = nullptr;
   private:
     GlobalConfig* config;
 
@@ -106,12 +95,28 @@ class SpectralGrid{
     std::vector<double> wavelength_list_full; //the full, global wavelength list, the opacities have been calculated at
 
     std::vector<size_t> index_list;
+    std::vector<std::vector<double>> observation_wavelength_edges;
 
     size_t nb_spectral_points_full;           //number of points in the global wavenumber list
     size_t nb_spectral_points;                //number of points in the spectral grid
 
     void loadWavenumberList();
-    void addSampledIndices(const std::vector<size_t>& new_index_list);
+
+    void createHighResGrid(
+      const std::vector<std::vector<size_t>>& edge_indices,
+      std::vector<Observation>& observations);
+
+    void initDeviceMemory();
+
+    size_t findClosestIndexDesc(
+      const double search_value,
+      std::vector<double>& data,
+      std::vector<double>::iterator it_start);
+
+    size_t findClosestIndexAsc(
+      const double search_value,
+      std::vector<double>& data,
+      std::vector<double>::iterator it_start);
 };
 
 

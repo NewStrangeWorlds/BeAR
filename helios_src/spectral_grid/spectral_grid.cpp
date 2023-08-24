@@ -20,6 +20,7 @@
 
 #include <iostream>
 #include <string>
+#include <iomanip>
 #include <fstream>
 #include <vector>
 #include <algorithm>
@@ -31,6 +32,8 @@
 #include "../config/global_config.h"
 #include "../CUDA_kernels/data_management_kernels.h"
 #include "../additional/exceptions.h"
+#include "../observations/observations.h"
+#include "spectral_band.h"
 
 
 namespace helios{
@@ -42,7 +45,7 @@ SpectralGrid::SpectralGrid(GlobalConfig* global_config)
 
   loadWavenumberList();
 
-  convertWavenumbersToWavelengths(wavenumber_list_full, wavelength_list_full);
+  wavelength_list_full = wavenumberToWavelength(wavenumber_list_full);
 }
 
 
@@ -77,278 +80,229 @@ void SpectralGrid::loadWavenumberList()
 
 
 
-//identifies the indices from the opacity data related to the observational wavelengths
-//distributes wavenumber points according to a given (constant) resolution
-void SpectralGrid::sampleWavelengths(
-  const std::vector< std::vector<double> >& wavelength_edges,
-  const double resolution,
-  std::vector<size_t>& band_indices,
-  std::vector<size_t>& bin_edge_indices)
+void SpectralGrid::sampleSpectralGrid(std::vector<Observation>& observations)
 {
-  std::vector< std::vector<double> > wavenumber_edges(wavelength_edges.size(), std::vector<double>(2, 0));
+  std::vector<std::vector<double>> obs_wavenumber_edges;
 
-  
-  for (size_t i=0; i<wavelength_edges.size(); ++i)
-    convertWavelengthsToWavenumbers(wavelength_edges[i], wavenumber_edges[i]);
+  for (auto & o : observations)
+    obs_wavenumber_edges.push_back(std::vector<double>{1.0/o.wavelength_edges[0]*1e4, 1.0/o.wavelength_edges[1]*1e4});
 
-  std::vector<double> bin_edges;
-  std::vector<size_t> edge_indices;
-  
-  //identify bind edges
-  findBinEdges(wavenumber_edges, bin_edges, edge_indices);
+  std::sort(obs_wavenumber_edges.begin(), obs_wavenumber_edges.end(), [](std::vector<double> a, std::vector<double> b) {return a[0] < b[0];});
 
-  size_t nb_total_points_estimate = static_cast<size_t>((bin_edges.back() - bin_edges.front()) / resolution);
-  
-  band_indices.resize(0);
-  band_indices.reserve(nb_total_points_estimate);
+  std::vector<std::vector<double>> wavenumber_edges = 
+    std::vector<std::vector<double>>{
+      std::vector<double>{obs_wavenumber_edges[0][0], obs_wavenumber_edges[0][1]}
+    };
 
-  
-  const size_t nb_bins = edge_indices.size() - 1;
+  for (size_t i=1; i<obs_wavenumber_edges.size(); ++i)
+  { 
+    if (obs_wavenumber_edges[i][0] > wavenumber_edges.back()[0] && obs_wavenumber_edges[i][1] < wavenumber_edges.back()[1])
+      continue;
 
-  bin_edge_indices.assign(nb_bins + 1, 0);
-
-
-  //distribute the points within each bin
-  for (size_t i=0; i<nb_bins; ++i)
-  {
-    size_t nb_bin_points = static_cast<size_t>(std::ceil((bin_edges[i+1] - bin_edges[i]) / resolution)) + 1;
-
-    std::vector<size_t> single_bin_indices;
-    single_bin_indices.reserve(nb_bin_points);
-
-
-    //in case there are less points available in a bin than desired, we simply take all points
-    if (edge_indices[i+1] - edge_indices[i] < nb_bin_points)
-    {
-      for (size_t j=edge_indices[i]; j<edge_indices[i+1]+1; ++j)
-        single_bin_indices.push_back(j);
-    }
+    if (obs_wavenumber_edges[i][0] < wavenumber_edges.back()[1] && obs_wavenumber_edges[i][1] > wavenumber_edges.back()[1])
+      wavenumber_edges.back()[1] = obs_wavenumber_edges[i][1];
     else
-    {
-      single_bin_indices.push_back(edge_indices[i]);
-
-      for (size_t j=edge_indices[i]; j<edge_indices[i+1]; ++j)
-        {
-          if (wavenumber_list_full[single_bin_indices.back()] + resolution == wavenumber_list_full[j] 
-            || (wavenumber_list_full[j] < wavenumber_list_full[single_bin_indices.back()] + resolution && wavenumber_list_full[j+1] > wavenumber_list_full[single_bin_indices.back()]+ resolution))
-            single_bin_indices.push_back(j);
-        }
-
-      single_bin_indices.push_back(edge_indices[i+1]);
-    }
-
-    //add the points of each bin to the band's list and identify the local indices of the bin edges
-    if (i==0)
-    {
-      band_indices.insert(band_indices.end(), single_bin_indices.begin(), single_bin_indices.end());
-      bin_edge_indices[0] = 0;
-    }
-    else
-      band_indices.insert(band_indices.end(), single_bin_indices.begin()+1, single_bin_indices.end());
-
-
-    bin_edge_indices[i+1] = band_indices.size()-1;
+      wavenumber_edges.push_back(std::vector<double>{obs_wavenumber_edges[i][0], obs_wavenumber_edges[i][1]});
   }
-  
-  
-  //add band indices to the global list
-  addSampledIndices(band_indices);
+
+
+  std::vector<std::vector<size_t>> edge_indices;
+  findBinEdges(wavenumber_edges, edge_indices);
+
+
+  createHighResGrid(edge_indices, observations);
+
+  for (auto & o : observations)
+    o.spectral_bands.setBandEdgeIndices(wavenumber_list);
 }
 
 
 
-void SpectralGrid::findBinEdges(
-  const std::vector< std::vector<double> >& wavenumber_edges,
-  std::vector<double>& bin_edges,
-  std::vector<size_t>& edge_indices)
+void SpectralGrid::createHighResGrid(
+  const std::vector<std::vector<size_t>>& edge_indices,
+  std::vector<Observation>& observations)
 {
-  bin_edges.assign(wavenumber_edges.size()+1, 0.0);
-  edge_indices.assign(wavenumber_edges.size()+1, 0);
+  std::vector<int> included_points(wavenumber_list_full.size(), 0);
 
-
-  for (size_t i=0; i<wavenumber_edges.size(); ++i)
-    bin_edges[i] = wavenumber_edges[i][0];
-
-  bin_edges.back() = wavenumber_edges.back()[1];
-
-
-  //find the associated indices from the global list
-  size_t j_start = 0;
-
-  for (size_t i=0; i<bin_edges.size(); ++i)
+  for (size_t i=0; i<edge_indices.size(); ++i)
   {
+    included_points[edge_indices[i][0]] = 1;
 
-    for (size_t j=j_start; j<wavenumber_list_full.size(); ++j)
+    size_t last_index = edge_indices[i][0];
+
+    for (size_t j=edge_indices[i][0]; j<edge_indices[i][1]; ++j)
     {
-
-      if ( wavenumber_list_full[j] < bin_edges[i] && wavenumber_list_full[j+1] > bin_edges[i] )
-      {
-
-        if ( std::abs(wavenumber_list_full[j] - bin_edges[i])  < std::abs(wavenumber_list_full[j+1] - bin_edges[i]) )
-          edge_indices[i] = j;
-        else
-          edge_indices[i] = j+1;
-
-
-        j_start = j;
-
-        break;
+      if (wavenumber_list_full[last_index] + config->spectral_resolution == wavenumber_list_full[j] 
+        || (wavenumber_list_full[j] < wavenumber_list_full[last_index] + config->spectral_resolution && wavenumber_list_full[j+1] > wavenumber_list_full[last_index]+ config->spectral_resolution))
+      { 
+        included_points[j] = 1;
+        last_index = j;
       }
-
-      if ( wavenumber_list_full[j] == bin_edges[i])
-      {
-        edge_indices[i] = j;
-
-        j_start = j;
-
-        break;
-      }
-
+      
+      included_points[edge_indices[i][1]] = 1;
     }
+  }
 
+  //find the spectral indices of all band edges
+  for (auto & o : observations)
+  {
+    auto it_start = wavenumber_list_full.begin();
 
+    for (auto & b : o.spectral_bands.edge_wavenumbers)
+    {
+      const size_t idx_1 = findClosestIndex(b[0], wavenumber_list_full, it_start);
+      const size_t idx_2 = findClosestIndex(b[1], wavenumber_list_full, it_start);
+
+      included_points[idx_1] = 1;
+      included_points[idx_2] = 1;
+      
+      it_start = wavenumber_list_full.begin() + idx_2;
+    }
   }
 
 
-  //change the bin edges to correspond to wavenumbers from those of the tabulated data
-  for (size_t i = 0; i<bin_edges.size(); ++i)
-    bin_edges[i] = wavenumber_list_full[edge_indices[i]];
-}
+  index_list.resize(0);
+  index_list.reserve(wavelength_list_full.size());
 
-
-
-//identifies the indices from the opacity data related to the observational wavelengths
-std::vector<size_t> SpectralGrid::sampleWavelengths(
-  const std::vector<double>& wavelengths,
-  const size_t nb_points_bin,
-  std::vector<size_t>& edge_indices)
-{
-  std::vector<double> wavenumbers;
-  convertWavelengthsToWavenumbers(wavelengths, wavenumbers);
-
-
-  std::vector<size_t> indices(wavelengths.size()*2, 0);
-
-
-  size_t j_start = 0;
-
-  for (size_t i=0; i<wavelengths.size(); ++i)
+  for (size_t i=0; i<included_points.size(); ++i)
   {
-
-
-    for (size_t j=j_start; j<wavelength_list_full.size(); ++j)
-    {
-
-      if ( (wavelength_list_full[j] > wavelengths[i] && wavelength_list_full[j+1] < wavelengths[i]))
-      {
-        indices[2*i] = j;
-        indices[2*i+1] = j+1;
-
-        j_start = j;
-
-        break;
-      }
-      if ( wavelength_list_full[j] == wavelengths[i])
-      {
-        indices[2*i] = j;
-        indices[2*i+1] = j;
-
-        j_start = j;
-
-        break;
-      }
-
-    }
-
-
+    if (included_points[i] == 1)
+      index_list.push_back(i);
   }
 
-  addSampledIndices(indices);
 
-
-  return indices;
-}
-
-
-
-//adds a new list of indices to the old one, orders it, and removes duplicates
-void SpectralGrid::addSampledIndices(const std::vector<size_t>& new_index_list)
-{ 
-  index_list.insert(index_list.end(), new_index_list.begin(), new_index_list.end());
-
-
-  std::sort (index_list.begin(), index_list.end());
-
-
-  //remove duplicate indices
-  //erase is not very economic but since we only do it once at the start probably OK
-  std::vector<size_t>::iterator it = index_list.begin()+1;
-
-  while (it != index_list.end())
-  {
-  
-    if (*it == *(it-1))
-    {
-      it = index_list.erase(it);
-
-    }
-
-    else
-      ++it;
-  }
-
+  index_list.shrink_to_fit();
 
   wavenumber_list.assign(index_list.size(), 0);
   wavelength_list.assign(index_list.size(), 0);
-
 
   for (size_t i=0; i<index_list.size(); ++i)
   {
     wavenumber_list[i] = wavenumber_list_full[index_list[i]];
     wavelength_list[i] = wavelength_list_full[index_list[i]];
   }
+  
+  nb_spectral_points = wavelength_list.size();
 
-
-  nb_spectral_points = index_list.size();
-
-
-  //move the lists to the GPU, if necessary
   if (config->use_gpu)
-  { 
-    if (wavelength_list_gpu != nullptr)
-    {
-      deleteFromDevice(wavelength_list_gpu);
-      deleteFromDevice(wavenumber_list_gpu);
-    }
+    initDeviceMemory();
+}
 
-    moveToDevice(wavenumber_list_gpu, wavenumber_list);
-    moveToDevice(wavelength_list_gpu, wavelength_list);
+
+void SpectralGrid::initDeviceMemory()
+{
+  if (config->use_gpu == false)
+    return;
+
+  if (wavelength_list_gpu != nullptr)
+  {
+    deleteFromDevice(wavelength_list_gpu);
+    deleteFromDevice(wavenumber_list_gpu);
+  }
+
+  moveToDevice(wavenumber_list_gpu, wavenumber_list);
+  moveToDevice(wavelength_list_gpu, wavelength_list);
+}
+
+
+size_t SpectralGrid::findClosestIndexAsc(
+  const double x,
+  std::vector<double>& data,
+  std::vector<double>::iterator start)
+{
+  auto iter_geq = std::lower_bound(
+    start, 
+    data.end(),
+    x);
+
+  if (iter_geq == start)
+    return start - data.begin();
+
+  double a = *(iter_geq - 1);
+  double b = *(iter_geq);
+
+  if (std::fabs(x - a) < fabs(x - b)) 
+    return iter_geq - data.begin() - 1;
+
+  return iter_geq - data.begin();
+}
+
+
+size_t SpectralGrid::findClosestIndexDesc(
+  const double x,
+  std::vector<double>& data,
+  std::vector<double>::iterator start)
+{
+  auto iter_geq = std::lower_bound(
+    start, 
+    data.end(),
+    x,
+    std::greater<double>());
+
+  if (iter_geq == start)
+    return start - data.begin();
+
+  double a = *(iter_geq - 1);
+  double b = *(iter_geq);
+
+  if (std::fabs(x - a) < fabs(x - b)) 
+    return iter_geq - data.begin() - 1;
+
+  return iter_geq - data.begin();
+}
+
+
+size_t SpectralGrid::findClosestIndex(
+  const double x,
+  std::vector<double>& data,
+  std::vector<double>::iterator start)
+{
+  if (data.size() < 2)
+    return 0;
+  
+  if (data[0] < data[1])
+    return findClosestIndexAsc(x, data, start);
+
+  if (data[0] > data[1])
+    return findClosestIndexDesc(x, data, start);
+
+  return 0;
+}
+
+
+
+
+void SpectralGrid::findBinEdges(
+  const std::vector< std::vector<double> >& wavenumber_edges,
+  std::vector<std::vector<size_t>>& edge_indices)
+{
+  edge_indices.assign(wavenumber_edges.size(), std::vector<size_t>{0, 0});
+
+  for (size_t i=0; i<wavenumber_edges.size(); ++i)
+  {
+    auto it_left = std::lower_bound(
+      wavenumber_list_full.begin(), 
+      wavenumber_list_full.end(), 
+      wavenumber_edges[i][0]);
+
+    auto it_right = std::lower_bound(
+      wavenumber_list_full.begin(), 
+      wavenumber_list_full.end(), 
+      wavenumber_edges[i][1]);
+
+    edge_indices[i][0] = it_left - wavenumber_list_full.begin();
+
+    if (wavenumber_list_full[edge_indices[i][0]] > wavenumber_edges[i][0])
+      edge_indices[i][0] -= 1;
+
+    edge_indices[i][1] = it_right - wavenumber_list_full.begin();
   }
 
 }
 
 
-//finds the local spectral index in the sampled list based on the global index
-std::vector<size_t> SpectralGrid::globalToLocalIndex(
-  const std::vector<size_t>& global_indices)
-{
-  std::vector<size_t> local_indices(global_indices.size(), 0);
 
-  for (size_t i=0; i<global_indices.size(); ++i)
-    for (size_t j=0; j<index_list.size(); ++j)
-      if (global_indices[i] == index_list[j])
-      {
-        local_indices[i] = j;
-
-        break;
-      }
-
-  return local_indices;
-}
-
-
-
-std::vector<double> SpectralGrid::wavenumberList(const std::vector<size_t>& indices)
+/*std::vector<double> SpectralGrid::wavenumberList(const std::vector<size_t>& indices)
 {
   std::vector<double> output(indices.size(), 0.0);
 
@@ -368,7 +322,7 @@ std::vector<double> SpectralGrid::wavelengthList(const std::vector<size_t>& indi
     output[i] = wavelength_list[indices[i]];
 
   return output;
-}
+}*/
 
 
 

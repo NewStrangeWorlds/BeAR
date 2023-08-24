@@ -57,7 +57,6 @@ std::vector<double> SpectralBands::bandIntegrateSpectrum(
         use_filter_transmission);
   }
 
-
   return band_values;
 }
 
@@ -67,25 +66,18 @@ std::vector<double> SpectralBands::bandIntegrateSpectrum(
 double SpectralBands::bandIntegrateSpectrumFlux(
   const std::vector<double>& spectrum, const size_t& band)
 {
-  std::vector<double> spectrum_subset(band_spectral_indices[band].size(), 0.0);
-
-  for (size_t i=0; i<band_spectral_indices[band].size(); ++i)
-    spectrum_subset[i] = spectrum[ band_spectral_indices[band][i] ];
-
-
-  double wavelength_edge_left =  1.0/band_wavenumbers[band].front() * 1e4;
-  double wavelength_edge_right =  1.0/band_wavenumbers[band].back() * 1e4;
-
+  double wavelength_edge_left =  1.0/spectral_grid->wavenumber_list[edge_indices[band][0]] * 1e4;
+  double wavelength_edge_right =  1.0/spectral_grid->wavenumber_list[edge_indices[band][1]] * 1e4;
 
   double band_mean = 
     aux::quadratureTrapezoidal(
-      band_wavenumbers[band], 
-      spectrum_subset) / (wavelength_edge_left - wavelength_edge_right);
-
+      spectral_grid->wavenumber_list, 
+      spectrum,
+      edge_indices[band][0],
+      edge_indices[band][1]) / (wavelength_edge_left - wavelength_edge_right);
 
   return band_mean;
 }
-
 
 
 //Integration of the high-res spectrum for a specific band
@@ -95,30 +87,21 @@ double SpectralBands::bandIntegrateSpectrum(
   const size_t& band,
   const bool use_filter_transmission)
 {
-  std::vector<double> spectrum_subset(band_spectral_indices[band].size(), 0.0);
-
-  for (size_t i=0; i<band_spectral_indices[band].size(); ++i)
-    spectrum_subset[i] = spectrum[ band_spectral_indices[band][i] ];
-
-
-  //double wavenumber_edge_left =  band_wavenumbers[band].back();
-  //double wavenumber_edge_right = band_wavenumbers[band].front();
-
-
-  double wavelength_edge_right =  band_wavelengths[band].back();
-  double wavelength_edge_left = band_wavelengths[band].front();
+  double wavelength_edge_right =  spectral_grid->wavelength_list[edge_indices[band][1]];
+  double wavelength_edge_left = spectral_grid->wavelength_list[edge_indices[band][0]];
 
 
   double band_mean = 
     aux::quadratureTrapezoidal(
-      band_wavelengths[band], 
-      spectrum_subset);
+      spectral_grid->wavelength_list, 
+      spectrum,
+      edge_indices[band][0],
+      edge_indices[band][1]);
 
   band_mean = std::abs(band_mean);
       
   if (!use_filter_transmission) 
     band_mean /= (wavelength_edge_left - wavelength_edge_right);
-
 
   return band_mean;
 }

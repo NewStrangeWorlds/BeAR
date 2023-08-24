@@ -158,9 +158,12 @@ bool Observation::readPhotometryData(std::fstream& file)
   std::vector<double> band_centre(1, 0);
   band_centre[0] = wavelengths[0][0] - (wavelengths[0][0] - wavelengths[0][1]) * 0.5; 
 
-  std::vector<double> extended_edges;
+  wavelength_edges[0] = wavelengths[0][0];
+  wavelength_edges[1] = wavelengths[0][1];
 
-  spectral_bands.init(extended_edges, wavelengths, band_centre, PHOTOMETRY);
+
+  spectral_bands.init(wavelength_edges, wavelengths, band_centre, PHOTOMETRY);
+
 
   filter_response_file = readFilterResponseFunction(filter_response_file_path);
 
@@ -251,9 +254,11 @@ bool Observation::readBandSpectroscopyData(std::fstream& file)
     band_centres[i] = bin_edges[i][0] - (bin_edges[i][0] - bin_edges[i][1]) * 0.5; 
 
 
-  std::vector<double> extended_edges;
-  
-  spectral_bands.init(extended_edges, bin_edges, band_centres, BAND_SPECTROSCOPY);
+  wavelength_edges[0] = bin_edges.front()[0];
+  wavelength_edges[1] = bin_edges.back()[1];
+
+
+  spectral_bands.init(wavelength_edges, bin_edges, band_centres, BAND_SPECTROSCOPY);
 
 
   return true;
@@ -372,16 +377,19 @@ bool Observation::readSpectroscopyData(std::fstream& file)
 
   }
 
-
-  std::vector<double> extended_edges;
-
+  //if we have an instrument profile, we extend the wavelength edges by 5 sigma
   if (instrument_profile_fwhm.size() != 0)
   {
-    extended_edges.push_back(bin_edges.front()[0] + 5.0 * instrument_profile_fwhm.front()/ 2.355);
-    extended_edges.push_back(bin_edges.back()[1] - 5.0 * instrument_profile_fwhm.back()/ 2.355);
+    wavelength_edges[0] = bin_edges.front()[0] + 5.0 * instrument_profile_fwhm.front()/ 2.355;
+    wavelength_edges[1] = bin_edges.back()[1] - 5.0 * instrument_profile_fwhm.back()/ 2.355;
+  }
+  else
+  {
+    wavelength_edges[0] = bin_edges.front()[0];
+    wavelength_edges[1] = bin_edges.back()[1];
   }
 
-  spectral_bands.init(extended_edges, bin_edges, wavelengths, SPECTROSCOPY);
+  spectral_bands.init(wavelength_edges, bin_edges, wavelengths, SPECTROSCOPY);
 
   if (filter_response_file_path != "")
     filter_response_file = readFilterResponseFunction(filter_response_file_path);
@@ -401,8 +409,8 @@ void Observation::printObservationDetails()
     std::cout << std::setprecision(5) << std::scientific << "observation type: photometry\n";
     std::cout << "Filter response function: " << filter_response_file_path << "\n";
     std::cout << "Filter detector type: " << filter_detector_type << "\n";
-    std::cout << "band edges: " << spectral_bands.band_edges_wavelength[0][0] << "\t" << spectral_bands.band_edges_wavelength[0][1] 
-              << "\nband center: " << spectral_bands.band_centers_wavelength.front() << "\n";
+    std::cout << "band edges: " << spectral_bands.edge_wavelengths[0][0] << "\t" << spectral_bands.edge_wavelengths[0][1] 
+              << "\nband center: " << spectral_bands.center_wavelengths.front() << "\n";
     std::cout << "photometry flux: " << flux.front() << "\t error: " << flux_error.front() << "\n";
     std::cout << "likelihood weight: " << likelihood_weight.front() << "\n\n";
   }
@@ -415,9 +423,9 @@ void Observation::printObservationDetails()
     for (size_t i=0; i<flux.size(); ++i)
     {
       std::cout << std::setprecision(5) << std::scientific 
-               << spectral_bands.band_centers_wavelength[i] << "\t" 
-               << spectral_bands.band_edges_wavelength[i][0] << "\t" 
-               << spectral_bands.band_edges_wavelength[i][1] 
+               << spectral_bands.center_wavelengths[i] << "\t" 
+               << spectral_bands.edge_wavelengths[i][0] << "\t" 
+               << spectral_bands.edge_wavelengths[i][1] 
                << "\t" << flux[i] << "\t" << flux_error[i];
 
       if (instrument_profile_fwhm.size() > 0)

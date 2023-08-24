@@ -210,7 +210,7 @@ void PostProcess::saveOutput(const std::vector< std::vector<double> >& model_spe
     for (size_t i=0; i<observations[j].spectral_bands.nbBands(); ++i)
     {
 
-      file << std::setprecision(10) << std::scientific << observations[j].spectral_bands.band_centers_wavelength[i];
+      file << std::setprecision(10) << std::scientific << observations[j].spectral_bands.center_wavelengths[i];
       
       for (size_t k=0; k<nb_models; ++k)
         file << "\t" << model_spectrum_bands[k][band_index + i];
