@@ -62,8 +62,8 @@ class ShortCharacteristics : public RadiativeTransfer{
   private:
     SpectralGrid* spectral_grid;
 
-    const std::vector<double> gauss_nodes{0.339981, 0.861136};
-    const std::vector<double> gauss_weights{0.652145, 0.347855};
+    const std::vector<double> gauss_nodes{0.211324865405187, 0.788675134594813};
+    const std::vector<double> gauss_weights{0.5, 0.5};
     const size_t nb_angles = gauss_nodes.size();
 
     double calcSpectrum(

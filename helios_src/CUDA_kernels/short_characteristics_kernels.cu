@@ -52,6 +52,9 @@ __global__ void shortCharacteristicsDev(
   //int tid = blockIdx.x * blockDim.x + threadIdx.x;
   for (int tid = blockIdx.x * blockDim.x + threadIdx.x; tid < nb_spectral_points; tid += blockDim.x * gridDim.x)
   {
+    constexpr double gauss_nodes[2] = {0.211324865405187, 0.788675134594813};
+    constexpr double gauss_weights[2] = {0.5, 0.5};
+
     //inner boundary condition
     double intensity_mu1 = planckFunction(temperature_dev[0], wavenumber_list_dev[tid]);
     double intensity_mu2 = intensity_mu1;
@@ -70,7 +73,7 @@ __global__ void shortCharacteristicsDev(
         optical_depth_layer += cloud_optical_depth_dev[i*nb_spectral_points + tid];
 
       //Gauss angle 1
-      const double delta1 = optical_depth_layer/0.339981;
+      const double delta1 = optical_depth_layer/gauss_nodes[0];
       const double attenuation_factor1 = exp(-delta1);
 
       intensity_mu1 = intensity_mu1 * attenuation_factor1;
@@ -82,7 +85,7 @@ __global__ void shortCharacteristicsDev(
 
 
       //Gauss angle 2
-      const double delta2 = optical_depth_layer/0.861136;
+      const double delta2 = optical_depth_layer/gauss_nodes[1];
       const double attenuation_factor2 = exp(-delta2);
 
       intensity_mu2 = intensity_mu2 * attenuation_factor2;
@@ -95,9 +98,9 @@ __global__ void shortCharacteristicsDev(
 
     //and integration with the corresponding Gauss-Legendre quadrature weights
     model_spectrum_gpu[tid] = 
-      2.0 * constants::pi 
-      * (intensity_mu1 * 0.339981 * 0.652145 
-       + intensity_mu2 * 0.861136 * 0.347855) * 1e-3 * spectrum_scaling; //in W m-2 cm-1
+    2.0 * constants::pi 
+    * (intensity_mu1 * gauss_nodes[0] * gauss_weights[0] 
+     + intensity_mu2 * gauss_nodes[1] * gauss_weights[1]) * 1e-3 * spectrum_scaling; //in W m-2 cm-1
   }
 }
 
