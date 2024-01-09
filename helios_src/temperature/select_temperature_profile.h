@@ -34,6 +34,7 @@
 #include "milne_solution_temperature.h"
 #include "constant_temperature.h"
 #include "cubic_b_spline_temperature.h"
+#include "guillot_temperature.h"
 
 
 namespace helios {
@@ -41,8 +42,8 @@ namespace helios {
 //definition of the different chemistry modules with an
 //identifier, a keyword to be located in the config file and a short version of the keyword
 namespace temp_profile_modules{
-  enum id {poly, milne, constant, cubicbspline}; 
-  const std::vector<std::string> description {"poly", "milne", "const", "cubicbspline"};
+  enum id {poly, milne, constant, cubicbspline, guillot}; 
+  const std::vector<std::string> description {"poly", "milne", "const", "cubicbspline", "guillot"};
 }
 
 
@@ -111,6 +112,21 @@ inline Temperature* selectTemperatureProfile(
         }
         {
           CubicBSplineTemperature* temp = new CubicBSplineTemperature(std::stoi(parameters[0]));
+          temperature_profile = temp;
+        }
+      }
+      break;
+
+    case temp_profile_modules::guillot :
+      {
+        if (parameters.size() != 1)
+        {
+          std::string error_message = 
+            "Guillot temperature profile requires exactly one parameter!\n";
+          throw InvalidInput(std::string ("forward_model.config"), error_message);
+        }
+        {
+          GuillotTemperature* temp = new GuillotTemperature(parameters[0]);
           temperature_profile = temp;
         }
       }
