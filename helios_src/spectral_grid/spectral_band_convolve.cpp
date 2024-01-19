@@ -47,7 +47,7 @@ void SpectralBands::setConvolutionQuadratureIntervals()
 
   convolution_quadrature_intervals.assign(nb_high_res_points, std::vector<size_t>(2,0));
 
-  for (size_t i=obs_index_range.first; i<obs_index_range.second+1; ++i)
+  for (size_t i=0; i<nb_high_res_points; ++i)
   {
     //initialise with largest possible interval
     convolution_quadrature_intervals[i][0] = obs_index_range.first;
@@ -55,7 +55,7 @@ void SpectralBands::setConvolutionQuadratureIntervals()
 
     const double cutoff_distance = 5.0 * instrument_profile_sigma[i];
 
-    setConvolutionQuadratureIntervals(i, cutoff_distance);
+    setConvolutionQuadratureIntervals(i+obs_index_range.first, cutoff_distance);
   }
 }
 
