@@ -93,12 +93,6 @@ bool GuillotTemperature::calcProfile(
       gamma,
       temperature);
 
-  for (size_t i=0; i<pressure.size(); ++i)
-    std::cout << i << "\t" << pressure[i] << "\t" << temperature[i] << "\n";
-
-  exit(0);
-
-
   //neglect models with too low temperatures
   bool neglect_model = false;
   
@@ -121,9 +115,9 @@ void GuillotTemperature::profileBeamSource(
   for (size_t i=0; i<temperature.size(); ++i)
   {
     temperature[i] = 3.0/4.0 * std::pow(temperature_int, 4) * (2.0/3.0 + optical_depth[i])
-                   + 3.0/4.0 * std::pow(temperature_irr, 4) * mu * 
-                     (2.0/3.0 + mu/gamma + (gamma/(3.0 * mu) - mu/gamma) 
-                     * std::exp(-gamma*optical_depth[i]/mu));
+                   + 3.0/4.0 * std::pow(temperature_irr, 4) * mu 
+                   * (2.0/3.0 + mu/gamma + (gamma/(3.0 * mu) - mu/gamma) 
+                      * std::exp(-gamma*optical_depth[i]/mu));
 
     temperature[i] = std::pow(temperature[i], 0.25);
   }
@@ -142,8 +136,8 @@ void GuillotTemperature::profileIsotropicSource(
   for (size_t i=0; i<temperature.size(); ++i)
   {
     temperature[i] = 3.0/4.0 * std::pow(temperature_int, 4) * (2.0/3.0 + optical_depth[i])
-                   + 3.0/4.0 * std::pow(temperature_irr, 4) * flux_distribution * 
-                     (2.0/3.0 + 1.0/gamma/std::sqrt(3.0) + (gamma/std::sqrt(3.0) - 1.0/gamma/std::sqrt(3.0)) 
+                   + 3.0/4.0 * std::pow(temperature_irr, 4) * flux_distribution 
+                   * (2.0/3.0 + 1.0/gamma/std::sqrt(3.0) + (gamma/std::sqrt(3.0) - 1.0/gamma/std::sqrt(3.0)) 
                      * std::exp(-gamma*optical_depth[i]*std::sqrt(3.0)));
 
     temperature[i] = std::pow(temperature[i], 0.25);
