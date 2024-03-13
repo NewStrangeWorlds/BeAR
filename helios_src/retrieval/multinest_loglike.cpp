@@ -64,9 +64,11 @@ void Retrieval::multinestLogLike(double *cube, int &ndim, int &nb_param, double 
       parameter[i] = retrieval_ptr->priors.distributions[i]->parameterValue(cube[retrieval_ptr->priors.prior_links[i]]);
     else
       parameter[i] = retrieval_ptr->priors.distributions[i]->parameterValue(cube[i]);
-    
-    cube[i] = parameter[i];
   }
+
+
+  for (size_t i=0; i<parameter.size(); ++i)
+    cube[i] = parameter[i];
 
 
   if (retrieval_ptr->config->multinest_print_iter_values)
@@ -152,9 +154,11 @@ void Retrieval::multinestLogLikeGPU(double *cube, int &nb_dim, int &nb_param, do
       parameter[i] = retrieval_ptr->priors.distributions[i]->parameterValue(cube[retrieval_ptr->priors.prior_links[i]]);
     else
       parameter[i] = retrieval_ptr->priors.distributions[i]->parameterValue(cube[i]);
-
-    cube[i] = parameter[i];
   }
+
+
+  for (size_t i=0; i<parameter.size(); ++i)
+    cube[i] = parameter[i];
 
 
   if (retrieval_ptr->config->multinest_print_iter_values)
