@@ -27,6 +27,7 @@
 #include "../forward_model/emission/emission.h"
 #include "../forward_model/secondary_eclipse/secondary_eclipse.h"
 #include "../forward_model/transmission/transmission.h"
+#include "../forward_model/flat_line/flat_line.h"
 
 
 namespace helios{
@@ -65,6 +66,18 @@ ForwardModel* Retrieval::selectForwardModel(const std::string model_description)
   {
     TransmissionModel* model = new TransmissionModel(
       TransmissionModelConfig (config->retrieval_folder_path),
+      &priors,
+      config,
+      &spectral_grid,
+      observations);
+
+    return model;
+  }
+
+
+  if (model_description == "flat_line" || model_description == "Flat_line" || model_description == "fl")
+  {
+    FlatLine* model = new FlatLine(
       &priors,
       config,
       &spectral_grid,

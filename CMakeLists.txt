@@ -82,6 +82,9 @@ set(SRC
   helios_src/forward_model/transmission/transmission.cpp
   helios_src/forward_model/transmission/transmission_spectrum.cpp
   helios_src/forward_model/transmission/transmission_test.cpp
+  helios_src/forward_model/flat_line/flat_line_priors.cpp
+  helios_src/forward_model/flat_line/flat_line.cpp
+  helios_src/forward_model/flat_line/flat_line_test.cpp
   helios_src/forward_model/atmosphere/atmosphere.cpp
   helios_src/cloud_model/grey_cloud_model.cpp
   helios_src/cloud_model/kh_cloud_model.cpp
