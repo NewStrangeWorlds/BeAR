@@ -89,6 +89,9 @@ double ShortCharacteristics::calcSpectrum(
 
   for (size_t i=0; i<nb_grid_points-1; ++i)
   {
+    if (optical_depth_layer[i] == 0)
+      continue;
+
     const double delta1 = optical_depth_layer[i]/gauss_nodes[0];
     const double attenuation_factor1 = std::exp(-delta1);
 
@@ -112,7 +115,6 @@ double ShortCharacteristics::calcSpectrum(
     intensity_mu2 += beta2 * planck_function[i+1] + gamma2 * planck_function[i];
   }
 
-  
   const double flux = 
     2.0 * constants::pi 
     * (intensity_mu1 * gauss_nodes[0] * gauss_weights[0] 

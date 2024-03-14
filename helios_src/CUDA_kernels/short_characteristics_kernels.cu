@@ -72,6 +72,9 @@ __global__ void shortCharacteristicsDev(
       if (cloud_optical_depth_dev != nullptr)
         optical_depth_layer += cloud_optical_depth_dev[i*nb_spectral_points + tid];
 
+      if (optical_depth_layer == 0)
+        continue;
+
       //Gauss angle 1
       const double delta1 = optical_depth_layer/gauss_nodes[0];
       const double attenuation_factor1 = exp(-delta1);
