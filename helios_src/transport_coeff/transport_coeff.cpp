@@ -126,6 +126,56 @@ bool TransportCoefficients::addOpacitySpecies(
   }
 
 
+  //CO lines + Rayleigh
+  if (species_symbol == "CO")
+  {
+    gas_species.push_back(new GasCO(config, spectral_grid, species_folder));
+
+    return true;
+  }
+
+
+  //CO2 lines + Rayleigh
+  if (species_symbol == "CO2")
+  {
+    gas_species.push_back(new GasCO2(config, spectral_grid, species_folder));
+
+    return true;
+  }
+
+
+  //CH4 lines + Rayleigh
+  if (species_symbol == "CH4")
+  {
+    gas_species.push_back(new GasCH4(config, spectral_grid, species_folder));
+
+    return true;
+  }
+
+
+  //H2O lines + Rayleigh
+  if (species_symbol == "H2O")
+  {
+    gas_species.push_back(new GasH2O(config, spectral_grid, species_folder));
+
+    return true;
+  }
+
+
+  //now we try the generic ones
+  for (size_t i=0; i<constants::species_data.size(); ++i)
+  {
+    if (constants::species_data[i].symbol == species_symbol)
+    {
+      gas_species.push_back(
+        new GasGeneric(
+          config, spectral_grid, constants::species_data[i].id, constants::species_data[i].symbol, species_folder));
+
+      return true;
+    } 
+  }
+
+
   //now we try the generic ones
   for (size_t i=0; i<constants::species_data.size(); ++i)
   {

@@ -193,6 +193,119 @@ class GasHe : public OpacitySpecies {
       double* scattering_coeff_dev);
 };
 
+
+class GasCO : public OpacitySpecies {
+  public:
+    GasCO(GlobalConfig* config_ptr, SpectralGrid* spectral_grid_ptr, const std::string folder)
+        : OpacitySpecies(_CO, "CO", folder)
+        {
+          config = config_ptr; 
+          spectral_grid = spectral_grid_ptr; 
+          init();
+        }
+    GasCO(GlobalConfig* config_ptr, SpectralGrid* spectral_grid_ptr) 
+        : OpacitySpecies(_CO, "CO", "")
+        {
+          config = config_ptr; 
+          spectral_grid = spectral_grid_ptr; 
+          init();
+        }
+    virtual ~GasCO() {}
+  protected:
+    virtual bool calcRalyleighCrossSections(std::vector<double>& cross_sections);
+    virtual void calcRalyleighCrossSectionsGPU(
+      const double number_density,
+      const size_t nb_grid_points, 
+      const size_t grid_point,
+      double* scattering_coeff_dev);
+};
+
+
+class GasCO2 : public OpacitySpecies {
+  public:
+    GasCO2(GlobalConfig* config_ptr, SpectralGrid* spectral_grid_ptr, const std::string folder)
+        : OpacitySpecies(_CO2, "CO2", folder)
+        {
+          config = config_ptr; 
+          spectral_grid = spectral_grid_ptr; 
+          init();
+        }
+    GasCO2(GlobalConfig* config_ptr, SpectralGrid* spectral_grid_ptr) 
+        : OpacitySpecies(_CO2, "CO2", "")
+        {
+          config = config_ptr; 
+          spectral_grid = spectral_grid_ptr; 
+          init();
+        }
+    virtual ~GasCO2() {}
+  protected:
+    virtual bool calcRalyleighCrossSections(std::vector<double>& cross_sections);
+    virtual void calcRalyleighCrossSectionsGPU(
+      const double number_density,
+      const size_t nb_grid_points, 
+      const size_t grid_point,
+      double* scattering_coeff_dev);
+};
+
+
+class GasCH4 : public OpacitySpecies {
+  public:
+    GasCH4(GlobalConfig* config_ptr, SpectralGrid* spectral_grid_ptr, const std::string folder)
+        : OpacitySpecies(_CH4, "CH4", folder)
+        {
+          config = config_ptr; 
+          spectral_grid = spectral_grid_ptr; 
+          init();
+        }
+    GasCH4(GlobalConfig* config_ptr, SpectralGrid* spectral_grid_ptr) 
+        : OpacitySpecies(_CH4, "CH4", "")
+        {
+          config = config_ptr; 
+          spectral_grid = spectral_grid_ptr; 
+          init();
+        }
+    virtual ~GasCH4() {}
+  protected:
+    virtual bool calcRalyleighCrossSections(std::vector<double>& cross_sections);
+    virtual void calcRalyleighCrossSectionsGPU(
+      const double number_density,
+      const size_t nb_grid_points, 
+      const size_t grid_point,
+      double* scattering_coeff_dev);
+};
+
+
+
+class GasH2O : public OpacitySpecies {
+  public:
+    GasH2O(GlobalConfig* config_ptr, SpectralGrid* spectral_grid_ptr, const std::string folder)
+        : OpacitySpecies(_H2O, "H2O", folder)
+        {
+          config = config_ptr; 
+          spectral_grid = spectral_grid_ptr; 
+          init();
+        }
+    GasH2O(GlobalConfig* config_ptr, SpectralGrid* spectral_grid_ptr) 
+        : OpacitySpecies(_H2O, "H2O", "")
+        {
+          config = config_ptr; 
+          spectral_grid = spectral_grid_ptr; 
+          init();
+        }
+    virtual ~GasH2O() {}
+  protected:
+    virtual bool calcRalyleighCrossSections(std::vector<double>& cross_sections);
+    virtual void calcRalyleighCrossSectionsGPU(
+      const double number_density,
+      const size_t nb_grid_points, 
+      const size_t grid_point,
+      double* scattering_coeff_dev);
+};
+
+
+
+
+
 }
 
 #endif
