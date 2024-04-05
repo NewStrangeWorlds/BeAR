@@ -114,6 +114,7 @@ set(SRC
   helios_src/transport_coeff/species_rayleigh_cross_sections.cpp
   helios_src/transport_coeff/transport_coeff.cpp
   helios_src/chemistry/isoprofile_chemistry.cpp
+  helios_src/chemistry/isoprofile_clr_chemistry.cpp
   helios_src/chemistry/fastchem_chemistry.cpp
   helios_src/chemistry/free_chemistry.cpp
   helios_src/chemistry/free_cbspline_chemistry.cpp

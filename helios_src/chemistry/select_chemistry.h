@@ -26,6 +26,7 @@
 
 #include "fastchem_chemistry.h"
 #include "isoprofile_chemistry.h"
+#include "isoprofile_clr_chemistry.h"
 #include "free_chemistry.h"
 #include "free_cbspline_chemistry.h"
 
@@ -42,9 +43,9 @@ namespace helios {
 //definition of the different chemistry modules with an
 //identifier, a keyword to be located in the config file and a short version of the keyword
 namespace chemistry_modules{
-  enum id {free, iso, eq, cspline}; 
-  const std::vector<std::string> description {"free", "isoprofile", "equilibrium", "free_cspline"};
-  const std::vector<std::string> description_short {"free", "iso", "eq", "free_cs"};
+  enum id {free, iso, eq, cspline, iso_clr}; 
+  const std::vector<std::string> description {"free", "isoprofile", "equilibrium", "free_cspline", "isoprofile_clr"};
+  const std::vector<std::string> description_short {"free", "iso", "eq", "free_cs", "iso_clr"};
 }
 
 
@@ -137,6 +138,12 @@ inline Chemistry* selectChemistryModule(
           std::stoi(parameters[1]));
         chemistry_module = model;
     }
+      break;
+
+    case chemistry_modules::iso_clr : {
+      IsoprofileCLRChemistry* model = new IsoprofileCLRChemistry(parameters);
+      chemistry_module = model;
+    } 
       break;
   }
 
