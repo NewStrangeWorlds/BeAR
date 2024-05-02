@@ -244,7 +244,7 @@ __global__ void rayleighScatteringH2O(
 
   //this is the number density of water at standard temperature and pressure
   //determined from the Avogradro constant and the properties of water at STP
-  constexpr double reference_density = 2.546899e19; //molecules cm^-3
+  constexpr double reference_density = 3.34279671749673e+22; //molecules cm^-3
 
   //values for water at STP
   constexpr double delta = 1.0;
