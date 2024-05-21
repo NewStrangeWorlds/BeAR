@@ -5,7 +5,7 @@ BeAR Documentation
 
 Welcome to BeAR!
 
-On this page you find the documentation for BeAR, the **Be**\ rn **A**\ tmosphere **R**\ etrieval code.
+On this page you find the documentation for BeAR, the **Be**\ rn **A**\ tmospheric **R**\ etrieval code.
 If you find any new errors or inaccuracies, please send them to daniel.kitzmann@unibe.ch .
 
 .. toctree::
