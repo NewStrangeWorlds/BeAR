@@ -39,7 +39,7 @@ jobs:
             ${{ runner.os }}-pip-
 
       - name: Install dependencies
-        run: python3 -m pip install -r ./requirements.txt
+        run: pip install sphinx sphinx_rtd_theme myst_parser
 
       - run: sphinx-build docs_src docs
 
