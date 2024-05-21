@@ -68,14 +68,13 @@ __global__ void rayleighScatteringH2(
   { 
     const double refractive_index = (13.58e-5 * (1. + 7.52e-3/std::pow(wavelength[tid],2))) + 1.;
     
-    scattering_coeff[grid_point*nb_spectral_points + tid] = 
-      rayleighCrossSection(
+    const double sigma = rayleighCrossSection(
         reference_density,
         refractive_index,
         king_correction,
         wavenumber[tid]);
     
-    scattering_coeff[grid_point*nb_spectral_points + tid] *= number_density; 
+    scattering_coeff[grid_point*nb_spectral_points + tid] += sigma * number_density; 
   }
 
 }
@@ -101,14 +100,13 @@ __global__ void rayleighScatteringHe(
   { 
     const double refractive_index = (2283. + 1.8102e13 / (1.5342e10 - wavenumber[tid]*wavenumber[tid])) * 1e-8 + 1;
 
-    scattering_coeff[grid_point*nb_spectral_points + tid] = 
-      rayleighCrossSection(
-        reference_density,
-        refractive_index,
-        king_correction,
-        wavenumber[tid]);
-
-    scattering_coeff[grid_point*nb_spectral_points + tid] *= number_density; 
+    const double sigma = rayleighCrossSection(
+      reference_density,
+      refractive_index,
+      king_correction,
+      wavenumber[tid]);
+  
+    scattering_coeff[grid_point*nb_spectral_points + tid] += sigma * number_density; 
   }
 
 }
@@ -136,14 +134,13 @@ __global__ void rayleighScatteringCO(
     {
       const double refractive_index = (22851. + 0.456e14 / (71427.0*71427.0 - wavenumber[tid]*wavenumber[tid])) * 1e-8 + 1;
 
-      scattering_coeff[grid_point*nb_spectral_points + tid] = 
-        rayleighCrossSection(
-          reference_density,
-          refractive_index,
-          king_correction,
-          wavenumber[tid]);
-
-      scattering_coeff[grid_point*nb_spectral_points + tid] *= number_density;
+      const double sigma = rayleighCrossSection(
+        reference_density,
+        refractive_index,
+        king_correction,
+        wavenumber[tid]);
+    
+      scattering_coeff[grid_point*nb_spectral_points + tid] += sigma * number_density; 
     }
   }
 
@@ -178,14 +175,13 @@ __global__ void rayleighScatteringCO2(
                                     + 0.1218145e-6 / (2418.136*2418.136 - nu*nu))
                                     * 1.1427e3 + 1.0;
 
-      scattering_coeff[grid_point*nb_spectral_points + tid] = 
-        rayleighCrossSection(
-          reference_density,
-          refractive_index,
-          king_correction,
-          wavenumber[tid]);
+      const double sigma = rayleighCrossSection(
+        reference_density,
+        refractive_index,
+        king_correction,
+        wavenumber[tid]);
 
-      scattering_coeff[grid_point*nb_spectral_points + tid] *= number_density;
+      scattering_coeff[grid_point*nb_spectral_points + tid] += sigma * number_density; 
     }
   }
 
@@ -214,14 +210,13 @@ __global__ void rayleighScatteringCH4(
     {
       double refractive_index = (46662. + 4.02e-6 *wavenumber[tid]*wavenumber[tid]) * 1e-8 + 1;
 
-      scattering_coeff[grid_point*nb_spectral_points + tid] = 
-        rayleighCrossSection(
-          reference_density,
-          refractive_index,
-          king_correction,
-          wavenumber[tid]);
-
-      scattering_coeff[grid_point*nb_spectral_points + tid] *= number_density;
+      const double sigma = rayleighCrossSection(
+        reference_density,
+        refractive_index,
+        king_correction,
+        wavenumber[tid]);
+    
+      scattering_coeff[grid_point*nb_spectral_points + tid] += sigma * number_density; 
     }
   }
 
@@ -271,14 +266,13 @@ __global__ void rayleighScatteringH2O(
 
       const double refractive_index = pow(((2 * a_factor + 1)/(1 - a_factor)), 0.5);
 
-      scattering_coeff[grid_point*nb_spectral_points + tid] = 
-        rayleighCrossSection(
-          reference_density,
-          refractive_index,
-          king_correction,
-          wavenumber[tid]);
-
-      scattering_coeff[grid_point*nb_spectral_points + tid] *= number_density; 
+      const double sigma = rayleighCrossSection(
+        reference_density,
+        refractive_index,
+        king_correction,
+        wavenumber[tid]);
+    
+      scattering_coeff[grid_point*nb_spectral_points + tid] += sigma * number_density; 
     }
   }
 
