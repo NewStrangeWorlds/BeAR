@@ -1,0 +1,17 @@
+.. BeAR documentation master file
+
+BeAR Documentation
+======================
+
+Welcome to BeAR!
+
+On this page you find the documentation for BeAR, the **Be**\ rn **A**\ tmosphere **R**\ etrieval code.
+If you find any new errors or inaccuracies, please send them to daniel.kitzmann@unibe.ch .
+
+.. toctree::
+   :maxdepth: 2
+
+   sections/overview
+   sections/licence
+   sections/installation
+
