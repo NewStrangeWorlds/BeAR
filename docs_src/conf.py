@@ -34,7 +34,7 @@ html_static_path = ['static']
 #
 html_theme_options = {
 	'logo': 'bear.png',
-	'description': 'BeAR - The Bern Atmosphere Retrieval code',
+	'description': 'BeAR - The Bern Atmospheric Retrieval code',
 	'github_button': 'true',
 	'github_user': 'daniel-kitzmann',
     'github_repo': 'bear',
