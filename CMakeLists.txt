@@ -58,88 +58,88 @@ string(APPEND CMAKE_CUDA_FLAGS " -std=c++11 -lineinfo -Xptxas -v")
 
 #define the source files 
 set(SRC
-  helios_src/additional/aux_functions.cpp
-  helios_src/additional/piecewise_poly.cpp
-  helios_src/config/global_config.cpp
-  helios_src/forward_model/emission/emission_model_config.cpp
-  helios_src/forward_model/emission/emission_post_process_temperatures.cpp
-  helios_src/forward_model/emission/emission_post_process.cpp
-  helios_src/forward_model/emission/emission_priors.cpp
-  helios_src/forward_model/emission/emission_init.cpp
-  helios_src/forward_model/emission/emission.cpp
-  helios_src/forward_model/emission/emission_test.cpp
-  helios_src/forward_model/secondary_eclipse/secondary_eclipse_model_config.cpp
-  helios_src/forward_model/secondary_eclipse/secondary_eclipse_post_process_temperatures.cpp
-  helios_src/forward_model/secondary_eclipse/secondary_eclipse_post_process.cpp
-  helios_src/forward_model/secondary_eclipse/secondary_eclipse_priors.cpp
-  helios_src/forward_model/secondary_eclipse/secondary_eclipse_init.cpp
-  helios_src/forward_model/secondary_eclipse/secondary_eclipse.cpp
-  helios_src/forward_model/secondary_eclipse/secondary_eclipse_test.cpp
-  helios_src/forward_model/transmission/transmission_model_config.cpp
-  helios_src/forward_model/transmission/transmission_post_process.cpp
-  helios_src/forward_model/transmission/transmission_priors.cpp
-  helios_src/forward_model/transmission/transmission_init.cpp
-  helios_src/forward_model/transmission/transmission.cpp
-  helios_src/forward_model/transmission/transmission_spectrum.cpp
-  helios_src/forward_model/transmission/transmission_test.cpp
-  helios_src/forward_model/flat_line/flat_line_priors.cpp
-  helios_src/forward_model/flat_line/flat_line.cpp
-  helios_src/forward_model/flat_line/flat_line_test.cpp
-  helios_src/forward_model/atmosphere/atmosphere.cpp
-  helios_src/cloud_model/grey_cloud_model.cpp
-  helios_src/cloud_model/kh_cloud_model.cpp
-  helios_src/model_main/model_main.cpp
-  helios_src/observations/observations.cpp
-  helios_src/observations/observations_load_data.cpp
-  helios_src/observations/observations_filter_response.cpp
-  helios_src/radiative_transfer/discrete_ordinate.cpp
-  helios_src/radiative_transfer/short_characteristics.cpp
-  helios_src/retrieval/multinest_parameter.cpp
-  helios_src/retrieval/multinest_loglike.cpp
-  helios_src/retrieval/post_process_spectra.cpp
-  helios_src/retrieval/post_process.cpp
-  helios_src/retrieval/select_forward_model.cpp
-  helios_src/retrieval/retrieval_load_observations.cpp
-  helios_src/retrieval/retrieval.cpp
-  helios_src/retrieval/priors.cpp
-  helios_src/spectral_grid/convert.cpp
-  helios_src/spectral_grid/spectral_band_convolve.cpp
-  helios_src/spectral_grid/spectral_band_integrate.cpp
-  helios_src/spectral_grid/spectral_band.cpp
-  helios_src/spectral_grid/spectral_grid.cpp
-  helios_src/spectral_grid/spectral_grid_interpolate.cpp
-  helios_src/transport_coeff/cross_section_file.cpp
-  helios_src/transport_coeff/opacity_species.cpp
-  helios_src/transport_coeff/sampled_data.cpp
-  helios_src/transport_coeff/species_rayleigh_cross_sections.cpp
-  helios_src/transport_coeff/transport_coeff.cpp
-  helios_src/chemistry/isoprofile_chemistry.cpp
-  helios_src/chemistry/isoprofile_clr_chemistry.cpp
-  helios_src/chemistry/fastchem_chemistry.cpp
-  helios_src/chemistry/free_chemistry.cpp
-  helios_src/chemistry/free_cbspline_chemistry.cpp
-  helios_src/temperature/piecewise_poly_temperature.cpp
-  helios_src/temperature/cubic_b_spline_temperature.cpp
-  helios_src/temperature/milne_solution_temperature.cpp
-  helios_src/temperature/guillot_temperature.cpp
-  helios_src/radiative_transfer/cdisort_src/cdisort.c
-  helios_src/radiative_transfer/cdisort_src/locate.c)
+  src/additional/aux_functions.cpp
+  src/additional/piecewise_poly.cpp
+  src/config/global_config.cpp
+  src/forward_model/emission/emission_model_config.cpp
+  src/forward_model/emission/emission_post_process_temperatures.cpp
+  src/forward_model/emission/emission_post_process.cpp
+  src/forward_model/emission/emission_priors.cpp
+  src/forward_model/emission/emission_init.cpp
+  src/forward_model/emission/emission.cpp
+  src/forward_model/emission/emission_test.cpp
+  src/forward_model/secondary_eclipse/secondary_eclipse_model_config.cpp
+  src/forward_model/secondary_eclipse/secondary_eclipse_post_process_temperatures.cpp
+  src/forward_model/secondary_eclipse/secondary_eclipse_post_process.cpp
+  src/forward_model/secondary_eclipse/secondary_eclipse_priors.cpp
+  src/forward_model/secondary_eclipse/secondary_eclipse_init.cpp
+  src/forward_model/secondary_eclipse/secondary_eclipse.cpp
+  src/forward_model/secondary_eclipse/secondary_eclipse_test.cpp
+  src/forward_model/transmission/transmission_model_config.cpp
+  src/forward_model/transmission/transmission_post_process.cpp
+  src/forward_model/transmission/transmission_priors.cpp
+  src/forward_model/transmission/transmission_init.cpp
+  src/forward_model/transmission/transmission.cpp
+  src/forward_model/transmission/transmission_spectrum.cpp
+  src/forward_model/transmission/transmission_test.cpp
+  src/forward_model/flat_line/flat_line_priors.cpp
+  src/forward_model/flat_line/flat_line.cpp
+  src/forward_model/flat_line/flat_line_test.cpp
+  src/forward_model/atmosphere/atmosphere.cpp
+  src/cloud_model/grey_cloud_model.cpp
+  src/cloud_model/kh_cloud_model.cpp
+  src/model_main/model_main.cpp
+  src/observations/observations.cpp
+  src/observations/observations_load_data.cpp
+  src/observations/observations_filter_response.cpp
+  src/radiative_transfer/discrete_ordinate.cpp
+  src/radiative_transfer/short_characteristics.cpp
+  src/retrieval/multinest_parameter.cpp
+  src/retrieval/multinest_loglike.cpp
+  src/retrieval/post_process_spectra.cpp
+  src/retrieval/post_process.cpp
+  src/retrieval/select_forward_model.cpp
+  src/retrieval/retrieval_load_observations.cpp
+  src/retrieval/retrieval.cpp
+  src/retrieval/priors.cpp
+  src/spectral_grid/convert.cpp
+  src/spectral_grid/spectral_band_convolve.cpp
+  src/spectral_grid/spectral_band_integrate.cpp
+  src/spectral_grid/spectral_band.cpp
+  src/spectral_grid/spectral_grid.cpp
+  src/spectral_grid/spectral_grid_interpolate.cpp
+  src/transport_coeff/cross_section_file.cpp
+  src/transport_coeff/opacity_species.cpp
+  src/transport_coeff/sampled_data.cpp
+  src/transport_coeff/species_rayleigh_cross_sections.cpp
+  src/transport_coeff/transport_coeff.cpp
+  src/chemistry/isoprofile_chemistry.cpp
+  src/chemistry/isoprofile_clr_chemistry.cpp
+  src/chemistry/fastchem_chemistry.cpp
+  src/chemistry/free_chemistry.cpp
+  src/chemistry/free_cbspline_chemistry.cpp
+  src/temperature/piecewise_poly_temperature.cpp
+  src/temperature/cubic_b_spline_temperature.cpp
+  src/temperature/milne_solution_temperature.cpp
+  src/temperature/guillot_temperature.cpp
+  src/radiative_transfer/cdisort_src/cdisort.c
+  src/radiative_transfer/cdisort_src/locate.c)
   
 
 set(SRC_CUDA
-  helios_src/CUDA_kernels/band_integration_kernels.cu
-  helios_src/CUDA_kernels/convolution_kernels.cu
-  helios_src/CUDA_kernels/filter_response_kernels.cu
-  helios_src/CUDA_kernels/cross_section_kernels.cu
-  helios_src/CUDA_kernels/data_management_kernels.cu
-  helios_src/CUDA_kernels/log_like_kernels.cu
-  helios_src/CUDA_kernels/secondary_eclipse_kernels.cu
-  helios_src/CUDA_kernels/transmission_spectrum_kernels.cu
-  helios_src/CUDA_kernels/short_characteristics_kernels.cu
-  helios_src/CUDA_kernels/rayleigh_scattering_kernels.cu
-  helios_src/CUDA_kernels/cloud_model_kernels.cu
-  helios_src/CUDA_kernels/contribution_function_kernels.cu
-  helios_src/CUDA_kernels/observation_kernels.cu)
+  src/CUDA_kernels/band_integration_kernels.cu
+  src/CUDA_kernels/convolution_kernels.cu
+  src/CUDA_kernels/filter_response_kernels.cu
+  src/CUDA_kernels/cross_section_kernels.cu
+  src/CUDA_kernels/data_management_kernels.cu
+  src/CUDA_kernels/log_like_kernels.cu
+  src/CUDA_kernels/secondary_eclipse_kernels.cu
+  src/CUDA_kernels/transmission_spectrum_kernels.cu
+  src/CUDA_kernels/short_characteristics_kernels.cu
+  src/CUDA_kernels/rayleigh_scattering_kernels.cu
+  src/CUDA_kernels/cloud_model_kernels.cu
+  src/CUDA_kernels/contribution_function_kernels.cu
+  src/CUDA_kernels/observation_kernels.cu)
 
 
 #check for OpenMP
@@ -231,14 +231,14 @@ find_package(LAPACK REQUIRED)
 
 #compilation target for the CUDA files
 #CUDA requires different compiler options, so it's compiled separately
-add_library(helios_r_cuda ${SRC_CUDA})
-target_include_directories(helios_r_cuda PUBLIC ${boost_math_SOURCE_DIR}/include/)
+add_library(bear_cuda ${SRC_CUDA})
+target_include_directories(bear_cuda PUBLIC ${boost_math_SOURCE_DIR}/include/)
 
 
 # build application for Helios-r
-add_executable(helios-r ${SRC})
-target_include_directories(helios-r PUBLIC ${boost_math_SOURCE_DIR}/include/)
+add_executable(bear ${SRC})
+target_include_directories(bear PUBLIC ${boost_math_SOURCE_DIR}/include/)
 
 
-#link files for the final helios-r code
-target_link_libraries(helios-r PUBLIC fastchem_lib helios_r_cuda multinest_shared OpenMP::OpenMP_CXX ${LAPACK_LIBRARIES})
+#link files for the final BeAR code
+target_link_libraries(bear PUBLIC fastchem_lib bear_cuda multinest_shared OpenMP::OpenMP_CXX ${LAPACK_LIBRARIES})

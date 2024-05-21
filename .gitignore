@@ -1,5 +1,5 @@
 #the executable
-helios-r
+bear
 
 # build files from cmake
 build/*
