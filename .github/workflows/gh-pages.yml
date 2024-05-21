@@ -42,7 +42,13 @@ jobs:
         run: pip install sphinx sphinx_rtd_theme myst_parser
 
       - name: Sphinx build
-        run: sphinx-build docs_src docs
+        run: >
+          sphinx-build
+          -M html ./docs_src ./docs
+          -vv
+          --jobs=auto
+          --show-traceback
+          --keep-going
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v4
