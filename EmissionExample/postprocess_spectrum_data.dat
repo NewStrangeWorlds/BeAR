@@ -1,9 +1,0 @@
-#observation description
-#instrument
-PostProcessSpectrum
-
-#type
-band-spectroscopy
-
-#lower wavelength (micron)  upper wavelength (micron)   flux (W m-2 mu-1)   error
-0.500000e+00	20.000000e+00	1.000000e+05	1.000000e+03
