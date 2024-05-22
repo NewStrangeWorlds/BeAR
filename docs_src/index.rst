@@ -15,4 +15,5 @@ If you find any new errors or inaccuracies, please send them to daniel.kitzmann@
    sections/licence
    sections/installation
    sections/opacity_data
+   sections/forward_models
 
