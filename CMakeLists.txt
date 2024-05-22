@@ -88,6 +88,7 @@ set(SRC
   src/forward_model/atmosphere/atmosphere.cpp
   src/cloud_model/grey_cloud_model.cpp
   src/cloud_model/kh_cloud_model.cpp
+  src/cloud_model/power_law_cloud_model.cpp
   src/model_main/model_main.cpp
   src/observations/observations.cpp
   src/observations/observations_load_data.cpp

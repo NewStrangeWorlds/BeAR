@@ -1,19 +1,19 @@
 /*
-* This file is part of the Helios-r2 code (https://github.com/exoclime/Helios-r2).
-* Copyright (C) 2022 Daniel Kitzmann
+* This file is part of the BeAr code (https://github.com/newstrangeworlds/bear).
+* Copyright (C) 2024 Daniel Kitzmann
 *
-* Helios-r2 is free software: you can redistribute it and/or modify
+* BeAr is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
 *
-* Helios-r2 is distributed in the hope that it will be useful,
+* BeAr is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
 *
 * You find a copy of the GNU General Public License in the main
-* Helios-r2 directory under <LICENSE>. If not, see
+* BeAr directory under <LICENSE>. If not, see
 * <http://www.gnu.org/licenses/>.
 */
 
@@ -25,6 +25,7 @@
 #include "cloud_model.h"
 #include "grey_cloud_model.h"
 #include "kh_cloud_model.h"
+#include "power_law_cloud_model.h"
 
 #include "../config/global_config.h"
 #include "../additional/exceptions.h"
@@ -39,8 +40,8 @@ namespace helios {
 //definition of the different chemistry modules with an
 //identifier, a keyword to be located in the config file
 namespace cloud_modules{
-  enum id {none, grey, KHnongrey}; 
-  const std::vector<std::string> description {"none", "grey", "KHnongrey"};
+  enum id {none, grey, KHnongrey, power_law}; 
+  const std::vector<std::string> description {"none", "grey", "KHnongrey", "power_law"};
 }
 
 
@@ -81,6 +82,13 @@ inline CloudModel* selectCloudModel(const std::string type, const std::vector<st
     case cloud_modules::KHnongrey :
       {
         KHCloudModel* model = new KHCloudModel(parameters);
+        cloud_model = model;
+      }
+      break;
+
+    case cloud_modules::power_law :
+      {
+        PowerLawCloudModel* model = new PowerLawCloudModel(parameters);
         cloud_model = model;
       }
       break;

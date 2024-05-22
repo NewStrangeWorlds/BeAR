@@ -1,25 +1,26 @@
 /*
-* This file is part of the Helios-r2 code (https://github.com/exoclime/Helios-r2).
-* Copyright (C) 2020 Daniel Kitzmann
+* This file is part of the BeAr code (https://github.com/newstrangeworlds/bear).
+* Copyright (C) 2024 Daniel Kitzmann
 *
-* Helios-r2 is free software: you can redistribute it and/or modify
+* BeAr is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
 *
-* Helios-r2 is distributed in the hope that it will be useful,
+* BeAr is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
 *
 * You find a copy of the GNU General Public License in the main
-* Helios-r2 directory under <LICENSE>. If not, see
+* BeAr directory under <LICENSE>. If not, see
 * <http://www.gnu.org/licenses/>.
 */
 
 
 #include "../cloud_model/grey_cloud_model.h"
 #include "../cloud_model/kh_cloud_model.h"
+#include "../cloud_model/power_law_cloud_model.h"
 #include "../spectral_grid/spectral_grid.h"
 
 #include <iostream>
@@ -28,6 +29,7 @@
 
 #include "error_check.h"
 #include "reduce_kernels.h"
+#include "data_management_kernels.h"
 #include "../additional/physical_const.h"
 
 
@@ -122,6 +124,38 @@ __global__ void KHnongreyCloudModel(
 
 
 
+__global__ void powerLawCloudModel(
+  double* optical_depth, 
+  double* single_scattering_albedo, 
+  double* wavelengths,
+  const double optical_depth_layer_ref,
+  const double reference_value,
+  const double exponent,
+  const int cloud_top,
+  const int cloud_bottom,
+  const int nb_spectral_points)
+{
+  //the thread index tid is the wavelength
+  for (int tid = blockIdx.x * blockDim.x + threadIdx.x; tid < nb_spectral_points; tid += blockDim.x * gridDim.x)
+  {
+    const double optical_depth_layer = optical_depth_layer_ref * std::pow(wavelengths[tid], exponent) 
+                                      / reference_value;
+
+    for (int i=cloud_top; i>cloud_bottom; --i)
+    {
+      const int j = i*nb_spectral_points + tid;
+      const double optical_depth_mix = optical_depth[j] + optical_depth_layer;
+
+      single_scattering_albedo[j] = optical_depth[j] * single_scattering_albedo[j] / optical_depth_mix;
+      
+      optical_depth[j] = optical_depth_layer; //optical_depth_mix;
+    }
+  }
+
+}
+
+
+
 //converts layer optical depths to level-based extinction coefficients
 __host__ void CloudModel::convertOpticalDepthGPU(
   double* optical_depth_dev,
@@ -170,7 +204,6 @@ __host__ void GreyCloudModel::opticalPropertiesGPU(const std::vector<double>& pa
 
 
   size_t nb_spectral_points = spectral_grid->nbSpectralPoints();
-  size_t nb_grid_points = atmosphere.nb_grid_points;
 
   unsigned int cloud_top_index = 0;
   unsigned int cloud_bottom_index = 0;
@@ -202,10 +235,12 @@ __host__ void GreyCloudModel::opticalPropertiesGPU(const std::vector<double>& pa
 
 
 
-//calculates the vertical distribution of the grey layer
+//calculates the vertical distribution of the KH non-grey layer
 //needs three parameters: cloud top pressure, cloud bottom (fraction of top pressure), and optical depth
 //the optical depth will be distributed over the layers between the cloud's top and bottom
-__host__ void KHCloudModel::opticalPropertiesGPU(const std::vector<double>& parameters, const Atmosphere& atmosphere,
+__host__ void KHCloudModel::opticalPropertiesGPU(
+  const std::vector<double>& parameters, 
+  const Atmosphere& atmosphere,
   SpectralGrid* spectral_grid,
   double* optical_depth_dev, 
   double* single_scattering_dev, 
@@ -228,7 +263,6 @@ __host__ void KHCloudModel::opticalPropertiesGPU(const std::vector<double>& para
 
 
   size_t nb_spectral_points = spectral_grid->nbSpectralPoints();
-  size_t nb_grid_points = atmosphere.nb_grid_points;
 
   unsigned int cloud_top_index = 0;
   unsigned int cloud_bottom_index = 0;
@@ -257,6 +291,65 @@ __host__ void KHCloudModel::opticalPropertiesGPU(const std::vector<double>& para
     particle_size,
     a0,
     q0,
+    cloud_top_index,
+    cloud_bottom_index,
+    nb_spectral_points);
+
+  cudaDeviceSynchronize();
+  gpuErrchk( cudaPeekAtLastError() );
+  gpuErrchk( cudaDeviceSynchronize() );
+}
+
+
+//calculates the vertical distribution of the power-law cloud layer
+//needs three parameters: cloud top pressure, cloud bottom (fraction of top pressure), and optical depth
+//the optical depth will be distributed over the layers between the cloud's top and bottom
+__host__ void PowerLawCloudModel::opticalPropertiesGPU(
+  const std::vector<double>& parameters, 
+  const Atmosphere& atmosphere,
+  SpectralGrid* spectral_grid,
+  double* optical_depth_dev, 
+  double* single_scattering_dev, 
+  double* asym_param)
+{
+  double cloud_optical_depth = parameters[0];
+  double exponent = parameters[1];
+  double cloud_top_pressure = parameters[2];
+
+  double cloud_bottom_pressure = 0;
+
+  if (fixed_bottom == false)
+    cloud_bottom_pressure = cloud_top_pressure * parameters[3];
+
+
+  if (cloud_optical_depth < 0) cloud_optical_depth = 0;
+
+
+  size_t nb_spectral_points = spectral_grid->nbSpectralPoints();
+
+  unsigned int cloud_top_index = 0;
+  unsigned int cloud_bottom_index = 0;
+
+  if (fixed_bottom == true)
+    cloudPosition(atmosphere, cloud_top_pressure, cloud_top_index, cloud_bottom_index);
+  else
+    cloudPosition(atmosphere, cloud_top_pressure, cloud_bottom_pressure, cloud_top_index, cloud_bottom_index);
+
+
+  const double optical_depth_layer_reference = cloud_optical_depth/static_cast<double>(cloud_top_index - cloud_bottom_index); 
+  const double reference_value =  std::pow(reference_wavelength, exponent);
+  
+  int threads = 256;
+  int blocks = nb_spectral_points / threads;
+  if (nb_spectral_points % threads) blocks++;
+
+  powerLawCloudModel<<<blocks,threads>>>(
+    optical_depth_dev,
+    single_scattering_dev,
+    spectral_grid->wavelength_list_gpu,
+    optical_depth_layer_reference,
+    reference_value,
+    exponent,
     cloud_top_index,
     cloud_bottom_index,
     nb_spectral_points);
