@@ -18,7 +18,7 @@ their required input formats are described. Observations have to be
 provided in wavelength space. Internally, however, BeAR performs the
 calculations in wavenumber space.
 
-Typically, the computions are done with a higher spectral resulution than
+Typically, the computions are done with a higher spectral resolution than
 the observations and then integrated to the observational wavelength structure.
 The resolution is determined by the corresponding configuration parameter in
 the retrieval.config file.
