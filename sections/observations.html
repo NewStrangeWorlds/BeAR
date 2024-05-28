@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Observations &#8212; BeAR 1.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=4f649999" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=5bc47236" />
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=359c27e9"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Forward Models" href="forward_models.html" />
+    <link rel="prev" title="Opacity data" href="opacity_data.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="observations">
+<h1>Observations<a class="headerlink" href="#observations" title="Permalink to this heading">¶</a></h1>
+<section id="supported-observational-types">
+<h2>Supported observational types<a class="headerlink" href="#supported-observational-types" title="Permalink to this heading">¶</a></h2>
+<p>BeAR currently supports three different types of observations:</p>
+<ul class="simple">
+<li><p>spectroscopy</p></li>
+<li><p>band spectroscopy</p></li>
+<li><p>photometry</p></li>
+</ul>
+<p>Based on the type of observation, the required format of the data files
+differs slightly. In the following sections, the three basic types and
+their required input formats are described. Observations have to be
+provided in wavelength space. Internally, however, BeAR performs the
+calculations in wavenumber space.</p>
+<p>Typically, the computions are done with a higher spectral resolution than
+the observations and then integrated to the observational wavelength structure.
+The resolution is determined by the corresponding configuration parameter in
+the retrieval.config file.</p>
+<section id="spectroscopy">
+<h3>Spectroscopy<a class="headerlink" href="#spectroscopy" title="Permalink to this heading">¶</a></h3>
+<p>In spectroscopy mode, an observational spectrum is given at specific
+wavelengths <span class="math notranslate nohighlight">\(\lambda_i\)</span>, from <span class="math notranslate nohighlight">\(\lambda_1\)</span> to <span class="math notranslate nohighlight">\(\lambda_N\)</span>.
+The internal respresentation in wavenumber space <span class="math notranslate nohighlight">\(\nu\)</span>
+is shown in the figure below.</p>
+<a class="reference internal image-reference" href="../_images/spectroscopy.png"><img alt="../_images/spectroscopy.png" class="align-center" src="../_images/spectroscopy.png" style="width: 700px;" /></a>
+<p>BeAR sets up a high-resolution wavenumber grid, with a step size determined
+by the corresponding option in the retrieval.config file. This grid is
+symbolised by the red lines in the figure.</p>
+<p>To simulate the observed flux at the given wavelengths, BeAR creates a
+structure composed of spectral bands, one band for each observational wavelength.
+The boundaries of these bands in wavenumber space are halfway between adjacent
+wavelengths. For example, the boundaries <span class="math notranslate nohighlight">\(\nu_{i,1}\)</span> and <span class="math notranslate nohighlight">\(\nu_{i,2}\)</span>
+for the i-th band, corresponding to the wavelength <span class="math notranslate nohighlight">\(\lambda_i\)</span>, are
+determined by the adjacent wavelengths <span class="math notranslate nohighlight">\(\lambda_{i-1}\)</span> and <span class="math notranslate nohighlight">\(\lambda_{i+1}\)</span>.
+BeAR calculates its model spectrum on the high-resolution wavenumber grid (the red lines).
+It then obtains the mean flux in each of the bands i via integration and identifies
+the result with the flux at the observational wavelengths <span class="math notranslate nohighlight">\(\lambda_i\)</span>.</p>
+<p>Optionally, before integrating the spectrum, the high-resolution spectrum can be convolved
+with a given instrument line profile to simulate the flux received by the detector.</p>
+<a class="reference internal image-reference" href="../_images/line_profile.png"><img alt="../_images/line_profile.png" class="align-center" src="../_images/line_profile.png" style="width: 400px;" /></a>
+<p>With an ideal spectrograph, the flux at a given wavelength will only be received by
+a single pixel. This would correspond to the blue line in the above figure.
+In the real world, due to the finite slit width of a spectrograph,
+flux at a given wavelengths, however, will be spread out across several pixels. This is
+depicted by the red line.</p>
+<p>This spread is usually described by a Gaussian profile with a given, instrument-dependent width.
+In order to compute the flux at a given wavelength, BeAR needs to integrate over the entire
+profile to simulate the flux at the different wavelengths received by a pixel.</p>
+<p>This, usually wavelength-dependent, FWHM of the instrument line profile needs to be supplied
+as an input to BeAR. In order to save computation time, BeAR will limit the integration
+over the profile to a distance of five standard deviations from the profile centre.</p>
+</section>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../index.html">
+    <img class="logo" src="../_static/bear.png" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+<p class="blurb">BeAR - The Bern Atmospheric Retrieval code</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=daniel-kitzmann&repo=bear&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="licence.html">Licence</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="opacity_data.html">Opacity data</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Observations</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#supported-observational-types">Supported observational types</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="forward_models.html">Forward Models</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="opacity_data.html" title="previous chapter">Opacity data</a></li>
+      <li>Next: <a href="forward_models.html" title="next chapter">Forward Models</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020 - 2024, Daniel Kitzmann.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      
+      |
+      <a href="../_sources/sections/observations.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -5,8 +5,10 @@ BeAR Documentation
 
 Welcome to BeAR!
 
-On this page you find the documentation for BeAR, the **Be**\ rn **A**\ tmospheric **R**\ etrieval code.
-If you find any new errors or inaccuracies, please send them to daniel.kitzmann@unibe.ch .
+On this page you find the documentation for BeAR, 
+the **Be**\ rn **A**\ tmospheric **R**\ etrieval code.
+If you find any new errors or inaccuracies, please send them 
+to daniel.kitzmann@unibe.ch .
 
 .. toctree::
    :maxdepth: 2
@@ -15,5 +17,6 @@ If you find any new errors or inaccuracies, please send them to daniel.kitzmann@
    sections/licence
    sections/installation
    sections/opacity_data
+   sections/observations
    sections/forward_models
 

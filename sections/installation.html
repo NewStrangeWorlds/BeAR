@@ -35,7 +35,7 @@
 <h1>Installation<a class="headerlink" href="#installation" title="Permalink to this heading">¶</a></h1>
 <section id="obtaining-the-code">
 <h2>Obtaining the code<a class="headerlink" href="#obtaining-the-code" title="Permalink to this heading">¶</a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">BeAR</span></code> is hosted on the NewStrangeWorlds GitHub Teams page:
+<p>BeAR is hosted on the NewStrangeWorlds GitHub Teams page:
 <a class="reference external" href="https://github.com/newstrangeworlds/bear">https://github.com/newstrangeworlds/bear</a>. If <code class="docutils literal notranslate"><span class="pre">git</span></code> is available,
 the repository can be simply cloned with</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/newstrangeworlds/bear
@@ -44,38 +44,41 @@ the repository can be simply cloned with</p>
 </section>
 <section id="prerequisites">
 <h2>Prerequisites<a class="headerlink" href="#prerequisites" title="Permalink to this heading">¶</a></h2>
-<p><code class="docutils literal notranslate"><span class="pre">BeAR</span></code> is written in <code class="docutils literal notranslate"><span class="pre">C++</span></code> and <code class="docutils literal notranslate"><span class="pre">CUDA</span></code>. It uses features of the <code class="docutils literal notranslate"><span class="pre">C++11</span></code>
+<p>BeAR is written in C++ and CUDA. It uses features of the C++11
 standard and, therefore, requires a compiler that implements this
-standard. Furthermore, it needs the <code class="docutils literal notranslate"><span class="pre">CUDA</span></code> compiler and framework from NVIDIA.
-Additional libraries and codes (<code class="docutils literal notranslate"><span class="pre">FastChem</span></code>, <code class="docutils literal notranslate"><span class="pre">MultiNest</span></code>, <code class="docutils literal notranslate"><span class="pre">CDisort</span></code>, <code class="docutils literal notranslate"><span class="pre">Boost</span></code>)
-will be downloaded from their respective repositories and be compliled as well.</p>
+standard. Furthermore, it needs the CUDA compiler and framework
+from NVIDIA.
+Additional libraries and codes
+(FastChem, MultiNest, CDisort, Boost)
+will be downloaded from their respective repositories and be compiled as well.</p>
 <p>The complete list of prerequisites for a basic <code class="docutils literal notranslate"><span class="pre">CMake</span></code> installation
 is:</p>
 <ul class="simple">
-<li><p>a <code class="docutils literal notranslate"><span class="pre">C++</span></code> compiler (e.g. <code class="docutils literal notranslate"><span class="pre">g++</span></code>)</p></li>
-<li><p>NVIDIA’s <code class="docutils literal notranslate"><span class="pre">CUDA</span></code> framework and drivers</p></li>
+<li><p>a C++ compiler (e.g. <code class="docutils literal notranslate"><span class="pre">g++</span></code>)</p></li>
+<li><p>NVIDIA’s CUDA framework and drivers</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">CMake</span></code>, at least version 3.10</p></li>
-<li><p>an <code class="docutils literal notranslate"><span class="pre">OpenMP</span></code> library</p></li>
+<li><p>an OpenMP library</p></li>
 </ul>
-<p>The <code class="docutils literal notranslate"><span class="pre">C++</span></code> compiler will be detected by the CMake script when it
+<p>The C++ compiler will be detected by the CMake script when it
 generates the makefiles. The codes and libraries downloaded and compiled during
-the installation of <code class="docutils literal notranslate"><span class="pre">BeAR</span></code> have addiational requirements. This includes, in particular,</p>
+the installation of BeAR have addiational requirements.
+This includes, in particular,</p>
 <ul class="simple">
-<li><p>a <code class="docutils literal notranslate"><span class="pre">FORTRAN</span></code> compiler (e.g. <code class="docutils literal notranslate"><span class="pre">gfortran</span></code>) for the <code class="docutils literal notranslate"><span class="pre">MultiNest</span></code> library</p></li>
-<li><p>a <code class="docutils literal notranslate"><span class="pre">C</span></code> compiler (e.g. <code class="docutils literal notranslate"><span class="pre">gcc</span></code>) for the <code class="docutils literal notranslate"><span class="pre">CDisort</span></code> code</p></li>
+<li><p>a FORTRAN compiler (e.g. <code class="docutils literal notranslate"><span class="pre">gfortran</span></code>) for the MultiNest library</p></li>
+<li><p>a C compiler (e.g. <code class="docutils literal notranslate"><span class="pre">gcc</span></code>) for the CDisort code</p></li>
 </ul>
 </section>
 <section id="configuration-and-compilation-with-cmake">
 <span id="sec-install-config"></span><h2>Configuration and compilation with CMake<a class="headerlink" href="#configuration-and-compilation-with-cmake" title="Permalink to this heading">¶</a></h2>
 <div class="line-block">
-<div class="line">Before <code class="docutils literal notranslate"><span class="pre">BeAR</span></code> can be compiled, <code class="docutils literal notranslate"><span class="pre">CMake</span></code> is required to
+<div class="line">Before BeAR can be compiled, <code class="docutils literal notranslate"><span class="pre">CMake</span></code> is required to
 configure the compilation files, locate libraries, and write the
 makefiles that will perform the actual compilations. If required
 libraries are missing, <code class="docutils literal notranslate"><span class="pre">CMake</span></code> will report a corresponding error
 message. In this case, the missing libraries or compilers need to be
 installed before the configuration can be completed.</div>
 <div class="line">To run the <code class="docutils literal notranslate"><span class="pre">CMake</span></code> configuration, first create the <code class="docutils literal notranslate"><span class="pre">build</span></code> folder
-inside the <code class="docutils literal notranslate"><span class="pre">BeAR</span></code> source code folder and switch to the folder:</div>
+inside the BeAR source code folder and switch to the folder:</div>
 </div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mkdir<span class="w"> </span>build
 <span class="nb">cd</span><span class="w"> </span>build
@@ -86,12 +89,12 @@ inside the <code class="docutils literal notranslate"><span class="pre">BeAR</sp
 </pre></div>
 </div>
 <p>After <code class="docutils literal notranslate"><span class="pre">CMake</span></code> successfully configured the compilation files,
-<code class="docutils literal notranslate"><span class="pre">BeAR</span></code> can be compiled by running:</p>
+BeAR can be compiled by running:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>make
 </pre></div>
 </div>
 <p>Upon successful compilation, the executable <code class="docutils literal notranslate"><span class="pre">bear</span></code> should be
-present in the main <code class="docutils literal notranslate"><span class="pre">BeAR</span></code> folder.</p>
+present in the main BeAR folder.</p>
 </section>
 </section>
 
@@ -136,6 +139,7 @@ present in the main <code class="docutils literal notranslate"><span class="pre"
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="opacity_data.html">Opacity data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="observations.html">Observations</a></li>
 <li class="toctree-l1"><a class="reference internal" href="forward_models.html">Forward Models</a></li>
 </ul>
 
