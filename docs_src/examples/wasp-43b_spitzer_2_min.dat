@@ -1,0 +1,12 @@
+#observation description
+#instrument
+Spitzer Photometry 2
+
+#type
+photometry
+
+#filter transmission function
+../telescope_data/Spitzer_irac2_bandpass.dat
+
+#wavelengths          depth  error
+3.725160   5.221980   3827   84
