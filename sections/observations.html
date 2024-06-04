@@ -51,8 +51,31 @@ calculations in wavenumber space.</p>
 the observations and then integrated to the observational wavelength structure.
 The resolution is determined by the corresponding configuration parameter in
 the retrieval.config file.</p>
+</section>
+<section id="instrument-line-profile">
+<h2>Instrument Line Profile<a class="headerlink" href="#instrument-line-profile" title="Permalink to this heading">¶</a></h2>
+<p>Optionally, before integrating the spectrum, a high-resolution spectrum can be convolved
+with a given instrument line profile to simulate the flux received by the detector. The
+instrument line profile can be used for spectroscopy and band spectroscopy observations.
+It is not required for photometry since in this case the flux is already integrated over
+a wider filter bandpass.</p>
+<a class="reference internal image-reference" href="../_images/line_profile.png"><img alt="../_images/line_profile.png" class="align-center" src="../_images/line_profile.png" style="width: 400px;" /></a>
+<p>With an ideal spectrograph, the flux at a given wavelength will only be received by
+a single pixel, following the dispersion relation of the instrument.
+This would correspond to the blue line in the above figure.
+In the real world, due to the finite slit width of a spectrograph,
+flux at a given wavelengths, however, will be spread out across several pixels. This is
+depicted by the red curve in the above plot.</p>
+<p>This spread is usually described by a Gaussian profile with a given, instrument-dependent width.
+In order to compute the flux at a given pixel, BeAR needs to take into account the spread of
+flux at a discrete wavelength over multiple pixels.</p>
+<p>The Gaussian is described by its corresponding full width at half maximum (FWHM) in wavelength units.
+This, usually wavelength-dependent, FWHM needs to be supplied as an input to BeAR. In order to save
+computation time, BeAR will limit the contributions of the profile to a distance of five standard deviations
+from the profile centre.</p>
+</section>
 <section id="spectroscopy">
-<h3>Spectroscopy<a class="headerlink" href="#spectroscopy" title="Permalink to this heading">¶</a></h3>
+<h2>Spectroscopy<a class="headerlink" href="#spectroscopy" title="Permalink to this heading">¶</a></h2>
 <p>In spectroscopy mode, an observational spectrum is given at specific
 wavelengths <span class="math notranslate nohighlight">\(\lambda_i\)</span>, from <span class="math notranslate nohighlight">\(\lambda_1\)</span> to <span class="math notranslate nohighlight">\(\lambda_N\)</span>.
 The internal respresentation in wavenumber space <span class="math notranslate nohighlight">\(\nu\)</span>
@@ -70,20 +93,202 @@ determined by the adjacent wavelengths <span class="math notranslate nohighlight
 BeAR calculates its model spectrum on the high-resolution wavenumber grid (the red lines).
 It then obtains the mean flux in each of the bands i via integration and identifies
 the result with the flux at the observational wavelengths <span class="math notranslate nohighlight">\(\lambda_i\)</span>.</p>
-<p>Optionally, before integrating the spectrum, the high-resolution spectrum can be convolved
-with a given instrument line profile to simulate the flux received by the detector.</p>
-<a class="reference internal image-reference" href="../_images/line_profile.png"><img alt="../_images/line_profile.png" class="align-center" src="../_images/line_profile.png" style="width: 400px;" /></a>
-<p>With an ideal spectrograph, the flux at a given wavelength will only be received by
-a single pixel. This would correspond to the blue line in the above figure.
-In the real world, due to the finite slit width of a spectrograph,
-flux at a given wavelengths, however, will be spread out across several pixels. This is
-depicted by the red line.</p>
-<p>This spread is usually described by a Gaussian profile with a given, instrument-dependent width.
-In order to compute the flux at a given wavelength, BeAR needs to integrate over the entire
-profile to simulate the flux at the different wavelengths received by a pixel.</p>
-<p>This, usually wavelength-dependent, FWHM of the instrument line profile needs to be supplied
-as an input to BeAR. In order to save computation time, BeAR will limit the integration
-over the profile to a distance of five standard deviations from the profile centre.</p>
+<section id="input-file-structure">
+<h3>Input file structure<a class="headerlink" href="#input-file-structure" title="Permalink to this heading">¶</a></h3>
+<p>A basic example for an input file for a spectroscopic observation is shown below.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#observation description</span>
+<span class="c1">#name</span>
+<span class="n">GJ570D</span> <span class="n">SpeX</span>
+
+<span class="c1">#type</span>
+<span class="n">spectroscopy</span>
+
+<span class="c1">#filter transmission function</span>
+<span class="kc">None</span>
+
+<span class="c1">#wavelength     flux            error       </span>
+<span class="mf">8.546470e-01</span>    <span class="mf">1.067250e-16</span>    <span class="mf">4.268400e-17</span>
+<span class="mf">8.577970e-01</span>    <span class="mf">1.554700e-17</span>    <span class="mf">6.090700e-17</span>
+<span class="mf">8.609660e-01</span>    <span class="mf">2.235860e-16</span>    <span class="mf">1.419440e-16</span>
+<span class="mf">8.641550e-01</span>    <span class="mf">9.457600e-17</span>    <span class="mf">1.087830e-16</span>
+<span class="mf">8.673640e-01</span>    <span class="mf">2.628640e-16</span>    <span class="mf">1.121910e-16</span>
+<span class="mf">8.705910e-01</span>    <span class="mf">2.536920e-16</span>    <span class="mf">3.449900e-17</span>
+<span class="mf">8.738380e-01</span>    <span class="mf">1.915240e-16</span>    <span class="mf">4.122700e-17</span>
+<span class="mf">8.771040e-01</span>    <span class="mf">2.369350e-16</span>    <span class="mf">1.440910e-16</span>
+<span class="mf">8.803890e-01</span>    <span class="mf">2.678520e-16</span>    <span class="mf">1.319020e-16</span>
+<span class="mf">8.836930e-01</span>    <span class="mf">3.016220e-16</span>    <span class="mf">1.434050e-16</span>
+</pre></div>
+</div>
+<p>The file consists of a header that contains some basic information. The name of the
+observation/instrument is not used during the calculation but will determine the
+file name of the posterior spectra file.</p>
+<p>For spectroscopy, the <code class="docutils literal notranslate"><span class="pre">#type</span></code> needs to be set to <code class="docutils literal notranslate"><span class="pre">spectroscopy</span></code>. This is followed by
+an optional filter bandpass transmission function.</p>
+<p>The actual spectroscopic data is given in three columns. The first column is the wavelength
+in units of <span class="math notranslate nohighlight">\(\mathrm{\mu m}\)</span>, the second the observational data. The units of the data depend on the
+chosen forward model. For example, the <code class="docutils literal notranslate"><span class="pre">emission</span></code> forward model expects a radiation flux
+in units of <span class="math notranslate nohighlight">\(\mathrm{W} \mathrm{m}^{-2}  \mathrm{\mu m}^{-1}\)</span>, while the <code class="docutils literal notranslate"><span class="pre">transmission</span></code> spectroscopy model requires
+the transit depth in ppm. The third column contains the error of the observational data in
+the same units as the previous column.</p>
+<p>As mentionend above, an optional Gaussian instrument line profile, characterised by its FWHM, can be used in
+BeAR. This information is added in an optional fourth column as shown below.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#observation description</span>
+<span class="c1">#name</span>
+<span class="n">GJ570D</span> <span class="n">SpeX</span>
+
+<span class="c1">#type</span>
+<span class="n">spectroscopy</span>
+
+<span class="c1">#filter transmission function</span>
+<span class="kc">None</span>
+
+<span class="c1">#wavelength     flux            error           profile fwhm     weight</span>
+<span class="mf">8.546470e-01</span>    <span class="mf">1.067250e-16</span>    <span class="mf">4.268400e-17</span>    <span class="mf">1.039500e-02</span>     <span class="mi">1</span>
+<span class="mf">8.577970e-01</span>    <span class="mf">1.554700e-17</span>    <span class="mf">6.090700e-17</span>    <span class="mf">1.045770e-02</span>     <span class="mi">0</span>
+<span class="mf">8.609660e-01</span>    <span class="mf">2.235860e-16</span>    <span class="mf">1.419440e-16</span>    <span class="mf">1.052370e-02</span>     <span class="mi">0</span>
+<span class="mf">8.641550e-01</span>    <span class="mf">9.457600e-17</span>    <span class="mf">1.087830e-16</span>    <span class="mf">1.058970e-02</span>     <span class="mi">1</span>
+<span class="mf">8.673640e-01</span>    <span class="mf">2.628640e-16</span>    <span class="mf">1.121910e-16</span>    <span class="mf">1.064910e-02</span>     <span class="mi">0</span>
+<span class="mf">8.705910e-01</span>    <span class="mf">2.536920e-16</span>    <span class="mf">3.449900e-17</span>    <span class="mf">1.071510e-02</span>     <span class="mi">0</span>
+<span class="mf">8.738380e-01</span>    <span class="mf">1.915240e-16</span>    <span class="mf">4.122700e-17</span>    <span class="mf">1.077780e-02</span>     <span class="mi">1</span>
+<span class="mf">8.771040e-01</span>    <span class="mf">2.369350e-16</span>    <span class="mf">1.440910e-16</span>    <span class="mf">1.084050e-02</span>     <span class="mi">0</span>
+<span class="mf">8.803890e-01</span>    <span class="mf">2.678520e-16</span>    <span class="mf">1.319020e-16</span>    <span class="mf">1.090320e-02</span>     <span class="mi">0</span>
+<span class="mf">8.836930e-01</span>    <span class="mf">3.016220e-16</span>    <span class="mf">1.434050e-16</span>    <span class="mf">1.096260e-02</span>     <span class="mi">1</span>
+</pre></div>
+</div>
+<p>The fourth column contains the FWHM of the Gaussian profile in <span class="math notranslate nohighlight">\(\mathrm{\mu m}\)</span>. Setting the FWHM to
+0 will result in the instrument line profile being neglected. Another optional fifth column contains a
+weighting factor for each observational point. This allows to give unreliable data points a lower impact during the
+computation of the likelihood or to neglect certain points entirely.</p>
+</section>
+</section>
+<section id="band-spectroscopy">
+<h2>Band Spectroscopy<a class="headerlink" href="#band-spectroscopy" title="Permalink to this heading">¶</a></h2>
+<p>Band-spectroscopy is a degraded form of spectroscopy, where individual wavelengths have
+been summed up into bands to e.g. increase the signal-to-noise of a low-signal observation.
+This is, for example, commonly done for exoplanet observations with the WFC3 instrument
+on the Hubble Space Telescope. The band structure itself does not need to be regular.</p>
+<p>As depicted in the figure above, the observational data is assumed to consist of
+math:<cite>i = 1 … N</cite> spectral bands, each with given wavelength boundaries <span class="math notranslate nohighlight">\(\lambda_{i,1}\)</span> and <span class="math notranslate nohighlight">\(\lambda_{i,2}\)</span> .</p>
+<a class="reference internal image-reference" href="../_images/band_spectroscopy.png"><img alt="../_images/band_spectroscopy.png" class="align-center" src="../_images/band_spectroscopy.png" style="width: 700px;" /></a>
+<p>BeAR will create the same band structure in wavenumber space. Just like for spectroscopy calculations,
+the high-resolution spectrum of BeAR will be integrated over each band math:<cite>i</cite> to obtain the
+mean flux of the corresponding observation. Optionally, before integrating the spectrum, the
+high-resolution spectrum can be convolved with a given instrument line profile to simulate the
+flux received by the detector.</p>
+<section id="id1">
+<h3>Input file structure<a class="headerlink" href="#id1" title="Permalink to this heading">¶</a></h3>
+<p>A basic example for an input file for a band spectroscopy observation is shown below.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#observation description</span>
+<span class="c1">#name</span>
+<span class="n">WASP</span><span class="o">-</span><span class="mi">12</span><span class="n">b</span> <span class="n">WFC3</span>
+
+<span class="c1">#type</span>
+<span class="n">band</span><span class="o">-</span><span class="n">spectroscopy</span>
+
+<span class="c1">#band boundaries    depth      error</span>
+<span class="mf">0.838</span>      <span class="mf">0.896</span>    <span class="mi">14441</span>      <span class="mi">69</span>
+<span class="mf">0.896</span>      <span class="mf">0.954</span>    <span class="mi">14422</span>      <span class="mi">55</span>
+<span class="mf">0.954</span>      <span class="mf">1.012</span>    <span class="mi">14402</span>      <span class="mi">52</span>
+<span class="mf">1.012</span>      <span class="mf">1.07</span>     <span class="mi">14428</span>      <span class="mi">51</span>
+<span class="mf">1.07</span>       <span class="mf">1.112</span>    <span class="mi">14391</span>      <span class="mi">53</span>
+<span class="mf">1.112</span>      <span class="mf">1.182</span>    <span class="mi">14386</span>      <span class="mi">47</span>
+<span class="mf">1.182</span>      <span class="mf">1.251</span>    <span class="mi">14365</span>      <span class="mi">45</span>
+<span class="mf">1.251</span>      <span class="mf">1.32</span>     <span class="mi">14327</span>      <span class="mi">41</span>
+<span class="mf">1.32</span>       <span class="mf">1.389</span>    <span class="mi">14582</span>      <span class="mi">40</span>
+<span class="mf">1.389</span>      <span class="mf">1.458</span>    <span class="mi">14600</span>      <span class="mi">43</span>
+<span class="mf">1.458</span>      <span class="mf">1.527</span>    <span class="mi">14530</span>      <span class="mi">45</span>
+<span class="mf">1.527</span>      <span class="mf">1.597</span>    <span class="mi">14475</span>      <span class="mi">58</span>
+<span class="mf">1.597</span>      <span class="mf">1.666</span>    <span class="mi">14332</span>      <span class="mi">55</span>
+</pre></div>
+</div>
+<p>The file consists of a header that contains some basic information. The name of the
+observation/instrument is not used during the calculation but will determine the
+file name of the posterior spectra file.
+For band spectroscopy, the <code class="docutils literal notranslate"><span class="pre">#type</span></code> needs to be set to <code class="docutils literal notranslate"><span class="pre">band-spectroscopy</span></code>.</p>
+<p>The actual spectroscopic data is given in four columns. The first two columns describe the boundaries
+of the wavelength bins in units of <span class="math notranslate nohighlight">\(\mathrm{\mu m}\)</span>.
+The third column refers to the observational data. The units of the data depend on the
+chosen forward model. For example, the <code class="docutils literal notranslate"><span class="pre">emission</span></code> forward model expects a radiation flux
+in units of <span class="math notranslate nohighlight">\(\mathrm{W} \mathrm{m}^{-2}  \mathrm{\mu m}^{-1}\)</span>, while the <code class="docutils literal notranslate"><span class="pre">transmission</span></code> spectroscopy model requires
+the transit depth in ppm as shown in the example above.</p>
+<p>The fourth column contains the error of the observational data in the same units as the previous column.</p>
+<p>Just like spectroscopic data, an optional Gaussian instrument line profile, characterised by its FWHM, can be used
+for band spectroscopy as well. This information is added in an optional fifth column as shown below.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#observation description</span>
+<span class="c1">#name</span>
+<span class="n">WASP</span><span class="o">-</span><span class="mi">12</span><span class="n">b</span> <span class="n">WFC3</span>
+
+<span class="c1">#type</span>
+<span class="n">band</span><span class="o">-</span><span class="n">spectroscopy</span>
+
+<span class="c1">#band boundaries    depth      error   FWHM   weight</span>
+<span class="mf">0.838</span>      <span class="mf">0.896</span>    <span class="mi">14441</span>      <span class="mi">69</span>      <span class="mf">0.0</span>    <span class="mf">1.0</span>
+<span class="mf">0.896</span>      <span class="mf">0.954</span>    <span class="mi">14422</span>      <span class="mi">55</span>      <span class="mf">0.0</span>    <span class="mf">1.0</span>
+<span class="mf">0.954</span>      <span class="mf">1.012</span>    <span class="mi">14402</span>      <span class="mi">52</span>      <span class="mf">0.0</span>    <span class="mf">1.0</span>
+<span class="mf">1.012</span>      <span class="mf">1.07</span>     <span class="mi">14428</span>      <span class="mi">51</span>      <span class="mf">0.0</span>    <span class="mf">1.0</span>
+<span class="mf">1.07</span>       <span class="mf">1.112</span>    <span class="mi">14391</span>      <span class="mi">53</span>      <span class="mf">0.0</span>    <span class="mf">1.0</span>
+<span class="mf">1.112</span>      <span class="mf">1.182</span>    <span class="mi">14386</span>      <span class="mi">47</span>      <span class="mf">0.0</span>    <span class="mf">1.0</span>
+<span class="mf">1.182</span>      <span class="mf">1.251</span>    <span class="mi">14365</span>      <span class="mi">45</span>      <span class="mf">0.0</span>    <span class="mf">1.0</span>
+<span class="mf">1.251</span>      <span class="mf">1.32</span>     <span class="mi">14327</span>      <span class="mi">41</span>      <span class="mf">0.0</span>    <span class="mf">1.0</span>
+<span class="mf">1.32</span>       <span class="mf">1.389</span>    <span class="mi">14582</span>      <span class="mi">40</span>      <span class="mf">0.0</span>    <span class="mf">1.0</span>
+<span class="mf">1.389</span>      <span class="mf">1.458</span>    <span class="mi">14600</span>      <span class="mi">43</span>      <span class="mf">0.0</span>    <span class="mf">1.0</span>
+<span class="mf">1.458</span>      <span class="mf">1.527</span>    <span class="mi">14530</span>      <span class="mi">45</span>      <span class="mf">0.0</span>    <span class="mf">1.0</span>
+<span class="mf">1.527</span>      <span class="mf">1.597</span>    <span class="mi">14475</span>      <span class="mi">58</span>      <span class="mf">0.0</span>    <span class="mf">1.0</span>
+<span class="mf">1.597</span>      <span class="mf">1.666</span>    <span class="mi">14332</span>      <span class="mi">55</span>      <span class="mf">0.0</span>    <span class="mf">1.0</span>
+</pre></div>
+</div>
+<p>The additional column contains the FWHM of the Gaussian profile in <span class="math notranslate nohighlight">\(\mathrm{\mu m}\)</span>. Setting the FWHM to
+0 will result in the instrument line profile being neglected as shown in the example above.
+Another optional sixth column contains a  weighting factor for each observational band.
+This allows to give unreliable data points a lower impact during thecomputation of the likelihood
+or to neglect certain points entirely.</p>
+</section>
+</section>
+<section id="photometry">
+<h2>Photometry<a class="headerlink" href="#photometry" title="Permalink to this heading">¶</a></h2>
+<p>Photometry is essentially band-spectroscopy with just one broad band between two wavelengths
+<span class="math notranslate nohighlight">\(\lambda_{1}\)</span> and <span class="math notranslate nohighlight">\(\lambda_{2}\)</span> as depicted in the figure below.</p>
+<a class="reference internal image-reference" href="../_images/photometry.png"><img alt="../_images/photometry.png" class="align-center" src="../_images/photometry.png" style="width: 700px;" /></a>
+<p>The high-resolution spectrum calculated by BeAR will
+be integrated over the bandpass in wavenumber space to obtain the mean flux in the filter.
+The conceptual difference between band-spectroscopy and photometry within BeAR
+is that unlike the former, a photometry observation does not have an instrument line profile
+because it’s supposed to cover a broader wavelength range. Instead, it can be processed
+through a filter transmission function to simulate the observation through a specific filter.
+Note, however, that this is not yet fully implemented in BeAR. For now, the two boundary
+wavelengths <span class="math notranslate nohighlight">\(\lambda_{1}\)</span> and <span class="math notranslate nohighlight">\(\lambda_{2}\)</span> should be used as the effective filter limits.
+The ability to read in and use specific filter transmission curves will be added in the future.</p>
+<section id="id2">
+<h3>Input file structure<a class="headerlink" href="#id2" title="Permalink to this heading">¶</a></h3>
+<p>A basic example for an input file for a photometric observation is shown below.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#observation description</span>
+<span class="c1">#instrument</span>
+<span class="n">Spitzer</span> <span class="n">Photometry</span> <span class="mi">2</span>
+
+<span class="c1">#type</span>
+<span class="n">photometry</span>
+
+<span class="c1">#filter transmission function</span>
+<span class="o">../</span><span class="n">telescope_data</span><span class="o">/</span><span class="n">Spitzer_irac2_bandpass</span><span class="o">.</span><span class="n">dat</span>
+
+<span class="c1">#wavelengths          depth  error</span>
+<span class="mf">3.725160</span>   <span class="mf">5.221980</span>   <span class="mi">3827</span>   <span class="mi">84</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#observation description</span>
+<span class="c1">#instrument</span>
+<span class="n">Spitzer</span> <span class="n">Photometry</span> <span class="mi">2</span>
+
+<span class="c1">#type</span>
+<span class="n">photometry</span>
+
+<span class="c1">#filter transmission function</span>
+<span class="o">../</span><span class="n">telescope_data</span><span class="o">/</span><span class="n">Spitzer_irac2_bandpass</span><span class="o">.</span><span class="n">dat</span>
+
+<span class="c1">#wavelengths          depth  error   weight</span>
+<span class="mf">3.725160</span>   <span class="mf">5.221980</span>   <span class="mi">3827</span>   <span class="mi">84</span>      <span class="mf">1.0</span>
+</pre></div>
+</div>
 </section>
 </section>
 </section>
@@ -126,6 +331,10 @@ over the profile to a distance of five standard deviations from the profile cent
 <li class="toctree-l1"><a class="reference internal" href="opacity_data.html">Opacity data</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Observations</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#supported-observational-types">Supported observational types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#instrument-line-profile">Instrument Line Profile</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#spectroscopy">Spectroscopy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#band-spectroscopy">Band Spectroscopy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#photometry">Photometry</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="forward_models.html">Forward Models</a></li>
