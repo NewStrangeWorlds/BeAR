@@ -94,7 +94,8 @@ observation/instrument is not used during the calculation but will determine the
 file name of the posterior spectra file. 
 
 For spectroscopy, the ``#type`` needs to be set to ``spectroscopy``. This is followed by
-an optional filter bandpass transmission function. 
+an optional filter bandpass transmission function. If no filter transmission is used, this
+should be set to ``none`` as in the example above.
 
 The actual spectroscopic data is given in three columns. The first column is the wavelength
 in units of :math:`\mathrm{\mu m}`, the second the observational data. The units of the data depend on the
@@ -203,7 +204,30 @@ A basic example for an input file for a photometric observation is shown below.
 
 .. include:: ../examples/wasp-43b_spitzer_2_min.dat
    :literal:
+   
+The file consists of a header that contains some basic information. The name of the 
+observation/instrument is not used during the calculation but will determine the
+file name of the posterior spectra file. 
+For photometry, the ``#type`` needs to be set to ``photometry``.
 
+This is followed by the location of the file with the bandpass transmission function. 
+When setting this to ``none``, BeAR will use a transmission function of unity within 
+the wavelength boundaries given below.
+
+The observational data is given in at least four columns. The first two columns respresent
+the wavelength boundaries over which the photometric data should be integrated. 
+The third column reprents the the observational photometry data. The units of the data depend on the
+chosen forward model. For example, the ``emission`` forward model expects a radiation flux
+in units of :math:`\mathrm{W} \mathrm{m}^{-2}  \mathrm{\mu m}^{-1}`, while the ``transmission`` 
+spectroscopy model requires the transit depth in ppm. The foruth column contains the error of 
+the observational data in the same units as the previous column.
+
+Just like for the previous observational types, an optional weight for the photometric
+data point can be included in a fifth column. This is shown in the example below.
 
 .. include:: ../examples/wasp-43b_spitzer_2.dat
    :literal:
+   
+Unlike the input for spectroscopic data, no instrument line profile is used here. Since photometry data
+is integrated over a wider bandpass anyway, the impact of a Gaussian line profile would be 
+negligible.
