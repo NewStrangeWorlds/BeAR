@@ -11,6 +11,7 @@
     <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=359c27e9"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Observations" href="observations.html" />
@@ -33,20 +34,136 @@
             
   <section id="opacity-data">
 <h1>Opacity data<a class="headerlink" href="#opacity-data" title="Permalink to this heading">¶</a></h1>
-<p id="sec-opacity-data"><code class="docutils literal notranslate"><span class="pre">BeAR</span></code> uses tabulated absorption cross-sections for its radiative transfer calculations. The
-cross-sections have to be given in units of cm2 .
-You can of course use your own opacity data. If you choose to do that, you need either
-convert your data to the format described below or change the corresponding code within
-<code class="docutils literal notranslate"><span class="pre">BeAR</span></code>. More in-depth details about the implementation in the code can be found in Part
-III.</p>
-<section id="required-format-of-the-tabulated-data">
-<h2>Required format of the tabulated data<a class="headerlink" href="#required-format-of-the-tabulated-data" title="Permalink to this heading">¶</a></h2>
+<p id="sec-opacity-data">BeAR uses mainly tabulated absorption cross-sections for its radiative transfer calculations.
+The cross-sections have to be given in units of <span class="math notranslate nohighlight">\(\mathrm{cm^{2}}\)</span> or in cross-sections
+per species mass <span class="math notranslate nohighlight">\(\mathrm{cm^{2}/g}\)</span>. BeAR is primarily designed to be used
+with the output files from the HELIOS-k opacity calculator. HELIOS-k is an open-source code
+that can be found <a class="reference external" href="https://github.com/exoclime/HELIOS-K/">here</a>.</p>
+<p>Pre-calculated opacity data for a broad range of species that have been curated by Simon Grimm
+can be found on the <a class="reference external" href="https://dace.unige.ch//">DACE platform</a> under <code class="docutils literal notranslate"><span class="pre">Opacity</span></code>.
+This data is already in a format that BeAR can use directly.</p>
+<p>While BeAR is designed to work primarily with the opacity data format of the HELIOS-k
+opacity calculator, one can of course also use other opacities. In that case, they have to
+be converted to the format described below.</p>
+<section id="global-wavenumber-grid">
+<h2>Global wavenumber grid<a class="headerlink" href="#global-wavenumber-grid" title="Permalink to this heading">¶</a></h2>
 <p>Cross-sections are required to be tabulated as a function of wavenumber. All cross-sections
-have to be given on the same wavenumber grid. <code class="docutils literal notranslate"><span class="pre">BeAR</span></code> expects to find this global
-wavenumber grid in a special file. The location of the opacity data and the wavenumber
-file are handled by the specific forward model. The configuration of the forward models will
-usually have an option to specify specific folders where the data for the different species can
-be found by <code class="docutils literal notranslate"><span class="pre">BeAR</span></code>.</p>
+have to be given on the same wavenumber grid to avoid having to constantly interpolating them
+in wavenumber space when reading them in. By default, BeAR will use the HELIOS-k opacities.
+In that case, the opacity data is calculated on a wavenumber grid with a constant step of
+0.01 <span class="math notranslate nohighlight">\(\mathrm{cm^{-1}}\)</span>, starting from 0 <span class="math notranslate nohighlight">\(\mathrm{cm^{-1}}\)</span>.</p>
+<p>BeAR expects to find this global wavenumber grid in a special file. The location of the opacity
+data and the wavenumber file are handled by the <code class="docutils literal notranslate"><span class="pre">retrieval.config</span></code> configuration file.</p>
+<p>This file has the following, simple structure.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mi">5000001</span>
+<span class="mf">0.0000000000e+00</span>
+<span class="mf">1.0000000000e-02</span>
+<span class="mf">2.0000000000e-02</span>
+<span class="mf">3.0000000000e-02</span>
+<span class="mf">4.0000000000e-02</span>
+<span class="mf">5.0000000000e-02</span>
+<span class="mf">6.0000000000e-02</span>
+<span class="mf">7.0000000000e-02</span>
+<span class="mf">8.0000000000e-02</span>
+<span class="mf">9.0000000000e-02</span>
+<span class="mf">1.0000000000e-01</span>
+<span class="mf">1.1000000000e-01</span>
+<span class="mf">1.2000000000e-01</span> 
+</pre></div>
+</div>
+<p>The file starts with an integer value that is equal to the total number of wavenumbers in
+the file. After that, the single wavenumbers are tabulated in ascending order.</p>
+</section>
+<section id="opacity-data-for-a-specific-species">
+<h2>Opacity data for a specific species<a class="headerlink" href="#opacity-data-for-a-specific-species" title="Permalink to this heading">¶</a></h2>
+<p>Opacity data for a specific species have to be located in a folder that is usually
+specified in the opacity species list within the <code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code>. Inside
+this folder, BeAR expects to find a summary file <code class="docutils literal notranslate"><span class="pre">filelist.dat</span></code> that contains
+a list of pressures and temperatures as well as filenames the opacities have
+been tabulated at.</p>
+<p>In general it has the following structure:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mf">18.01528</span>
+<span class="mf">1.00000e-08</span>  <span class="mf">2.00000e+02</span>  <span class="n">Out_00000_42000_00200_n800</span><span class="o">.</span><span class="n">bin</span>
+<span class="mf">4.64159e-04</span>  <span class="mf">4.00000e+02</span>  <span class="n">Out_00000_42000_00400_n333</span><span class="o">.</span><span class="n">bin</span>
+<span class="mf">2.15443e+00</span>  <span class="mf">3.00000e+02</span>  <span class="n">Out_00000_42000_00300_p033</span><span class="o">.</span><span class="n">bin</span>
+<span class="mf">1.00000e-03</span>  <span class="mf">2.50000e+03</span>  <span class="n">Out_00000_42000_02500_n300</span><span class="o">.</span><span class="n">bin</span>
+<span class="mf">2.15443e-04</span>  <span class="mf">4.30000e+03</span>  <span class="n">Out_00000_42000_04300_n366</span><span class="o">.</span><span class="n">bin</span>
+<span class="mf">2.15443e-05</span>  <span class="mf">5.00000e+01</span>  <span class="n">Out_00000_42000_00050_n466</span><span class="o">.</span><span class="n">bin</span>
+<span class="mf">1.00000e-01</span>  <span class="mf">3.50000e+02</span>  <span class="n">Out_00000_42000_00350_n100</span><span class="o">.</span><span class="n">bin</span> 
+</pre></div>
+</div>
+<p>The first line is a header with important information. Internally, BeAR uses
+cross-sections in units of <span class="math notranslate nohighlight">\(\mathrm{cm^{2}}\)</span>, while the the standard
+HELIOS-k data is usually given in <span class="math notranslate nohighlight">\(\mathrm{cm^{2}/g}\)</span>, that means
+cross-sections per species mass.</p>
+<p>For the conversion between the two, the molecular weight of the species is
+required, which has to be placed within the header as the first value. In
+the above example, this corresponds to the molecular weight of water.
+In case the actual opacity data is already given in <span class="math notranslate nohighlight">\(\mathrm{cm^{2}}\)</span>,
+a value of <code class="docutils literal notranslate"><span class="pre">0</span></code> needs to be used here, instead.</p>
+<p>Below the header is a list of all available opacity files together with
+the pressure in bar and temperature in Kelvin. The first column refers to
+the pressure, the second column to the temperature, while the third one
+is the corresponding file name where the corresponding, tabulated opacity
+data can be found.</p>
+<p>All individual opacity files are saved in binary format to decrease the time
+it requires to read them in. They have to be tabulated at exactly the same
+wavenumbers that are listed in <code class="docutils literal notranslate"><span class="pre">wavenumber_full.dat</span></code> file.</p>
+<p>However, not all chemical species have absorption lines that cover the entire,
+global wavenumber range. Some, for example, might only absorb in the infrared but
+not in the UV. Therefore, the cross-sections don’t need to be tabulated over the
+entire global wavenumber range. Instead, they may stop once no absorption
+lines are present any more. Internally, the missing cross-sections are set to zero.
+Note, however, that there must be no holes in the data files.
+If a molecule has holes in its absorption data, the corresponding cross-sections
+have to be stored as zeros in the binary file.</p>
+<p>Inside the binary file itself, the data has to be stored as single-precision values,
+not the usual double-precision ones. This is already the case for the standard
+HELIOS-k opacity files that can be found on DACE, for example.</p>
+<section id="special-cases">
+<h3>Special cases<a class="headerlink" href="#special-cases" title="Permalink to this heading">¶</a></h3>
+<p>Sometimes, opacity data can be too small to be represented by a single-precision
+float value. This is often the case with collision-induced absorption (CIA). In this case,
+the opacities can also be saved and read-in in log10 space.</p>
+<p>In order to signal BeAR that the opacities are stored in log space, the header of the
+summary file <code class="docutils literal notranslate"><span class="pre">filelist.dat</span></code> has to be adjusted slightly as shown in the example below.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mi">0</span> <span class="n">log</span>
+<span class="mf">1.00000e-08</span>  <span class="mf">2.00000e+02</span>  <span class="n">Out_H2</span><span class="o">-</span><span class="n">H2_200_n800</span><span class="o">.</span><span class="n">dat</span>
+<span class="mf">1.00000e-08</span>  <span class="mf">2.25000e+02</span>  <span class="n">Out_H2</span><span class="o">-</span><span class="n">H2_225_n800</span><span class="o">.</span><span class="n">dat</span>
+<span class="mf">1.00000e-08</span>  <span class="mf">2.50000e+02</span>  <span class="n">Out_H2</span><span class="o">-</span><span class="n">H2_250_n800</span><span class="o">.</span><span class="n">dat</span>
+<span class="mf">1.00000e-08</span>  <span class="mf">2.75000e+02</span>  <span class="n">Out_H2</span><span class="o">-</span><span class="n">H2_275_n800</span><span class="o">.</span><span class="n">dat</span>
+<span class="mf">1.00000e-08</span>  <span class="mf">3.00000e+02</span>  <span class="n">Out_H2</span><span class="o">-</span><span class="n">H2_300_n800</span><span class="o">.</span><span class="n">dat</span>
+<span class="mf">1.00000e-08</span>  <span class="mf">3.25000e+02</span>  <span class="n">Out_H2</span><span class="o">-</span><span class="n">H2_325_n800</span><span class="o">.</span><span class="n">dat</span>
+<span class="mf">1.00000e-08</span>  <span class="mf">3.50000e+02</span>  <span class="n">Out_H2</span><span class="o">-</span><span class="n">H2_350_n800</span><span class="o">.</span><span class="n">dat</span>
+<span class="mf">1.00000e-08</span>  <span class="mf">3.75000e+02</span>  <span class="n">Out_H2</span><span class="o">-</span><span class="n">H2_375_n800</span><span class="o">.</span><span class="n">dat</span>
+</pre></div>
+</div>
+<p>In this example, cross-sections in <span class="math notranslate nohighlight">\(\mathrm{cm^{2}}\)</span> are stored in log10 space.
+Thus, the molecular weight is set to 0, and the parameter <code class="docutils literal notranslate"><span class="pre">log</span></code> is used afterwards.
+If the data is stored in linear space, <code class="docutils literal notranslate"><span class="pre">lin</span></code> can be used. Since, however, this is
+standard behaviour for HELIOS-k data, it can be omitted.</p>
+<p>Another special case for opacities is pressure broadening by a special species. Usually, BeAR
+treats the pressure the opacities are tabulated at as the total gas pressure. However,
+sometimes absorption cross-sections have been calculated for a specific background perturber
+species. This can also be taken into account in the header of the <code class="docutils literal notranslate"><span class="pre">filelist.dat</span></code> file as
+shown in the example below.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mf">39.0983</span>   <span class="n">lin</span>   <span class="n">H2</span>
+<span class="mf">1.00000e-08</span>  <span class="mf">1.00000e+02</span>  <span class="n">Out_00000_36000_00100_n800</span><span class="o">.</span><span class="n">bin</span>
+<span class="mf">1.00000e-08</span>  <span class="mf">2.00000e+02</span>  <span class="n">Out_00000_36000_00200_n800</span><span class="o">.</span><span class="n">bin</span>
+<span class="mf">1.00000e-08</span>  <span class="mf">3.00000e+02</span>  <span class="n">Out_00000_36000_00300_n800</span><span class="o">.</span><span class="n">bin</span>
+<span class="mf">1.00000e-08</span>  <span class="mf">4.00000e+02</span>  <span class="n">Out_00000_36000_00400_n800</span><span class="o">.</span><span class="n">bin</span>
+<span class="mf">1.00000e-08</span>  <span class="mf">5.00000e+02</span>  <span class="n">Out_00000_36000_00500_n800</span><span class="o">.</span><span class="n">bin</span>
+<span class="mf">1.00000e-08</span>  <span class="mf">6.00000e+02</span>  <span class="n">Out_00000_36000_00600_n800</span><span class="o">.</span><span class="n">bin</span>
+<span class="mf">1.00000e-08</span>  <span class="mf">7.00000e+02</span>  <span class="n">Out_00000_36000_00700_n800</span><span class="o">.</span><span class="n">bin</span>
+<span class="mf">1.00000e-08</span>  <span class="mf">8.00000e+02</span>  <span class="n">Out_00000_36000_00800_n800</span><span class="o">.</span><span class="n">bin</span> 
+</pre></div>
+</div>
+<p>Here, cross-sections per mass for potassium are stored in linear space with molecular hydrogen as the
+perturber species. Thus, instead of the total gas pressure, BeAR will use the partial
+pressure of H2 for these opacities. The perturber species is listed in the third
+column of the header. Note, that when this option is used, the second column with
+the storage format of the opacities has to be present as well.</p>
+</section>
 </section>
 </section>
 
@@ -86,7 +203,8 @@ be found by <code class="docutils literal notranslate"><span class="pre">BeAR</s
 <li class="toctree-l1"><a class="reference internal" href="licence.html">Licence</a></li>
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Opacity data</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#required-format-of-the-tabulated-data">Required format of the tabulated data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#global-wavenumber-grid">Global wavenumber grid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#opacity-data-for-a-specific-species">Opacity data for a specific species</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="observations.html">Observations</a></li>

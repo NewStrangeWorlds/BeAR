@@ -44,7 +44,7 @@ The following parameters need to be set:
      
      - ``flat_line`` - Fits a flat line to the data
   
-  Descriptions of the forward models can be found :ref:`here <sec:opacity_data>` 
+  Descriptions of the forward models can be found :ref:`here <sec:forward_models>` 
 
 | ``Spectral resolution``
 |  Sets the constant step in wavenumber space that will be used for the computation of the 
