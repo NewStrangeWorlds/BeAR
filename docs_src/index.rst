@@ -19,4 +19,5 @@ to daniel.kitzmann@unibe.ch .
    sections/opacity_data
    sections/observations
    sections/forward_models
+   sections/retrieval_setup
 

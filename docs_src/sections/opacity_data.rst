@@ -1,5 +1,9 @@
+
 Opacity data
 ============
+
+.. _sec:opacity_data:
+
 
 ``BeAR`` uses tabulated absorption cross-sections for its radiative transfer calculations. The
 cross-sections have to be given in units of cm2 .
