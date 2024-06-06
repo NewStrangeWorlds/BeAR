@@ -68,7 +68,7 @@ a value of ``0`` needs to be used here, instead.
 Below the header is a list of all available opacity files together with
 the pressure in bar and temperature in Kelvin. The first column refers to
 the pressure, the second column to the temperature, while the third one
-is the corresponding file name where the corresponding, tabulated opacity
+is the file name where the corresponding, tabulated opacity
 data can be found.
 
 All individual opacity files are saved in binary format to decrease the time 
@@ -94,7 +94,7 @@ Special cases
 
 Sometimes, opacity data can be too small to be represented by a single-precision
 float value. This is often the case with collision-induced absorption (CIA). In this case,
-the opacities can also be saved and read-in in log10 space.
+the opacities can also be saved and read in in log10 space.
 
 In order to signal BeAR that the opacities are stored in log space, the header of the
 summary file ``filelist.dat`` has to be adjusted slightly as shown in the example below.
@@ -105,13 +105,13 @@ summary file ``filelist.dat`` has to be adjusted slightly as shown in the exampl
 In this example, cross-sections in :math:`\mathrm{cm^{2}}` are stored in log10 space.
 Thus, the molecular weight is set to 0, and the parameter ``log`` is used afterwards.
 If the data is stored in linear space, ``lin`` can be used. Since, however, this is
-standard behaviour for HELIOS-k data, it can be omitted.
+standard behaviour for HELIOS-k data, it can be omitted as shown in the first example.
 
-Another special case for opacities is pressure broadening by a special species. Usually, BeAR
+Another special case for opacities is pressure broadening by a specific species. Usually, BeAR
 treats the pressure the opacities are tabulated at as the total gas pressure. However,
 sometimes absorption cross-sections have been calculated for a specific background perturber
 species. This can also be taken into account in the header of the ``filelist.dat`` file as
-shown in the example below.
+shown in the following example.
 
 .. include:: ../examples/filelist_K.dat
    :literal:

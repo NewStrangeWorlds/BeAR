@@ -104,7 +104,7 @@ a value of <code class="docutils literal notranslate"><span class="pre">0</span>
 <p>Below the header is a list of all available opacity files together with
 the pressure in bar and temperature in Kelvin. The first column refers to
 the pressure, the second column to the temperature, while the third one
-is the corresponding file name where the corresponding, tabulated opacity
+is the file name where the corresponding, tabulated opacity
 data can be found.</p>
 <p>All individual opacity files are saved in binary format to decrease the time
 it requires to read them in. They have to be tabulated at exactly the same
@@ -124,7 +124,7 @@ HELIOS-k opacity files that can be found on DACE, for example.</p>
 <h3>Special cases<a class="headerlink" href="#special-cases" title="Permalink to this heading">¶</a></h3>
 <p>Sometimes, opacity data can be too small to be represented by a single-precision
 float value. This is often the case with collision-induced absorption (CIA). In this case,
-the opacities can also be saved and read-in in log10 space.</p>
+the opacities can also be saved and read in in log10 space.</p>
 <p>In order to signal BeAR that the opacities are stored in log space, the header of the
 summary file <code class="docutils literal notranslate"><span class="pre">filelist.dat</span></code> has to be adjusted slightly as shown in the example below.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mi">0</span> <span class="n">log</span>
@@ -141,12 +141,12 @@ summary file <code class="docutils literal notranslate"><span class="pre">fileli
 <p>In this example, cross-sections in <span class="math notranslate nohighlight">\(\mathrm{cm^{2}}\)</span> are stored in log10 space.
 Thus, the molecular weight is set to 0, and the parameter <code class="docutils literal notranslate"><span class="pre">log</span></code> is used afterwards.
 If the data is stored in linear space, <code class="docutils literal notranslate"><span class="pre">lin</span></code> can be used. Since, however, this is
-standard behaviour for HELIOS-k data, it can be omitted.</p>
-<p>Another special case for opacities is pressure broadening by a special species. Usually, BeAR
+standard behaviour for HELIOS-k data, it can be omitted as shown in the first example.</p>
+<p>Another special case for opacities is pressure broadening by a specific species. Usually, BeAR
 treats the pressure the opacities are tabulated at as the total gas pressure. However,
 sometimes absorption cross-sections have been calculated for a specific background perturber
 species. This can also be taken into account in the header of the <code class="docutils literal notranslate"><span class="pre">filelist.dat</span></code> file as
-shown in the example below.</p>
+shown in the following example.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mf">39.0983</span>   <span class="n">lin</span>   <span class="n">H2</span>
 <span class="mf">1.00000e-08</span>  <span class="mf">1.00000e+02</span>  <span class="n">Out_00000_36000_00100_n800</span><span class="o">.</span><span class="n">bin</span>
 <span class="mf">1.00000e-08</span>  <span class="mf">2.00000e+02</span>  <span class="n">Out_00000_36000_00200_n800</span><span class="o">.</span><span class="n">bin</span>
