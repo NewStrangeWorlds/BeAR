@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Parametrisations of vertical profiles &#8212; BeAR 1.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=4f649999" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=5bc47236" />
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=359c27e9"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="Chemistry Models" href="chemistry_models.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="parametrisations-of-vertical-profiles">
+<span id="sec-profile-parametrisations"></span><h1>Parametrisations of vertical profiles<a class="headerlink" href="#parametrisations-of-vertical-profiles" title="Permalink to this heading">¶</a></h1>
+<p>The chemistry and the temperature structure models both
+employ the same parametrisations to describe their atmospheric
+profiles as a function of pressure. This section provides
+a more detailed description of the different parametrisations
+that are included in BeAR.</p>
+<p>The following parametrisations are available:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>isoprofiles</p></li>
+<li><p>piecewise polynomial</p></li>
+<li><p>cubic b splines</p></li>
+</ul>
+</div></blockquote>
+<section id="isoprofiles">
+<h2>Isoprofiles<a class="headerlink" href="#isoprofiles" title="Permalink to this heading">¶</a></h2>
+<p>Isoprofiles are the most simple but also often used approximation
+for parametrising vertical profiles in a retrieval. In this approximation,
+the abundance of a chemical species or the temperature is assumed to be
+constant throughout the atmosphere.</p>
+<p>This yields one free parameter for each chemical species included in the retrieval or
+for the constant temperature, respectively.</p>
+</section>
+<section id="piecewise-polynomials">
+<h2>Piecewise polynomials<a class="headerlink" href="#piecewise-polynomials" title="Permalink to this heading">¶</a></h2>
+<p>The description of vertically non-constant profiles using piecewise polynomials
+is based on the idea of finite elements, see
+<a class="reference external" href="https://ui.adsabs.harvard.edu/abs/2020ApJ...890..174K/">Kitzmann et al. (2020)</a> for details.
+In this parametrisations, the atmosphere is separated into <span class="math notranslate nohighlight">\(K\)</span> elements.
+This number is usually a user input.</p>
+<p>These elements are distributed equidistantly in log-pressure space. An example with
+two elements is shown in the image below. The superscript numbers refer to the element
+number, while the subscript ones denote the points inside of an element.</p>
+<a class="reference internal image-reference" href="../_images/elements1_x.png"><img alt="../_images/elements1_x.png" class="align-center" src="../_images/elements1_x.png" style="width: 400px;" /></a>
+<p>Within each element <span class="math notranslate nohighlight">\(k\)</span>, the profle <span class="math notranslate nohighlight">\(x^k\)</span> of a quantity <span class="math notranslate nohighlight">\(x\)</span> as a function of
+<span class="math notranslate nohighlight">\(\log p\)</span> is then approximated as piecewise polynomial of order <span class="math notranslate nohighlight">\(q\)</span></p>
+<div class="math notranslate nohighlight">
+\[x^k(\log p) = \sum_{i=1}^{N_p} x^k(\log p_i^k) l_i^k(\log p)\]</div>
+<p>where <span class="math notranslate nohighlight">\(l_i\)</span> are the interpolating Lagrange polynomials trough the grid points <span class="math notranslate nohighlight">\(\log p_i^k\)</span>.
+The polynomial degree is also usually a user input.
+The number of points <span class="math notranslate nohighlight">\(N_p\)</span> inside an element are determined by the chosen polynomial degree:</p>
+<div class="math notranslate nohighlight">
+\[N_p = q + 1\]</div>
+<p>Thus, for a first-order polynomial as shown above, two points in each element are required that
+are connected by a straight line. The values of <span class="math notranslate nohighlight">\(x\)</span> at the interface between two elements
+are forced to be identical to create a continuous profile. In the example above, <span class="math notranslate nohighlight">\(x^1_2\)</span>
+and <span class="math notranslate nohighlight">\(x^2_1\)</span> have therefore the same value, decreasing the number of free parameters by 1.</p>
+<p>The total number of free parameters <span class="math notranslate nohighlight">\(N_x\)</span> for a piecewise, continuous polynomial of degree <span class="math notranslate nohighlight">\(q\)</span>
+across <span class="math notranslate nohighlight">\(K\)</span> elements is given by</p>
+<div class="math notranslate nohighlight">
+\[N_x = K q + 1\]</div>
+<p>For example, a second-order polynomial across two elements would have 5 free parameters as shown below
+for a temperature profile <span class="math notranslate nohighlight">\(T(\log p)\)</span>.</p>
+<a class="reference internal image-reference" href="../_images/elements2_x.png"><img alt="../_images/elements2_x.png" class="align-center" src="../_images/elements2_x.png" style="width: 400px;" /></a>
+<p>The additional grid points <span class="math notranslate nohighlight">\(\log p_i^k\)</span> inside an element are again distributed equidistantly
+in log-pressure space. The free parameters for a retrieval would then be the five temperatures <span class="math notranslate nohighlight">\(T_i^k\)</span>
+at the discrete points <span class="math notranslate nohighlight">\(\log p_i^k\)</span>.</p>
+<p>In general, a more complex vertical profile requires either a greater number of elements or a
+higher polynomial degree. However, the polynomial degree should not be increased too much.
+Otherwise, the resulting profile might suffer from oscillations, which is commonly referred to
+as Runge’s phenomenon. It is, therefore, usually better to increase the number of elements to
+describe a more complex profile rather than the polynomial degree.
+While BeAR supports polynomial degrees of up to 6, it is highly recommended to not go higher than
+<span class="math notranslate nohighlight">\(q = 3\)</span> to prevent oscillations in the vertical profile.</p>
+</section>
+<section id="cubic-b-splines">
+<h2>Cubic b splines<a class="headerlink" href="#cubic-b-splines" title="Permalink to this heading">¶</a></h2>
+<p>Cubic b splines are very similar to the piecewise polynomial model, in
+the sense that they also approximate the vertical profiles with polynomials.
+For a cubic spline, the polynomial degree is obviously 3. However, in contrast
+to the description with piecewise polynomials discussed above, cubic b splines
+also put constraints on the derivatives of the profile and force the first
+and second-order derivative to be continuous as well.</p>
+<p>This usually creates a smoother profile compared to low-order piecewise polynomials
+and also tends to avoid oscillations due to Runge’s phenomenon. However, it should
+be noted that a more smooth profile is not necessarily more correct. In fact,
+important information might be smoothed down in the vertical profiles.</p>
+<p>BeAR uses the implementation of cubic b splines
+from the <a class="reference external" href="https://live.boost.org/doc/libs/1_65_0/libs/math/doc/html/math_toolkit/interpolate/cubic_b.html/">Boost library</a>.
+As free parameters, BeAR uses the values <span class="math notranslate nohighlight">\(x_i\)</span> of a given quantity, such as mixing ratios of chemical species,
+located at discrete pressure points <span class="math notranslate nohighlight">\(\log p_i^k\)</span>. Like the implementation for the
+piecewise polynomials, these points are distributed equidistantly in logarithmic pressure space.</p>
+<p>The total number of points is usually a user input. Typically, a greater number of points should
+be used to describe more complex profiles, such as those with inversions.
+Due to cubic splines being a third-order polynomial and the constraints on the first and second
+derivative, the minimum number of points to create a cubic b spline is 5.</p>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../index.html">
+    <img class="logo" src="../_static/bear.png" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+<p class="blurb">BeAR - The Bern Atmospheric Retrieval code</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=daniel-kitzmann&repo=bear&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="licence.html">Licence</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="opacity_data.html">Opacity data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="observations.html">Observations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="forward_models.html">Forward Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="retrieval_setup.html">Setting up a retrieval</a></li>
+<li class="toctree-l1"><a class="reference internal" href="chemistry_models.html">Chemistry Models</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Parametrisations of vertical profiles</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#isoprofiles">Isoprofiles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#piecewise-polynomials">Piecewise polynomials</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#cubic-b-splines">Cubic b splines</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="chemistry_models.html" title="previous chapter">Chemistry Models</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020 - 2024, Daniel Kitzmann.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      
+      |
+      <a href="../_sources/sections/profile_parametrisations.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
