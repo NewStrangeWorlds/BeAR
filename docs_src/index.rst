@@ -21,4 +21,5 @@ to daniel.kitzmann@unibe.ch .
    sections/forward_models
    sections/retrieval_setup
    sections/chemistry_models
+   sections/profile_parametrisations
 
