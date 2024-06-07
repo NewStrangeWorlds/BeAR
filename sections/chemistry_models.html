@@ -177,7 +177,7 @@ solver iterations. More details on FastChem and the parameters can be found in t
 a general factor that the read-in elemental abundances are multiplied with. Thus, both <code class="code docutils literal notranslate"><span class="pre">M/H</span></code> and the <code class="code docutils literal notranslate"><span class="pre">C/O</span></code> parameters
 refer to the elemental abundances that are specified in the FastChem parameter file, which are not necessarily always solar. Both have to
 be added to the prior configuration file, with <code class="code docutils literal notranslate"><span class="pre">M/H</span></code> as the first and the <code class="code docutils literal notranslate"><span class="pre">C/O</span></code> ratio as the second parameter.</p>
-<p>Even though FastChem is a very chemistry code, the computational time will increase substantially when using this chemistry model.
+<p>Even though FastChem is a very fast chemistry code, the computational time will increase substantially when using this chemistry model.
 One way to decrease the calculation time is to reduce the number of elements treated in FastChem to only the most important ones, such
 as H, He, C, O, and N. Information on how to change the FastChem input files can again be found in the
 <a class="reference external" href="https://newstrangeworlds.github.io/FastChem/">FastChem documentation</a>.</p>
@@ -185,16 +185,16 @@ as H, He, C, O, and N. Information on how to change the FastChem input files can
 <section id="mixing-different-chemistry-models">
 <h2>Mixing different chemistry models<a class="headerlink" href="#mixing-different-chemistry-models" title="Permalink to this heading">¶</a></h2>
 <p>BeAR also has the ability to use multiple chemistry models simultaneously. For example, to perform a retrieval with
-constant mixing ratios for a selection of species, and separate species, say CH4, that is assumed to have non-constant abundances,
-the following can be used as configuration in the <code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code> file</p>
+constant mixing ratios for a selection of species and a separate species, say CH4, that is assumed to have non-constant abundances,
+the following can be used as configuration in the <code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code> file:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Retrieved chemical species</span>
 <span class="n">iso</span> <span class="n">H2O</span> <span class="n">NH3</span> <span class="n">CO2</span>
-<span class="n">free_cs</span> <span class="n">CH4</span> <span class="n">k</span>
+<span class="n">free_cs</span> <span class="n">CH4</span> <span class="mi">5</span>
 </pre></div>
 </div>
-<p>BeAR will call the chemistries in the order they appear in this list. That means, in this example it would first set
-the constant mixing ratios, and then use a variable profile based on cubic splines for methane. The mean molecular
-weight is recalculated after each chemistry model.</p>
+<p>BeAR will call the chemistry models in the order they appear in this list. That means, in this example it would first set
+the constant mixing ratios of H2O, NH3, and CO2 and then use a variable profile based on cubic splines for methane.
+The mean molecular weight is recalculated after each chemistry model.</p>
 <p>Another possibility is to calculate the background atmosphere in chemical equilibrium and try to retrieve a separate
 species assumed not to be in equilibrium:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Retrieved chemical species</span>
@@ -214,7 +214,15 @@ upper atmosphere:</p>
 </pre></div>
 </div>
 <p>In the prior configuration file, the free parameters have to appear in the same order as the chemistry models listed in
-<code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code>. Thus, for the example above, the prior file needs to list</p>
+<code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code>.</p>
+<p>Thus, for the first example, the following priors need to be listed:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>constant mixing ratios for H2O, NH3, CO2</p></li>
+<li><p>5 mixing ratios for CH4</p></li>
+</ul>
+</div></blockquote>
+<p>For the last example above, the prior file needs to list</p>
 <blockquote>
 <div><ul class="simple">
 <li><p><code class="code docutils literal notranslate"><span class="pre">M/H</span></code> and <code class="code docutils literal notranslate"><span class="pre">C/O</span></code> for the equilibrium chemistry</p></li>

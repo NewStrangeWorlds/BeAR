@@ -179,7 +179,7 @@ a general factor that the read-in elemental abundances are multiplied with. Thus
 refer to the elemental abundances that are specified in the FastChem parameter file, which are not necessarily always solar. Both have to
 be added to the prior configuration file, with :code:`M/H` as the first and the :code:`C/O` ratio as the second parameter.
 
-Even though FastChem is a very chemistry code, the computational time will increase substantially when using this chemistry model.
+Even though FastChem is a very fast chemistry code, the computational time will increase substantially when using this chemistry model.
 One way to decrease the calculation time is to reduce the number of elements treated in FastChem to only the most important ones, such
 as H, He, C, O, and N. Information on how to change the FastChem input files can again be found in the 
 `FastChem documentation <https://newstrangeworlds.github.io/FastChem/>`_.
@@ -189,19 +189,18 @@ Mixing different chemistry models
 ---------------------------------
 
 BeAR also has the ability to use multiple chemistry models simultaneously. For example, to perform a retrieval with
-constant mixing ratios for a selection of species, and separate species, say CH4, that is assumed to have non-constant abundances,
-the following can be used as configuration in the ``forward_model.config`` file
-
+constant mixing ratios for a selection of species and a separate species, say CH4, that is assumed to have non-constant abundances,
+the following can be used as configuration in the ``forward_model.config`` file:
 
 .. code:: 
 
    #Retrieved chemical species
    iso H2O NH3 CO2
-   free_cs CH4 k
+   free_cs CH4 5
 
-BeAR will call the chemistries in the order they appear in this list. That means, in this example it would first set
-the constant mixing ratios, and then use a variable profile based on cubic splines for methane. The mean molecular
-weight is recalculated after each chemistry model. 
+BeAR will call the chemistry models in the order they appear in this list. That means, in this example it would first set
+the constant mixing ratios of H2O, NH3, and CO2 and then use a variable profile based on cubic splines for methane. 
+The mean molecular weight is recalculated after each chemistry model. 
 
 Another possibility is to calculate the background atmosphere in chemical equilibrium and try to retrieve a separate
 species assumed not to be in equilibrium:
@@ -226,7 +225,15 @@ upper atmosphere:
    free_cs HCN 5
 
 In the prior configuration file, the free parameters have to appear in the same order as the chemistry models listed in 
-``forward_model.config``. Thus, for the example above, the prior file needs to list
+``forward_model.config``. 
+
+Thus, for the first example, the following priors need to be listed:
+  
+  - constant mixing ratios for H2O, NH3, CO2
+  
+  - 5 mixing ratios for CH4
+
+For the last example above, the prior file needs to list
 
   - :code:`M/H` and :code:`C/O` for the equilibrium chemistry
   
