@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Chemistry Models &#8212; BeAR 1.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=4f649999" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=5bc47236" />
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=359c27e9"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="Setting up a retrieval" href="retrieval_setup.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="chemistry-models">
+<span id="sec-chemistry-models"></span><h1>Chemistry Models<a class="headerlink" href="#chemistry-models" title="Permalink to this heading">¶</a></h1>
+<p>BeAR currently includes the following chemistry models:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>equilibrium chemistry</p></li>
+<li><p>isoprofiles</p></li>
+<li><p>piecewise polynomial</p></li>
+<li><p>cubic b splines</p></li>
+</ul>
+</div></blockquote>
+<section id="isoprofile">
+<h2>Isoprofile<a class="headerlink" href="#isoprofile" title="Permalink to this heading">¶</a></h2>
+<p>Isoprofiles are the most simple but also often used approximation
+for parametrising the chemical composition. In this approximation,
+the abundance of a chemical species is assumed to be constant throughout
+the atmosphere. This yields one free parameter for each chemical species
+included in the retrieval.</p>
+<p>In the corresponding <code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code> of the chosen forward model,
+the isoprofile chemistry model is chosen by setting</p>
+</section>
+<section id="piecewise-polynomial">
+<h2>Piecewise polynomial<a class="headerlink" href="#piecewise-polynomial" title="Permalink to this heading">¶</a></h2>
+<a class="reference internal image-reference" href="../_images/elements1_x.png"><img alt="../_images/elements1_x.png" class="align-center" src="../_images/elements1_x.png" style="width: 400px;" /></a>
+<a class="reference internal image-reference" href="../_images/elements2_x.png"><img alt="../_images/elements2_x.png" class="align-center" src="../_images/elements2_x.png" style="width: 400px;" /></a>
+</section>
+<section id="cubic-b-splines">
+<h2>Cubic b splines<a class="headerlink" href="#cubic-b-splines" title="Permalink to this heading">¶</a></h2>
+<p>Cubic b splines are very similiar to the piecewise polynomial model, in
+the sense that they approximate the
+The difference between the two descriptions is that cubic b splines
+also have continous first and second derivatives. This leads to the
+abundance profiles being very smooth. It should be noted, though,
+that a more smooth profile is not necessarily more correct</p>
+</section>
+<section id="equilibrium-chemistry">
+<h2>Equilibrium chemistry<a class="headerlink" href="#equilibrium-chemistry" title="Permalink to this heading">¶</a></h2>
+</section>
+<section id="mixing-different-chemistry-models">
+<h2>Mixing different chemistry models<a class="headerlink" href="#mixing-different-chemistry-models" title="Permalink to this heading">¶</a></h2>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../index.html">
+    <img class="logo" src="../_static/bear.png" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+<p class="blurb">BeAR - The Bern Atmospheric Retrieval code</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=daniel-kitzmann&repo=bear&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="licence.html">Licence</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="opacity_data.html">Opacity data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="observations.html">Observations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="forward_models.html">Forward Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="retrieval_setup.html">Setting up a retrieval</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Chemistry Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#isoprofile">Isoprofile</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#piecewise-polynomial">Piecewise polynomial</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#cubic-b-splines">Cubic b splines</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#equilibrium-chemistry">Equilibrium chemistry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#mixing-different-chemistry-models">Mixing different chemistry models</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="retrieval_setup.html" title="previous chapter">Setting up a retrieval</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020 - 2024, Daniel Kitzmann.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      
+      |
+      <a href="../_sources/sections/chemistry_models.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
