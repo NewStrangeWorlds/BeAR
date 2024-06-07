@@ -16,7 +16,7 @@ BeAR currently includes the following chemistry models:
 
   - Cubic b splines
   
-Details on the implementation of the latter three parametrisations are 
+Details on the implementation of the latter four parametrisations are 
 discussed :ref:`here <sec:profile_parametrisations>`. 
 
 All chemical species that BeAR uses have to be defined in a corresponding header file.
@@ -57,8 +57,8 @@ If Na should be retrieved independently, it needs to be added as a separate spec
    
 
    
-Isoprofiles with centred-log-ratio prior
-----------------------------------------
+Isoprofiles with centred-log-ratio priors
+-----------------------------------------
 
 The standard isoprofile chemistry model described above fills up the background of the atmosphere with a mixture of molecular hydrogen and helium.
 While this valid for gas giants or brown dwarfs, this is less suitable for atmospheres that are not dominated by H2 and He.
