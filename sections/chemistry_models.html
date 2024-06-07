@@ -11,6 +11,7 @@
     <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=359c27e9"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Parametrisations of vertical profiles" href="profile_parametrisations.html" />
@@ -36,41 +37,267 @@
 <p>BeAR currently includes the following chemistry models:</p>
 <blockquote>
 <div><ul class="simple">
-<li><p>equilibrium chemistry</p></li>
-<li><p>isoprofiles</p></li>
-<li><p>piecewise polynomial</p></li>
-<li><p>cubic b splines</p></li>
+<li><p>Equilibrium chemistry</p></li>
+<li><p>Isoprofiles</p></li>
+<li><p>Isoprofiles with centred-log-ratio priors</p></li>
+<li><p>Piecewise polynomials</p></li>
+<li><p>Cubic b splines</p></li>
 </ul>
 </div></blockquote>
-<section id="isoprofile">
-<h2>Isoprofile<a class="headerlink" href="#isoprofile" title="Permalink to this heading">¶</a></h2>
-<p>Isoprofiles are the most simple but also often used approximation
-for parametrising the chemical composition. In this approximation,
-the abundance of a chemical species is assumed to be constant throughout
-the atmosphere. This yields one free parameter for each chemical species
-included in the retrieval.</p>
+<p>Details on the implementation of the latter three parametrisations are
+discussed <a class="reference internal" href="profile_parametrisations.html#sec-profile-parametrisations"><span class="std std-ref">here</span></a>.</p>
+<p>All chemical species that BeAR uses have to be defined in a corresponding header file.
+This is described at the <a class="reference internal" href="#sec-chemical-species"><span class="std std-ref">bottom</span></a> of this chapter.</p>
+<section id="isoprofiles">
+<h2>Isoprofiles<a class="headerlink" href="#isoprofiles" title="Permalink to this heading">¶</a></h2>
 <p>In the corresponding <code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code> of the chosen forward model,
-the isoprofile chemistry model is chosen by setting</p>
+the isoprofile chemistry model is chosen by using the keyword <code class="code docutils literal notranslate"><span class="pre">iso</span></code>
+(or <code class="code docutils literal notranslate"><span class="pre">isoprofile</span></code>),  followed by a list of species that should be used by the retrieval:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Retrieved chemical species</span>
+<span class="n">iso</span>  <span class="n">H2O</span> <span class="n">CH4</span> <span class="n">NH3</span> <span class="n">K</span> <span class="n">H2S</span> <span class="n">CO2</span>
+</pre></div>
+</div>
+<p>For each species, a corresponding entry in the prior config file is required.
+The order of the priors has to be identical to the one in the <code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code>.</p>
+<p>Currently, BeAR will fill up the background of the atmosphere with a mixture
+of molecular hydrogen and helium, based on the solar elemental abundances of
+H and He.</p>
+<p>Furthermore, as described by <a class="reference external" href="https://ui.adsabs.harvard.edu/abs/2020ApJ...890..174K/">Kitzmann et al. (2020)</a>,
+the abundance of sodium (Na) is linked to the one of potassium (K) through the ratio of their
+solar elemental abundances. Thus, in the example above, the Na abundance would automatically be
+derived from K, without explicitly including the former as a free parameter.</p>
+<p>If Na should be retrieved independently, it needs to be added as a separate species as shown below.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Retrieved chemical species</span>
+<span class="n">iso</span>  <span class="n">H2O</span> <span class="n">CH4</span> <span class="n">NH3</span> <span class="n">K</span> <span class="n">H2S</span> <span class="n">CO2</span> <span class="n">Na</span>
+</pre></div>
+</div>
 </section>
-<section id="piecewise-polynomial">
-<h2>Piecewise polynomial<a class="headerlink" href="#piecewise-polynomial" title="Permalink to this heading">¶</a></h2>
-<a class="reference internal image-reference" href="../_images/elements1_x.png"><img alt="../_images/elements1_x.png" class="align-center" src="../_images/elements1_x.png" style="width: 400px;" /></a>
-<a class="reference internal image-reference" href="../_images/elements2_x.png"><img alt="../_images/elements2_x.png" class="align-center" src="../_images/elements2_x.png" style="width: 400px;" /></a>
+<section id="isoprofiles-with-centred-log-ratio-prior">
+<h2>Isoprofiles with centred-log-ratio prior<a class="headerlink" href="#isoprofiles-with-centred-log-ratio-prior" title="Permalink to this heading">¶</a></h2>
+<p>The standard isoprofile chemistry model described above fills up the background of the atmosphere with a mixture of molecular hydrogen and helium.
+While this valid for gas giants or brown dwarfs, this is less suitable for atmospheres that are not dominated by H2 and He.
+For cases, where the background gas is not explicitly known, centred-log-ratio priors for the chemical abundances can be used. These can more
+efficiently sample the prior distributions in a way to determine which of the chosen species is the dominant one.
+More detailed information on these priors can be found in <a class="reference external" href="https://ui.adsabs.harvard.edu/abs/2012ApJ...753..100B/">Benneke &amp; Seager (2012)</a>.</p>
+<p>For a given mixture of <span class="math notranslate nohighlight">\(n\)</span> gases, the centred-log-ratio conversion (clr) for the mixing ration <span class="math notranslate nohighlight">\(x_j\)</span> of a given molecule <span class="math notranslate nohighlight">\(j\)</span>
+in the mixture is given by</p>
+<div class="math notranslate nohighlight">
+\[\xi_j = \mathrm{clr}(x_j) = \ln \frac{x_j}{g(\mathbf x)}\]</div>
+<p>where <span class="math notranslate nohighlight">\(g(\mathbf x)\)</span> is the geometric mean of all mixing ratios <span class="math notranslate nohighlight">\(\mathbf{x}\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[g(\mathbf{x}) = \left( \prod_{j=1}^{n} x_j \right)^{1/n} \ .\]</div>
+<p>Due to the constraint that</p>
+<div class="math notranslate nohighlight">
+\[\sum_{j=1}^n x_j = 1 \quad \text{or}  \quad \sum_{j=1}^n \xi_j = 0 \ ,\]</div>
+<p>only <span class="math notranslate nohighlight">\(n-1\)</span> free parameters are needed in the retrieval.</p>
+<p>The prior distributions for the free parameters should be uniform and vary between 0 and 1. BeAR will use these priors to
+produce <span class="math notranslate nohighlight">\(\xi_j\)</span> values subject to the constraints that <span class="math notranslate nohighlight">\(\min\left(\mathbf{x}\right) = 10^{-10}\)</span> and <span class="math notranslate nohighlight">\(\max\left(\mathbf{x}\right) = 1\)</span>.
+It is important to note that the prior boundaries for <span class="math notranslate nohighlight">\(\xi_j\)</span> depend on the number of molecules in the retrieval and the
+chosen value of the smallest allowed mixing ratio. For uniform priors between 0 and 1, BeAR will do the conversion to <span class="math notranslate nohighlight">\(\xi_j\)</span> and then
+to the mixing ratios <span class="math notranslate nohighlight">\(x_j\)</span> automatically.</p>
+<p>This chemistry model is chosen in the <code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code> file by using</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Retrieved chemical species</span>
+<span class="n">iso_clr</span> <span class="n">H2O</span> <span class="n">CH4</span> <span class="n">NH3</span> <span class="n">H2S</span> <span class="n">CO2</span>
+</pre></div>
+</div>
+<p>As noted above, for these 5 species only 4 priors are needed due to the constraint that the sum of their mixing ratios has to be unity.
+This chemistry model will, therefore, select one of these free species as the dominant background gas. In the prior config file
+only priors for the first four molecules would need to be listed. The abundance of the last species in the list above
+will be determined from the other molecules.</p>
+</section>
+<section id="piecewise-polynomials">
+<h2>Piecewise polynomials<a class="headerlink" href="#piecewise-polynomials" title="Permalink to this heading">¶</a></h2>
+<p>If a chemical species, say, H2O should be included using non-constant abundances by using
+the parametrisation with piecewise polynomials, the keyword <code class="code docutils literal notranslate"><span class="pre">free</span></code>, followed by the species’
+formula, the number of elements <code class="code docutils literal notranslate"><span class="pre">k</span></code>, and the polynomial degree <code class="code docutils literal notranslate"><span class="pre">q</span></code> need to be added to
+the <code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code> file:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Retrieved chemical species</span>
+<span class="n">free</span> <span class="n">H2O</span> <span class="n">k</span> <span class="n">q</span>
+</pre></div>
+</div>
+<p>Note, that unlike the isoprofile chemistry above, only a single species can be used here.
+As stated <a class="reference internal" href="profile_parametrisations.html#sec-profile-parametrisations"><span class="std std-ref">here</span></a>, the number of free parameters for this
+parametrisation is <span class="math notranslate nohighlight">\(k q + 1\)</span>.
+The free parameters that have to be added to the priors config file correspond to the mixing ratios
+of the chosen species at the <span class="math notranslate nohighlight">\(k q + 1\)</span> discrete pressure points that are distributed
+equidistantly in logarithmic pressure space. The first parameter in that list refers to the bottom
+of the atmosphere, while the last represents its top.</p>
 </section>
 <section id="cubic-b-splines">
 <h2>Cubic b splines<a class="headerlink" href="#cubic-b-splines" title="Permalink to this heading">¶</a></h2>
-<p>Cubic b splines are very similiar to the piecewise polynomial model, in
-the sense that they approximate the
-The difference between the two descriptions is that cubic b splines
-also have continous first and second derivatives. This leads to the
-abundance profiles being very smooth. It should be noted, though,
-that a more smooth profile is not necessarily more correct</p>
+<p>For parametrising the vertical profile of a species, for example, CH4 by a cubic b spline, the
+keyword <code class="code docutils literal notranslate"><span class="pre">free_cs</span></code> (or <code class="code docutils literal notranslate"><span class="pre">free_cspline</span></code>), followed by the species’
+formula and the number of points <code class="code docutils literal notranslate"><span class="pre">k</span></code> need to be added to  the <code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code> file:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Retrieved chemical species</span>
+<span class="n">free_cs</span> <span class="n">CH4</span> <span class="n">k</span>
+</pre></div>
+</div>
+<p>Note, that like for the piecewise polynomials, only a single species can be used here.
+As stated <a class="reference internal" href="profile_parametrisations.html#sec-profile-parametrisations"><span class="std std-ref">here</span></a>, the number of free parameters for this
+parametrisation is equal to the number of points <span class="math notranslate nohighlight">\(k\)</span> and needs to be at least 5.
+They correspond to the mixing ratios at the <span class="math notranslate nohighlight">\(k\)</span> discrete pressure points that are distributed
+equidistantly in logarithmic pressure space.</p>
+<p>These free parameters have to be added to the priors config file in descending pressures.
+The first parameter in the prior list refers to the bottom of the atmosphere, while the last represents its top.</p>
 </section>
 <section id="equilibrium-chemistry">
 <h2>Equilibrium chemistry<a class="headerlink" href="#equilibrium-chemistry" title="Permalink to this heading">¶</a></h2>
+<p>BeAR has the option of calculating the chemical composition of the atmosphere using the equilibrium
+chemistry code FastChem. In the <code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code> file, this is chosen by</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Retrieved chemical species</span>
+<span class="n">eq</span> <span class="n">fastchem_parameters</span><span class="o">.</span><span class="n">dat</span>
+</pre></div>
+</div>
+<p>The indicated file after the keyword <code class="code docutils literal notranslate"><span class="pre">eq</span></code> is the main configuration file for FastChem.
+It contains information on the elemental abundances and thermochemical data that FastChem
+should use. This file has the following structure</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#element abundance file   </span>
+<span class="n">fastchem_data</span><span class="o">/</span><span class="n">element_abundances_solar</span><span class="o">.</span><span class="n">dat</span>
+
+<span class="c1">#species data file    </span>
+<span class="n">fastchem_data</span><span class="o">/</span><span class="n">logK</span><span class="o">.</span><span class="n">dat</span>
+
+<span class="c1">#accuracy of chemistry iteration</span>
+<span class="mf">1.0e-4</span>
+
+<span class="c1">#max number of chemistry iterations </span>
+<span class="mi">80000</span>  
+
+<span class="c1">#max number internal solver iterations</span>
+<span class="mi">20000</span>
+</pre></div>
+</div>
+<p>The first and second entry correspond to the location of the elemantal abundance file and the file with
+the equilibrium constants, respectively. BeAR already includes a sample of these files in the folder
+<code class="docutils literal notranslate"><span class="pre">fastchem_data</span></code>. Otherwise, they can be obtained from the <a class="reference external" href="https://github.com/NewStrangeWorlds/FastChem">FastChem repository</a>.</p>
+<p>The third entry is the relative accuracy of the FastChem convergence criterion, followed by the limits for the number of chemistry and
+solver iterations. More details on FastChem and the parameters can be found in the
+<a class="reference external" href="https://newstrangeworlds.github.io/FastChem/">FastChem documentation</a>.</p>
+<p>The equilibrium chemistry model has two free parameters: the metallicity factor <code class="code docutils literal notranslate"><span class="pre">M/H</span></code> and the <code class="code docutils literal notranslate"><span class="pre">C/O</span></code> ratio. <code class="code docutils literal notranslate"><span class="pre">M/H</span></code> is
+a general factor that the read-in elemental abundances are multiplied with. Thus, both <code class="code docutils literal notranslate"><span class="pre">M/H</span></code> and the <code class="code docutils literal notranslate"><span class="pre">C/O</span></code> parameters
+refer to the elemental abundances that are specified in the FastChem parameter file, which are not necessarily always solar. Both have to
+be added to the prior configuration file, with <code class="code docutils literal notranslate"><span class="pre">M/H</span></code> as the first and the <code class="code docutils literal notranslate"><span class="pre">C/O</span></code> ratio as the second parameter.</p>
+<p>Even though FastChem is a very chemistry code, the computational time will increase substantially when using this chemistry model.
+One way to decrease the calculation time is to reduce the number of elements treated in FastChem to only the most important ones, such
+as H, He, C, O, and N. Information on how to change the FastChem input files can again be found in the
+<a class="reference external" href="https://newstrangeworlds.github.io/FastChem/">FastChem documentation</a>.</p>
 </section>
 <section id="mixing-different-chemistry-models">
 <h2>Mixing different chemistry models<a class="headerlink" href="#mixing-different-chemistry-models" title="Permalink to this heading">¶</a></h2>
+<p>BeAR also has the ability to use multiple chemistry models simultaneously. For example, to perform a retrieval with
+constant mixing ratios for a selection of species, and separate species, say CH4, that is assumed to have non-constant abundances,
+the following can be used as configuration in the <code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code> file</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Retrieved chemical species</span>
+<span class="n">iso</span> <span class="n">H2O</span> <span class="n">NH3</span> <span class="n">CO2</span>
+<span class="n">free_cs</span> <span class="n">CH4</span> <span class="n">k</span>
+</pre></div>
+</div>
+<p>BeAR will call the chemistries in the order they appear in this list. That means, in this example it would first set
+the constant mixing ratios, and then use a variable profile based on cubic splines for methane. The mean molecular
+weight is recalculated after each chemistry model.</p>
+<p>Another possibility is to calculate the background atmosphere in chemical equilibrium and try to retrieve a separate
+species assumed not to be in equilibrium:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Retrieved chemical species</span>
+<span class="n">eq</span> <span class="n">fastchem_parameters</span><span class="o">.</span><span class="n">dat</span>
+<span class="n">iso</span> <span class="n">CO</span>
+</pre></div>
+</div>
+<p>Here, BeAR would first use FastChem to determine the chemical composition in equilibrium and then replace the CO abundance
+by a constant mixing ratio that is a separate free parameter. This can, for example, simulate the impact of vertical mixing.
+Yet another possibility is to also include other non-constant species to take into account photochemistry effects in the
+upper atmosphere:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Retrieved chemical species</span>
+<span class="n">eq</span> <span class="n">fastchem_parameters</span><span class="o">.</span><span class="n">dat</span>
+<span class="n">iso</span> <span class="n">CO</span>
+<span class="n">free_cs</span> <span class="n">SO2</span> <span class="mi">5</span>
+<span class="n">free_cs</span> <span class="n">HCN</span> <span class="mi">5</span>
+</pre></div>
+</div>
+<p>In the prior configuration file, the free parameters have to appear in the same order as the chemistry models listed in
+<code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code>. Thus, for the example above, the prior file needs to list</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="code docutils literal notranslate"><span class="pre">M/H</span></code> and <code class="code docutils literal notranslate"><span class="pre">C/O</span></code> for the equilibrium chemistry</p></li>
+<li><p>the constant CO mixing ratio</p></li>
+<li><p>5 mixing ratios for SO2</p></li>
+<li><p>5 mixing ratios for HCN</p></li>
+</ul>
+</div></blockquote>
+<p>One should pay careful attention to the order of the chemistry models that should be used. For example, in this case:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Retrieved chemical species</span>
+<span class="n">iso</span> <span class="n">CO</span>
+<span class="n">eq</span> <span class="n">fastchem_parameters</span><span class="o">.</span><span class="n">dat</span>
+</pre></div>
+</div>
+<p>CO would first be set to an isoprofile and then in the second step be replaced with the results from the equilibrium chemistry
+calculation. The free mixing ratio of CO will, therefore, remain unconstrained.</p>
+</section>
+<section id="chemical-species-list">
+<span id="sec-chemical-species"></span><h2>Chemical species list<a class="headerlink" href="#chemical-species-list" title="Permalink to this heading">¶</a></h2>
+<p>For internal and external communications in the code, BeAR defines a list of all chemical
+species it can use. The corresponding source code can be found in the
+header file <code class="docutils literal notranslate"><span class="pre">src/chemistry/chem_species.h</span></code>.</p>
+<p>Here, an enumeration is first declared</p>
+<div class="literal-block-wrapper docutils container" id="id2">
+<div class="code-block-caption"><span class="caption-text">src/chemistry/chem_species.h</span><a class="headerlink" href="#id2" title="Permalink to this code">¶</a></div>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="nc">chemical_species_id</span><span class="w"> </span><span class="p">{</span><span class="n">_TOTAL</span><span class="p">,</span><span class="w"> </span><span class="n">_H</span><span class="p">,</span><span class="w"> </span><span class="n">_He</span><span class="p">,</span><span class="w"> </span><span class="n">_C</span><span class="p">,</span><span class="w"> </span><span class="n">_O</span><span class="p">,</span><span class="w"> </span><span class="n">_H2</span><span class="p">,</span><span class="w"> </span><span class="n">_H2O</span><span class="p">,</span><span class="w"> </span><span class="n">_CO2</span><span class="p">};</span>
+</pre></div>
+</div>
+</div>
+<p>This creates a list of integer constants, such that later in the code, the position of, say, H2O
+in a vector with chemical species can be referred to as <code class="code docutils literal notranslate"><span class="pre">_H2O</span></code>. Next, a vector
+with important chemical information is created:</p>
+<div class="literal-block-wrapper docutils container" id="id3">
+<div class="code-block-caption"><span class="caption-text">src/chemistry/chem_species.h</span><a class="headerlink" href="#id3" title="Permalink to this code">¶</a></div>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">chemistry_data</span><span class="o">&gt;</span><span class="w"> </span><span class="n">species_data</span><span class="p">{</span>
+<span class="w">  </span><span class="p">{</span><span class="n">_TOTAL</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;Total&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;Total&quot;</span><span class="p">,</span><span class="w">  </span><span class="mf">0.0</span><span class="p">},</span>
+<span class="w">  </span><span class="p">{</span><span class="n">_H</span><span class="p">,</span><span class="w">     </span><span class="s">&quot;H&quot;</span><span class="p">,</span><span class="w">     </span><span class="s">&quot;H&quot;</span><span class="p">,</span><span class="w">      </span><span class="mf">1.00784</span><span class="p">},</span>
+<span class="w">  </span><span class="p">{</span><span class="n">_He</span><span class="p">,</span><span class="w">    </span><span class="s">&quot;He&quot;</span><span class="p">,</span><span class="w">    </span><span class="s">&quot;He&quot;</span><span class="p">,</span><span class="w">     </span><span class="mf">4.002602</span><span class="p">},</span>
+<span class="w">  </span><span class="p">{</span><span class="n">_C</span><span class="p">,</span><span class="w">     </span><span class="s">&quot;C&quot;</span><span class="p">,</span><span class="w">     </span><span class="s">&quot;C&quot;</span><span class="p">,</span><span class="w">      </span><span class="mf">12.0107</span><span class="p">},</span>
+<span class="w">  </span><span class="p">{</span><span class="n">_O</span><span class="p">,</span><span class="w">     </span><span class="s">&quot;O&quot;</span><span class="p">,</span><span class="w">     </span><span class="s">&quot;O&quot;</span><span class="p">,</span><span class="w">      </span><span class="mf">15.999</span><span class="p">},</span>
+<span class="w">  </span><span class="p">{</span><span class="n">_H2</span><span class="p">,</span><span class="w">    </span><span class="s">&quot;H2&quot;</span><span class="p">,</span><span class="w">    </span><span class="s">&quot;H2&quot;</span><span class="p">,</span><span class="w">     </span><span class="mf">2.01588</span><span class="p">},</span>
+<span class="w">  </span><span class="p">{</span><span class="n">_H2O</span><span class="p">,</span><span class="w">   </span><span class="s">&quot;H2O&quot;</span><span class="p">,</span><span class="w">   </span><span class="s">&quot;H2O1&quot;</span><span class="p">,</span><span class="w">   </span><span class="mf">18.01528</span><span class="p">},</span>
+<span class="w">  </span><span class="p">{</span><span class="n">_CO2</span><span class="p">,</span><span class="w">   </span><span class="s">&quot;CO2&quot;</span><span class="p">,</span><span class="w">   </span><span class="s">&quot;C1O2&quot;</span><span class="p">,</span><span class="w">   </span><span class="mf">44.01</span><span class="p">}};</span>
+</pre></div>
+</div>
+</div>
+<p>This vector connects the defined integer constants with actual chemical species. The
+second column contains the usual symbol/formula of the chemical species, the third
+the corresponding Hill notation for FastChem, and the last column the atomic/molecular
+weight.
+The latter information is used internally to compute important quantities, such as the
+mean molecular weight. A special species is <code class="code docutils literal notranslate"><span class="pre">_TOTAL</span></code>. This refers to the total
+number density, given through the pressure via the ideal gas law. It has a molecular
+weight of 0 to prevent it from contributing to the mean molecular weight.</p>
+<p>BeAR already includes a list of important species. If a species that should be used
+in a retrieval is missing, it needs to be added to <code class="docutils literal notranslate"><span class="pre">src/chemistry/chem_species.h</span></code>.</p>
+<p>This has to be done at two places:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>the enumeration <code class="code docutils literal notranslate"><span class="pre">enum</span> <span class="pre">chemical_species_id</span></code></p></li>
+<li><p>the vector <code class="code docutils literal notranslate"><span class="pre">const</span> <span class="pre">std::vector&lt;chemistry_data&gt;</span> <span class="pre">species_data</span></code></p></li>
+</ul>
+</div></blockquote>
+<p>It is recommended to always add a new species at the end of each vector to avoid confusion.
+For example, to add methane (CH4) as a new species, the code needs to be adapted to</p>
+<div class="literal-block-wrapper docutils container" id="id4">
+<div class="code-block-caption"><span class="caption-text">src/chemistry/chem_species.h</span><a class="headerlink" href="#id4" title="Permalink to this code">¶</a></div>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">enum</span><span class="w"> </span><span class="nc">chemical_species_id</span><span class="w"> </span><span class="p">{</span><span class="n">_TOTAL</span><span class="p">,</span><span class="w"> </span><span class="n">_H</span><span class="p">,</span><span class="w"> </span><span class="n">_He</span><span class="p">,</span><span class="w"> </span><span class="n">_C</span><span class="p">,</span><span class="w"> </span><span class="n">_O</span><span class="p">,</span><span class="w"> </span><span class="n">_H2</span><span class="p">,</span><span class="w"> </span><span class="n">_H2O</span><span class="p">,</span><span class="w"> </span><span class="n">_CO2</span><span class="p">,</span><span class="w"> </span><span class="n">_CH4</span><span class="p">};</span>
+
+<span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">chemistry_data</span><span class="o">&gt;</span><span class="w"> </span><span class="n">species_data</span><span class="p">{</span>
+<span class="w">  </span><span class="p">{</span><span class="n">_TOTAL</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;Total&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;Total&quot;</span><span class="p">,</span><span class="w">  </span><span class="mf">0.0</span><span class="p">},</span>
+<span class="w">  </span><span class="p">{</span><span class="n">_H</span><span class="p">,</span><span class="w">     </span><span class="s">&quot;H&quot;</span><span class="p">,</span><span class="w">     </span><span class="s">&quot;H&quot;</span><span class="p">,</span><span class="w">      </span><span class="mf">1.00784</span><span class="p">},</span>
+<span class="w">  </span><span class="p">{</span><span class="n">_He</span><span class="p">,</span><span class="w">    </span><span class="s">&quot;He&quot;</span><span class="p">,</span><span class="w">    </span><span class="s">&quot;He&quot;</span><span class="p">,</span><span class="w">     </span><span class="mf">4.002602</span><span class="p">},</span>
+<span class="w">  </span><span class="p">{</span><span class="n">_C</span><span class="p">,</span><span class="w">     </span><span class="s">&quot;C&quot;</span><span class="p">,</span><span class="w">     </span><span class="s">&quot;C&quot;</span><span class="p">,</span><span class="w">      </span><span class="mf">12.0107</span><span class="p">},</span>
+<span class="w">  </span><span class="p">{</span><span class="n">_O</span><span class="p">,</span><span class="w">     </span><span class="s">&quot;O&quot;</span><span class="p">,</span><span class="w">     </span><span class="s">&quot;O&quot;</span><span class="p">,</span><span class="w">      </span><span class="mf">15.999</span><span class="p">},</span>
+<span class="w">  </span><span class="p">{</span><span class="n">_H2</span><span class="p">,</span><span class="w">    </span><span class="s">&quot;H2&quot;</span><span class="p">,</span><span class="w">    </span><span class="s">&quot;H2&quot;</span><span class="p">,</span><span class="w">     </span><span class="mf">2.01588</span><span class="p">},</span>
+<span class="w">  </span><span class="p">{</span><span class="n">_H2O</span><span class="p">,</span><span class="w">   </span><span class="s">&quot;H2O&quot;</span><span class="p">,</span><span class="w">   </span><span class="s">&quot;H2O1&quot;</span><span class="p">,</span><span class="w">   </span><span class="mf">18.01528</span><span class="p">},</span>
+<span class="w">  </span><span class="p">{</span><span class="n">_CO2</span><span class="p">,</span><span class="w">   </span><span class="s">&quot;CO2&quot;</span><span class="p">,</span><span class="w">   </span><span class="s">&quot;C1O2&quot;</span><span class="p">,</span><span class="w">   </span><span class="mf">44.01</span><span class="p">},</span>
+<span class="w">  </span><span class="p">{</span><span class="n">_CH4</span><span class="p">,</span><span class="w">   </span><span class="s">&quot;CH4&quot;</span><span class="p">,</span><span class="w">   </span><span class="s">&quot;C1H4&quot;</span><span class="p">,</span><span class="w">   </span><span class="mf">16.04246</span><span class="p">}};</span>
+</pre></div>
+</div>
+</div>
+<p>After changing the header file, the code needs to be re-compiled.</p>
 </section>
 </section>
 
@@ -114,11 +341,13 @@ that a more smooth profile is not necessarily more correct</p>
 <li class="toctree-l1"><a class="reference internal" href="forward_models.html">Forward Models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="retrieval_setup.html">Setting up a retrieval</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Chemistry Models</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#isoprofile">Isoprofile</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#piecewise-polynomial">Piecewise polynomial</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#isoprofiles">Isoprofiles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#isoprofiles-with-centred-log-ratio-prior">Isoprofiles with centred-log-ratio prior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#piecewise-polynomials">Piecewise polynomials</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#cubic-b-splines">Cubic b splines</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#equilibrium-chemistry">Equilibrium chemistry</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#mixing-different-chemistry-models">Mixing different chemistry models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#chemical-species-list">Chemical species list</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="profile_parametrisations.html">Parametrisations of vertical profiles</a></li>

@@ -13,7 +13,7 @@ The following parametrisations are available:
 
   - isoprofiles
 
-  - piecewise polynomial
+  - piecewise polynomials
 
   - cubic b splines
 
@@ -36,7 +36,7 @@ Piecewise polynomials
 The description of vertically non-constant profiles using piecewise polynomials
 is based on the idea of finite elements, see 
 `Kitzmann et al. (2020) <https://ui.adsabs.harvard.edu/abs/2020ApJ...890..174K/>`_ for details. 
-In this parametrisations, the atmosphere is separated into :math:`K` elements. 
+In this parametrisation, the atmosphere is separated into :math:`K` elements. 
 This number is usually a user input. 
 
 These elements are distributed equidistantly in log-pressure space. An example with
