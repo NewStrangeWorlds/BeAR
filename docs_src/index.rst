@@ -20,4 +20,5 @@ to daniel.kitzmann@unibe.ch .
    sections/observations
    sections/forward_models
    sections/retrieval_setup
+   sections/chemistry_models
 
