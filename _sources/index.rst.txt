@@ -20,6 +20,7 @@ to daniel.kitzmann@unibe.ch .
    sections/observations
    sections/forward_models
    sections/retrieval_setup
+   sections/temperature_profiles
    sections/chemistry_models
    sections/profile_parametrisations
 

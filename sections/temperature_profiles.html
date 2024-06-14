@@ -5,7 +5,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Forward Models &#8212; BeAR 1.0 documentation</title>
+    <title>Temperature profiles &#8212; BeAR 1.0 documentation</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=4f649999" />
     <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=5bc47236" />
     <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=359c27e9"></script>
@@ -13,8 +13,8 @@
     <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Setting up a retrieval" href="retrieval_setup.html" />
-    <link rel="prev" title="Observations" href="observations.html" />
+    <link rel="next" title="Chemistry Models" href="chemistry_models.html" />
+    <link rel="prev" title="Setting up a retrieval" href="retrieval_setup.html" />
    
   <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
   
@@ -31,9 +31,35 @@
 
           <div class="body" role="main">
             
-  <section id="forward-models">
-<span id="sec-forward-models"></span><h1>Forward Models<a class="headerlink" href="#forward-models" title="Permalink to this heading">¶</a></h1>
-<p><code class="docutils literal notranslate"><span class="pre">BeAR</span></code> currently includes the following forward models:</p>
+  <section id="temperature-profiles">
+<span id="sec-temperature-profiles"></span><h1>Temperature profiles<a class="headerlink" href="#temperature-profiles" title="Permalink to this heading">¶</a></h1>
+<p>BeAR currently includes the following parametrisations for atmospheric
+temperature-pressure profiles</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Milne’s solution</p></li>
+<li><p>Guillot temperature profile</p></li>
+<li><p>Isoprofile</p></li>
+<li><p>Piecewise polynomials</p></li>
+<li><p>Cubic b splines</p></li>
+</ul>
+</div></blockquote>
+<p>Details on the implementation of the latter three parametrisations are
+discussed <a class="reference internal" href="profile_parametrisations.html#sec-profile-parametrisations"><span class="std std-ref">here</span></a>.</p>
+<section id="milne-s-solution">
+<h2>Milne’s solution<a class="headerlink" href="#milne-s-solution" title="Permalink to this heading">¶</a></h2>
+<p>Milne’s solution is a simple, analytic temperature profile that has
+been derived for a self-luminous object with a grey atmosphere.</p>
+</section>
+<section id="isoprofiles">
+<h2>Isoprofiles<a class="headerlink" href="#isoprofiles" title="Permalink to this heading">¶</a></h2>
+</section>
+<section id="piecewise-polynomials">
+<h2>Piecewise polynomials<a class="headerlink" href="#piecewise-polynomials" title="Permalink to this heading">¶</a></h2>
+</section>
+<section id="cubic-b-splines">
+<h2>Cubic b splines<a class="headerlink" href="#cubic-b-splines" title="Permalink to this heading">¶</a></h2>
+</section>
 </section>
 
 
@@ -73,9 +99,15 @@
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="opacity_data.html">Opacity data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="observations.html">Observations</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Forward Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="forward_models.html">Forward Models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="retrieval_setup.html">Setting up a retrieval</a></li>
-<li class="toctree-l1"><a class="reference internal" href="temperature_profiles.html">Temperature profiles</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Temperature profiles</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#milne-s-solution">Milne’s solution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#isoprofiles">Isoprofiles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#piecewise-polynomials">Piecewise polynomials</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#cubic-b-splines">Cubic b splines</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="chemistry_models.html">Chemistry Models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="profile_parametrisations.html">Parametrisations of vertical profiles</a></li>
 </ul>
@@ -84,8 +116,8 @@
 <h3>Related Topics</h3>
 <ul>
   <li><a href="../index.html">Documentation overview</a><ul>
-      <li>Previous: <a href="observations.html" title="previous chapter">Observations</a></li>
-      <li>Next: <a href="retrieval_setup.html" title="next chapter">Setting up a retrieval</a></li>
+      <li>Previous: <a href="retrieval_setup.html" title="previous chapter">Setting up a retrieval</a></li>
+      <li>Next: <a href="chemistry_models.html" title="next chapter">Chemistry Models</a></li>
   </ul></li>
 </ul>
 </div>
@@ -119,7 +151,7 @@
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
       
       |
-      <a href="../_sources/sections/forward_models.rst.txt"
+      <a href="../_sources/sections/temperature_profiles.rst.txt"
           rel="nofollow">Page source</a>
     </div>
 
