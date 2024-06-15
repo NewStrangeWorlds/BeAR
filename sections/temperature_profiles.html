@@ -11,6 +11,7 @@
     <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=359c27e9"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Chemistry Models" href="chemistry_models.html" />
@@ -49,16 +50,128 @@ discussed <a class="reference internal" href="profile_parametrisations.html#sec-
 <section id="milne-s-solution">
 <h2>Milne’s solution<a class="headerlink" href="#milne-s-solution" title="Permalink to this heading">¶</a></h2>
 <p>Milne’s solution is a simple, analytic temperature profile that has
-been derived for a self-luminous object with a grey atmosphere.</p>
+been derived for a self-luminous object with a grey atmosphere.
+In the corresponding forward_model.config of the chosen <code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code>,
+this parametrisation is chosen by using the keyword <code class="code docutils literal notranslate"><span class="pre">milne</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Temperature profile</span>
+<span class="n">milne</span>
+</pre></div>
+</div>
+<p>Milne’s profile is given by</p>
+<div class="math notranslate nohighlight">
+\[T^4(\tau) = \frac{3}{4} T_\mathrm{eff}^4 \left(\tau + q(\tau) \right) ,\]</div>
+<p>where <span class="math notranslate nohighlight">\(T_\mathrm{eff}\)</span> is the effective temperature of the self-luminous object,
+<span class="math notranslate nohighlight">\(\tau = \int \kappa(z) \mathrm d z\)</span> the grey optical depth for the wavelength-dependent
+opacity <span class="math notranslate nohighlight">\(\kappa\)</span> (usually taken to be the Rosseland mean opacity),
+and <span class="math notranslate nohighlight">\(q\)</span> the Hopf function. In the Eddington approximation, <span class="math notranslate nohighlight">\(q\)</span> would be
+<span class="math notranslate nohighlight">\(1/3\)</span>. Internally, BeAR has a parametrised form of <span class="math notranslate nohighlight">\(q(\tau)\)</span>, taken from
+Mihalas (1979).</p>
+<p>The Milne temperature profile parametrisation has two free parameters that have to
+be listed in the prior config file in the following order:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(\kappa\)</span>, the constant grey opacity in units of <span class="math notranslate nohighlight">\(\mathrm{cm}^2/\mathrm{g}\)</span></p></li>
+<li><p>the effective temperature <span class="math notranslate nohighlight">\(T_\mathrm{eff}\)</span></p></li>
+</ul>
+</div></blockquote>
+</section>
+<section id="guillot-profile">
+<h2>Guillot profile<a class="headerlink" href="#guillot-profile" title="Permalink to this heading">¶</a></h2>
+<p>The analytical profiles by Tristan Guillot
+(<a class="reference external" href="https://ui.adsabs.harvard.edu/abs/2010A%26A...520A..27G/">Guillot (2010)</a>) have been
+derived for irridiated planetary atmospheres. BeAR contains two different implementations
+of the Guillot profile, one for an incident stellar beam (Eq. 27 from Guillot, 2010) and
+for isotropic stellar irridiation (Eq. 29 from Guillot, 2010). They are chosen by setting
+the temperature profile to <code class="code docutils literal notranslate"><span class="pre">guillot</span> <span class="pre">beam</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Temperature profile</span>
+<span class="n">guillot</span> <span class="n">beam</span>
+</pre></div>
+</div>
+<p>and <code class="code docutils literal notranslate"><span class="pre">guillot</span> <span class="pre">iso</span></code>, respectively:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Temperature profile</span>
+<span class="n">guillot</span> <span class="n">iso</span>
+</pre></div>
+</div>
+<p>The stellar beam case has five free parameters that have to appear ordered as shown below
+in the prior config file:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(\kappa\)</span>, the (constant) grey thermal opacity in units of <span class="math notranslate nohighlight">\(\mathrm{cm}^2/\mathrm{g}\)</span></p></li>
+<li><p><span class="math notranslate nohighlight">\(T_\mathrm{irr}\)</span>, the temperature of incident stellar radiation (assumed to be
+black body radiation)</p></li>
+<li><p><span class="math notranslate nohighlight">\(T_\mathrm{int}\)</span>, the planet’s internal temperature. For self-luminous objects,
+this would be the effective temperature</p></li>
+<li><p><span class="math notranslate nohighlight">\(\gamma\)</span>, the ratio of the short-wave to the thermal opacity</p></li>
+<li><p><span class="math notranslate nohighlight">\(\mu_*\)</span>, the cosine of the zenith angle of the incident stellar beam</p></li>
+</ul>
+</div></blockquote>
+<p>When using isotropic stellar insolation, the following five free parameters that have to appear
+ordered as shown below in the prior config file:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(\kappa\)</span>, the (constant) grey thermal opacity in units of <span class="math notranslate nohighlight">\(\mathrm{cm}^2/\mathrm{g}\)</span></p></li>
+<li><p><span class="math notranslate nohighlight">\(T_\mathrm{irr}\)</span>, the temperature of incident stellar radiation (assumed to be
+black body radiation)</p></li>
+<li><p><span class="math notranslate nohighlight">\(T_\mathrm{int}\)</span>, the planet’s internal temperature. For self-luminous objects,
+this would be the effective temperature</p></li>
+<li><p><span class="math notranslate nohighlight">\(\gamma\)</span>, the ratio of the short-wave to the thermal opacity</p></li>
+<li><p><span class="math notranslate nohighlight">\(f\)</span>, energy distribution factor. Typical values are <span class="math notranslate nohighlight">\(f=1\)</span> for the sub-stellar point,
+<span class="math notranslate nohighlight">\(f=1/2\)</span> for the day-side average, and <span class="math notranslate nohighlight">\(f=1/4\)</span> for an average over the whole
+planetary surface.</p></li>
+</ul>
+</div></blockquote>
 </section>
 <section id="isoprofiles">
 <h2>Isoprofiles<a class="headerlink" href="#isoprofiles" title="Permalink to this heading">¶</a></h2>
+<p>When using an isoprofile, a constant temperature as a function of pressure is set internally.
+This is the most common temperature profile employed for transmission spectra of exoplanets.
+In the <code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code> file it is chosen by using the keyword <code class="code docutils literal notranslate"><span class="pre">const</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Temperature profile</span>
+<span class="n">const</span>
+</pre></div>
+</div>
+<p>The isoprofile parametrisation has a single free parameter: the constant temperature.</p>
 </section>
 <section id="piecewise-polynomials">
 <h2>Piecewise polynomials<a class="headerlink" href="#piecewise-polynomials" title="Permalink to this heading">¶</a></h2>
+<p>If the temperature profile should be described by using
+the parametrisation with piecewise polynomials, the keyword <code class="code docutils literal notranslate"><span class="pre">poly</span></code>, followed by
+the number of elements <code class="code docutils literal notranslate"><span class="pre">k</span></code>, and the polynomial degree <code class="code docutils literal notranslate"><span class="pre">q</span></code> need to be added to
+the <code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code> file:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Temperature profile</span>
+<span class="n">poly</span> <span class="n">k</span> <span class="n">q</span>
+</pre></div>
+</div>
+<p>As stated <a class="reference internal" href="profile_parametrisations.html#sec-profile-parametrisations"><span class="std std-ref">here</span></a>, the number of free parameters for this
+parametrisation is <span class="math notranslate nohighlight">\(k q + 1\)</span>.
+The first free parameter in the prior distrubution file refers to the bottom temperature.
+All subsequent <span class="math notranslate nohighlight">\(k q\)</span> parameters are factors <span class="math notranslate nohighlight">\(b_i\)</span>, such that the temperature at the
+control point <span class="math notranslate nohighlight">\(i\)</span> is determined by the one from the previous control point <span class="math notranslate nohighlight">\(i-1\)</span>
+following <span class="math notranslate nohighlight">\(T_i = T_{i-1} b_i\)</span>. The control points are distributed
+equidistantly in logarithmic pressure space.</p>
+<p>The use of the <span class="math notranslate nohighlight">\(b_i\)</span> factors allow some control over the general form of the temperature
+profile. By not allowing them to exceed unity, for example, temperature inversions can be
+prevented.</p>
 </section>
 <section id="cubic-b-splines">
 <h2>Cubic b splines<a class="headerlink" href="#cubic-b-splines" title="Permalink to this heading">¶</a></h2>
+<p>For a description of the temperature profile by cubic b spline the keyword
+<code class="code docutils literal notranslate"><span class="pre">cubicbspline</span></code>, followed by the number of control
+points <code class="code docutils literal notranslate"><span class="pre">k</span></code> need to be added to the <code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code> file:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Temperature profile</span>
+<span class="n">cubicbspline</span> <span class="n">k</span>
+</pre></div>
+</div>
+<p>As stated <a class="reference internal" href="profile_parametrisations.html#sec-profile-parametrisations"><span class="std std-ref">here</span></a>, the number of free parameters for this
+parametrisation is equal to the number of control points <span class="math notranslate nohighlight">\(k\)</span> and needs to be at least 5.</p>
+<p>The first free parameter in the prior distrubution file refers to the bottom temperature.
+All subsequent <span class="math notranslate nohighlight">\(k-1\)</span> parameters are factors <span class="math notranslate nohighlight">\(b_i\)</span>, such that the temperature at the
+control point <span class="math notranslate nohighlight">\(i\)</span> is determined by the one from the previous control point <span class="math notranslate nohighlight">\(i-1\)</span>
+following <span class="math notranslate nohighlight">\(T_i = T_{i-1} b_i\)</span>. The control points are distributed
+equidistantly in logarithmic pressure space.</p>
+<p>The use of the <span class="math notranslate nohighlight">\(b_i\)</span> factors allow some control over the general form of the temperature
+profile. By not allowing them to exceed unity, for example, temperature inversions can be
+prevented.</p>
 </section>
 </section>
 
@@ -103,6 +216,7 @@ been derived for a self-luminous object with a grey atmosphere.</p>
 <li class="toctree-l1"><a class="reference internal" href="retrieval_setup.html">Setting up a retrieval</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Temperature profiles</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#milne-s-solution">Milne’s solution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#guillot-profile">Guillot profile</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#isoprofiles">Isoprofiles</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#piecewise-polynomials">Piecewise polynomials</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#cubic-b-splines">Cubic b splines</a></li>
