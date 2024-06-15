@@ -211,3 +211,37 @@ below the cloud top. In this case, only two three parameters are required in the
   - power-law exponent :math:`e`
 
   - cloud top pressure in bar
+
+
+Mixing different cloud models
+-----------------------------
+
+BeAR also has the ability to use multiple clouds simultaneously. For example, to perform a retrieval with
+grey cloud layer and a second cloud with a power-law optical depth to simulate, for example, a haze-like
+behaviour, the following can be used as configuration in the ``forward_model.config`` file:
+
+.. code:: 
+
+   #Cloud model
+   grey
+   power_law 1.0 fb
+
+BeAR will call the cloud models in the order they appear in this list. Clouds can also be overlapping
+in pressure.
+
+In the prior configuration file, the free parameters have to appear in the same order as the 
+cloud models listed in ``forward_model.config``. 
+
+Thus, for the example above, the following priors need to be listed:
+  
+  - grey optical depth
+  
+  - cloud top pressure in bar
+
+  - cloud bottom parameter
+
+  - optical depth at the reference wavelength
+
+  - power-law exponent
+
+  - cloud top pressure in bar

@@ -210,6 +210,32 @@ below the cloud top. In this case, only two three parameters are required in the
 </ul>
 </div></blockquote>
 </section>
+<section id="mixing-different-cloud-models">
+<h2>Mixing different cloud models<a class="headerlink" href="#mixing-different-cloud-models" title="Permalink to this heading">¶</a></h2>
+<p>BeAR also has the ability to use multiple clouds simultaneously. For example, to perform a retrieval with
+grey cloud layer and a second cloud with a power-law optical depth to simulate, for example, a haze-like
+behaviour, the following can be used as configuration in the <code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code> file:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Cloud model</span>
+<span class="n">grey</span>
+<span class="n">power_law</span> <span class="mf">1.0</span> <span class="n">fb</span>
+</pre></div>
+</div>
+<p>BeAR will call the cloud models in the order they appear in this list. Clouds can also be overlapping
+in pressure.</p>
+<p>In the prior configuration file, the free parameters have to appear in the same order as the
+cloud models listed in <code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code>.</p>
+<p>Thus, for the example above, the following priors need to be listed:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>grey optical depth</p></li>
+<li><p>cloud top pressure in bar</p></li>
+<li><p>cloud bottom parameter</p></li>
+<li><p>optical depth at the reference wavelength</p></li>
+<li><p>power-law exponent</p></li>
+<li><p>cloud top pressure in bar</p></li>
+</ul>
+</div></blockquote>
+</section>
 </section>
 
 
@@ -257,6 +283,7 @@ below the cloud top. In this case, only two three parameters are required in the
 <li class="toctree-l2"><a class="reference internal" href="#grey-cloud-model">Grey Cloud Model</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#kitzmann-heng-non-grey-cloud-model">Kitzmann &amp; Heng Non-Grey Cloud Model</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#power-law-cloud-model">Power-Law Cloud Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#mixing-different-cloud-models">Mixing different cloud models</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="profile_parametrisations.html">Parametrisations of vertical profiles</a></li>
