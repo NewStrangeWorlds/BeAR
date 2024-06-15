@@ -22,5 +22,6 @@ to daniel.kitzmann@unibe.ch .
    sections/retrieval_setup
    sections/temperature_profiles
    sections/chemistry_models
+   sections/cloud_models
    sections/profile_parametrisations
 
