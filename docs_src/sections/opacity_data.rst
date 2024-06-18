@@ -18,6 +18,10 @@ While BeAR is designed to work primarily with the opacity data format of the HEL
 opacity calculator, one can of course also use other opacities. In that case, they have to 
 be converted to the format described below.
 
+Besides the tabulated opacities, BeAR offers a variety of built-in opacities, namely Rayleigh
+scattering and continuum absorption. The available data is 
+discussed :ref:`here <sec:built-in-opacity_data>`.
+
 
 Global wavenumber grid
 ......................
@@ -122,7 +126,35 @@ pressure of H2 for these opacities. The perturber species is listed in the third
 column of the header. Note, that when this option is used, the second column with
 the storage format of the opacities has to be present as well.
 
+.. _sec:built-in-opacity_data:
 
+Opacities included in BeAR
+..........................
 
+BeAR includes a selection of different opacity sources that can be calculated on-the-fly and do not
+need to be read in as tabulated data. This currently includes Rayleigh scattering by
+
+  - molecular hydrogen, H2
+
+  - atomic hydrogen, H
+
+  - atomic helium, He
+
+  - water, H2O
+
+  - carbon monoxide, CO
+
+  - carbon dioxide, CO2
+
+  - methane, CH4
+
+Additionally, BeAR can calculate the bound-free and free-free continuum absorption for
+the hydrogen anion H-. This, however, is only relevant for very hot scenarios as 
+otherwise the abundance of H- would not be high enough to have a strong impact on
+the overall opacity.
+
+If additional Rayleigh scattering or more continuum absorbers are needed, they can be
+either added to the code or simply be pre-tabulated and then used as the regular opacity
+data discussed above.
 
 

@@ -41,6 +41,8 @@ This includes, in particular,
 
 - a FORTRAN compiler (e.g. ``gfortran``) for the MultiNest library
 
+- the BLAS linear algebra library for MultiNest (e.g. ``OpenBLAS``)
+
 - a C compiler (e.g. ``gcc``) for the CDisort code
 
 
