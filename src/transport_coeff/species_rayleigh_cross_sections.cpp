@@ -19,7 +19,7 @@
 namespace helios{
 
 
-bool GasH2::calcRalyleighCrossSections(std::vector<double>& cross_sections)
+bool GasH2Rayleigh::calcRayleighCrossSections(std::vector<double>& cross_sections)
 {
   unsigned int nb_spectral_points = spectral_grid->nbSpectralPoints();
 
@@ -34,7 +34,11 @@ bool GasH2::calcRalyleighCrossSections(std::vector<double>& cross_sections)
 
     double reference_density = 2.651629e19; //molecules cm^-3
 
-    cross_sections[j] = generalRayleighCrossSection(reference_density, refractive_index, king_correction_factor, spectral_grid->wavenumber_list[j]);
+    cross_sections[j] = generalRayleighCrossSection(
+      reference_density, 
+      refractive_index, 
+      king_correction_factor, 
+      spectral_grid->wavenumber_list[j]);
   }
 
   return true;
@@ -42,7 +46,7 @@ bool GasH2::calcRalyleighCrossSections(std::vector<double>& cross_sections)
 
 
 
-bool GasHe::calcRalyleighCrossSections(std::vector<double>& cross_sections)
+bool GasHeRayleigh::calcRayleighCrossSections(std::vector<double>& cross_sections)
 {
   unsigned int nb_spectral_points = spectral_grid->nbSpectralPoints();
 
@@ -57,34 +61,41 @@ bool GasHe::calcRalyleighCrossSections(std::vector<double>& cross_sections)
 
     double reference_density = 2.546899e19; //molecules cm^-3
 
-    cross_sections[j] = generalRayleighCrossSection(reference_density, refractive_index, king_correction_factor, spectral_grid->wavenumber_list[j]);
+    cross_sections[j] = generalRayleighCrossSection(
+      reference_density,
+      refractive_index, 
+      king_correction_factor, 
+      spectral_grid->wavenumber_list[j]);
   }
 
   return true;
 }
 
 
-bool GasH::calcRalyleighCrossSections(std::vector<double>& cross_sections)
+//Rayleigh cross section from Lee & Kim 2002
+//low-energy expansion, valid for wavelengths > 0.14 micron
+bool GasHRayleigh::calcRayleighCrossSections(std::vector<double>& cross_sections)
 {
   unsigned int nb_spectral_points = spectral_grid->nbSpectralPoints();
-
 
   #pragma omp parallel for
   for (unsigned int i=0; i<nb_spectral_points; i++)
   {
-    const double sigma_thomson = 0.665e-24; //Thomson scattering cross-section in cm2
+    //const double sigma_thomson = 0.665e-24; //Thomson scattering cross-section in cm2
     const double lambda_lyman = 0.0912; //wavelength of the Lyman limit in micron
 
     const double lambda_fraction = lambda_lyman / spectral_grid->wavelength_list[i];
-    
-    cross_sections[i] = 8.41e-25 * std::pow(lambda_fraction, 4) + 3.37e-24 * std::pow(lambda_fraction, 6) + 4.71e-22 * std::pow(lambda_fraction, 14); //in cm2
+
+    cross_sections[i] = 8.41e-25 * std::pow(lambda_fraction, 4) 
+                      + 3.37e-24 * std::pow(lambda_fraction, 6) 
+                      + 4.71e-22 * std::pow(lambda_fraction, 14); //in cm2
   }
 
   return true;
 }
 
 
-bool GasCO::calcRalyleighCrossSections(std::vector<double>& cross_sections)
+bool GasCORayleigh::calcRayleighCrossSections(std::vector<double>& cross_sections)
 {
   unsigned int nb_spectral_points = spectral_grid->nbSpectralPoints();
   
@@ -98,7 +109,11 @@ bool GasCO::calcRalyleighCrossSections(std::vector<double>& cross_sections)
 
     double refractive_index = (22851. + 0.456e14 / (71427.0*71427.0 - spectral_grid->wavenumber_list[j]*spectral_grid->wavenumber_list[j])) * 1e-8 + 1;
 
-    cross_sections[j] = generalRayleighCrossSection(reference_density, refractive_index, king_correction_factor, spectral_grid->wavenumber_list[j]);
+    cross_sections[j] = generalRayleighCrossSection(
+      reference_density, 
+      refractive_index, 
+      king_correction_factor, 
+      spectral_grid->wavenumber_list[j]);
   }
 
 
@@ -107,7 +122,7 @@ bool GasCO::calcRalyleighCrossSections(std::vector<double>& cross_sections)
 
 
 
-bool GasCO2::calcRalyleighCrossSections(std::vector<double>& cross_sections)
+bool GasCO2Rayleigh::calcRayleighCrossSections(std::vector<double>& cross_sections)
 {
   unsigned int nb_spectral_points = spectral_grid->nbSpectralPoints();
   
@@ -127,7 +142,11 @@ bool GasCO2::calcRalyleighCrossSections(std::vector<double>& cross_sections)
                               + 0.1218145e-6 / (2418.136*2418.136 - spectral_grid->wavenumber_list[j]*spectral_grid->wavenumber_list[j]))
                               * 1.1427e3 + 1.0;
 
-    cross_sections[j] = generalRayleighCrossSection(reference_density, refractive_index, king_correction_factor, spectral_grid->wavenumber_list[j]);
+    cross_sections[j] = generalRayleighCrossSection(
+      reference_density, 
+      refractive_index, 
+      king_correction_factor, 
+      spectral_grid->wavenumber_list[j]);
   }
 
   return true;
@@ -135,7 +154,7 @@ bool GasCO2::calcRalyleighCrossSections(std::vector<double>& cross_sections)
 
 
 
-bool GasCH4::calcRalyleighCrossSections(std::vector<double>& cross_sections)
+bool GasCH4Rayleigh::calcRayleighCrossSections(std::vector<double>& cross_sections)
 {
   unsigned int nb_spectral_points = spectral_grid->nbSpectralPoints();
   
@@ -149,7 +168,11 @@ bool GasCH4::calcRalyleighCrossSections(std::vector<double>& cross_sections)
 
     double refractive_index = (46662. + 4.02e-6 * spectral_grid->wavenumber_list[j]*spectral_grid->wavenumber_list[j]) * 1e-8 + 1;
 
-    cross_sections[j] = generalRayleighCrossSection(reference_density, refractive_index, king_correction_factor, spectral_grid->wavenumber_list[j]);
+    cross_sections[j] = generalRayleighCrossSection(
+      reference_density, 
+      refractive_index, 
+      king_correction_factor, 
+      spectral_grid->wavenumber_list[j]);
   }
 
 
@@ -158,7 +181,7 @@ bool GasCH4::calcRalyleighCrossSections(std::vector<double>& cross_sections)
 
 
 
-bool GasH2O::calcRalyleighCrossSections(std::vector<double>& cross_sections)
+bool GasH2ORayleigh::calcRayleighCrossSections(std::vector<double>& cross_sections)
 {
   unsigned int nb_spectral_points = spectral_grid->nbSpectralPoints();
 
@@ -196,7 +219,11 @@ bool GasH2O::calcRalyleighCrossSections(std::vector<double>& cross_sections)
     double refractive_index = std::pow(((2 * a_factor + 1)/(1 - a_factor)), 0.5);
 
 
-    cross_sections[j] = generalRayleighCrossSection(reference_density, refractive_index, king_correction_factor, spectral_grid->wavenumber_list[j]);
+    cross_sections[j] = generalRayleighCrossSection(
+      reference_density, 
+      refractive_index, 
+      king_correction_factor, 
+      spectral_grid->wavenumber_list[j]);
   }
 
 

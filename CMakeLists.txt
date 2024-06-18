@@ -169,7 +169,7 @@ endif()
 #download the FastChem 2.1 if necessary
 FetchContent_Declare(
   fastchem
-  GIT_REPOSITORY https://github.com/exoclime/fastchem
+  GIT_REPOSITORY https://github.com/newstrangeworlds/fastchem
   GIT_TAG        e8dbeb7ec7719dbd0021d672a0b5d330e924a764
 )
 

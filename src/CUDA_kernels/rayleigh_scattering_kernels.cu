@@ -1,19 +1,19 @@
 /*
-* This file is part of the Helios-r2 code (https://github.com/exoclime/Helios-r2).
-* Copyright (C) 2020 Daniel Kitzmann
+* This file is part of the BeAR code (https://github.com/newstrangeworlds/BeAR).
+* Copyright (C) 2024 Daniel Kitzmann
 *
-* Helios-r2 is free software: you can redistribute it and/or modify
+* BeAR is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
 *
-* Helios-r2 is distributed in the hope that it will be useful,
+* BeAR is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
 *
 * You find a copy of the GNU General Public License in the main
-* Helios-r2 directory under <LICENSE>. If not, see
+* BeAR directory under <LICENSE>. If not, see
 * <http://www.gnu.org/licenses/>.
 */
 
@@ -45,6 +45,37 @@ __forceinline__ __device__ double rayleighCrossSection(
 {
   return 24. * pow(constants::pi, 3) * pow(wavenumber, 4) / (reference_density*reference_density)
          * pow((refractive_index*refractive_index - 1) / (refractive_index*refractive_index + 2),2) * king_correction;
+}
+
+
+
+//Rayleigh cross section from Lee & Kim 2002
+//low-energy expansion, valid for wavelengths > 0.14 micron
+__global__ void rayleighScatteringH(
+  const double number_density,
+  const int nb_spectral_points,
+  const int nb_grid_points, 
+  const int grid_point,
+  double* wavelength,
+  double* wavenumber,
+  double* scattering_coeff)
+{
+  //tid is the wavenumber index
+  int tid = blockIdx.x * blockDim.x + threadIdx.x;
+  
+  constexpr double lambda_lyman = 0.0912; //wavelength of the Lyman limit in micron
+
+  if (tid < nb_spectral_points)
+  { 
+    const double lambda_fraction = lambda_lyman / wavelength[tid];
+
+    const double sigma = 8.41e-25 * pow(lambda_fraction, 4) 
+                       + 3.37e-24 * pow(lambda_fraction, 6) 
+                       + 4.71e-22 * pow(lambda_fraction, 14); //in cm2
+
+    scattering_coeff[grid_point*nb_spectral_points + tid] += sigma * number_density; 
+  }
+
 }
 
 
@@ -272,7 +303,7 @@ __global__ void rayleighScatteringH2O(
         king_correction,
         wavenumber[tid]);
     
-      scattering_coeff[grid_point*nb_spectral_points + tid] += sigma * number_density; 
+      scattering_coeff[grid_point*nb_spectral_points + tid] += sigma * number_density;
     }
   }
 
@@ -282,7 +313,7 @@ __global__ void rayleighScatteringH2O(
 
 
 
-__host__ void GasCO::calcRalyleighCrossSectionsGPU(
+__host__ void GasCORayleigh::calcRayleighCrossSectionsGPU(
   const double number_density,
   const size_t nb_grid_points, 
   const size_t grid_point,
@@ -311,7 +342,7 @@ __host__ void GasCO::calcRalyleighCrossSectionsGPU(
 }
 
 
-__host__ void GasCO2::calcRalyleighCrossSectionsGPU(
+__host__ void GasCO2Rayleigh::calcRayleighCrossSectionsGPU(
   const double number_density,
   const size_t nb_grid_points, 
   const size_t grid_point,
@@ -340,8 +371,37 @@ __host__ void GasCO2::calcRalyleighCrossSectionsGPU(
 }
 
 
+__host__ void GasHRayleigh::calcRayleighCrossSectionsGPU(
+  const double number_density,
+  const size_t nb_grid_points, 
+  const size_t grid_point,
+  double* scattering_coeff)
+{
+  cudaDeviceSynchronize();
 
-__host__ void GasH2::calcRalyleighCrossSectionsGPU(
+  const auto nb_spectral_points = spectral_grid->nbSpectralPoints();
+  int threads = 256;
+  
+  int blocks = nb_spectral_points / threads;
+  if (nb_spectral_points % threads) blocks++;
+
+  rayleighScatteringH<<<blocks,threads>>>(
+    number_density,
+    nb_spectral_points,
+    nb_grid_points,
+    grid_point,
+    spectral_grid->wavelength_list_gpu,
+    spectral_grid->wavenumber_list_gpu,
+    scattering_coeff);
+
+
+  cudaDeviceSynchronize();
+  gpuErrchk( cudaPeekAtLastError() );
+}
+
+
+
+__host__ void GasH2Rayleigh::calcRayleighCrossSectionsGPU(
   const double number_density,
   const size_t nb_grid_points, 
   const size_t grid_point,
@@ -370,7 +430,7 @@ __host__ void GasH2::calcRalyleighCrossSectionsGPU(
 }
 
 
-__host__ void GasCH4::calcRalyleighCrossSectionsGPU(
+__host__ void GasCH4Rayleigh::calcRayleighCrossSectionsGPU(
   const double number_density,
   const size_t nb_grid_points, 
   const size_t grid_point,
@@ -399,7 +459,7 @@ __host__ void GasCH4::calcRalyleighCrossSectionsGPU(
 }
 
 
-__host__ void GasH2O::calcRalyleighCrossSectionsGPU(
+__host__ void GasH2ORayleigh::calcRayleighCrossSectionsGPU(
   const double number_density,
   const size_t nb_grid_points, 
   const size_t grid_point,
@@ -428,7 +488,7 @@ __host__ void GasH2O::calcRalyleighCrossSectionsGPU(
 }
 
 
-__host__ void GasHe::calcRalyleighCrossSectionsGPU(
+__host__ void GasHeRayleigh::calcRayleighCrossSectionsGPU(
   const double number_density,
   const size_t nb_grid_points, 
   const size_t grid_point,

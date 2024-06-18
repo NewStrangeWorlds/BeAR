@@ -1,20 +1,20 @@
 
 /*
-* This file is part of the Helios-r2 code (https://github.com/exoclime/Helios-r2).
-* Copyright (C) 2022 Daniel Kitzmann
+* This file is part of the BeAR code (https://github.com/newstrangeworlds/BeAR).
+* Copyright (C) 2024 Daniel Kitzmann
 *
-* Helios-r2 is free software: you can redistribute it and/or modify
+* BeAR is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
 *
-* Helios-r2 is distributed in the hope that it will be useful,
+* BeAR is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
 *
 * You find a copy of the GNU General Public License in the main
-* Helios-r2 directory under <LICENSE>. If not, see
+* BeAR directory under <LICENSE>. If not, see
 * <http://www.gnu.org/licenses/>.
 */
 
@@ -62,7 +62,17 @@ TransportCoefficients::TransportCoefficients(
   
   std::cout << "\nOpacity specied added:\n";
   for (auto & i : gas_species)
-    std::cout << i->species_name << "\t" << i->species_folder << "\t" << i->dataAvailable() << "\n\n";
+  {
+    std::string data_available = "data available: No";
+    
+    if (i->dataAvailable())
+      data_available = "data available: Yes";
+
+    std::cout  << std::setw(8) << std::left << i->species_name << "\t" 
+               << std::setw(40) << std::left << i->species_folder << "\t" 
+               << std::setw(10) << std::left << data_available << "\n\n";
+  }
+    
     
   if (!all_species_added) 
     std::cout << "Warning, not all opacities species from the model config file could be added!\n\n";
@@ -83,23 +93,6 @@ bool TransportCoefficients::addOpacitySpecies(
     return true;
   }
 
-  //H2 Rayleigh scattering
-  if (species_symbol == "H2")
-  {
-    gas_species.push_back(new GasH2(config, spectral_grid, ""));
-   
-    return true;
-  }
-
-  //He Rayleigh scattering
-  if (species_symbol == "He")
-  {
-    gas_species.push_back(new GasHe(config, spectral_grid, ""));
-   
-    return true;
-  }
-
-
   if (species_symbol == "CIA-H2-He")
   {
     gas_species.push_back(
@@ -117,6 +110,7 @@ bool TransportCoefficients::addOpacitySpecies(
     return true;
   }
 
+
   //H- free-free and bound-free continuum
   if (species_symbol == "H-")
   {
@@ -126,37 +120,61 @@ bool TransportCoefficients::addOpacitySpecies(
   }
 
 
-  //CO lines + Rayleigh
-  if (species_symbol == "CO")
+  //H2 Rayleigh scattering
+  if (species_symbol == "H2" && species_folder == "Rayleigh")
   {
-    gas_species.push_back(new GasCO(config, spectral_grid, species_folder));
+    gas_species.push_back(new GasH2Rayleigh(config, spectral_grid, ""));
+   
+    return true;
+  }
+
+  //He Rayleigh scattering
+  if (species_symbol == "He" && species_folder == "Rayleigh")
+  {
+    gas_species.push_back(new GasHeRayleigh(config, spectral_grid, ""));
+   
+    return true;
+  }
+  
+  //H Rayleigh scattering
+  if (species_symbol == "H" && species_folder == "Rayleigh")
+  {
+    gas_species.push_back(new GasHRayleigh(config, spectral_grid, ""));
+   
+    return true;
+  }
+
+  //CO Rayleigh
+  if (species_symbol == "CO" && species_folder == "Rayleigh")
+  {
+    gas_species.push_back(new GasCORayleigh(config, spectral_grid, ""));
 
     return true;
   }
 
 
-  //CO2 lines + Rayleigh
-  if (species_symbol == "CO2")
+  //CO2 Rayleigh
+  if (species_symbol == "CO2" && species_folder == "Rayleigh")
   {
-    gas_species.push_back(new GasCO2(config, spectral_grid, species_folder));
+    gas_species.push_back(new GasCO2Rayleigh(config, spectral_grid, ""));
 
     return true;
   }
 
 
-  //CH4 lines + Rayleigh
-  if (species_symbol == "CH4")
+  //CH4 Rayleigh
+  if (species_symbol == "CH4" && species_folder == "Rayleigh")
   {
-    gas_species.push_back(new GasCH4(config, spectral_grid, species_folder));
+    gas_species.push_back(new GasCH4Rayleigh(config, spectral_grid, ""));
 
     return true;
   }
 
 
-  //H2O lines + Rayleigh
-  if (species_symbol == "H2O")
+  //H2O Rayleigh
+  if (species_symbol == "H2O" && species_folder == "Rayleigh")
   {
-    gas_species.push_back(new GasH2O(config, spectral_grid, species_folder));
+    gas_species.push_back(new GasH2ORayleigh(config, spectral_grid, ""));
 
     return true;
   }
@@ -174,21 +192,6 @@ bool TransportCoefficients::addOpacitySpecies(
       return true;
     } 
   }
-
-
-  //now we try the generic ones
-  for (size_t i=0; i<constants::species_data.size(); ++i)
-  {
-    if (constants::species_data[i].symbol == species_symbol)
-    {
-      gas_species.push_back(
-        new GasGeneric(
-          config, spectral_grid, constants::species_data[i].id, constants::species_data[i].symbol, species_folder));
-
-      return true;
-    } 
-  }
-
 
   //we haven't found the corresponding species
   std::cout << "Opacity species " 

@@ -1,19 +1,19 @@
 /*
-* This file is part of the Helios-r2 code (https://github.com/exoclime/Helios-r2).
-* Copyright (C) 2022 Daniel Kitzmann
+* This file is part of the BeAR code (https://github.com/newstrangeworlds/BeAR).
+* Copyright (C) 2024 Daniel Kitzmann
 *
-* Helios-r2 is free software: you can redistribute it and/or modify
+* BeAR is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
 *
-* Helios-r2 is distributed in the hope that it will be useful,
+* BeAR is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
 *
 * You find a copy of the GNU General Public License in the main
-* Helios-r2 directory under <LICENSE>. If not, see
+* BeAR directory under <LICENSE>. If not, see
 * <http://www.gnu.org/licenses/>.
 */
 
@@ -45,7 +45,11 @@ class OpacitySpecies {
         {}
     virtual ~OpacitySpecies() {}
    
-    bool dataAvailable() {return cross_section_available;}
+    bool dataAvailable() {
+      if (species_folder == "Rayleigh" && rayleigh_available)
+        return true;
+
+      return cross_section_available;}
 
     virtual void calcTransportCoefficients(
       const double temperature,
@@ -75,6 +79,7 @@ class OpacitySpecies {
     std::vector<size_t> cia_collision_partner;
 
     bool cross_section_available = false;
+    bool rayleigh_available = false;
 
     std::vector<SampledData> sampled_cross_sections;
     std::vector<std::vector<SampledData*>> ordered_data_list;
@@ -94,10 +99,11 @@ class OpacitySpecies {
       const size_t grid_point,
       double* absorption_coeff_device) {};
     
-    virtual bool calcRalyleighCrossSections(std::vector<double>& cross_sections) {
+    virtual bool calcRayleighCrossSections(
+      std::vector<double>& cross_sections) {
       return false;};
 
-    virtual void calcRalyleighCrossSectionsGPU(
+    virtual void calcRayleighCrossSectionsGPU(
       const double number_density,
       const size_t nb_grid_points, 
       const size_t grid_point,
