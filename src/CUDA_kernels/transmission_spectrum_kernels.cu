@@ -41,6 +41,8 @@ __forceinline__ __device__ double distanceToTangentCenter(
   const double a = bottom_radius + altitude;
   const double b = bottom_radius + tangent_altitude;
 
+  if (a <= b) return 0;
+
   return sqrt(a*a - b*b);
 }
 
