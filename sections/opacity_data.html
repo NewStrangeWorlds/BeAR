@@ -45,6 +45,9 @@ This data is already in a format that BeAR can use directly.</p>
 <p>While BeAR is designed to work primarily with the opacity data format of the HELIOS-k
 opacity calculator, one can of course also use other opacities. In that case, they have to
 be converted to the format described below.</p>
+<p>Besides the tabulated opacities, BeAR offers a variety of built-in opacities, namely Rayleigh
+scattering and continuum absorption. The available data is
+discussed <a class="reference internal" href="#sec-built-in-opacity-data"><span class="std std-ref">here</span></a>.</p>
 <section id="global-wavenumber-grid">
 <h2>Global wavenumber grid<a class="headerlink" href="#global-wavenumber-grid" title="Permalink to this heading">¶</a></h2>
 <p>Cross-sections are required to be tabulated as a function of wavenumber. All cross-sections
@@ -165,6 +168,29 @@ column of the header. Note, that when this option is used, the second column wit
 the storage format of the opacities has to be present as well.</p>
 </section>
 </section>
+<section id="opacities-included-in-bear">
+<span id="sec-built-in-opacity-data"></span><h2>Opacities included in BeAR<a class="headerlink" href="#opacities-included-in-bear" title="Permalink to this heading">¶</a></h2>
+<p>BeAR includes a selection of different opacity sources that can be calculated on-the-fly and do not
+need to be read in as tabulated data. This currently includes Rayleigh scattering by</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>molecular hydrogen, H2</p></li>
+<li><p>atomic hydrogen, H</p></li>
+<li><p>atomic helium, He</p></li>
+<li><p>water, H2O</p></li>
+<li><p>carbon monoxide, CO</p></li>
+<li><p>carbon dioxide, CO2</p></li>
+<li><p>methane, CH4</p></li>
+</ul>
+</div></blockquote>
+<p>Additionally, BeAR can calculate the bound-free and free-free continuum absorption for
+the hydrogen anion H-. This, however, is only relevant for very hot scenarios as
+otherwise the abundance of H- would not be high enough to have a strong impact on
+the overall opacity.</p>
+<p>If additional Rayleigh scattering or more continuum absorbers are needed, they can be
+either added to the code or simply be pre-tabulated and then used as the regular opacity
+data discussed above.</p>
+</section>
 </section>
 
 
@@ -205,6 +231,7 @@ the storage format of the opacities has to be present as well.</p>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Opacity data</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#global-wavenumber-grid">Global wavenumber grid</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#opacity-data-for-a-specific-species">Opacity data for a specific species</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#opacities-included-in-bear">Opacities included in BeAR</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="observations.html">Observations</a></li>
