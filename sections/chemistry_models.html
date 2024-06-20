@@ -37,19 +37,22 @@
 <p>BeAR currently includes the following chemistry models:</p>
 <blockquote>
 <div><ul class="simple">
-<li><p>Equilibrium chemistry</p></li>
-<li><p>Isoprofiles</p></li>
-<li><p>Isoprofiles with centred-log-ratio priors</p></li>
-<li><p>Piecewise polynomials</p></li>
-<li><p>Cubic b splines</p></li>
+<li><p><a class="reference internal" href="#sec-chemistry-model-eq"><span class="std std-ref">Equilibrium chemistry</span></a></p></li>
+<li><p><a class="reference internal" href="#sec-chemistry-model-bg"><span class="std std-ref">Background species</span></a></p></li>
+<li><p><a class="reference internal" href="#sec-chemistry-model-iso"><span class="std std-ref">Isoprofiles</span></a></p></li>
+<li><p><a class="reference internal" href="#sec-chemistry-model-iso-clr"><span class="std std-ref">Isoprofiles with centred-log-ratio priors</span></a></p></li>
+<li><p><a class="reference internal" href="#sec-chemistry-model-poly"><span class="std std-ref">Piecewise polynomials</span></a></p></li>
+<li><p><a class="reference internal" href="#sec-chemistry-model-cs"><span class="std std-ref">Cubic b splines</span></a></p></li>
 </ul>
 </div></blockquote>
 <p>Details on the implementation of the latter four parametrisations are
 discussed <a class="reference internal" href="profile_parametrisations.html#sec-profile-parametrisations"><span class="std std-ref">here</span></a>.</p>
-<p>All chemical species that BeAR uses have to be defined in a corresponding header file.
+<p>BeAR can also mix several different of these models in a single retrieval. This
+is explained <a class="reference internal" href="#sec-chemistry-model-mixing"><span class="std std-ref">in this section</span></a>. All chemical
+species that BeAR uses have to be defined in a corresponding header file.
 This is described at the <a class="reference internal" href="#sec-chemical-species"><span class="std std-ref">bottom</span></a> of this chapter.</p>
 <section id="isoprofiles">
-<h2>Isoprofiles<a class="headerlink" href="#isoprofiles" title="Permalink to this heading">¶</a></h2>
+<span id="sec-chemistry-model-iso"></span><h2>Isoprofiles<a class="headerlink" href="#isoprofiles" title="Permalink to this heading">¶</a></h2>
 <p>In the corresponding <code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code> of the chosen forward model,
 the isoprofile chemistry model is chosen by using the keyword <code class="code docutils literal notranslate"><span class="pre">iso</span></code>
 (or <code class="code docutils literal notranslate"><span class="pre">isoprofile</span></code>),  followed by a list of species that should be used by the retrieval:</p>
@@ -59,9 +62,6 @@ the isoprofile chemistry model is chosen by using the keyword <code class="code 
 </div>
 <p>For each species, a corresponding entry in the prior config file is required.
 The order of the priors has to be identical to the one in the <code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code>.</p>
-<p>Currently, BeAR will fill up the background of the atmosphere with a mixture
-of molecular hydrogen and helium, based on the solar elemental abundances of
-H and He.</p>
 <p>Furthermore, as described by <a class="reference external" href="https://ui.adsabs.harvard.edu/abs/2020ApJ...890..174K/">Kitzmann et al. (2020)</a>,
 the abundance of sodium (Na) is linked to the one of potassium (K) through the ratio of their
 solar elemental abundances. Thus, in the example above, the Na abundance would automatically be
@@ -73,7 +73,7 @@ derived from K, without explicitly including the former as a free parameter.</p>
 </div>
 </section>
 <section id="isoprofiles-with-centred-log-ratio-priors">
-<h2>Isoprofiles with centred-log-ratio priors<a class="headerlink" href="#isoprofiles-with-centred-log-ratio-priors" title="Permalink to this heading">¶</a></h2>
+<span id="sec-chemistry-model-iso-clr"></span><h2>Isoprofiles with centred-log-ratio priors<a class="headerlink" href="#isoprofiles-with-centred-log-ratio-priors" title="Permalink to this heading">¶</a></h2>
 <p>The standard isoprofile chemistry model described above fills up the background of the atmosphere with a mixture of molecular hydrogen and helium.
 While this valid for gas giants or brown dwarfs, this is less suitable for atmospheres that are not dominated by H2 and He.
 For cases, where the background gas is not explicitly known, centred-log-ratio priors for the chemical abundances can be used. These can more
@@ -106,7 +106,7 @@ only priors for the first four molecules would need to be listed. The abundance 
 will be determined from the other molecules.</p>
 </section>
 <section id="piecewise-polynomials">
-<h2>Piecewise polynomials<a class="headerlink" href="#piecewise-polynomials" title="Permalink to this heading">¶</a></h2>
+<span id="sec-chemistry-model-poly"></span><h2>Piecewise polynomials<a class="headerlink" href="#piecewise-polynomials" title="Permalink to this heading">¶</a></h2>
 <p>If a chemical species, say, H2O should be included using non-constant abundances by using
 the parametrisation with piecewise polynomials, the keyword <code class="code docutils literal notranslate"><span class="pre">free</span></code>, followed by the species’
 formula, the number of elements <code class="code docutils literal notranslate"><span class="pre">k</span></code>, and the polynomial degree <code class="code docutils literal notranslate"><span class="pre">q</span></code> need to be added to
@@ -124,7 +124,7 @@ equidistantly in logarithmic pressure space. The first parameter in that list re
 of the atmosphere, while the last represents its top.</p>
 </section>
 <section id="cubic-b-splines">
-<h2>Cubic b splines<a class="headerlink" href="#cubic-b-splines" title="Permalink to this heading">¶</a></h2>
+<span id="sec-chemistry-model-cs"></span><h2>Cubic b splines<a class="headerlink" href="#cubic-b-splines" title="Permalink to this heading">¶</a></h2>
 <p>For parametrising the vertical profile of a species, for example, CH4 by a cubic b spline, the
 keyword <code class="code docutils literal notranslate"><span class="pre">free_cs</span></code> (or <code class="code docutils literal notranslate"><span class="pre">free_cspline</span></code>), followed by the species’
 formula and the number of points <code class="code docutils literal notranslate"><span class="pre">k</span></code> need to be added to  the <code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code> file:</p>
@@ -141,7 +141,7 @@ equidistantly in logarithmic pressure space.</p>
 The first parameter in the prior list refers to the bottom of the atmosphere, while the last represents its top.</p>
 </section>
 <section id="equilibrium-chemistry">
-<h2>Equilibrium chemistry<a class="headerlink" href="#equilibrium-chemistry" title="Permalink to this heading">¶</a></h2>
+<span id="sec-chemistry-model-eq"></span><h2>Equilibrium chemistry<a class="headerlink" href="#equilibrium-chemistry" title="Permalink to this heading">¶</a></h2>
 <p>BeAR has the option of calculating the chemical composition of the atmosphere using the equilibrium
 chemistry code FastChem. In the <code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code> file, this is chosen by</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Retrieved chemical species</span>
@@ -182,21 +182,58 @@ One way to decrease the calculation time is to reduce the number of elements tre
 as H, He, C, O, and N. Information on how to change the FastChem input files can again be found in the
 <a class="reference external" href="https://newstrangeworlds.github.io/FastChem/">FastChem documentation</a>.</p>
 </section>
+<section id="background-species">
+<span id="sec-chemistry-model-bg"></span><h2>Background species<a class="headerlink" href="#background-species" title="Permalink to this heading">¶</a></h2>
+<p>This chemistry model will fill up the background of the atmosphere with a specific chemical species.
+The mixing ratio <span class="math notranslate nohighlight">\(x_\mathrm{bg}\)</span> of this background species <span class="math notranslate nohighlight">\(i\)</span> is determined by the
+mixing ratios of all other species <span class="math notranslate nohighlight">\(j\)</span>:</p>
+<div class="math notranslate nohighlight">
+\[x_\mathrm{bg} = 1 - \sum_{j, j \neq i} x_j  \ .\]</div>
+<p>For a gas giant or a brown dwarf, the background is usually given by a combination of molecular
+hydrogen (H2) and helium (He), whereas for the atmosphere of an Earth-like planet, the
+background species is rather molecular nitrogen (N2).</p>
+<p>This background chemistry model is chosen in the <code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code> file by using
+the keyword <code class="code docutils literal notranslate"><span class="pre">bg</span></code> or <code class="code docutils literal notranslate"><span class="pre">background</span></code></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Retrieved chemical species</span>
+<span class="n">bg</span> <span class="n">N2</span>
+</pre></div>
+</div>
+<p>followed by the chemical species that will fill up the atmosphere. For the special case
+of a background mixture of both H2 and He with their solar elemental abundance ratio, the special
+species code <code class="code docutils literal notranslate"><span class="pre">H2He</span></code> is used. This special “species” does not need to be added to the
+list of chemical species in the header file <code class="docutils literal notranslate"><span class="pre">src/chemistry/chem_species.h</span></code> but rather
+H2 and He need to be present there individually.</p>
+<p>Since the mixing ratio of the background species is determined by those of all other species,
+no free parameter is required for this model in the prior distribution file.</p>
+</section>
 <section id="mixing-different-chemistry-models">
-<h2>Mixing different chemistry models<a class="headerlink" href="#mixing-different-chemistry-models" title="Permalink to this heading">¶</a></h2>
-<p>BeAR also has the ability to use multiple chemistry models simultaneously. For example, to perform a retrieval with
-constant mixing ratios for a selection of species and a separate species, say CH4, that is assumed to have non-constant abundances,
-the following can be used as configuration in the <code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code> file:</p>
+<span id="sec-chemistry-model-mixing"></span><h2>Mixing different chemistry models<a class="headerlink" href="#mixing-different-chemistry-models" title="Permalink to this heading">¶</a></h2>
+<p>BeAR also has the ability to use multiple chemistry models simultaneously. For example, to
+constrain the constant abundances of some species and then fill up the rest of the atmosphere
+with H2 and He, the following can be used:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Retrieved chemical species</span>
+<span class="n">iso</span> <span class="n">H2O</span> <span class="n">NH3</span> <span class="n">CO2</span>
+<span class="n">bg</span> <span class="n">H2He</span>
+</pre></div>
+</div>
+<p>Another use case could be to perform a retrieval with constant mixing ratios for a selection
+of species and a separate species, say CH4, that is assumed to have non-constant abundances.
+Together with a background gas, the following can be used as configuration
+in the <code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code> file:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Retrieved chemical species</span>
 <span class="n">iso</span> <span class="n">H2O</span> <span class="n">NH3</span> <span class="n">CO2</span>
 <span class="n">free_cs</span> <span class="n">CH4</span> <span class="mi">5</span>
+<span class="n">background</span> <span class="n">N2</span>
 </pre></div>
 </div>
-<p>BeAR will call the chemistry models in the order they appear in this list. That means, in this example it would first set
-the constant mixing ratios of H2O, NH3, and CO2 and then use a variable profile based on cubic splines for methane.
-The mean molecular weight is recalculated after each chemistry model.</p>
-<p>Another possibility is to calculate the background atmosphere in chemical equilibrium and try to retrieve a separate
-species assumed not to be in equilibrium:</p>
+<p>BeAR will call the chemistry models in the order they appear in this list. That means, in this
+example it would first set the constant mixing ratios of H2O, NH3, and CO2, then use a variable
+profile based on cubic splines for methane, and finally fill up the rest of the atmospere with
+molecular nitrogen.</p>
+<p>The mean molecular weight is recalculated after each chemistry model. BeAR will also check the
+sum of all mixing ratios and neglect models where the sum exceeds unity.</p>
+<p>Yet another possibility is to calculate the background atmosphere in chemical equilibrium and try
+to retrieve a separate species assumed not to be in equilibrium:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Retrieved chemical species</span>
 <span class="n">eq</span> <span class="n">fastchem_parameters</span><span class="o">.</span><span class="n">dat</span>
 <span class="n">iso</span> <span class="n">CO</span>
@@ -204,7 +241,7 @@ species assumed not to be in equilibrium:</p>
 </div>
 <p>Here, BeAR would first use FastChem to determine the chemical composition in equilibrium and then replace the CO abundance
 by a constant mixing ratio that is a separate free parameter. This can, for example, simulate the impact of vertical mixing.
-Yet another possibility is to also include other non-constant species to take into account photochemistry effects in the
+An extension of that case could also include other non-constant species to take into account photochemistry effects in the
 upper atmosphere:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Retrieved chemical species</span>
 <span class="n">eq</span> <span class="n">fastchem_parameters</span><span class="o">.</span><span class="n">dat</span>
@@ -239,6 +276,15 @@ upper atmosphere:</p>
 </div>
 <p>CO would first be set to an isoprofile and then in the second step be replaced with the results from the equilibrium chemistry
 calculation. The free mixing ratio of CO will, therefore, remain unconstrained.</p>
+<p>Another incorrect order would, for example, also be the following case:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Retrieved chemical species</span>
+<span class="n">bg</span> <span class="n">H2He</span>
+<span class="n">iso</span> <span class="n">H2O</span> <span class="n">CO2</span> <span class="n">NH3</span>
+</pre></div>
+</div>
+<p>Here, BeAR would first fill up the entire atmosphere with H2 and He. This means that when H2O, CO2,
+and NH3 are added through the second model, the sum of all mixing ratios would exceed unity.
+All parameter combinations during the retrieval calculations would, therefore, be neglected.</p>
 </section>
 <section id="chemical-species-list">
 <span id="sec-chemical-species"></span><h2>Chemical species list<a class="headerlink" href="#chemical-species-list" title="Permalink to this heading">¶</a></h2>
@@ -355,6 +401,7 @@ For example, to add methane (CH4) as a new species, the code needs to be adapted
 <li class="toctree-l2"><a class="reference internal" href="#piecewise-polynomials">Piecewise polynomials</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#cubic-b-splines">Cubic b splines</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#equilibrium-chemistry">Equilibrium chemistry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#background-species">Background species</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#mixing-different-chemistry-models">Mixing different chemistry models</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#chemical-species-list">Chemical species list</a></li>
 </ul>
