@@ -49,6 +49,16 @@ SpectralGrid::SpectralGrid(GlobalConfig* global_config)
 }
 
 
+void SpectralGrid::createHeliosWavenumberList()
+{
+  const double wavenumber_step = 0.01;
+  const double max_wavenumber = 90000.0;
+
+  wavenumber_list_full.assign(max_wavenumber/wavenumber_step+1, 0.);
+
+  for (size_t i=0; i<wavenumber_list_full.size(); ++i)
+    wavenumber_list_full[i] = i * wavenumber_step;
+}
 
 
 void SpectralGrid::loadWavenumberList()
@@ -62,7 +72,14 @@ void SpectralGrid::loadWavenumberList()
 
 
   if (file.fail())
-    throw FileNotFound(std::string ("SpectralGrid::loadWavenumberList"), file_name);
+  {
+    std::cout << "Did not find wavenumber list file at: " << file_name << "\n";
+    std::cout << "Assuming now that the standard HELIOS-k grid is used!\n\n";
+
+    createHeliosWavenumberList();
+
+    return;
+  }
 
 
   size_t nb_wavenumbers;

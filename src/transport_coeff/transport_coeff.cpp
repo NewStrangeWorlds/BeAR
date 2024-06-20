@@ -88,7 +88,13 @@ bool TransportCoefficients::addOpacitySpecies(
   if (species_symbol == "CIA-H2-H2")
   {
     gas_species.push_back(
-      new GasGeneric(config, spectral_grid, _H2, "CIA H2-H2", species_folder, std::vector<size_t>{_H2}));
+      new GasGeneric(
+        config, 
+        spectral_grid, 
+        _H2, 
+        "CIA H2-H2", 
+        species_folder, 
+        std::vector<size_t>{_H2}));
 
     return true;
   }
@@ -96,7 +102,13 @@ bool TransportCoefficients::addOpacitySpecies(
   if (species_symbol == "CIA-H2-He")
   {
     gas_species.push_back(
-      new GasGeneric(config, spectral_grid, _H2, "CIA H2-He", species_folder, std::vector<size_t>{_He}));
+      new GasGeneric(
+        config, 
+        spectral_grid, 
+        _H2, 
+        "CIA H2-He", 
+        species_folder, 
+        std::vector<size_t>{_He}));
    
     return true;
   }
@@ -105,11 +117,16 @@ bool TransportCoefficients::addOpacitySpecies(
   if (species_symbol == "CIA-H-He")
   {
     gas_species.push_back(
-      new GasGeneric(config, spectral_grid, _H, "CIA H-He", species_folder, std::vector<size_t>{_He}));
+      new GasGeneric(
+        config, 
+        spectral_grid, 
+        _H, 
+        "CIA H-He", 
+        species_folder, 
+        std::vector<size_t>{_He}));
 
     return true;
   }
-
 
   //H- free-free and bound-free continuum
   if (species_symbol == "H-")
@@ -118,7 +135,6 @@ bool TransportCoefficients::addOpacitySpecies(
 
     return true;
   }
-
 
   //H2 Rayleigh scattering
   if (species_symbol == "H2" && species_folder == "Rayleigh")
@@ -187,7 +203,11 @@ bool TransportCoefficients::addOpacitySpecies(
     {
       gas_species.push_back(
         new GasGeneric(
-          config, spectral_grid, constants::species_data[i].id, constants::species_data[i].symbol, species_folder));
+          config, 
+          spectral_grid, 
+          constants::species_data[i].id, 
+          constants::species_data[i].symbol, 
+          species_folder));
 
       return true;
     } 

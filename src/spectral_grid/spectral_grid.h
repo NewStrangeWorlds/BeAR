@@ -101,6 +101,7 @@ class SpectralGrid{
     size_t nb_spectral_points;                //number of points in the spectral grid
 
     void loadWavenumberList();
+    void createHeliosWavenumberList();
 
     void createHighResGrid(
       const std::vector<std::vector<size_t>>& edge_indices,
