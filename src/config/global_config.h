@@ -34,7 +34,12 @@ struct GlobalConfig {
   std::string wavenumber_file_path = "";
   std::string retrieval_folder_path = "";
 
-  double spectral_resolution = 0;
+  //double spectral_resolution = 0;
+  
+  unsigned int spectral_disecretisation = 0;
+  double const_wavenumber_step = 0;
+  double const_wavelength_step = 0;
+  double const_spectral_resolution = 0;
   
   bool multinest_ins = false;
   bool multinest_mode_sep = false;

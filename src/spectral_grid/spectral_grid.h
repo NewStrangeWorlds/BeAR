@@ -107,6 +107,16 @@ class SpectralGrid{
       const std::vector<std::vector<size_t>>& edge_indices,
       std::vector<Observation>& observations);
 
+    void createHighResGridConstWavenumber(
+      const std::vector<std::vector<size_t>>& edge_indices,
+      std::vector<int>& included_points);
+    void createHighResGridConstWavelength(
+      const std::vector<std::vector<size_t>>& edge_indices,
+      std::vector<int>& included_points);
+    void createHighResGridConstResolution(
+      const std::vector<std::vector<size_t>>& edge_indices,
+      std::vector<int>& included_points);
+
     void initDeviceMemory();
 
     size_t findClosestIndexDesc(

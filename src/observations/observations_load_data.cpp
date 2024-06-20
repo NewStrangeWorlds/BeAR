@@ -418,7 +418,10 @@ void Observation::printObservationDetails()
 
   if (spectral_bands.bandType() == SPECTROSCOPY || spectral_bands.bandType() == BAND_SPECTROSCOPY)
   {
-    std::cout << "observation type: spectroscopy\n";
+    if (spectral_bands.bandType() == BAND_SPECTROSCOPY)
+      std::cout << "observation type: band-spectroscopy\n";
+    else
+     std::cout << "observation type: spectroscopy\n";
 
     for (size_t i=0; i<flux.size(); ++i)
     {

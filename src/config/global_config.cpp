@@ -20,6 +20,9 @@
 
 #include "global_config.h"
 
+#include "../additional/exceptions.h"
+
+#include <exception>
 #include <iostream>
 #include <fstream>
 #include <iomanip>
@@ -95,9 +98,37 @@ bool GlobalConfig::loadConfigFile(std::string retrieval_folder)
   std::cout << "- Forward model type: " << input << "\n";
   forward_model_type = input;
   
+  double spectral_param = 0;
+  
   std::getline(file, line);
-  file >> spectral_resolution >> line;
-  std::cout << "- Spectral resolution: " << spectral_resolution << "\n";
+  file >> input >> spectral_param >> line;
+  
+  if (input != "const_wavenumber" && input != "const_wavelength" && input != "const_resolution")
+  {
+    std::string error_message = "Spectral discretisation parameter: " + input + " in retrieval.config unknown!\n";
+    throw InvalidInput(std::string ("GlobalConfig::loadConfigFile"), error_message);
+
+    return false;
+  }
+
+  if (input == "const_wavenumber")
+  {
+    spectral_disecretisation = 0;
+    const_wavenumber_step = spectral_param;
+  }
+  else if (input == "const_wavelength")
+  {
+    spectral_disecretisation = 1;
+    const_wavelength_step = spectral_param;
+  }
+  else if (input == "const_resolution")
+  {
+    spectral_disecretisation = 2;
+    const_spectral_resolution = spectral_param;
+  }
+
+  std::cout << "- Spectral grid disretisation: " << input << "  " << spectral_param << "\n";
+
 
   std::getline(file, line);
 

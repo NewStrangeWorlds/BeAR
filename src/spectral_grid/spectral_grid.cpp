@@ -135,12 +135,10 @@ void SpectralGrid::sampleSpectralGrid(std::vector<Observation>& observations)
 
 
 
-void SpectralGrid::createHighResGrid(
+void SpectralGrid::createHighResGridConstWavenumber(
   const std::vector<std::vector<size_t>>& edge_indices,
-  std::vector<Observation>& observations)
+  std::vector<int>& included_points)
 {
-  std::vector<int> included_points(wavenumber_list_full.size(), 0);
-
   for (size_t i=0; i<edge_indices.size(); ++i)
   {
     included_points[edge_indices[i][0]] = 1;
@@ -149,8 +147,9 @@ void SpectralGrid::createHighResGrid(
 
     for (size_t j=edge_indices[i][0]; j<edge_indices[i][1]; ++j)
     {
-      if (wavenumber_list_full[last_index] + config->spectral_resolution == wavenumber_list_full[j] 
-        || (wavenumber_list_full[j] < wavenumber_list_full[last_index] + config->spectral_resolution && wavenumber_list_full[j+1] > wavenumber_list_full[last_index]+ config->spectral_resolution))
+      if (wavenumber_list_full[last_index] + config->const_wavenumber_step == wavenumber_list_full[j] 
+        || (wavenumber_list_full[j] < wavenumber_list_full[last_index] + config->const_wavenumber_step 
+         && wavenumber_list_full[j+1] > wavenumber_list_full[last_index] + config->const_wavenumber_step))
       { 
         included_points[j] = 1;
         last_index = j;
@@ -159,6 +158,78 @@ void SpectralGrid::createHighResGrid(
       included_points[edge_indices[i][1]] = 1;
     }
   }
+}
+
+
+void SpectralGrid::createHighResGridConstWavelength(
+  const std::vector<std::vector<size_t>>& edge_indices,
+  std::vector<int>& included_points)
+{
+  for (size_t i=0; i<edge_indices.size(); ++i)
+  {
+    included_points[edge_indices[i][0]] = 1;
+
+    size_t last_index = edge_indices[i][0];
+
+    for (size_t j=edge_indices[i][0]; j<edge_indices[i][1]; ++j)
+    {
+      if (wavelength_list_full[last_index] - config->const_wavelength_step == wavelength_list_full[j] 
+        || (wavelength_list_full[j] > wavelength_list_full[last_index] - config->const_wavelength_step 
+         && wavelength_list_full[j+1] < wavelength_list_full[last_index] - config->const_wavelength_step))
+      { 
+        included_points[j] = 1;
+        last_index = j;
+      }
+      
+      included_points[edge_indices[i][1]] = 1;
+    }
+  }
+}
+
+
+void SpectralGrid::createHighResGridConstResolution(
+  const std::vector<std::vector<size_t>>& edge_indices,
+  std::vector<int>& included_points)
+{
+  for (size_t i=0; i<edge_indices.size(); ++i)
+  {
+    included_points[edge_indices[i][0]] = 1;
+
+    size_t last_index = edge_indices[i][0];
+
+    for (size_t j=edge_indices[i][0]; j<edge_indices[i][1]; ++j)
+    { 
+      const double new_lambda = wavelength_list_full[last_index] * (1 - 1./config->const_spectral_resolution);
+
+      if (new_lambda == wavelength_list_full[j] 
+        || (wavelength_list_full[j] > new_lambda 
+         && wavelength_list_full[j+1] < new_lambda))
+      { 
+        included_points[j] = 1;
+        last_index = j;
+      }
+      
+      included_points[edge_indices[i][1]] = 1;
+    }
+  }
+}
+
+
+void SpectralGrid::createHighResGrid(
+  const std::vector<std::vector<size_t>>& edge_indices,
+  std::vector<Observation>& observations)
+{
+  std::vector<int> included_points(wavenumber_list_full.size(), 0);
+
+  if (config->spectral_disecretisation == 0)
+    createHighResGridConstWavenumber(edge_indices, included_points);
+
+  if (config->spectral_disecretisation == 1)
+    createHighResGridConstWavelength(edge_indices, included_points);
+
+  if (config->spectral_disecretisation == 2)
+    createHighResGridConstResolution(edge_indices, included_points);
+
 
   //find the spectral indices of all band edges
   for (auto & o : observations)
@@ -198,7 +269,7 @@ void SpectralGrid::createHighResGrid(
     wavenumber_list[i] = wavenumber_list_full[index_list[i]];
     wavelength_list[i] = wavelength_list_full[index_list[i]];
   }
-  
+
   nb_spectral_points = wavelength_list.size();
 
   if (config->use_gpu)
