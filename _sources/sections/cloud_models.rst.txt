@@ -10,9 +10,9 @@ BeAR currently includes the following cloud descriptions:
 
   - Non-grey cloud fit from 
     `Kitzmann \& Heng (2018) <https://ui.adsabs.harvard.edu/abs/2018MNRAS.475...94K/>`_
-  
+
   - Power law cloud layer
-  
+
 
 Grey Cloud Model
 ----------------

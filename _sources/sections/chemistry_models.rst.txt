@@ -11,7 +11,7 @@ BeAR currently includes the following chemistry models:
   - :ref:`Background species <sec:chemistry_model_bg>`
 
   - :ref:`Isoprofiles <sec:chemistry_model_iso>`
-  
+
   - :ref:`Isoprofiles with centred-log-ratio priors <sec:chemistry_model_iso_clr>`
 
   - :ref:`Piecewise polynomials <sec:chemistry_model_poly>`
@@ -55,7 +55,7 @@ If Na should be retrieved independently, it needs to be added as a separate spec
 
    #Retrieved chemical species
    iso  H2O CH4 NH3 K H2S CO2 Na
-   
+
 
 .. _sec:chemistry_model_iso_clr:
    
@@ -102,7 +102,7 @@ As noted above, for these 5 species only 4 priors are needed due to the constrai
 This chemistry model will, therefore, select one of these free species as the dominant background gas. In the prior config file
 only priors for the first four molecules would need to be listed. The abundance of the last species in the list above
 will be determined from the other molecules.
-   
+
 
 .. _sec:chemistry_model_poly:   
 
@@ -164,7 +164,7 @@ chemistry code FastChem. In the ``forward_model.config`` file, this is chosen by
 
    #Retrieved chemical species
    eq fastchem_parameters.dat
-   
+
 The indicated file after the keyword :code:`eq` is the main configuration file for FastChem.
 It contains information on the elemental abundances and thermochemical data that FastChem
 should use. This file has the following structure
@@ -267,7 +267,7 @@ to retrieve a separate species assumed not to be in equilibrium:
    #Retrieved chemical species
    eq fastchem_parameters.dat
    iso CO
-   
+
 Here, BeAR would first use FastChem to determine the chemical composition in equilibrium and then replace the CO abundance
 by a constant mixing ratio that is a separate free parameter. This can, for example, simulate the impact of vertical mixing.
 An extension of that case could also include other non-constant species to take into account photochemistry effects in the
