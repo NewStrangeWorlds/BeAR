@@ -6,23 +6,28 @@ Chemistry Models
 
 BeAR currently includes the following chemistry models:
 
-  - Equilibrium chemistry
+  - :ref:`Equilibrium chemistry <sec:chemistry_model_eq>`
 
-  - Isoprofiles
+  - :ref:`Background species <sec:chemistry_model_bg>`
+
+  - :ref:`Isoprofiles <sec:chemistry_model_iso>`
   
-  - Isoprofiles with centred-log-ratio priors
+  - :ref:`Isoprofiles with centred-log-ratio priors <sec:chemistry_model_iso_clr>`
 
-  - Piecewise polynomials
+  - :ref:`Piecewise polynomials <sec:chemistry_model_poly>`
 
-  - Cubic b splines
-  
+  - :ref:`Cubic b splines <sec:chemistry_model_cs>`
+
 Details on the implementation of the latter four parametrisations are 
 discussed :ref:`here <sec:profile_parametrisations>`. 
 
-All chemical species that BeAR uses have to be defined in a corresponding header file.
+BeAR can also mix several different of these models in a single retrieval. This
+is explained :ref:`in this section <sec:chemistry_model_mixing>`. All chemical 
+species that BeAR uses have to be defined in a corresponding header file.
 This is described at the :ref:`bottom <sec:chemical_species>` of this chapter. 
 
 
+.. _sec:chemistry_model_iso:
 
 Isoprofiles
 -----------
@@ -39,10 +44,6 @@ the isoprofile chemistry model is chosen by using the keyword :code:`iso`
 For each species, a corresponding entry in the prior config file is required.
 The order of the priors has to be identical to the one in the ``forward_model.config``.
 
-Currently, BeAR will fill up the background of the atmosphere with a mixture
-of molecular hydrogen and helium, based on the solar elemental abundances of
-H and He.
-
 Furthermore, as described by `Kitzmann et al. (2020) <https://ui.adsabs.harvard.edu/abs/2020ApJ...890..174K/>`_,
 the abundance of sodium (Na) is linked to the one of potassium (K) through the ratio of their
 solar elemental abundances. Thus, in the example above, the Na abundance would automatically be
@@ -56,6 +57,7 @@ If Na should be retrieved independently, it needs to be added as a separate spec
    iso  H2O CH4 NH3 K H2S CO2 Na
    
 
+.. _sec:chemistry_model_iso_clr:
    
 Isoprofiles with centred-log-ratio priors
 -----------------------------------------
@@ -101,7 +103,8 @@ This chemistry model will, therefore, select one of these free species as the do
 only priors for the first four molecules would need to be listed. The abundance of the last species in the list above
 will be determined from the other molecules.
    
-   
+
+.. _sec:chemistry_model_poly:   
 
 Piecewise polynomials
 ---------------------
@@ -123,7 +126,9 @@ The free parameters that have to be added to the priors config file correspond t
 of the chosen species at the :math:`k q + 1` discrete pressure points that are distributed 
 equidistantly in logarithmic pressure space. The first parameter in that list refers to the bottom 
 of the atmosphere, while the last represents its top.
-   
+
+
+.. _sec:chemistry_model_cs:   
 
 Cubic b splines
 ---------------
@@ -147,6 +152,7 @@ These free parameters have to be added to the priors config file in descending p
 The first parameter in the prior list refers to the bottom of the atmosphere, while the last represents its top.
 
 
+.. _sec:chemistry_model_eq:
 
 Equilibrium chemistry
 ---------------------
@@ -185,25 +191,76 @@ as H, He, C, O, and N. Information on how to change the FastChem input files can
 `FastChem documentation <https://newstrangeworlds.github.io/FastChem/>`_.
 
 
+.. _sec:chemistry_model_bg:
+
+Background species
+------------------
+
+This chemistry model will fill up the background of the atmosphere with a specific chemical species.
+The mixing ratio :math:`x_\mathrm{bg}` of this background species :math:`i` is determined by the
+mixing ratios of all other species :math:`j`:
+
+.. math::
+  x_\mathrm{bg} = 1 - \sum_{j, j \neq i} x_j  \ .
+
+For a gas giant or a brown dwarf, the background is usually given by a combination of molecular
+hydrogen (H2) and helium (He), whereas for the atmosphere of an Earth-like planet, the
+background species is rather molecular nitrogen (N2).
+
+This background chemistry model is chosen in the ``forward_model.config`` file by using
+the keyword :code:`bg` or :code:`background`
+
+.. code:: 
+
+   #Retrieved chemical species
+   bg N2
+
+followed by the chemical species that will fill up the atmosphere. For the special case
+of a background mixture of both H2 and He with their solar elemental abundance ratio, the special
+species code :code:`H2He` is used. This special "species" does not need to be added to the
+list of chemical species in the header file ``src/chemistry/chem_species.h`` but rather
+H2 and He need to be present there individually.
+
+Since the mixing ratio of the background species is determined by those of all other species,
+no free parameter is required for this model in the prior distribution file.
+
+.. _sec:chemistry_model_mixing:
+
 Mixing different chemistry models
 ---------------------------------
 
-BeAR also has the ability to use multiple chemistry models simultaneously. For example, to perform a retrieval with
-constant mixing ratios for a selection of species and a separate species, say CH4, that is assumed to have non-constant abundances,
-the following can be used as configuration in the ``forward_model.config`` file:
+BeAR also has the ability to use multiple chemistry models simultaneously. For example, to
+constrain the constant abundances of some species and then fill up the rest of the atmosphere
+with H2 and He, the following can be used:
+
+.. code:: 
+
+   #Retrieved chemical species
+   iso H2O NH3 CO2
+   bg H2He
+
+Another use case could be to perform a retrieval with constant mixing ratios for a selection 
+of species and a separate species, say CH4, that is assumed to have non-constant abundances.
+Together with a background gas, the following can be used as configuration 
+in the ``forward_model.config`` file:
 
 .. code:: 
 
    #Retrieved chemical species
    iso H2O NH3 CO2
    free_cs CH4 5
+   background N2
 
-BeAR will call the chemistry models in the order they appear in this list. That means, in this example it would first set
-the constant mixing ratios of H2O, NH3, and CO2 and then use a variable profile based on cubic splines for methane. 
-The mean molecular weight is recalculated after each chemistry model. 
+BeAR will call the chemistry models in the order they appear in this list. That means, in this 
+example it would first set the constant mixing ratios of H2O, NH3, and CO2, then use a variable 
+profile based on cubic splines for methane, and finally fill up the rest of the atmospere with 
+molecular nitrogen.
 
-Another possibility is to calculate the background atmosphere in chemical equilibrium and try to retrieve a separate
-species assumed not to be in equilibrium:
+The mean molecular weight is recalculated after each chemistry model. BeAR will also check the 
+sum of all mixing ratios and neglect models where the sum exceeds unity.
+
+Yet another possibility is to calculate the background atmosphere in chemical equilibrium and try 
+to retrieve a separate species assumed not to be in equilibrium:
 
 .. code:: 
 
@@ -213,7 +270,7 @@ species assumed not to be in equilibrium:
    
 Here, BeAR would first use FastChem to determine the chemical composition in equilibrium and then replace the CO abundance
 by a constant mixing ratio that is a separate free parameter. This can, for example, simulate the impact of vertical mixing.
-Yet another possibility is to also include other non-constant species to take into account photochemistry effects in the
+An extension of that case could also include other non-constant species to take into account photochemistry effects in the
 upper atmosphere:
 
 .. code:: 
@@ -254,6 +311,18 @@ One should pay careful attention to the order of the chemistry models that shoul
    
 CO would first be set to an isoprofile and then in the second step be replaced with the results from the equilibrium chemistry
 calculation. The free mixing ratio of CO will, therefore, remain unconstrained.
+
+Another incorrect order would, for example, also be the following case:
+
+.. code:: 
+
+   #Retrieved chemical species
+   bg H2He
+   iso H2O CO2 NH3
+
+Here, BeAR would first fill up the entire atmosphere with H2 and He. This means that when H2O, CO2,
+and NH3 are added through the second model, the sum of all mixing ratios would exceed unity.
+All parameter combinations during the retrieval calculations would, therefore, be neglected.
 
 
 .. _sec:chemical_species:
