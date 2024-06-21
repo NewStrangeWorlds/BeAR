@@ -100,16 +100,12 @@ bool IsoprofileCLRChemistry::calcChemicalComposition(
 
   //calculate the mean molecular weight
   //note that we sum over *all* species, not just the ones that were included in this chemistry
-  for (size_t i=0; i<number_densities.size(); ++i)
-  {
-    double mu = 0;
+  meanMolecularWeight(number_densities, mean_molecular_weight);
 
-    for (auto & j : constants::species_data)
-      mu += number_densities[i][j.id]/number_densities[i][_TOTAL] * j.molecular_weight;
+  bool mixing_ratios_ok = checkMixingRatios(number_densities);
 
-    mean_molecular_weight[i] = mu;
-  }
-
+  if (!mixing_ratios_ok)
+    neglect_model = true;
 
   return neglect_model;
 }

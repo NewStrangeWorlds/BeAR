@@ -94,7 +94,6 @@ IsoprofileChemistry::IsoprofileChemistry(const std::vector<std::string>& chemica
 
 
 
-
 bool IsoprofileChemistry::calcChemicalComposition(
   const std::vector<double>& parameters,
   const std::vector<double>& temperature,
@@ -102,11 +101,7 @@ bool IsoprofileChemistry::calcChemicalComposition(
   std::vector<std::vector<double>>& number_densities,
   std::vector<double>& mean_molecular_weight)
 {
-  const double solar_h2_he = solar_h2 + solar_he;
   const double solar_na_k = 16.2181;
-  
-  const double solar_h_he = solar_he + 1.0;
-  const double epsilon_h = 1.0 / (solar_h_he);
 
   bool neglect_model = false;
 
@@ -117,54 +112,18 @@ bool IsoprofileChemistry::calcChemicalComposition(
     for (size_t j=0; j<species.size(); ++j)
       number_densities[i][species[j]] = number_densities[i][_TOTAL] * parameters[j];
 
-    //for (size_t j=0; j<species.size(); ++j)
-      //number_densities[i][species[j]] *= parameters[j];
-
     if (!sodium_free_parameter)
       number_densities[i][_Na] = number_densities[i][_K] * solar_na_k;
-
-
-    //the mixing ratio of the two background gases H2 and He
-    double mixing_ratio_background = 1.0;
-
-    for (auto & j : constants::species_data)
-      if (j.id != _H2 && j.id != _He && j.id != _TOTAL && j.id != _H) 
-        mixing_ratio_background -= number_densities[i][j.id]/number_densities[i][_TOTAL];
-
-
-    //if we have a negative mixing ratio of the background gas
-    //(i.e. the sum of all other species is larger than 1)
-    //neglect this model
-    if (mixing_ratio_background < 0)
-    {
-      neglect_model = true;
-      mixing_ratio_background = 0;
-    }
-    
-    //const double mixing_ratio_h = number_densities[i][_H]/number_densities[i][_TOTAL];
-    //const double mixing_ratio_h2 = epsilon_h / (2.0 - epsilon_h) * (mixing_ratio_background - mixing_ratio_h);
-    //const double mixing_ratio_he = mixing_ratio_background - mixing_ratio_h - mixing_ratio_h2;
-
-    const double mixing_ratio_h2 = mixing_ratio_background * solar_h2 / solar_h2_he;
-    const double mixing_ratio_he = mixing_ratio_background * solar_he / solar_h2_he;
-
-    number_densities[i][_H2] = number_densities[i][_TOTAL] * mixing_ratio_h2;
-    number_densities[i][_He] = number_densities[i][_TOTAL] * mixing_ratio_he;
   }
-
 
   //calculate the mean molecular weight
   //note that we sum over *all* species, not just the ones that were included in this chemistry
-  for (size_t i=0; i<number_densities.size(); ++i)
-  {
-    double mu = 0;
+  meanMolecularWeight(number_densities, mean_molecular_weight);
+  
+  bool mixing_ratios_ok = checkMixingRatios(number_densities);
 
-    for (auto & j : constants::species_data)
-      mu += number_densities[i][j.id]/number_densities[i][_TOTAL] * j.molecular_weight;
-
-    mean_molecular_weight[i] = mu;
-  }
-
+  if (!mixing_ratios_ok)
+    neglect_model = true;
 
   return neglect_model;
 }

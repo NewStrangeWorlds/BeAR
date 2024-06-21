@@ -43,6 +43,37 @@ class Chemistry{
   protected:
     size_t nb_parameters {};
     std::vector<chemical_species_id> species;
+
+    void meanMolecularWeight(
+      const std::vector<std::vector<double>>& number_densities,
+      std::vector<double>& mean_molecular_weight) {
+        for (size_t i=0; i<number_densities.size(); ++i)
+        {
+          double mu = 0;
+
+          for (auto & j : constants::species_data)
+            mu += number_densities[i][j.id]/number_densities[i][_TOTAL] * j.molecular_weight;
+
+          mean_molecular_weight[i] = mu;
+        }
+      };
+
+    bool checkMixingRatios(
+      const std::vector<std::vector<double>>& number_densities) {
+        for (size_t i=0; i<number_densities.size(); ++i)
+        {
+          double sum = 0;
+
+          for (auto & j : constants::species_data)
+            if (j.id != _TOTAL)
+              sum += number_densities[i][j.id]/number_densities[i][_TOTAL];
+
+          if (sum > 1+1e-10)
+            return false;
+        }
+
+        return true;
+      };
 };
 
 

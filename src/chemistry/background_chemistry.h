@@ -18,8 +18,8 @@
 */
 
 
-#ifndef _isoprofile_chemistry_h
-#define _isoprofile_chemistry_h
+#ifndef _background_chemistry_h
+#define _background_chemistry_h
 
 #include "chemistry.h"
 
@@ -31,10 +31,10 @@
 namespace helios {
 
 
-class IsoprofileChemistry : public Chemistry{
+class BackgroundChemistry : public Chemistry{
   public:
-    IsoprofileChemistry(const std::vector<std::string>& chemical_species);
-    virtual ~IsoprofileChemistry() {}
+    BackgroundChemistry(const std::string& chemical_species);
+    virtual ~BackgroundChemistry() {}
     virtual bool calcChemicalComposition(
       const std::vector<double>& parameters,
       const std::vector<double>& temperature,
@@ -42,7 +42,10 @@ class IsoprofileChemistry : public Chemistry{
       std::vector<std::vector<double>>& number_densities,
       std::vector<double>& mean_molecular_weight);
   protected:
-    bool sodium_free_parameter = false;
+    const double solar_h2 = 0.5;
+    const double solar_he = 0.085114;
+
+    bool h2he_background = false;
 };
 
 

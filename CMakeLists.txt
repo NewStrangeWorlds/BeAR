@@ -115,6 +115,7 @@ set(SRC
   src/transport_coeff/species_rayleigh_cross_sections.cpp
   src/transport_coeff/transport_coeff.cpp
   src/chemistry/isoprofile_chemistry.cpp
+  src/chemistry/background_chemistry.cpp
   src/chemistry/isoprofile_clr_chemistry.cpp
   src/chemistry/fastchem_chemistry.cpp
   src/chemistry/free_chemistry.cpp

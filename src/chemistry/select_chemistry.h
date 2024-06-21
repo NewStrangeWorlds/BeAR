@@ -29,6 +29,7 @@
 #include "isoprofile_clr_chemistry.h"
 #include "free_chemistry.h"
 #include "free_cbspline_chemistry.h"
+#include "background_chemistry.h"
 
 #include "../config/global_config.h"
 #include "../additional/exceptions.h"
@@ -43,9 +44,9 @@ namespace helios {
 //definition of the different chemistry modules with an
 //identifier, a keyword to be located in the config file and a short version of the keyword
 namespace chemistry_modules{
-  enum id {free, iso, eq, cspline, iso_clr}; 
-  const std::vector<std::string> description {"free", "isoprofile", "equilibrium", "free_cspline", "isoprofile_clr"};
-  const std::vector<std::string> description_short {"free", "iso", "eq", "free_cs", "iso_clr"};
+  enum id {free, iso, eq, cspline, iso_clr, bg}; 
+  const std::vector<std::string> description {"free", "isoprofile", "equilibrium", "free_cspline", "isoprofile_clr", "background"};
+  const std::vector<std::string> description_short {"free", "iso", "eq", "free_cs", "iso_clr", "bg"};
 }
 
 
@@ -142,6 +143,17 @@ inline Chemistry* selectChemistryModule(
 
     case chemistry_modules::iso_clr : {
       IsoprofileCLRChemistry* model = new IsoprofileCLRChemistry(parameters);
+      chemistry_module = model;
+    } 
+      break;
+
+    case chemistry_modules::bg : {
+      if (parameters.size() != 1) {
+        std::string error_message = "Background chemistry requires exactly one parameter!\n";
+        throw InvalidInput(std::string ("forward_model.config"), error_message);
+      }
+
+      BackgroundChemistry* model = new BackgroundChemistry(parameters[0]);
       chemistry_module = model;
     } 
       break;

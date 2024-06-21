@@ -125,13 +125,17 @@ bool FreeCBSplineChemistry::calcChemicalComposition(
     }
 
     number_densities[i][species.front()] = number_densities[i][_TOTAL] * mixing_ratio;
-
-    //adjust the mean molecular weight
-    mean_molecular_weight[i] += 
-      number_densities[i][species.front()]/number_densities[i][_TOTAL] 
-      * constants::species_data[species.front()].molecular_weight;
   }
 
+
+  //calculate the mean molecular weight
+  //note that we sum over *all* species, not just the ones that were included in this chemistry
+  meanMolecularWeight(number_densities, mean_molecular_weight);
+
+  bool mixing_ratios_ok = checkMixingRatios(number_densities);
+
+  if (!mixing_ratios_ok)
+    neglect_model = true;
 
   return neglect_model;
 }
