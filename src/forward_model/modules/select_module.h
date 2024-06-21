@@ -31,7 +31,7 @@
 #include "../../additional/exceptions.h"
 #include "../../spectral_grid/spectral_grid.h"
 
-#include "stellar_activity.h"
+#include "stellar_contamination.h"
 
 
 
@@ -40,8 +40,8 @@ namespace helios {
 //definition of the different chemistry modules with an
 //identifier, a keyword to be located in the config file and a short version of the keyword
 namespace modules{
-  enum id {stellar_activity}; 
-  const std::vector<std::string> description {"stellar_activity"};
+  enum id {stellar_contamination}; 
+  const std::vector<std::string> description {"stellar_contamination"};
 }
 
 
@@ -76,7 +76,7 @@ inline Module* selectModule(
 
   switch (module_id)
   {
-    case modules::stellar_activity :
+    case modules::stellar_contamination :
       if (parameters.size() < 1)
       {
         std::string error_message = 
@@ -84,7 +84,7 @@ inline Module* selectModule(
         throw InvalidInput(std::string ("forward_model.config"), error_message);
       }
       {
-        StellarActivity* stellar_module = new StellarActivity(
+        StellarContamination* stellar_module = new StellarContamination(
           parameters,
           spectral_grid);
         module = stellar_module;

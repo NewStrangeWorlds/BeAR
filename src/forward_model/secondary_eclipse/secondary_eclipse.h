@@ -1,6 +1,6 @@
 /*
-* This file is part of the BeAR code (https://github.com/newstrangeworlds/BeAR).
-* Copyright (C) 2024 Daniel Kitzmann
+* This file is part of the BeAR code (https://github.com/exoclime/BeAR).
+* Copyright (C) 2022 Daniel Kitzmann
 *
 * BeAR is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -41,7 +41,7 @@
 #include "../../transport_coeff/opacity_calc.h"
 #include "../../radiative_transfer/radiative_transfer.h"
 
-#include "../stellar_spectrum.h"
+#include "../stellar_spectrum/stellar_spectrum.h"
 
 
 namespace helios {
@@ -57,7 +57,7 @@ struct SecondaryEclipseConfig{
   double atmos_top_pressure = 0;
   double atmos_bottom_pressure = 0;
 
-  std::string stellar_spectrum_file = "";
+  //std::string stellar_spectrum_file = "";
 
   bool use_cloud_model = false;
 
@@ -72,6 +72,9 @@ struct SecondaryEclipseConfig{
 
   std::vector<std::string> cloud_model;
   std::vector<std::vector<std::string>> cloud_model_parameters;
+
+  std::string stellar_spectrum_model;
+  std::vector<std::string> stellar_model_parameters;
 
   std::vector<std::string> opacity_species_symbol;
   std::vector<std::string> opacity_species_folder;
@@ -125,22 +128,28 @@ class SecondaryEclipseModel : public ForwardModel{
     Temperature* temperature_profile = nullptr;
     std::vector<Chemistry*> chemistry;
     std::vector<CloudModel*> cloud_models;
+    StellarSpectrumModel* stellar_model;
 
     std::vector<Observation>& observations;
     size_t nb_observation_points = 0;
 
     size_t nb_grid_points = 0;
     size_t nb_general_param = 0;
+    size_t nb_stellar_param = 0;
     size_t nb_total_chemistry_param = 0;
     size_t nb_temperature_param = 0;
     size_t nb_total_cloud_param = 0;
     size_t nb_spectrum_modifier_param = 0;
 
     size_t nb_total_param() {
-      return nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_total_cloud_param;
+      return nb_general_param 
+             + nb_stellar_param
+             + nb_total_chemistry_param 
+             + nb_temperature_param 
+             + nb_total_cloud_param
+             + nb_spectrum_modifier_param;
     }
 
-    StellarSpectrum stellar_spectrum;
 
     virtual void setPriors(Priors* priors);
     void readPriorConfigFile(
@@ -150,11 +159,11 @@ class SecondaryEclipseModel : public ForwardModel{
       std::vector<std::vector<double>>& prior_parameter);
     void initModules(const SecondaryEclipseConfig& model_config);
 
-    std::vector<double> calcSecondaryEclipse(
-      std::vector<double>& planet_spectrum_bands,
-      const double radius_ratio,
-      const double geometric_albedo,
-      const double radius_distance_ratio);
+    // std::vector<double> calcSecondaryEclipse(
+    //   std::vector<double>& planet_spectrum_bands,
+    //   const double radius_ratio,
+    //   const double geometric_albedo,
+    //   const double radius_distance_ratio);
     void calcSecondaryEclipseGPU(
       double* secondary_eclipse,
       double* planet_spectrum,

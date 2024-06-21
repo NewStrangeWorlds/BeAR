@@ -86,6 +86,12 @@ set(SRC
   src/forward_model/flat_line/flat_line.cpp
   src/forward_model/flat_line/flat_line_test.cpp
   src/forward_model/atmosphere/atmosphere.cpp
+  src/forward_model/stellar_spectrum/sampled_stellar_spectrum.cpp
+  src/forward_model/stellar_spectrum/spectrum_file.cpp
+  src/forward_model/stellar_spectrum/star_blackbody.cpp
+  src/forward_model/stellar_spectrum/star_file_spectrum.cpp
+  src/forward_model/stellar_spectrum/stellar_spectrum_grid.cpp
+  src/forward_model/modules/stellar_contamination.cpp
   src/cloud_model/grey_cloud_model.cpp
   src/cloud_model/kh_cloud_model.cpp
   src/cloud_model/power_law_cloud_model.cpp
@@ -141,6 +147,10 @@ set(SRC_CUDA
   src/CUDA_kernels/rayleigh_scattering_kernels.cu
   src/CUDA_kernels/cloud_model_kernels.cu
   src/CUDA_kernels/contribution_function_kernels.cu
+  src/CUDA_kernels/star_blackbody.cu
+  src/CUDA_kernels/star_file_spectrum.cu
+  src/CUDA_kernels/stellar_contamination.cu
+  src/CUDA_kernels/stellar_spectrum_grid.cu
   src/CUDA_kernels/observation_kernels.cu)
 
 

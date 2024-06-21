@@ -1,6 +1,6 @@
 /*
-* This file is part of the BeAR code (https://github.com/newstrangeworlds/BeAR).
-* Copyright (C) 2024 Daniel Kitzmann
+* This file is part of the BeAR code (https://github.com/exoclime/BeAR).
+* Copyright (C) 2022 Daniel Kitzmann
 *
 * BeAR is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -89,15 +89,26 @@ void SecondaryEclipseConfig::readConfigFile(const std::string& file_name)
   for (auto & i : temperature_profile_parameters) std::cout << "  " << i;
   std::cout << "\n";
   
-
+  
+  //the stellar spectrum model
   std::getline(file, line);
   std::getline(file, line);
+  std::getline(file, line);
+  std::istringstream stellar_input(line);
 
-  file >> stellar_spectrum_file >> line;
-  std::cout << "- Stellar spectrum file: " << stellar_spectrum_file << "\n";
+  stellar_input >> stellar_spectrum_model;
+
+  while (stellar_input >> input)
+    stellar_model_parameters.push_back(input);
+
+  std::cout << "- Stellar spectrum model: " << stellar_spectrum_model;
+  for (auto & i : stellar_model_parameters) std::cout << "  " << i;
+  std::cout << "\n";
+
+  std::getline(file, line);
+
 
   //cloud model input
-
   readCloudConfig(file);
 
   if (cloud_model.front() != "none") use_cloud_model = true;

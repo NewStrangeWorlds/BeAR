@@ -267,6 +267,37 @@ double linearInterpolation(const double x1, const double x2, const double y1, co
 }
 
 
+double triLinearInterpolation(const double x0, const double x1, 
+                              const double y0, const double y1,
+                              const double z0, const double z1, 
+                              const double c000, const double c100, const double c010,
+                              const double c110, const double c001, const double c101,
+                              const double c011, const double c111,
+                              const double x, const double y, const double z)
+{
+  double xd = (x - x0)/(x1 - x0);
+  if (x == x0) xd = 0;
+
+  double yd = (y - y0)/(y1 - y0);
+  if (y == y0) yd = 0;
+
+  double zd = (z - z0)/(z1 - z0);
+  if (z == z0) zd = 0;
+  
+  const double c00 = c000 * (1. - xd) + c100*xd;
+  const double c01 = c001 * (1. - xd) + c101*xd;
+  const double c10 = c010 * (1. - xd) + c110*xd;
+  const double c11 = c011 * (1. - xd) + c111*xd;
+
+  const double c0 = c00 * (1. - yd) + c10*yd;
+  const double c1 = c01 * (1. - yd) + c11*yd;
+
+  const double c = c0 * (1. - zd) + c1 * zd;
+
+  return c;
+}
+
+
 
 double voigtProfile(const double x, const double gaussian_width, const double lorentz_width)
 {

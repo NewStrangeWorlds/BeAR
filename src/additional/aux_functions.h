@@ -29,6 +29,13 @@ namespace helios{ namespace aux{
 
 double planckFunctionWavenumber(const double temperature, const double wavenumber);
 double linearInterpolation(const double x1, const double x2, const double y1, const double y2, const double x);
+double triLinearInterpolation(const double x0, const double x1, 
+                              const double y0, const double y1,
+                              const double z0, const double z1, 
+                              const double c000, const double c100, const double c010,
+                              const double c110, const double c001, const double c101,
+                              const double c011, const double c111,
+                              const double x, const double y, const double z);
 double voigtProfile(const double x, const double gaussian_width, const double lorentz_width);
 
 double normalDistribution(const double mu, const double sigma, const double x);

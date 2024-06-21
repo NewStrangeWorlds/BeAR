@@ -1,0 +1,12 @@
+#observation description
+#instrument
+GROND K Photometry
+
+#type
+photometry
+
+#filter transmission function
+../telescope_data/LaSilla_GROND_K_bandpass.dat
+
+#lower wavelength (micron)  upper wavelength (micron)   eclipse depth   error
+1.8930	2.5000	 1970.0 	420

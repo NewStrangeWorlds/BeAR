@@ -1,6 +1,6 @@
 /*
-* This file is part of the BeAR code (https://github.com/newstrangeworlds/BeAR).
-* Copyright (C) 2024 Daniel Kitzmann
+* This file is part of the BeAR code (https://github.com/exoclime/BeAR).
+* Copyright (C) 2022 Daniel Kitzmann
 *
 * BeAR is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -28,6 +28,7 @@
 
 #include "../../additional/exceptions.h"
 #include "../../chemistry/select_chemistry.h"
+#include "../stellar_spectrum/select_stellar_model.h"
 #include "../../radiative_transfer/select_radiative_transfer.h"
 #include "../../temperature/select_temperature_profile.h"
 #include "../../cloud_model/select_cloud_model.h"
@@ -46,6 +47,14 @@ void SecondaryEclipseModel::initModules(const SecondaryEclipseConfig& model_conf
     model_config.nb_grid_points, 
     config, 
     spectral_grid);
+
+
+  stellar_model = selectStellarModel(
+    model_config.stellar_spectrum_model,
+    model_config.stellar_model_parameters,
+    spectral_grid);
+
+  nb_stellar_param = stellar_model->nbParameters();
 
 
   chemistry.assign(model_config.chemistry_model.size(), nullptr);
