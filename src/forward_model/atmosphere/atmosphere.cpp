@@ -111,9 +111,121 @@ bool Atmosphere::calcAtmosphereStructure(
 }
 
 
+
+bool Atmosphere::calcAtmosphereStructure(
+  const double surface_gravity,
+  Temperature* temperature_profile,
+  const std::vector<double>& temp_parameters,
+  std::vector<Chemistry*>& chemistry,
+  const std::vector<double>& chem_parameters_all,
+  const double mean_molecular_weight)
+{ 
+  bool neglect_model = false;
+
+  //temperature profile
+  bool neglect_temperature = temperature_profile->calcProfile(
+    temp_parameters, surface_gravity, pressure, temperature);
+
+  if (neglect_temperature) neglect_model = true;
+
+
+  //chemical composition
+  std::vector<double> mean_molecular_weights(nb_grid_points, 0.0);
+
+  number_densities.assign(
+    nb_grid_points,
+    std::vector<double>(constants::species_data.size(), 0.0));
+
+  size_t nb_chem_param = 0;
+
+  for (auto & i : chemistry)
+  {
+    std::vector<double> chem_parameters(
+      chem_parameters_all.begin() + nb_chem_param,
+      chem_parameters_all.begin() + nb_chem_param + i->nbParameters());
+    
+    nb_chem_param += i->nbParameters();
+    
+    bool neglect = i->calcChemicalComposition(
+      chem_parameters, temperature, pressure, number_densities, mean_molecular_weights);
+    
+    if (neglect) neglect_model = true;
+  }
+
+  mean_molecular_weights.assign(nb_grid_points, mean_molecular_weight);
+
+  calcAltitude(surface_gravity, mean_molecular_weights);
+  calcScaleHeight(surface_gravity, mean_molecular_weights);
+
+  if (altitude_dev != nullptr)
+  {
+    moveToDevice(altitude_dev, altitude, false);
+    moveToDevice(temperature_dev, temperature, false);
+  }
+
+  return neglect_model;
+}
+
+
+
+bool Atmosphere::calcAtmosphereStructure(
+  const double surface_gravity,
+  const double constant_scale_height,
+  Temperature* temperature_profile,
+  const std::vector<double>& temp_parameters,
+  std::vector<Chemistry*>& chemistry,
+  const std::vector<double>& chem_parameters_all)
+{ 
+  bool neglect_model = false;
+
+  //temperature profile
+  bool neglect_temperature = temperature_profile->calcProfile(
+    temp_parameters, surface_gravity, pressure, temperature);
+
+  if (neglect_temperature) neglect_model = true;
+
+
+  //chemical composition
+  std::vector<double> mean_molecular_weights(nb_grid_points, 0.0);
+
+  number_densities.assign(
+    nb_grid_points,
+    std::vector<double>(constants::species_data.size(), 0.0));
+
+  size_t nb_chem_param = 0;
+
+  for (auto & i : chemistry)
+  {
+    std::vector<double> chem_parameters(
+      chem_parameters_all.begin() + nb_chem_param,
+      chem_parameters_all.begin() + nb_chem_param + i->nbParameters());
+    
+    nb_chem_param += i->nbParameters();
+    
+    bool neglect = i->calcChemicalComposition(
+      chem_parameters, temperature, pressure, number_densities, mean_molecular_weights);
+    
+    if (neglect) neglect_model = true;
+  }
+
+  calcAltitude(constant_scale_height);
+  scale_height.assign(nb_grid_points, constant_scale_height*100000.0);
+
+  if (altitude_dev != nullptr)
+  {
+    moveToDevice(altitude_dev, altitude, false);
+    moveToDevice(temperature_dev, temperature, false);
+  }
+
+  return neglect_model;
+}
+
+
+
 //determine the vertical grid via hydrostatic equilibrium
 void Atmosphere::calcAltitude(
-  const double surface_gravity, const std::vector<double>& mean_molecular_weights)
+  const double surface_gravity, 
+  const std::vector<double>& mean_molecular_weights)
 {
   altitude.assign(nb_grid_points, 0.0);
   std::vector<double> mass_density(nb_grid_points, 0.0);
@@ -129,6 +241,22 @@ void Atmosphere::calcAltitude(
       * 0.5 * (pressure[i-1]*1e6 - pressure[i]*1e6);
 
     altitude[i] = altitude[i-1] + delta_z;
+  }
+}
+
+
+//determine the vertical grid via hydrostatic equilibrium
+void Atmosphere::calcAltitude(
+  const double constant_scale_height)
+{
+  altitude.assign(nb_grid_points, 0.0);
+  
+  //from km to cm
+  const double scale_height = constant_scale_height * 100000.0;
+
+  for (size_t i=1; i<nb_grid_points; i++)
+  {
+    altitude[i] = - scale_height * std::log(pressure[i]/pressure[0]);
   }
 }
 

@@ -72,8 +72,33 @@ void TransmissionModelConfig::readConfigFile(const std::string& file_name)
 
   atmos_boundaries[0] = atmos_bottom_pressure;
   atmos_boundaries[1] = atmos_top_pressure;
+  
 
+  std::getline(file, line);
+  std::string fit_mode = "";
+  file >> fit_mode;
 
+  if (fit_mode == "mmw")
+  {
+    fit_mean_molecular_weight = true;
+    std::cout << "- Fit for mean molecular weight: yes\n";
+  }
+  
+  if (fit_mode == "sh")
+  {
+    fit_scale_height = true;
+    std::cout << "- Fit for scale height: yes\n";
+  }
+
+  if (fit_mode != "mmw" && fit_mode != "sh" && fit_mode != "no" && fit_mode != "No")
+  {
+    std::string error_message = 
+            "Parameter " + fit_mode + " for fitting mean molecular weight or scale height unknown\n";
+    throw InvalidInput(std::string ("forward_model.config"), error_message);
+  }
+  std::getline(file, line);
+  std::getline(file, line);
+  
   //temperature profile input
   std::getline(file, line);
   std::getline(file, line);
@@ -93,7 +118,13 @@ void TransmissionModelConfig::readConfigFile(const std::string& file_name)
 
   readCloudConfig(file);
 
-  if (cloud_model.front() != "none") use_cloud_model = true;
+  if (cloud_model.front() != "none" && cloud_model.front() != "None") use_cloud_model = true;
+
+
+  //optional modules input
+  readModuleConfig(file);
+
+  if (modules.front() != "none" && modules.front() != "None") use_optional_modules = true;
 
 
   readChemistryConfig(file);
@@ -154,6 +185,32 @@ void TransmissionModelConfig::readCloudConfig(std::fstream& file)
 
     while (input >> param)
       cloud_model_parameters.back().push_back(param);
+  }
+
+}
+
+
+void TransmissionModelConfig::readModuleConfig(std::fstream& file)
+{
+  std::string line;
+  std::getline(file, line);
+
+  while (std::getline(file, line) && line.size() != 0)
+  { 
+    std::istringstream input(line);
+    
+    std::string model;
+    input >> model;
+
+    std::cout << "- Optional modules: " << model << "\n";
+    
+    modules.push_back(model);
+    modules_parameters.resize(modules_parameters.size()+1);
+
+    std::string param;
+
+    while (input >> param)
+      modules_parameters.back().push_back(param);
   }
 
 }

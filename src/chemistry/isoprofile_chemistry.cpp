@@ -43,16 +43,6 @@ IsoprofileChemistry::IsoprofileChemistry(const std::vector<std::string>& chemica
 
   for (auto & i : chemical_species)
   {
-    //H2 and He are used as a buffer gas and are not free variables
-    if (i == "H2" || i == "He")
-    {
-      std::string error_message = 
-        "Chemical species " 
-        + i 
-        + " is used as a buffer gas and is not a free variable in IsoprofileChemistry. It has to be removed from the config file and as a prior!\n";
-      throw InvalidInput(std::string ("IsoprofileChemistry::IsoprofileChemistry"), error_message);
-    } 
-
     bool species_found = false;
 
     for (size_t j=0; j<constants::species_data.size(); ++j)

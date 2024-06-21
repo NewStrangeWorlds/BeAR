@@ -70,6 +70,12 @@ TransmissionModel::TransmissionModel (
   //this forward model has three free general parameters
   nb_general_param = 3;
 
+  if (model_config.fit_mean_molecular_weight || model_config.fit_scale_height)
+    nb_general_param += 1;
+
+  fit_mean_molecular_weight = model_config.fit_mean_molecular_weight;
+  fit_scale_height = model_config.fit_scale_height;
+
   for (auto & i : observations)
   {
     nb_observation_points += i.nbPoints();
@@ -98,15 +104,38 @@ bool TransmissionModel::calcAtmosphereStructure(const std::vector<double>& param
   std::vector<double> chem_parameters (
     parameter.begin() + nb_general_param, 
     parameter.begin() + nb_general_param + nb_total_chemistry_param);
-  
 
-  //determine atmosphere structure
-  neglect_model = atmosphere.calcAtmosphereStructure(
-    surface_gravity, 
-    temperature_profile, 
-    temp_parameters, 
-    chemistry, 
-    chem_parameters);
+
+  if (!fit_mean_molecular_weight && !fit_scale_height)
+  {
+    neglect_model = atmosphere.calcAtmosphereStructure(
+      surface_gravity, 
+      temperature_profile, 
+      temp_parameters, 
+      chemistry, 
+      chem_parameters);
+  }
+  else
+  {
+    const double param = parameter[3];
+
+    if (fit_mean_molecular_weight)
+      neglect_model = atmosphere.calcAtmosphereStructure(
+        surface_gravity, 
+        temperature_profile, 
+        temp_parameters, 
+        chemistry, 
+        chem_parameters,
+        param);
+    else
+      neglect_model = atmosphere.calcAtmosphereStructure(
+        surface_gravity, 
+        param,
+        temperature_profile, 
+        temp_parameters, 
+        chemistry, 
+        chem_parameters);
+  }
 
   return neglect_model;
 }
@@ -121,15 +150,17 @@ bool TransmissionModel::calcModel(
 {
   bool neglect = calcAtmosphereStructure(parameter);
 
+  size_t nb_previous_param = nb_general_param + nb_total_chemistry_param + nb_temperature_param;
+
   std::vector<double> cloud_parameters(
-      parameter.begin() + nb_general_param + nb_total_chemistry_param + nb_temperature_param,
-      parameter.begin() + nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_total_cloud_param);
+      parameter.begin() + nb_previous_param,
+      parameter.begin() + nb_previous_param + nb_total_cloud_param);
 
   opacity_calc.calculate(cloud_models, cloud_parameters);
 
   spectrum.assign(spectral_grid->nbSpectralPoints(), 0.0);
 
-  const double bottom_radius = parameter[1] * constants::radius_jupiter;
+  const double bottom_radius = parameter[1] * constants::radius_earth;
   const double star_radius = parameter[2] * constants::radius_sun;
   
   cloud_extinction.assign(
@@ -146,10 +177,25 @@ bool TransmissionModel::calcModel(
 
   calcTransmissionSpectrum(bottom_radius, star_radius, spectrum);
 
+
+  nb_previous_param = nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_total_cloud_param;
+
+  for (auto & m : modules)
+  {
+    std::vector<double> module_parameters(
+      parameter.begin() + nb_previous_param,
+      parameter.begin() + nb_previous_param + m->nbParameters());
+  
+    m->modifySpectrum(module_parameters, &atmosphere, spectrum);
+    
+    nb_previous_param += m->nbParameters();
+  }
+
+
   postProcessSpectrum(spectrum, model_spectrum_bands);
 
 
-  size_t nb_previous_param = nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_total_cloud_param;
+  nb_previous_param = nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_total_modules_param + nb_total_cloud_param;
 
   std::vector<double> modifier_parameters(
       parameter.begin() + nb_previous_param,
@@ -190,9 +236,11 @@ bool TransmissionModel::calcModelGPU(
 {
   bool neglect = calcAtmosphereStructure(parameter);
 
+  size_t nb_previous_param = nb_general_param + nb_total_chemistry_param + nb_temperature_param;
+
   std::vector<double> cloud_parameters(
-      parameter.begin() + nb_general_param + nb_total_chemistry_param + nb_temperature_param,
-      parameter.begin() + nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_total_cloud_param);
+      parameter.begin() + nb_previous_param,
+      parameter.begin() + nb_previous_param + nb_total_cloud_param);
 
 
   opacity_calc.calculateGPU(cloud_models, cloud_parameters);
@@ -214,7 +262,7 @@ bool TransmissionModel::calcModelGPU(
   }
 
 
-  const double bottom_radius = parameter[1] * constants::radius_jupiter;
+  const double bottom_radius = parameter[1] * constants::radius_earth;
   const double star_radius = parameter[2] * constants::radius_sun;
 
   calcTransitDepthGPU(
@@ -227,10 +275,25 @@ bool TransmissionModel::calcModelGPU(
     bottom_radius,
     star_radius);
 
+
+  nb_previous_param = nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_total_cloud_param;
+
+  for (auto & m : modules)
+  {
+    std::vector<double> module_parameters(
+      parameter.begin() + nb_previous_param,
+      parameter.begin() + nb_previous_param + m->nbParameters());
+  
+    m->modifySpectrumGPU(module_parameters, &atmosphere, model_spectrum_gpu);
+    
+    nb_previous_param += m->nbParameters();
+  }
+
+
   postProcessSpectrumGPU(model_spectrum_gpu, model_spectrum_bands);
 
 
-  size_t nb_previous_param = nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_total_cloud_param;
+  nb_previous_param = nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_total_modules_param + nb_total_cloud_param;
 
   std::vector<double> modifier_parameters(
       parameter.begin() + nb_previous_param,

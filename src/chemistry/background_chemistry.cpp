@@ -42,6 +42,7 @@ BackgroundChemistry::BackgroundChemistry(const std::string& chemical_species)
   if (chemical_species == "H2He")
   {
     h2he_background = true;
+
     return;
   }
 
@@ -88,7 +89,7 @@ bool BackgroundChemistry::calcChemicalComposition(
 
   for (size_t i=0; i<number_densities.size(); ++i)
   { 
-    //the mixing ratio of the background gases
+    //the mixing ratio of the background gas
     double mixing_ratio_background = 1.0;
 
     for (auto & j : constants::species_data)
