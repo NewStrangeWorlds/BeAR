@@ -28,6 +28,7 @@
 #include "../forward_model/secondary_eclipse/secondary_eclipse.h"
 #include "../forward_model/transmission/transmission.h"
 #include "../forward_model/flat_line/flat_line.h"
+#include "../forward_model/secondary_eclipse_bb/secondary_eclipse_bb.h"
 
 
 namespace helios{
@@ -78,6 +79,19 @@ ForwardModel* Retrieval::selectForwardModel(const std::string model_description)
   if (model_description == "flat_line" || model_description == "Flat_line" || model_description == "fl")
   {
     FlatLine* model = new FlatLine(
+      &priors,
+      config,
+      &spectral_grid,
+      observations);
+
+    return model;
+  }
+
+
+  if (model_description == "secondary_eclipse_bb" || model_description == "Secondary_eclipse_bb" || model_description == "se_bb")
+  {
+    SecondaryEclipseBlackBodyModel* model = new SecondaryEclipseBlackBodyModel(
+      SecondaryEclipseBlackBodyConfig (config->retrieval_folder_path),
       &priors,
       config,
       &spectral_grid,

@@ -75,6 +75,12 @@ set(SRC
   src/forward_model/secondary_eclipse/secondary_eclipse_init.cpp
   src/forward_model/secondary_eclipse/secondary_eclipse.cpp
   src/forward_model/secondary_eclipse/secondary_eclipse_test.cpp
+  src/forward_model/secondary_eclipse_bb/secondary_eclipse_bb_model_config.cpp
+  src/forward_model/secondary_eclipse_bb/secondary_eclipse_bb_post_process.cpp
+  src/forward_model/secondary_eclipse_bb/secondary_eclipse_bb_priors.cpp
+  src/forward_model/secondary_eclipse_bb/secondary_eclipse_bb_init.cpp
+  src/forward_model/secondary_eclipse_bb/secondary_eclipse_bb.cpp
+  src/forward_model/secondary_eclipse_bb/secondary_eclipse_bb_test.cpp
   src/forward_model/transmission/transmission_model_config.cpp
   src/forward_model/transmission/transmission_post_process.cpp
   src/forward_model/transmission/transmission_priors.cpp
@@ -142,6 +148,7 @@ set(SRC_CUDA
   src/CUDA_kernels/data_management_kernels.cu
   src/CUDA_kernels/log_like_kernels.cu
   src/CUDA_kernels/secondary_eclipse_kernels.cu
+  src/CUDA_kernels/secondary_eclipse_bb.cu
   src/CUDA_kernels/transmission_spectrum_kernels.cu
   src/CUDA_kernels/short_characteristics_kernels.cu
   src/CUDA_kernels/rayleigh_scattering_kernels.cu
