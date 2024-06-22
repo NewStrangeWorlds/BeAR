@@ -28,7 +28,7 @@
 #include "../../spectral_grid/spectral_grid.h"
 #include "../atmosphere/atmosphere.h"
 
-namespace helios {
+namespace bear {
 
 
 class Module{

@@ -27,7 +27,7 @@
 #include "temperature.h"
 
 
-namespace helios {
+namespace bear {
 
 
 class MilneTemperature : public Temperature{

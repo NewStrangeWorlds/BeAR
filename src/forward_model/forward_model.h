@@ -26,7 +26,7 @@
 #include "../retrieval/priors.h"
 
 
-namespace helios {
+namespace bear {
 
 
 //abstract class for the forward model

@@ -29,7 +29,7 @@
 
 
 
-namespace helios {
+namespace bear {
 
 
 class PiecewisePolynomialTemperature : public Temperature{

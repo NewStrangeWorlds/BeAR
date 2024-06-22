@@ -30,7 +30,7 @@
 
 
 
-namespace helios {
+namespace bear {
 
 
 //types of priors

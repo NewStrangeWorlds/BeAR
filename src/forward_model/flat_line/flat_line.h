@@ -35,7 +35,7 @@
 #include "../../observations/observations.h"
 
 
-namespace helios {
+namespace bear {
 
 
 class FlatLine : public ForwardModel{

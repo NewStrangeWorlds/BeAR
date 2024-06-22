@@ -29,7 +29,7 @@
 #include "../../additional/exceptions.h"
 
 
-namespace helios{
+namespace bear{
 
 
 TransmissionModelConfig::TransmissionModelConfig (const std::string& folder_path)

@@ -33,7 +33,7 @@
 #include "../spectral_grid/spectral_grid.h"
 
 
-namespace helios{
+namespace bear{
 
 
 __forceinline__ __device__ double normalDistribution(const double sigma, const double x)

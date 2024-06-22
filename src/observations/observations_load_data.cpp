@@ -34,7 +34,7 @@
 #include "../additional/exceptions.h"
 
 
-namespace helios{
+namespace bear{
 
 
 void Observation::loadFile(const std::string& file_name)

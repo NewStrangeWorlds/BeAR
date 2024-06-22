@@ -27,7 +27,7 @@
 #include "../spectral_grid/spectral_grid.h"
 
 
-namespace helios {
+namespace bear {
 
 
 class CloudModel{

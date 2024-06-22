@@ -1,6 +1,6 @@
 /*
-* This file is part of the BeAR code (https://github.com/exoclime/BeAR).
-* Copyright (C) 2022 Daniel Kitzmann
+* This file is part of the BeAR code (https://github.com/newstrangeworlds/BeAR).
+* Copyright (C) 2024 Daniel Kitzmann
 *
 * BeAR is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -44,7 +44,7 @@
 #include "../stellar_spectrum/stellar_spectrum.h"
 
 
-namespace helios {
+namespace bear {
 
 
 //this struct handles the Brown Dwarf config

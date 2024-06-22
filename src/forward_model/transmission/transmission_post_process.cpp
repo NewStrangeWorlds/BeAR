@@ -31,7 +31,7 @@
 #include "../atmosphere/atmosphere.h"
 
 
-namespace helios{
+namespace bear{
 
 
 //calls the model specific posterior calculations

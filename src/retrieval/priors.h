@@ -26,7 +26,7 @@
 #include "prior_types.h"
 
 
-namespace helios {
+namespace bear {
 
 
 class Priors{

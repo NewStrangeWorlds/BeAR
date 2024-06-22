@@ -37,7 +37,7 @@
 #include "guillot_temperature.h"
 
 
-namespace helios {
+namespace bear {
 
 //definition of the different chemistry modules with an
 //identifier, a keyword to be located in the config file and a short version of the keyword

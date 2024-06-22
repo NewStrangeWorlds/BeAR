@@ -35,7 +35,7 @@
 #include "../additional/exceptions.h"
 
 
-namespace helios{
+namespace bear{
 
 
 void Observation::init(const std::string& file_name, const std::string spectrum_modifier_id)

@@ -1,5 +1,5 @@
 /*
-* This file is part of the BeAR code (https://github.com/exoclime/BeAR).
+* This file is part of the BeAR code (https://github.com/newstrangeworlds/BeAR).
 * Copyright (C) 2024 Daniel Kitzmann
 *
 * BeAR is free software: you can redistribute it and/or modify
@@ -31,7 +31,7 @@
 #include "../../spectral_grid/spectral_grid.h"
 
 
-namespace helios {
+namespace bear {
 
 
 class SpectrumFile {

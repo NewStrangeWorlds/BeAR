@@ -28,7 +28,7 @@
 #include "../../CUDA_kernels/data_management_kernels.h"
 
 
-namespace helios{
+namespace bear{
 
 
 bool FlatLine::testModel(const std::vector<double>& parameter, double* model_spectrum_gpu)

@@ -30,7 +30,7 @@
 #include "../spectral_grid/spectral_band.h"
 
 
-namespace helios {
+namespace bear {
 
 
 //definition of different modifiers for an observation

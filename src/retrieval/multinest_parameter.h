@@ -25,7 +25,7 @@
 #include "../config/global_config.h"
 
 
-namespace helios {
+namespace bear {
 
 
 //A struct with all available Multinest parameters

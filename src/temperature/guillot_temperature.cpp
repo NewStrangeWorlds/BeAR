@@ -27,7 +27,7 @@
 #include <cmath>
 
 
-namespace helios {
+namespace bear {
 
 
 GuillotTemperature::GuillotTemperature(const std::string profile_type)

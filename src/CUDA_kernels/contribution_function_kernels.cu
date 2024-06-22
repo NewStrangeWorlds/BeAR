@@ -16,7 +16,7 @@
 #include "error_check.h"
 #include "planck_function.h"
 
-namespace helios{
+namespace bear{
 
 
 

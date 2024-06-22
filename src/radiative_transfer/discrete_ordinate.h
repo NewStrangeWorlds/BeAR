@@ -36,7 +36,7 @@ extern "C" {
 }
 
 
-namespace helios {
+namespace bear {
 
 
 class DiscreteOrdinates : public RadiativeTransfer{

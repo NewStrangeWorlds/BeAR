@@ -34,7 +34,7 @@
 #include "../additional/physical_const.h"
 
 
-namespace helios{
+namespace bear{
 
 
 //calculates the cross sections for a given p-T pair based on tabulated data

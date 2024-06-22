@@ -43,7 +43,7 @@
 #include "../modules/module.h"
 
 
-namespace helios {
+namespace bear {
 
 
 constexpr double transmission_optical_depth_cutoff = 10;

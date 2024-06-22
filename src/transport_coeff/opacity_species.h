@@ -32,7 +32,7 @@
 #include "sampled_data.h"
 
 
-namespace helios{
+namespace bear{
 
 
 class OpacitySpecies {

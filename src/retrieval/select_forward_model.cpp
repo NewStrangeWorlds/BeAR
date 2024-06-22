@@ -31,7 +31,7 @@
 #include "../forward_model/secondary_eclipse_bb/secondary_eclipse_bb.h"
 
 
-namespace helios{
+namespace bear{
 
 //Selects and initialises the forward model based on the option found in retrieval.config
 //Exits with an error if the selected forward model is unkown

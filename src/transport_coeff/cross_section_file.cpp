@@ -11,7 +11,7 @@
 #include <cmath>
 
 
-namespace helios{
+namespace bear{
 
 void CrossSectionFile::loadFile()
 {

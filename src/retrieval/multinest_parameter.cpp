@@ -29,7 +29,7 @@
 
 
 
-namespace helios{
+namespace bear{
 
 
 //intialise the parameters from the global config

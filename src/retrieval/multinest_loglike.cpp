@@ -33,7 +33,7 @@
 #include "../additional/physical_const.h"
 
 
-namespace helios{
+namespace bear{
 
 
 // Input arguments

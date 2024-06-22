@@ -41,7 +41,7 @@ extern "C" {
 
 
 
-namespace helios{
+namespace bear{
 
 /*
  * Disort-specific shift macros.

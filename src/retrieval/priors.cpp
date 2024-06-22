@@ -31,7 +31,7 @@
 #include "../additional/exceptions.h"
 
 
-namespace helios{
+namespace bear{
 
 
 Priors::~Priors()
@@ -65,9 +65,9 @@ void Priors::addSingle(
   const std::string& type, const std::string& description, const std::vector<double>& parameter)
 {
   //find the corresponding prior to the supplied "type" string
-  auto it = std::find(helios::priors::prior_type_strings.begin(), helios::priors::prior_type_strings.end(), type);
+  auto it = std::find(bear::priors::prior_type_strings.begin(), bear::priors::prior_type_strings.end(), type);
 
-  if (it == helios::priors::prior_type_strings.end())
+  if (it == bear::priors::prior_type_strings.end())
   {
     std::string error_message = "Prior type " + type + " for " + description + " unknown!\n";
     throw InvalidInput(std::string ("Retrieval::setPrior"), error_message);
@@ -75,7 +75,7 @@ void Priors::addSingle(
 
 
   PriorType prior_type = 
-    helios::priors::prior_types[std::distance(helios::priors::prior_type_strings.begin(), it)];
+    bear::priors::prior_types[std::distance(bear::priors::prior_type_strings.begin(), it)];
 
 
   switch (prior_type)

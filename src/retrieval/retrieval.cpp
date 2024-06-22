@@ -42,7 +42,7 @@
 
 
 
-namespace helios{
+namespace bear{
 
 
 bool stop_model = false;

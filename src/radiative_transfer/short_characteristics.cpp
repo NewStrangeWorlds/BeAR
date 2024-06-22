@@ -33,7 +33,7 @@
 #include "../additional/quadrature.h"
 
 
-namespace helios{
+namespace bear{
 
 
 void ShortCharacteristics::calcSpectrum(

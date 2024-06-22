@@ -32,7 +32,7 @@
 #include "../../additional/physical_const.h"
 
 
-namespace helios{
+namespace bear{
 
 
 //Calculate the effective temperatures from the spectra

@@ -33,7 +33,7 @@
 #include "../config/global_config.h"
 
 
-namespace helios{
+namespace bear{
 
 
 TransportCoefficients::TransportCoefficients(

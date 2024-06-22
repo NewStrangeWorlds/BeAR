@@ -1,6 +1,6 @@
 /*
-* This file is part of the BeAR code (https://github.com/exoclime/BeAR).
-* Copyright (C) 2022 Daniel Kitzmann
+* This file is part of the BeAR code (https://github.com/newstrangeworlds/BeAR).
+* Copyright (C) 2024 Daniel Kitzmann
 *
 * BeAR is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
@@ -35,7 +35,7 @@
 #include "../../CUDA_kernels/data_management_kernels.h"
 
 
-namespace helios{
+namespace bear{
 
 
 //initialises the varous modules of the forward model

@@ -7,7 +7,7 @@
 
 
 
-namespace helios{
+namespace bear{
 
 
 void contributionFunctionGPU(double* contribution_function_dev,

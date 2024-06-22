@@ -18,7 +18,7 @@ cmake_minimum_required (VERSION 3.10 FATAL_ERROR)
 set(SM "0" CACHE STRING "GPU SM value")
 
 
-project(helios-r C CXX CUDA Fortran)
+project(bear C CXX CUDA Fortran)
 
 
 #some C++/C flags
@@ -254,7 +254,7 @@ add_library(bear_cuda ${SRC_CUDA})
 target_include_directories(bear_cuda PUBLIC ${boost_math_SOURCE_DIR}/include/)
 
 
-# build application for Helios-r
+# build application for BeAR
 add_executable(bear ${SRC})
 target_include_directories(bear PUBLIC ${boost_math_SOURCE_DIR}/include/)
 

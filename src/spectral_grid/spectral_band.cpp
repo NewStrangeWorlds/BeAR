@@ -32,7 +32,7 @@
 #include "../additional/exceptions.h"
 
 
-namespace helios{
+namespace bear{
 
 
 void SpectralBands::init(

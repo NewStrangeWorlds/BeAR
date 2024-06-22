@@ -31,7 +31,7 @@
 #include "../../cloud_model/select_cloud_model.h"
 
 
-namespace helios{
+namespace bear{
 
 
 //initialises the varous modules of the forward model

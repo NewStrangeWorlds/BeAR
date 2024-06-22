@@ -28,7 +28,7 @@
 #include "spectral_band_type.h"
 
 
-namespace helios {
+namespace bear {
 
 //forward declaration
 class SpectralGrid;

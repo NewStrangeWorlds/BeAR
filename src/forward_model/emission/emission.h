@@ -42,7 +42,7 @@
 #include "../../transport_coeff/opacity_calc.h"
 
 
-namespace helios {
+namespace bear {
 
 
 //this struct handles the Emission config

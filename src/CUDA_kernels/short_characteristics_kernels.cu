@@ -33,7 +33,7 @@
 #include "planck_function.h"
 
 
-namespace helios{
+namespace bear{
 
 //solves the radiative transfer equation with the short characteristic method
 //uses two angles, distributed according to a Gaussian quadrature scheme

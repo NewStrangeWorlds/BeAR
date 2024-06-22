@@ -36,7 +36,7 @@
 #include "../CUDA_kernels/data_management_kernels.h"
 
 
-namespace helios{
+namespace bear{
 
 
 std::vector<std::vector<double>> Observation::readFilterResponseFunction(

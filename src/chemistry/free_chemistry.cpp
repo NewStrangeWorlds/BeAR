@@ -29,7 +29,7 @@
 #include "../additional/piecewise_poly.h"
 
 
-namespace helios {
+namespace bear {
 
 
 FreeChemistry::FreeChemistry(

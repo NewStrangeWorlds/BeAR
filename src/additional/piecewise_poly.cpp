@@ -29,7 +29,7 @@
 
 
 
-namespace helios{
+namespace bear{
 
 //Gauss-Lobatto quadrature nodes on the reference [-1, +1] element
 //for orders up to six

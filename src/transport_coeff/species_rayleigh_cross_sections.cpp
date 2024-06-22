@@ -16,7 +16,7 @@
 #include "../spectral_grid/spectral_grid.h"
 
 
-namespace helios{
+namespace bear{
 
 
 bool GasH2Rayleigh::calcRayleighCrossSections(std::vector<double>& cross_sections)

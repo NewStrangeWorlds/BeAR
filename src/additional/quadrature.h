@@ -24,7 +24,7 @@
 #include <vector>
 #include <stdexcept>
 
-namespace helios{
+namespace bear{
 namespace aux{
 
 

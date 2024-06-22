@@ -35,7 +35,7 @@
 #include "../additional/aux_functions.h"
 
 
-namespace helios{
+namespace bear{
 
 
 

@@ -28,7 +28,7 @@
 
 
 
-namespace helios {
+namespace bear {
 
 
 class ConstantTemperature : public Temperature{

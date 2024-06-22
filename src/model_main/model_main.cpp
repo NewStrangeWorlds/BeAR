@@ -32,21 +32,21 @@
 
 
 
-bool doRetrieval(helios::GlobalConfig& config)
+bool doRetrieval(bear::GlobalConfig& config)
 {
   std::cout << "Starting retrieval\n\n";
   
-  helios::Retrieval retrieval(&config);
+  bear::Retrieval retrieval(&config);
   return retrieval.doRetrieval();
 }
 
 
 
-bool doPostProcess(helios::GlobalConfig& config)
+bool doPostProcess(bear::GlobalConfig& config)
 {
   std::cout << "Starting post processing\n\n";
   
-  helios::PostProcess post_process(&config);
+  bear::PostProcess post_process(&config);
   return post_process.doRetrieval();
 }
 
@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
   parseCommandLine(argc, argv, command_line_param);
 
   
-  helios::GlobalConfig config;
+  bear::GlobalConfig config;
   if (config.loadConfigFile(retrieval_folder) == false)
     return 1;
   
@@ -96,12 +96,12 @@ int main(int argc, char *argv[])
   
   if (retrieval_success)
   {
-    std::cout << "\nHelios-r finished\n" << std::endl;
+    std::cout << "\nBeAR finished\n" << std::endl;
     return 0;
   }
   else
   {
-    std::cout << "\nHelios-r finished with errors :(\n" << std::endl;
+    std::cout << "\nBeAR finished with errors :(\n" << std::endl;
     return 1;
   }
   

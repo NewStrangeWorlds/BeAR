@@ -37,7 +37,7 @@
 #include "../../CUDA_kernels/data_management_kernels.h"
 
 
-namespace helios{
+namespace bear{
 
 
 FlatLine::FlatLine (

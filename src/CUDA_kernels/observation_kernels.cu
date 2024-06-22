@@ -28,7 +28,7 @@
 #include "error_check.h"
 
 
-namespace helios{
+namespace bear{
 
 
 __global__ void addShiftToSpectrumDev(

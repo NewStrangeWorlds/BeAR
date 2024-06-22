@@ -34,7 +34,7 @@
 
 
 
-namespace helios{
+namespace bear{
 
 
 //every block reduces one band

@@ -38,7 +38,7 @@
 #include <algorithm>
 
 
-namespace helios {
+namespace bear {
 
 
 //definition of the different chemistry modules with an

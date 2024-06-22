@@ -30,7 +30,7 @@
 #include "../forward_model/atmosphere/atmosphere.h"
 
 
-namespace helios {
+namespace bear {
 
 
 class KHCloudModel: public GreyCloudModel{

@@ -24,7 +24,7 @@
 
 #include <vector>
 
-namespace helios{
+namespace bear{
 
 
 void allocateOnDevice(double*& device_data, size_t nb_double_values);

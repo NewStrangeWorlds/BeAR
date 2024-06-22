@@ -36,7 +36,7 @@
 #include "spectral_band.h"
 
 
-namespace helios{
+namespace bear{
 
 
 SpectralGrid::SpectralGrid(GlobalConfig* global_config)

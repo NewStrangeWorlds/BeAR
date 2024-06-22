@@ -30,7 +30,7 @@
 #include "../../additional/exceptions.h"
 
 
-namespace helios{
+namespace bear{
 
 
 //set the model priors

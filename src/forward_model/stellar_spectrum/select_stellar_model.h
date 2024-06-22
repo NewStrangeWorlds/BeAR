@@ -1,5 +1,5 @@
 /*
-* This file is part of the BeAR code (https://github.com/exoclime/BeAR).
+* This file is part of the BeAR code (https://github.com/newstrangeworlds/BeAR).
 * Copyright (C) 2024 Daniel Kitzmann
 *
 * BeAR is free software: you can redistribute it and/or modify
@@ -36,7 +36,7 @@
 #include "stellar_spectrum_grid.h"
 
 
-namespace helios {
+namespace bear {
 
 //definition of the different chemistry modules with an
 //identifier, a keyword to be located in the config file and a short version of the keyword

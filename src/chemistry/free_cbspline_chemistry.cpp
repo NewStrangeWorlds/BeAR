@@ -30,7 +30,7 @@
 #include "../../_deps/boost_math-src/include/boost/math/interpolators/cardinal_cubic_b_spline.hpp"
 
 
-namespace helios {
+namespace bear {
 
 
 FreeCBSplineChemistry::FreeCBSplineChemistry(

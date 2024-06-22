@@ -33,7 +33,7 @@
 #include "priors.h"
 
 
-namespace helios {
+namespace bear {
 
 extern bool stop_model;
 

@@ -37,7 +37,7 @@
 #include "retrieval.h"
 
 
-namespace helios{
+namespace bear{
 
 
 

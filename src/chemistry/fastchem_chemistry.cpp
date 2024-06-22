@@ -33,7 +33,7 @@
 #include <iostream>
 
 
-namespace helios {
+namespace bear {
 
 
 FastChemChemistry::FastChemChemistry(

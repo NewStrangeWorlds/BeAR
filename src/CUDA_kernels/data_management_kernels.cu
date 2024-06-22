@@ -30,7 +30,7 @@
 
 
 
-namespace helios{
+namespace bear{
 
 //a lot of the functions here can be merged using template programming
 //might be added in a future version

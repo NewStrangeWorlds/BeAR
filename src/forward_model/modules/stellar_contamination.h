@@ -1,5 +1,5 @@
 /*
-* This file is part of the BeAR code (https://github.com/exoclime/BeAR).
+* This file is part of the BeAR code (https://github.com/newstrangeworlds/BeAR).
 * Copyright (C) 2024 Daniel Kitzmann
 *
 * BeAR is free software: you can redistribute it and/or modify
@@ -34,7 +34,7 @@
 #include "../stellar_spectrum/stellar_spectrum.h"
 #include "../../CUDA_kernels/data_management_kernels.h"
 
-namespace helios {
+namespace bear {
 
 
 class StellarContamination : public Module{

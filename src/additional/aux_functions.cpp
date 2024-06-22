@@ -24,7 +24,7 @@
 #include <cmath>
 
 
-namespace helios{ namespace aux{
+namespace bear{ namespace aux{
 
 
 double voigt(double xx, double sigma, double lg, int r)

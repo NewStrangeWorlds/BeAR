@@ -31,7 +31,7 @@
 #include "../../temperature/temperature.h"
 
 
-namespace helios {
+namespace bear {
 
 
 class Atmosphere {

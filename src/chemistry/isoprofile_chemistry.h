@@ -28,7 +28,7 @@
 #include <string>
 
 
-namespace helios {
+namespace bear {
 
 
 class IsoprofileChemistry : public Chemistry{

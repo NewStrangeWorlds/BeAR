@@ -28,7 +28,7 @@
 #include "../additional/physical_const.h"
 
 
-namespace helios {
+namespace bear {
 
 
 IsoprofileChemistry::IsoprofileChemistry(const std::vector<std::string>& chemical_species)

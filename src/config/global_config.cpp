@@ -31,7 +31,7 @@
 #include <omp.h>
 #include <stdlib.h>
 
-namespace helios {
+namespace bear {
 
 
 bool GlobalConfig::loadConfigFile(std::string retrieval_folder)

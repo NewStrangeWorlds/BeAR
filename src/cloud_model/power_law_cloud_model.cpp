@@ -35,7 +35,7 @@
 #include "../additional/exceptions.h"
 
 
-namespace helios{
+namespace bear{
 
 
 PowerLawCloudModel::PowerLawCloudModel(const std::vector<std::string>& parameters)

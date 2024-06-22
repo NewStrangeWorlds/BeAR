@@ -25,7 +25,7 @@
 #include <string>
 
 
-namespace helios{
+namespace bear{
 
 enum chemical_species_id {_TOTAL, _H, _He, _C, _O, _Fe, _Fep, _Ca, _Ti, _Tip, _H2, _H2O, _CO2, _CO, _CH4, _HCN, _NH3, _C2H2, _N2, _Na, _K, _H2S, _Hm, _TiO, _VO, _FeH, _SH, _MgO, _AlO, _CaO, _CrH, _MgH, _CaH, _TiH, _OH, _e, _V, _Vp, _Mn, _Si, _Cr, _Crp, _SiO, _SiO2, _SO2};
 

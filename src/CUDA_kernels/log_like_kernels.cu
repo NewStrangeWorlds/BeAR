@@ -29,7 +29,7 @@
 #include "../additional/physical_const.h"
 
 
-namespace helios{
+namespace bear{
 
 
 //computes the log likelihood

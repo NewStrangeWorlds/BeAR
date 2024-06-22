@@ -32,7 +32,7 @@
 #include "../additional/quadrature.h"
 
 
-namespace helios{
+namespace bear{
 
 
 //Integration of the high-res spectrum in each observational band

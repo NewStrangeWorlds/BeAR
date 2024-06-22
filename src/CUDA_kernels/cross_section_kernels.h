@@ -23,7 +23,7 @@
 
 #include <vector>
 
-namespace helios{
+namespace bear{
 
 
 void calcCrossSectionsHost(double* cross_sections1, double* cross_sections2, double* cross_sections3, double* cross_sections4,

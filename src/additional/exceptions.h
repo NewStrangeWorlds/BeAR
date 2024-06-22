@@ -27,7 +27,7 @@
 #include <stdexcept>
 
 
-namespace helios{
+namespace bear{
 
 class FileNotFound : public std::runtime_error {
   public:

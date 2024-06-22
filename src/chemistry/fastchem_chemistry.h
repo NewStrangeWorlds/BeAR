@@ -32,7 +32,7 @@
 
 
 
-namespace helios {
+namespace bear {
 
 
 class FastChemChemistry : public Chemistry{

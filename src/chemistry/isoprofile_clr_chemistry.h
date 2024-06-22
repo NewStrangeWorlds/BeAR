@@ -28,7 +28,7 @@
 #include <string>
 
 
-namespace helios {
+namespace bear {
 
 
 //isoprofiles with a centred-log-ratio prior

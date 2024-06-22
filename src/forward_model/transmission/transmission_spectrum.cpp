@@ -26,7 +26,7 @@
 #include "transmission.h"
 
 
-namespace helios{
+namespace bear{
 
 
 void TransmissionModel::calcTransmissionSpectrum(

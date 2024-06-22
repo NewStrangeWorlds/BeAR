@@ -38,7 +38,7 @@
 #include "../../transport_coeff/opacity_calc.h"
 
 
-namespace helios{
+namespace bear{
 
 
 EmissionModel::EmissionModel (

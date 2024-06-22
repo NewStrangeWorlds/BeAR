@@ -35,7 +35,7 @@
 #include "../additional/aux_functions.h"
 
 
-namespace helios{
+namespace bear{
 
 
 //Since we want to do the convolution only with a certain distance from the centre, we here

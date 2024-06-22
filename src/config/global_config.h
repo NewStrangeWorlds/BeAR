@@ -23,7 +23,7 @@
 
 #include <string>
 
-namespace helios {
+namespace bear {
 
 struct GlobalConfig {
   bool loadConfigFile(std::string retrieval_folder);

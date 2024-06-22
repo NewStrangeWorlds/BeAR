@@ -22,7 +22,7 @@
 #define _spectral_band_type_h
 
 
-namespace helios {
+namespace bear {
 
 
 //types of spectral bands

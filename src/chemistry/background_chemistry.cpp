@@ -28,7 +28,7 @@
 #include "../additional/physical_const.h"
 
 
-namespace helios {
+namespace bear {
 
 
 BackgroundChemistry::BackgroundChemistry(const std::string& chemical_species)

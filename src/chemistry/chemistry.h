@@ -27,7 +27,7 @@
 #include "chem_species.h"
 
 
-namespace helios {
+namespace bear {
 
 
 class Chemistry{

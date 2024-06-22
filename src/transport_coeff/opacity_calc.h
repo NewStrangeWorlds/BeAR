@@ -33,7 +33,7 @@
 #include "../CUDA_kernels/cross_section_kernels.h"
 
 
-namespace helios{
+namespace bear{
 
 
 class OpacityCalculation {

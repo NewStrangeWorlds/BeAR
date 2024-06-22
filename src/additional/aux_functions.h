@@ -24,7 +24,7 @@
 #include <vector>
 
 
-namespace helios{ namespace aux{
+namespace bear{ namespace aux{
 
 
 double planckFunctionWavenumber(const double temperature, const double wavenumber);

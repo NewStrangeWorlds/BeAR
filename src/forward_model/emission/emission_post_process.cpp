@@ -34,7 +34,7 @@
 #include "../../CUDA_kernels/contribution_function_kernels.h"
 
 
-namespace helios{
+namespace bear{
 
 
 //calls the model specific posterior calculations

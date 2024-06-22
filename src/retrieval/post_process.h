@@ -33,7 +33,7 @@
 
 
 
-namespace helios {
+namespace bear {
 
 //forward declaration
 class ForwardModel;

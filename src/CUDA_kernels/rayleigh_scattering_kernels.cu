@@ -34,7 +34,7 @@
 #include "../additional/physical_const.h"
 
 
-namespace helios{
+namespace bear{
 
 
 __forceinline__ __device__ double rayleighCrossSection(

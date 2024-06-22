@@ -38,7 +38,7 @@
 
 
 
-namespace helios{
+namespace bear{
 
 
 

@@ -22,7 +22,7 @@
 #define	_PHYSICAL_CONSTANTS_H
 
 
-namespace helios{  namespace constants{
+namespace bear{  namespace constants{
 
 //physical constants in cgs units from the GSL library
 double const planck_h = 6.62606896e-27;                     //Planck constant in g cm^2 / s

@@ -31,7 +31,7 @@
 
 
 
-namespace helios{
+namespace bear{
 
 
 //convert wavenumbers in cm-1 to wavelengths in microns

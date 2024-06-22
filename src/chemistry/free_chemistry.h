@@ -30,7 +30,7 @@
 #include <string>
 
 
-namespace helios {
+namespace bear {
 
 
 

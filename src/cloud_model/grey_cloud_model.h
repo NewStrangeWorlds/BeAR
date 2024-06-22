@@ -28,7 +28,7 @@
 #include "../forward_model/atmosphere/atmosphere.h"
 
 
-namespace helios {
+namespace bear {
 
 
 class GreyCloudModel: public CloudModel{

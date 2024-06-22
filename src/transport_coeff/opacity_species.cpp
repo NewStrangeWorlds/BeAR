@@ -38,7 +38,7 @@
 #include "../spectral_grid/spectral_grid.h"
 
 
-namespace helios{
+namespace bear{
 
 
 void OpacitySpecies::init()

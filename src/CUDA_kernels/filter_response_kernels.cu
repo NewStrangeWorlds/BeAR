@@ -31,7 +31,7 @@
 #include "reduce_kernels.h"
 
 
-namespace helios{
+namespace bear{
 
 
 __global__ void applyFilterResponseDevice(
