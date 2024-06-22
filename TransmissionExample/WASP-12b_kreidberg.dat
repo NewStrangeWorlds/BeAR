@@ -5,6 +5,9 @@ WFC3
 #type
 band-spectroscopy
 
+#filter transmission function
+none
+
 #band boundaries    transit depth  error
 0.838      0.896    14441      69
 0.896      0.954    14422      55

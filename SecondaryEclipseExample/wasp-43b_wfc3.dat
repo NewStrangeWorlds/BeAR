@@ -5,6 +5,9 @@ WFC3
 #type
 band-spectroscopy
 
+#filter transmission function
+none
+
 #band boundaries   eclipse depth   error
 1.125     1.1600   367        45
 1.1600    1.1950   431        39

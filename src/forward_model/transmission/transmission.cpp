@@ -160,7 +160,7 @@ bool TransmissionModel::calcModel(
 
   spectrum.assign(spectral_grid->nbSpectralPoints(), 0.0);
 
-  const double bottom_radius = parameter[1] * constants::radius_earth;
+  const double bottom_radius = parameter[1] * constants::radius_jupiter;
   const double star_radius = parameter[2] * constants::radius_sun;
   
   cloud_extinction.assign(
@@ -262,7 +262,7 @@ bool TransmissionModel::calcModelGPU(
   }
 
 
-  const double bottom_radius = parameter[1] * constants::radius_earth;
+  const double bottom_radius = parameter[1] * constants::radius_jupiter;
   const double star_radius = parameter[2] * constants::radius_sun;
 
   calcTransitDepthGPU(

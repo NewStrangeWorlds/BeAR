@@ -106,7 +106,12 @@ bool Observation::readPhotometryData(std::fstream& file)
   
   //read the file name for the filter transmission function
   file >> filter_response_file_path;
-  filter_response_file_path = config->retrieval_folder_path + filter_response_file_path;
+
+  if (filter_response_file_path != "None" && filter_response_file_path != "none" && filter_response_file_path != "")
+    filter_response_file_path = config->retrieval_folder_path + filter_response_file_path;
+  else
+    filter_response_file_path = "";
+
 
   std::getline(file, line);
   std::getline(file, line);
@@ -164,8 +169,8 @@ bool Observation::readPhotometryData(std::fstream& file)
 
   spectral_bands.init(wavelength_edges, wavelengths, band_centre, PHOTOMETRY);
 
-
-  filter_response_file = readFilterResponseFunction(filter_response_file_path);
+  if (filter_response_file_path != "")
+    filter_response_file = readFilterResponseFunction(filter_response_file_path);
 
   return true;
 }
@@ -179,6 +184,18 @@ bool Observation::readBandSpectroscopyData(std::fstream& file)
 
   std::string line;
   
+  std::getline(file, line);
+  std::getline(file, line);
+  std::getline(file, line);
+
+  //read the file name for the filter transmission function
+  file >> filter_response_file_path;
+  
+  if (filter_response_file_path != "None" && filter_response_file_path != "none" && filter_response_file_path != "")
+    filter_response_file_path = config->retrieval_folder_path + filter_response_file_path;
+  else
+    filter_response_file_path = "";
+
   std::getline(file, line);
   std::getline(file, line);
   std::getline(file, line);
@@ -260,6 +277,8 @@ bool Observation::readBandSpectroscopyData(std::fstream& file)
 
   spectral_bands.init(wavelength_edges, bin_edges, band_centres, BAND_SPECTROSCOPY);
 
+  if (filter_response_file_path != "")
+    filter_response_file = readFilterResponseFunction(filter_response_file_path);
 
   return true;
 }
@@ -408,7 +427,10 @@ void Observation::printObservationDetails()
   {
     std::cout << std::setprecision(5) << std::scientific << "observation type: photometry\n";
     std::cout << "Filter response function: " << filter_response_file_path << "\n";
-    std::cout << "Filter detector type: " << filter_detector_type << "\n";
+    
+    if (filter_response_file_path != "")
+      std::cout << "Filter detector type: " << filter_detector_type << "\n";
+
     std::cout << "band edges: " << spectral_bands.edge_wavelengths[0][0] << "\t" << spectral_bands.edge_wavelengths[0][1] 
               << "\nband center: " << spectral_bands.center_wavelengths.front() << "\n";
     std::cout << "photometry flux: " << flux.front() << "\t error: " << flux_error.front() << "\n";
@@ -422,6 +444,12 @@ void Observation::printObservationDetails()
       std::cout << "observation type: band-spectroscopy\n";
     else
      std::cout << "observation type: spectroscopy\n";
+    
+    if (filter_response_file_path != "")
+    {
+      std::cout << "Filter response function: " << filter_response_file_path << "\n";
+      std::cout << "Filter detector type: " << filter_detector_type << "\n";
+    }
 
     for (size_t i=0; i<flux.size(); ++i)
     {
