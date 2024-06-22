@@ -122,16 +122,16 @@ class GasHRayleigh : public OpacitySpecies {
         {
           config = config_ptr; 
           spectral_grid = spectral_grid_ptr; 
-          init();
           rayleigh_available = true;
+          init();
         }
     GasHRayleigh(GlobalConfig* config_ptr, SpectralGrid* spectral_grid_ptr) 
         : OpacitySpecies(_H, "H Rayleigh", "Rayleigh")
         {
           config = config_ptr; 
           spectral_grid = spectral_grid_ptr; 
-          init();
           rayleigh_available = true;
+          init();
         }
     virtual ~GasHRayleigh() {}
   protected:
@@ -151,16 +151,16 @@ class GasH2Rayleigh : public OpacitySpecies {
         {
           config = config_ptr; 
           spectral_grid = spectral_grid_ptr; 
-          init();
           rayleigh_available = true;
+          init();
         }
     GasH2Rayleigh(GlobalConfig* config_ptr, SpectralGrid* spectral_grid_ptr) 
         : OpacitySpecies(_H2, "H2 Rayleigh", "Rayleigh")
         {
           config = config_ptr; 
           spectral_grid = spectral_grid_ptr; 
-          init();
           rayleigh_available = true;
+          init();
         }
     virtual ~GasH2Rayleigh() {}
   protected:
@@ -180,16 +180,16 @@ class GasHeRayleigh : public OpacitySpecies {
         {
           config = config_ptr; 
           spectral_grid = spectral_grid_ptr; 
-          init();
           rayleigh_available = true;
+          init();
         }
     GasHeRayleigh(GlobalConfig* config_ptr, SpectralGrid* spectral_grid_ptr) 
         : OpacitySpecies(_He, "He Rayleigh", "Rayleigh")
         {
           config = config_ptr; 
           spectral_grid = spectral_grid_ptr; 
-          init();
           rayleigh_available = true;
+          init();
         }
     virtual ~GasHeRayleigh() {}
   protected:
@@ -209,16 +209,16 @@ class GasCORayleigh : public OpacitySpecies {
         {
           config = config_ptr; 
           spectral_grid = spectral_grid_ptr; 
-          init();
           rayleigh_available = true;
+          init();
         }
     GasCORayleigh(GlobalConfig* config_ptr, SpectralGrid* spectral_grid_ptr) 
         : OpacitySpecies(_CO, "CO Rayleigh", "Rayleigh")
         {
           config = config_ptr; 
           spectral_grid = spectral_grid_ptr; 
-          init();
           rayleigh_available = true;
+          init();
         }
     virtual ~GasCORayleigh() {}
   protected:
@@ -238,16 +238,16 @@ class GasCO2Rayleigh : public OpacitySpecies {
         {
           config = config_ptr; 
           spectral_grid = spectral_grid_ptr; 
-          init();
           rayleigh_available = true;
+          init();
         }
     GasCO2Rayleigh(GlobalConfig* config_ptr, SpectralGrid* spectral_grid_ptr) 
         : OpacitySpecies(_CO2, "CO2 Rayleigh", "Rayleigh")
         {
           config = config_ptr; 
           spectral_grid = spectral_grid_ptr; 
-          init();
           rayleigh_available = true;
+          init();
         }
     virtual ~GasCO2Rayleigh() {}
   protected:
@@ -267,16 +267,16 @@ class GasCH4Rayleigh : public OpacitySpecies {
         {
           config = config_ptr; 
           spectral_grid = spectral_grid_ptr; 
-          init();
           rayleigh_available = true;
+          init();
         }
     GasCH4Rayleigh(GlobalConfig* config_ptr, SpectralGrid* spectral_grid_ptr) 
         : OpacitySpecies(_CH4, "CH4 Rayleigh", "Rayleigh")
         {
           config = config_ptr; 
           spectral_grid = spectral_grid_ptr; 
-          init();
           rayleigh_available = true;
+          init();
         }
     virtual ~GasCH4Rayleigh() {}
   protected:
@@ -297,16 +297,16 @@ class GasH2ORayleigh : public OpacitySpecies {
         {
           config = config_ptr; 
           spectral_grid = spectral_grid_ptr; 
-          init();
           rayleigh_available = true;
+          init();
         }
     GasH2ORayleigh(GlobalConfig* config_ptr, SpectralGrid* spectral_grid_ptr) 
         : OpacitySpecies(_H2O, "H2O Rayleigh", "Rayleigh")
         {
           config = config_ptr; 
           spectral_grid = spectral_grid_ptr; 
-          init();
           rayleigh_available = true;
+          init();
         }
     virtual ~GasH2ORayleigh() {}
   protected:

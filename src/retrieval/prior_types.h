@@ -82,9 +82,10 @@ class UniformPrior : public BasicPrior {
     virtual double parameterValue (const double& hypercube_value) {
         return lower_bound + hypercube_value * (upper_bound - lower_bound);}
     virtual void printInfo() {
-      std::cout << parameter_name << ": " << distribution_type
-        << ", lower boundary: " << lower_bound 
-        << ", upper boundary: " << upper_bound << "\n";
+      std::cout << std::setw(15) << std::left << parameter_name << "  "
+                << std::setw(20) << std::left << distribution_type
+                << "lower boundary: " << lower_bound 
+                << ", upper boundary: " << upper_bound << "\n";
     }
   private:
     double lower_bound = 0;
@@ -108,9 +109,10 @@ class LogUniformPrior : public BasicPrior {
     virtual double parameterValue(const double& hypercube_value) {
         return std::pow(10.0, log_lower_bound + hypercube_value * (log_upper_bound - log_lower_bound));}
     virtual void printInfo() {
-      std::cout << parameter_name << ":" << distribution_type
-        << ", lower boundary: " << log_lower_bound 
-        << ", upper boundary: " << log_upper_bound << "\n";
+      std::cout << std::setw(15) << std::left << parameter_name << "  "
+                << std::setw(20) << std::left << distribution_type
+                << "lower boundary: " << log_lower_bound 
+                << ", upper boundary: " << log_upper_bound << "\n";
     }
   private:
     double log_lower_bound = 0;
@@ -134,9 +136,10 @@ class GaussianPrior : public BasicPrior {
     inline virtual double parameterValue(const double& hypercube_value) {
       return mu + sigma * std::sqrt(2.0) * boost::math::erf_inv(2.*hypercube_value - 1.);}
     virtual void printInfo() {
-      std::cout << parameter_name << ": " << distribution_type
-        << ", mean: " << mu 
-        << ", standard deviation: " << sigma << "\n";
+      std::cout << std::setw(15) << std::left << parameter_name << "  "
+                << std::setw(20) << std::left << distribution_type
+                << "mean: " << mu 
+                << ", standard deviation: " << sigma << "\n";
     }
   private:
     double mu = 0;
@@ -156,8 +159,9 @@ class DeltaPrior : public BasicPrior {
     virtual double parameterValue(const double& hypercube_value) {
       return const_value;}
     virtual void printInfo() {
-      std::cout << parameter_name << ": " << distribution_type
-        << ", constant value: " << const_value << "\n";
+      std::cout << std::setw(15) << std::left << parameter_name << "  "
+                << std::setw(20) << std::left << distribution_type
+                << "constant value: " << const_value << "\n";
     }
   private:
     double const_value = 0;
@@ -178,7 +182,9 @@ class LinkedPrior : public BasicPrior {
     virtual double parameterValue(const double& hypercube_value) {
       return linked_prior->parameterValue(hypercube_value);}
     virtual void printInfo() {
-      std::cout << parameter_name << ": " << distribution_type << ", linked to: "; 
+      std::cout << std::setw(15) << std::left << parameter_name << "  "
+                << std::setw(20) << std::left << distribution_type 
+                << "linked to: "; 
       linked_prior->printInfo();
     }
   private:

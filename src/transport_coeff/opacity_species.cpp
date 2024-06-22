@@ -44,6 +44,11 @@ namespace helios{
 void OpacitySpecies::init()
 {
   std::string file_path = config->cross_section_file_path;
+  
+  //if we use the built-in Rayleigh scattering, 
+  //we don't need to read any data
+  if (rayleigh_available == true) 
+    return;
 
   readFileList(file_path);
   orderDataList();
