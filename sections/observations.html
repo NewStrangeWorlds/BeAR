@@ -38,9 +38,9 @@
 <h2>Supported observational types<a class="headerlink" href="#supported-observational-types" title="Permalink to this heading">¶</a></h2>
 <p>BeAR currently supports three different types of observations:</p>
 <ul class="simple">
-<li><p>spectroscopy</p></li>
-<li><p>band spectroscopy</p></li>
-<li><p>photometry</p></li>
+<li><p><a class="reference internal" href="#sec-spectroscopy"><span class="std std-ref">Spectroscopy</span></a></p></li>
+<li><p><a class="reference internal" href="#sec-band-spectroscopy"><span class="std std-ref">Band-Spectroscopy</span></a></p></li>
+<li><p><a class="reference internal" href="#sec-photometry"><span class="std std-ref">Photometry</span></a></p></li>
 </ul>
 <p>Based on the type of observation, the required format of the data files
 differs slightly. In the following sections, the three basic types and
@@ -51,31 +51,15 @@ calculations in wavenumber space.</p>
 the observations and then integrated to the observational wavelength structure.
 The resolution is determined by the corresponding configuration parameter in
 the retrieval.config file.</p>
-</section>
-<section id="instrument-line-profile">
-<h2>Instrument Line Profile<a class="headerlink" href="#instrument-line-profile" title="Permalink to this heading">¶</a></h2>
-<p>Optionally, before integrating the spectrum, a high-resolution spectrum can be convolved
-with a given instrument line profile to simulate the flux received by the detector. The
-instrument line profile can be used for spectroscopy and band spectroscopy observations.
-It is not required for photometry since in this case the flux is already integrated over
-a wider filter bandpass.</p>
-<a class="reference internal image-reference" href="../_images/line_profile.png"><img alt="../_images/line_profile.png" class="align-center" src="../_images/line_profile.png" style="width: 400px;" /></a>
-<p>With an ideal spectrograph, the flux at a given wavelength will only be received by
-a single pixel, following the dispersion relation of the instrument.
-This would correspond to the blue line in the above figure.
-In the real world, due to the finite slit width of a spectrograph,
-flux at a given wavelengths, however, will be spread out across several pixels. This is
-depicted by the red curve in the above plot.</p>
-<p>This spread is usually described by a Gaussian profile with a given, instrument-dependent width.
-In order to compute the flux at a given pixel, BeAR needs to take into account the spread of
-flux at a discrete wavelength over multiple pixels.</p>
-<p>The Gaussian is described by its corresponding full width at half maximum (FWHM) in wavelength units.
-This, usually wavelength-dependent, FWHM needs to be supplied as an input to BeAR. In order to save
-computation time, BeAR will limit the contributions of the profile to a distance of five standard deviations
-from the profile centre.</p>
+<p>For spectroscopy and band spectroscopy obervations, BeAR has the option to
+use <a class="reference internal" href="#sec-instrument-line-profile"><span class="std std-ref">instrument line profiles</span></a>, which typically
+spreads the flux at a given wavelength over several adjacent pixels.</p>
+<p>Additionally, BeAR can use <a class="reference internal" href="#sec-filter-response"><span class="std std-ref">filter transmission functions</span></a>.
+While this is typically only used in photometric observations, BeAR also supports
+them for both spectroscopy and band spectroscopy.</p>
 </section>
 <section id="spectroscopy">
-<h2>Spectroscopy<a class="headerlink" href="#spectroscopy" title="Permalink to this heading">¶</a></h2>
+<span id="sec-spectroscopy"></span><h2>Spectroscopy<a class="headerlink" href="#spectroscopy" title="Permalink to this heading">¶</a></h2>
 <p>In spectroscopy mode, an observational spectrum is given at specific
 wavelengths <span class="math notranslate nohighlight">\(\lambda_i\)</span>, from <span class="math notranslate nohighlight">\(\lambda_1\)</span> to <span class="math notranslate nohighlight">\(\lambda_N\)</span>.
 The internal respresentation in wavenumber space <span class="math notranslate nohighlight">\(\nu\)</span>
@@ -123,16 +107,17 @@ the result with the flux at the observational wavelengths <span class="math notr
 observation/instrument is not used during the calculation but will determine the
 file name of the posterior spectra file.</p>
 <p>For spectroscopy, the <code class="docutils literal notranslate"><span class="pre">#type</span></code> needs to be set to <code class="docutils literal notranslate"><span class="pre">spectroscopy</span></code>. This is followed by
-an optional filter bandpass transmission function. If no filter transmission is used, this
-should be set to <code class="docutils literal notranslate"><span class="pre">none</span></code> as in the example above.</p>
+an optional <a class="reference internal" href="#sec-filter-response"><span class="std std-ref">filter bandpass transmission function</span></a>.
+If no filter transmission is used, this should be set to <code class="docutils literal notranslate"><span class="pre">none</span></code> as in the example above.</p>
 <p>The actual spectroscopic data is given in three columns. The first column is the wavelength
 in units of <span class="math notranslate nohighlight">\(\mathrm{\mu m}\)</span>, the second the observational data. The units of the data depend on the
 chosen forward model. For example, the <code class="docutils literal notranslate"><span class="pre">emission</span></code> forward model expects a radiation flux
 in units of <span class="math notranslate nohighlight">\(\mathrm{W} \mathrm{m}^{-2}  \mathrm{\mu m}^{-1}\)</span>, while the <code class="docutils literal notranslate"><span class="pre">transmission</span></code> spectroscopy model requires
 the transit depth in ppm. The third column contains the error of the observational data in
 the same units as the previous column.</p>
-<p>As mentionend above, an optional Gaussian instrument line profile, characterised by its FWHM, can be used in
-BeAR. This information is added in an optional fourth column as shown below.</p>
+<p>As mentionend above, an optional Gaussian <a class="reference internal" href="#sec-instrument-line-profile"><span class="std std-ref">instrument line profiles</span></a>,
+characterised by its FWHM, can be used in BeAR. This information is added in an optional fourth column
+as shown below.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#observation description</span>
 <span class="c1">#name</span>
 <span class="n">GJ570D</span> <span class="n">SpeX</span>
@@ -163,13 +148,14 @@ computation of the likelihood or to neglect certain points entirely.</p>
 </section>
 </section>
 <section id="band-spectroscopy">
-<h2>Band Spectroscopy<a class="headerlink" href="#band-spectroscopy" title="Permalink to this heading">¶</a></h2>
+<span id="sec-band-spectroscopy"></span><h2>Band Spectroscopy<a class="headerlink" href="#band-spectroscopy" title="Permalink to this heading">¶</a></h2>
 <p>Band-spectroscopy is a degraded form of spectroscopy, where individual wavelengths have
 been summed up into bands to e.g. increase the signal-to-noise of a low-signal observation.
 This is, for example, commonly done for exoplanet observations with the WFC3 instrument
 on the Hubble Space Telescope. The band structure itself does not need to be regular.</p>
 <p>As depicted in the figure above, the observational data is assumed to consist of
-math:<cite>i = 1 … N</cite> spectral bands, each with given wavelength boundaries <span class="math notranslate nohighlight">\(\lambda_{i,1}\)</span> and <span class="math notranslate nohighlight">\(\lambda_{i,2}\)</span> .</p>
+math:<cite>i = 1 … N</cite> spectral bands, each with given wavelength boundaries <span class="math notranslate nohighlight">\(\lambda_{i,1}\)</span>
+and <span class="math notranslate nohighlight">\(\lambda_{i,2}\)</span> .</p>
 <a class="reference internal image-reference" href="../_images/band_spectroscopy.png"><img alt="../_images/band_spectroscopy.png" class="align-center" src="../_images/band_spectroscopy.png" style="width: 700px;" /></a>
 <p>BeAR will create the same band structure in wavenumber space. Just like for spectroscopy calculations,
 the high-resolution spectrum of BeAR will be integrated over each band math:<cite>i</cite> to obtain the
@@ -185,6 +171,9 @@ flux received by the detector.</p>
 
 <span class="c1">#type</span>
 <span class="n">band</span><span class="o">-</span><span class="n">spectroscopy</span>
+
+<span class="c1">#filter transmission function</span>
+<span class="kc">None</span>
 
 <span class="c1">#band boundaries    depth      error</span>
 <span class="mf">0.838</span>      <span class="mf">0.896</span>    <span class="mi">14441</span>      <span class="mi">69</span>
@@ -205,7 +194,9 @@ flux received by the detector.</p>
 <p>The file consists of a header that contains some basic information. The name of the
 observation/instrument is not used during the calculation but will determine the
 file name of the posterior spectra file.
-For band spectroscopy, the <code class="docutils literal notranslate"><span class="pre">#type</span></code> needs to be set to <code class="docutils literal notranslate"><span class="pre">band-spectroscopy</span></code>.</p>
+For band spectroscopy, the <code class="docutils literal notranslate"><span class="pre">#type</span></code> needs to be set to <code class="docutils literal notranslate"><span class="pre">band-spectroscopy</span></code>.
+This is followed by an optional <a class="reference internal" href="#sec-filter-response"><span class="std std-ref">filter bandpass transmission function</span></a>.
+If no filter transmission is used, this should be set to <code class="docutils literal notranslate"><span class="pre">none</span></code> as in the example above.</p>
 <p>The actual spectroscopic data is given in four columns. The first two columns describe the boundaries
 of the wavelength bins in units of <span class="math notranslate nohighlight">\(\mathrm{\mu m}\)</span>.
 The third column refers to the observational data. The units of the data depend on the
@@ -213,14 +204,18 @@ chosen forward model. For example, the <code class="docutils literal notranslate
 in units of <span class="math notranslate nohighlight">\(\mathrm{W} \mathrm{m}^{-2}  \mathrm{\mu m}^{-1}\)</span>, while the <code class="docutils literal notranslate"><span class="pre">transmission</span></code> spectroscopy model requires
 the transit depth in ppm as shown in the example above.</p>
 <p>The fourth column contains the error of the observational data in the same units as the previous column.</p>
-<p>Just like spectroscopic data, an optional Gaussian instrument line profile, characterised by its FWHM, can be used
-for band spectroscopy as well. This information is added in an optional fifth column as shown below.</p>
+<p>Just like spectroscopic data, an optional Gaussian <a class="reference internal" href="#sec-instrument-line-profile"><span class="std std-ref">instrument line profiles</span></a>,
+characterised by its FWHM, can be used for band spectroscopy as well. This information is added
+in an optional fifth column as shown below.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#observation description</span>
 <span class="c1">#name</span>
 <span class="n">WASP</span><span class="o">-</span><span class="mi">12</span><span class="n">b</span> <span class="n">WFC3</span>
 
 <span class="c1">#type</span>
 <span class="n">band</span><span class="o">-</span><span class="n">spectroscopy</span>
+
+<span class="c1">#filter transmission function</span>
+<span class="kc">None</span>
 
 <span class="c1">#band boundaries    depth      error   FWHM   weight</span>
 <span class="mf">0.838</span>      <span class="mf">0.896</span>    <span class="mi">14441</span>      <span class="mi">69</span>      <span class="mf">0.0</span>    <span class="mf">1.0</span>
@@ -246,7 +241,7 @@ or to neglect certain points entirely.</p>
 </section>
 </section>
 <section id="photometry">
-<h2>Photometry<a class="headerlink" href="#photometry" title="Permalink to this heading">¶</a></h2>
+<span id="sec-photometry"></span><h2>Photometry<a class="headerlink" href="#photometry" title="Permalink to this heading">¶</a></h2>
 <p>Photometry is essentially band-spectroscopy with just one broad band between two wavelengths
 <span class="math notranslate nohighlight">\(\lambda_{1}\)</span> and <span class="math notranslate nohighlight">\(\lambda_{2}\)</span> as depicted in the figure below.</p>
 <a class="reference internal image-reference" href="../_images/photometry.png"><img alt="../_images/photometry.png" class="align-center" src="../_images/photometry.png" style="width: 700px;" /></a>
@@ -255,10 +250,8 @@ be integrated over the bandpass in wavenumber space to obtain the mean flux in t
 The conceptual difference between band-spectroscopy and photometry within BeAR
 is that unlike the former, a photometry observation does not have an instrument line profile
 because it’s supposed to cover a broader wavelength range. Instead, it can be processed
-through a filter transmission function to simulate the observation through a specific filter.
-Note, however, that this is not yet fully implemented in BeAR. For now, the two boundary
-wavelengths <span class="math notranslate nohighlight">\(\lambda_{1}\)</span> and <span class="math notranslate nohighlight">\(\lambda_{2}\)</span> should be used as the effective filter limits.
-The ability to read in and use specific filter transmission curves will be added in the future.</p>
+through a <a class="reference internal" href="#sec-filter-response"><span class="std std-ref">filter transmission function</span></a> to simulate the observation
+through a specific filter.</p>
 <section id="id2">
 <h3>Input file structure<a class="headerlink" href="#id2" title="Permalink to this heading">¶</a></h3>
 <p>A basic example for an input file for a photometric observation is shown below.</p>
@@ -280,7 +273,7 @@ The ability to read in and use specific filter transmission curves will be added
 observation/instrument is not used during the calculation but will determine the
 file name of the posterior spectra file.
 For photometry, the <code class="docutils literal notranslate"><span class="pre">#type</span></code> needs to be set to <code class="docutils literal notranslate"><span class="pre">photometry</span></code>.</p>
-<p>This is followed by the location of the file with the bandpass transmission function.
+<p>This is followed by the location of the file with the <a class="reference internal" href="#sec-filter-response"><span class="std std-ref">bandpass transmission function</span></a>.
 When setting this to <code class="docutils literal notranslate"><span class="pre">none</span></code>, BeAR will use a transmission function of unity within
 the wavelength boundaries given below.</p>
 <p>The observational data is given in at least four columns. The first two columns respresent
@@ -309,6 +302,88 @@ data point can be included in a fifth column. This is shown in the example below
 <p>Unlike the input for spectroscopic data, no instrument line profile is used here. Since photometry data
 is integrated over a wider bandpass anyway, the impact of a Gaussian line profile would be
 negligible.</p>
+</section>
+</section>
+<section id="instrument-line-profile">
+<span id="sec-instrument-line-profile"></span><h2>Instrument Line Profile<a class="headerlink" href="#instrument-line-profile" title="Permalink to this heading">¶</a></h2>
+<p>Optionally, before integrating the spectrum, a high-resolution spectrum can be convolved
+with a given instrument line profile to simulate the flux received by the detector. The
+instrument line profile can be used for spectroscopy and band spectroscopy observations.
+It is not required for photometry since in this case the flux is already integrated over
+a wider filter bandpass.</p>
+<a class="reference internal image-reference" href="../_images/line_profile.png"><img alt="../_images/line_profile.png" class="align-center" src="../_images/line_profile.png" style="width: 400px;" /></a>
+<p>With an ideal spectrograph, the flux at a given wavelength will only be received by
+a single pixel, following the dispersion relation of the instrument.
+This would correspond to the blue line in the above figure.
+In the real world, due to the finite slit width of a spectrograph,
+flux at a given wavelengths, however, will be spread out across several pixels. This is
+depicted by the red curve in the above plot.</p>
+<p>This spread is usually described by a Gaussian profile with a given, instrument-dependent width.
+In order to compute the flux at a given pixel, BeAR needs to take into account the spread of
+flux at a discrete wavelength over multiple pixels.</p>
+<p>The Gaussian is described by its corresponding full width at half maximum (FWHM) in wavelength units.
+This, usually wavelength-dependent, FWHM needs to be supplied as an input to BeAR. In order to save
+computation time, BeAR will limit the contributions of the profile to a distance of five standard deviations
+from the profile centre.</p>
+</section>
+<section id="filter-transmission-function">
+<span id="sec-filter-response"></span><h2>Filter transmission function<a class="headerlink" href="#filter-transmission-function" title="Permalink to this heading">¶</a></h2>
+<p>BeAR has the option to use filter transmission functions to simulate the
+passing of light through a specific filter before it reaches the detector.</p>
+<p>This is typically used for photometric observations. However, for the unlikely
+case that for a given spectroscopic observation a filter has been placed
+before the spectrograph or grism, both spectroscopy and band spectroscopy also
+allow for the use of a filter transmission function.</p>
+<p>For a given wavelength-dependent filter transmission function <span class="math notranslate nohighlight">\(T(\lambda)\)</span>,
+the flux <span class="math notranslate nohighlight">\(F(\lambda)\)</span> the integrated, photometric flux after the filter
+is given by</p>
+<div class="math notranslate nohighlight">
+\[F_\mathrm{phot} = \frac{\int F(\lambda) T(\lambda) \mathrm{d} \lambda}
+  {\int T(\lambda) \mathrm{d} \lambda}\]</div>
+<p>for an energy counting detector and</p>
+<div class="math notranslate nohighlight">
+\[F_\mathrm{phot} = \frac{\int F(\lambda) \lambda T(\lambda) \mathrm{d} \lambda}
+  {\int T(\lambda) \lambda \mathrm{d} \lambda}\]</div>
+<p>for a photon counter. The additional factor <span class="math notranslate nohighlight">\(\lambda\)</span> in the latter case
+converts the energy flux <span class="math notranslate nohighlight">\(F(\lambda)\)</span> into a photon flux. In case of the two
+spectroscopic observational modes, the computed fluxes are simply multiplied by the
+filter transmission function.</p>
+<section id="id3">
+<h3>Input file structure<a class="headerlink" href="#id3" title="Permalink to this heading">¶</a></h3>
+<p>A basic example for an filter transmission input file is shown below.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Average Spectral response for LaSilla/GROND K band</span>
+
+<span class="c1">#Detector Type</span>
+<span class="n">Energy</span> <span class="n">counter</span>
+
+<span class="c1">#Wavelength    Filter Response</span>
+<span class="mf">1.9820</span>         <span class="mf">0.0413000000</span>
+<span class="mf">1.9830</span>         <span class="mf">0.0445000000</span>
+<span class="mf">1.9840</span>         <span class="mf">0.0481000000</span>
+<span class="mf">1.9850</span>         <span class="mf">0.0520000000</span>
+<span class="mf">1.9860</span>         <span class="mf">0.0561000000</span>
+<span class="mf">1.9870</span>         <span class="mf">0.0606000000</span>
+<span class="mf">1.9880</span>         <span class="mf">0.0652000000</span>
+<span class="mf">1.9890</span>         <span class="mf">0.0700000000</span>
+<span class="mf">1.9900</span>         <span class="mf">0.0751000000</span>
+<span class="mf">1.9910</span>         <span class="mf">0.0808000000</span>
+<span class="mf">1.9920</span>         <span class="mf">0.0870000000</span>
+<span class="mf">1.9930</span>         <span class="mf">0.0931000000</span>
+<span class="mf">1.9940</span>         <span class="mf">0.0996000000</span>
+<span class="mf">1.9950</span>         <span class="mf">0.1065000000</span>
+<span class="mf">1.9960</span>         <span class="mf">0.1138000000</span>
+<span class="mf">1.9970</span>         <span class="mf">0.1216000000</span>
+<span class="mf">1.9980</span>         <span class="mf">0.1298000000</span>
+</pre></div>
+</div>
+<p>It has to contain the definition for the detector, which is either an energy counter
+(<code class="docutils literal notranslate"><span class="pre">Energy</span> <span class="pre">counter</span></code>) or a photon counter (<code class="docutils literal notranslate"><span class="pre">Photon</span> <span class="pre">counter</span></code>).</p>
+<p>This is followed by two columns, with the wavelength in micrometers in the first
+and the filter response function in the second column. The provided filter transmission
+curve will be interpolated onto the internal high-resolution spectral grid used
+by BeAR for a given retrieval calculation.</p>
+<p>BeAR already comes with a set of selected filter response function files. They can
+be found in the folder <code class="docutils literal notranslate"><span class="pre">telescope_data</span></code>.</p>
 </section>
 </section>
 </section>
@@ -351,10 +426,11 @@ negligible.</p>
 <li class="toctree-l1"><a class="reference internal" href="opacity_data.html">Opacity data</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Observations</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#supported-observational-types">Supported observational types</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#instrument-line-profile">Instrument Line Profile</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#spectroscopy">Spectroscopy</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#band-spectroscopy">Band Spectroscopy</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#photometry">Photometry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#instrument-line-profile">Instrument Line Profile</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#filter-transmission-function">Filter transmission function</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="forward_models.html">Forward Models</a></li>

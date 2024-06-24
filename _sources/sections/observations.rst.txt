@@ -6,11 +6,11 @@ Supported observational types
 
 BeAR currently supports three different types of observations:
 
-- spectroscopy
+- :ref:`Spectroscopy <sec:spectroscopy>`
 
-- band spectroscopy
+- :ref:`Band-Spectroscopy <sec:band_spectroscopy>`
 
-- photometry
+- :ref:`Photometry <sec:photometry>`
 
 Based on the type of observation, the required format of the data files
 differs slightly. In the following sections, the three basic types and
@@ -23,36 +23,16 @@ the observations and then integrated to the observational wavelength structure.
 The resolution is determined by the corresponding configuration parameter in
 the retrieval.config file.
 
+For spectroscopy and band spectroscopy obervations, BeAR has the option to
+use :ref:`instrument line profiles <sec:instrument_line_profile>`, which typically
+spreads the flux at a given wavelength over several adjacent pixels.
 
-Instrument Line Profile
------------------------
+Additionally, BeAR can use :ref:`filter transmission functions <sec:filter_response>`. 
+While this is typically only used in photometric observations, BeAR also supports 
+them for both spectroscopy and band spectroscopy.
 
-Optionally, before integrating the spectrum, a high-resolution spectrum can be convolved 
-with a given instrument line profile to simulate the flux received by the detector. The
-instrument line profile can be used for spectroscopy and band spectroscopy observations.
-It is not required for photometry since in this case the flux is already integrated over
-a wider filter bandpass.
 
-.. image:: ../images/line_profile.png
-  :width: 400
-  :align: center
-
-With an ideal spectrograph, the flux at a given wavelength will only be received by
-a single pixel, following the dispersion relation of the instrument. 
-This would correspond to the blue line in the above figure.
-In the real world, due to the finite slit width of a spectrograph,
-flux at a given wavelengths, however, will be spread out across several pixels. This is
-depicted by the red curve in the above plot.
-
-This spread is usually described by a Gaussian profile with a given, instrument-dependent width.
-In order to compute the flux at a given pixel, BeAR needs to take into account the spread of
-flux at a discrete wavelength over multiple pixels.
-
-The Gaussian is described by its corresponding full width at half maximum (FWHM) in wavelength units. 
-This, usually wavelength-dependent, FWHM needs to be supplied as an input to BeAR. In order to save 
-computation time, BeAR will limit the contributions of the profile to a distance of five standard deviations 
-from the profile centre.
-
+.. _sec:spectroscopy:
 
 Spectroscopy
 ------------
@@ -94,8 +74,8 @@ observation/instrument is not used during the calculation but will determine the
 file name of the posterior spectra file. 
 
 For spectroscopy, the ``#type`` needs to be set to ``spectroscopy``. This is followed by
-an optional filter bandpass transmission function. If no filter transmission is used, this
-should be set to ``none`` as in the example above.
+an optional :ref:`filter bandpass transmission function <sec:filter_response>`.
+If no filter transmission is used, this should be set to ``none`` as in the example above.
 
 The actual spectroscopic data is given in three columns. The first column is the wavelength
 in units of :math:`\mathrm{\mu m}`, the second the observational data. The units of the data depend on the
@@ -105,8 +85,9 @@ the transit depth in ppm. The third column contains the error of the observation
 the same units as the previous column.
 
 
-As mentionend above, an optional Gaussian instrument line profile, characterised by its FWHM, can be used in
-BeAR. This information is added in an optional fourth column as shown below.
+As mentionend above, an optional Gaussian :ref:`instrument line profiles <sec:instrument_line_profile>`,
+characterised by its FWHM, can be used in BeAR. This information is added in an optional fourth column 
+as shown below.
 
 .. include:: ../examples/gj570d_spex.dat
    :literal:
@@ -117,6 +98,7 @@ weighting factor for each observational point. This allows to give unreliable da
 computation of the likelihood or to neglect certain points entirely.
 
 
+.. _sec:band_spectroscopy:
 
 Band Spectroscopy
 -----------------
@@ -128,7 +110,8 @@ on the Hubble Space Telescope. The band structure itself does not need to be reg
 
 
 As depicted in the figure above, the observational data is assumed to consist of
-math:`i = 1 ... N` spectral bands, each with given wavelength boundaries :math:`\lambda_{i,1}` and :math:`\lambda_{i,2}` . 
+math:`i = 1 ... N` spectral bands, each with given wavelength boundaries :math:`\lambda_{i,1}` 
+and :math:`\lambda_{i,2}` . 
 
 .. image:: ../images/band_spectroscopy.png
   :width: 700
@@ -153,6 +136,8 @@ The file consists of a header that contains some basic information. The name of 
 observation/instrument is not used during the calculation but will determine the
 file name of the posterior spectra file. 
 For band spectroscopy, the ``#type`` needs to be set to ``band-spectroscopy``.
+This is followed by an optional :ref:`filter bandpass transmission function <sec:filter_response>`.
+If no filter transmission is used, this should be set to ``none`` as in the example above.
 
 The actual spectroscopic data is given in four columns. The first two columns describe the boundaries 
 of the wavelength bins in units of :math:`\mathrm{\mu m}`. 
@@ -163,8 +148,9 @@ the transit depth in ppm as shown in the example above.
 
 The fourth column contains the error of the observational data in the same units as the previous column.
 
-Just like spectroscopic data, an optional Gaussian instrument line profile, characterised by its FWHM, can be used
-for band spectroscopy as well. This information is added in an optional fifth column as shown below.
+Just like spectroscopic data, an optional Gaussian :ref:`instrument line profiles <sec:instrument_line_profile>`, 
+characterised by its FWHM, can be used for band spectroscopy as well. This information is added 
+in an optional fifth column as shown below.
 
 .. include:: ../examples/WASP-12b_kreidberg.dat
    :literal:
@@ -175,6 +161,8 @@ Another optional sixth column contains a  weighting factor for each observationa
 This allows to give unreliable data points a lower impact during thecomputation of the likelihood 
 or to neglect certain points entirely.
 
+
+.. _sec:photometry:
 
 Photometry
 ----------
@@ -191,10 +179,8 @@ be integrated over the bandpass in wavenumber space to obtain the mean flux in t
 The conceptual difference between band-spectroscopy and photometry within BeAR
 is that unlike the former, a photometry observation does not have an instrument line profile
 because it’s supposed to cover a broader wavelength range. Instead, it can be processed
-through a filter transmission function to simulate the observation through a specific filter.
-Note, however, that this is not yet fully implemented in BeAR. For now, the two boundary
-wavelengths :math:`\lambda_{1}` and :math:`\lambda_{2}` should be used as the effective filter limits. 
-The ability to read in and use specific filter transmission curves will be added in the future.
+through a :ref:`filter transmission function <sec:filter_response>` to simulate the observation 
+through a specific filter.
 
 
 Input file structure
@@ -210,7 +196,7 @@ observation/instrument is not used during the calculation but will determine the
 file name of the posterior spectra file. 
 For photometry, the ``#type`` needs to be set to ``photometry``.
 
-This is followed by the location of the file with the bandpass transmission function. 
+This is followed by the location of the file with the :ref:`bandpass transmission function <sec:filter_response>`. 
 When setting this to ``none``, BeAR will use a transmission function of unity within 
 the wavelength boundaries given below.
 
@@ -231,3 +217,88 @@ data point can be included in a fifth column. This is shown in the example below
 Unlike the input for spectroscopic data, no instrument line profile is used here. Since photometry data
 is integrated over a wider bandpass anyway, the impact of a Gaussian line profile would be 
 negligible.
+
+
+.. _sec:instrument_line_profile:
+
+Instrument Line Profile
+-----------------------
+
+Optionally, before integrating the spectrum, a high-resolution spectrum can be convolved 
+with a given instrument line profile to simulate the flux received by the detector. The
+instrument line profile can be used for spectroscopy and band spectroscopy observations.
+It is not required for photometry since in this case the flux is already integrated over
+a wider filter bandpass.
+
+.. image:: ../images/line_profile.png
+  :width: 400
+  :align: center
+
+With an ideal spectrograph, the flux at a given wavelength will only be received by
+a single pixel, following the dispersion relation of the instrument. 
+This would correspond to the blue line in the above figure.
+In the real world, due to the finite slit width of a spectrograph,
+flux at a given wavelengths, however, will be spread out across several pixels. This is
+depicted by the red curve in the above plot.
+
+This spread is usually described by a Gaussian profile with a given, instrument-dependent width.
+In order to compute the flux at a given pixel, BeAR needs to take into account the spread of
+flux at a discrete wavelength over multiple pixels.
+
+The Gaussian is described by its corresponding full width at half maximum (FWHM) in wavelength units. 
+This, usually wavelength-dependent, FWHM needs to be supplied as an input to BeAR. In order to save 
+computation time, BeAR will limit the contributions of the profile to a distance of five standard deviations 
+from the profile centre.
+
+
+
+.. _sec:filter_response:
+
+Filter transmission function
+----------------------------
+
+BeAR has the option to use filter transmission functions to simulate the 
+passing of light through a specific filter before it reaches the detector.
+
+This is typically used for photometric observations. However, for the unlikely 
+case that for a given spectroscopic observation a filter has been placed
+before the spectrograph or grism, both spectroscopy and band spectroscopy also
+allow for the use of a filter transmission function.
+
+For a given wavelength-dependent filter transmission function :math:`T(\lambda)`,
+the flux :math:`F(\lambda)` the integrated, photometric flux after the filter
+is given by 
+
+.. math::
+  F_\mathrm{phot} = \frac{\int F(\lambda) T(\lambda) \mathrm{d} \lambda} 
+    {\int T(\lambda) \mathrm{d} \lambda}
+
+for an energy counting detector and 
+
+.. math::
+  F_\mathrm{phot} = \frac{\int F(\lambda) \lambda T(\lambda) \mathrm{d} \lambda} 
+    {\int T(\lambda) \lambda \mathrm{d} \lambda}
+
+for a photon counter. The additional factor :math:`\lambda` in the latter case
+converts the energy flux :math:`F(\lambda)` into a photon flux. In case of the two
+spectroscopic observational modes, the computed fluxes are simply multiplied by the
+filter transmission function.
+
+Input file structure
+....................
+
+A basic example for an filter transmission input file is shown below.
+
+.. include:: ../examples/k_filter_transmission.dat
+   :literal:
+
+It has to contain the definition for the detector, which is either an energy counter 
+(``Energy counter``) or a photon counter (``Photon counter``).
+
+This is followed by two columns, with the wavelength in micrometers in the first
+and the filter response function in the second column. The provided filter transmission
+curve will be interpolated onto the internal high-resolution spectral grid used
+by BeAR for a given retrieval calculation.
+
+BeAR already comes with a set of selected filter response function files. They can
+be found in the folder ``telescope_data``.
