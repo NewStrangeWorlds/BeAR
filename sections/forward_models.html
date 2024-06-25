@@ -72,10 +72,95 @@ for an emission spectrum, it needs to have units of
 <p>This forward model computes the wavelength-dependent transit depth
 <span class="math notranslate nohighlight">\(D(\lambda)\)</span> of an exoplanet atmosphere, given by</p>
 <div class="math notranslate nohighlight">
-\[D(\lambda) = \frac{R_p(\lambda)}{R_*} \ ,\]</div>
+\[D(\lambda) = \left(\frac{R_p(\lambda)}{R_*}\right)^2 \ ,\]</div>
 <p>where <span class="math notranslate nohighlight">\(R_p(\lambda)\)</span> is the wavelength-dependent planetary radius
 and <span class="math notranslate nohighlight">\(R_*\)</span> the radius of the host star. In BeAR, <span class="math notranslate nohighlight">\(D(\lambda)\)</span>
 has units of ppm.</p>
+<p>In the retrieval config file <code class="docutils literal notranslate"><span class="pre">retrieval.config</span></code> it is selected by choosing:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Forward model</span>
+<span class="n">transmission</span>
+</pre></div>
+</div>
+<p>The transmission spectrum forward model has three general free parameters that
+have to be added to the priors configuration file in the following order:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>logarithm of surface gravity <span class="math notranslate nohighlight">\(\log g\)</span> in cgs units</p></li>
+<li><p>planet radius in Jupiter radii</p></li>
+<li><p>stellar radius in solar radii</p></li>
+</ul>
+</div></blockquote>
+<p>The <code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code> file for the transmission spectrum model has
+the following structure:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Number of levels</span>
+<span class="mi">150</span>
+
+<span class="c1">#Bottom of atmosphere pressure (bar)</span>
+<span class="mi">10</span>
+
+<span class="c1">#Top of atmosphere pressure (bar)</span>
+<span class="mf">1e-6</span>
+
+<span class="c1">#Fit for mean molecular weight (mmw) or scale height (sh)</span>
+<span class="n">no</span>
+
+<span class="c1">#Temperature profile</span>
+<span class="n">const</span>
+
+<span class="c1">#Cloud model</span>
+<span class="n">none</span>
+
+<span class="c1">#Optional modules</span>
+<span class="n">none</span>
+
+<span class="c1">#Retrieved chemical species</span>
+<span class="n">iso</span> <span class="n">H2O</span> <span class="n">TiO</span> <span class="n">VO</span> <span class="n">K</span>
+<span class="n">bg</span>  <span class="n">H2He</span>
+
+<span class="c1">#Opacity species&amp;folders</span>
+<span class="n">CIA</span><span class="o">-</span><span class="n">H2</span><span class="o">-</span><span class="n">H2</span>   <span class="n">CIA</span><span class="o">/</span><span class="n">H2</span><span class="o">-</span><span class="n">H2</span>
+<span class="n">CIA</span><span class="o">-</span><span class="n">H2</span><span class="o">-</span><span class="n">He</span>   <span class="n">CIA</span><span class="o">/</span><span class="n">H2</span><span class="o">-</span><span class="n">He</span>
+<span class="n">H2</span>          <span class="n">Rayleigh</span>
+<span class="n">He</span>          <span class="n">Rayleigh</span>
+<span class="n">H2O</span>         <span class="n">Molecules</span><span class="o">/</span><span class="mi">1</span><span class="n">H2</span><span class="o">-</span><span class="mi">16</span><span class="n">O__POKAZATEL_e2b</span>
+<span class="n">TiO</span>         <span class="n">Molecules</span><span class="o">/</span><span class="mi">48</span><span class="n">Ti</span><span class="o">-</span><span class="mi">16</span><span class="n">O__Toto_e2b</span>
+<span class="n">VO</span>          <span class="n">Molecules</span><span class="o">/</span><span class="mi">51</span><span class="n">V</span><span class="o">-</span><span class="mi">16</span><span class="n">O__VOMYT_e2b</span>
+</pre></div>
+</div>
+<p>The first three entries refer to the vertical discretisation of the atmosphere.
+This includes the number of atmospheric layers as well as the bottom and
+top-of-atmosphere pressures in units of bars.</p>
+<p>With the next entry, the retrieval of the mean molecular or the scale height
+can be chosen. Usually, BeAR will determine the mean molecular based on
+the chemical abundances of the species included in the retrieval.
+Sometimes, however, the background species in an atmosphere might not be
+known. For such a case, BeAR can use the mean molecular weight as a free
+parameter.</p>
+<p>Furthermore, for transmission spectra, the surface gravity, the mean molecular
+weight, and the temperature might become degenerate in a retrieval. This is
+often the case when no constraints on the surface gravity can be provided
+and the dominating background specise is not known. In such a scenario, BeAR
+can use the (constant) atmospheric scale height in units of km as a free
+parameter.</p>
+<p>For the standard case, the keyword <code class="docutils literal notranslate"><span class="pre">no</span></code> needs to be used here. If BeAR should
+use the mean molecular weight as a free parameter <code class="docutils literal notranslate"><span class="pre">mmw</span></code> is used, while
+<code class="docutils literal notranslate"><span class="pre">sh</span></code> is used when the scale should be used as a free parameter instead. If either
+the mean molecular weight or the scale height is chosen as a free parameter,
+a corresponding prior needs to be added as a fourth model parameter in the
+prior configuration file.</p>
+<p>With the next two entries, the parametrisation for the
+<a class="reference internal" href="temperature_profiles.html#sec-temperature-profiles"><span class="std std-ref">temperature profile</span></a> and
+the <a class="reference internal" href="cloud_models.html#sec-cloud-models"><span class="std std-ref">cloud models</span></a> are set. After than, optional
+modules can be added to the forward model.</p>
+<p>Finally, the different <a class="reference internal" href="chemistry_models.html#sec-chemistry-models"><span class="std std-ref">chemistry models</span></a>, chemical species, and the
+<a class="reference internal" href="opacity_data.html#sec-opacity-data"><span class="std std-ref">opacity sources</span></a> are selected. It is important to note that
+chemical species that are used as part of the chemistry models, should normally also have
+an associated opacity source. Otherwise, the impact of that species on the
+resulting spectrum might be negligible and, therefore, its abundance will be
+likely be unconstrained.</p>
+<p>On the other hand, it is theoretically also possible to add opacity species
+without including this species in any of the chemistry models. In this case, the
+abundance of this species will be zero and, thus, won’t show up in the spectrum.</p>
 </section>
 </section>
 
