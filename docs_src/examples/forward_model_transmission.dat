@@ -1,0 +1,33 @@
+#Number of levels
+150
+
+#Bottom of atmosphere pressure (bar)
+10
+
+#Top of atmosphere pressure (bar)
+1e-6
+
+#Fit for mean molecular weight (mmw) or scale height (sh)
+no
+
+#Temperature profile
+const
+
+#Cloud model
+none
+
+#Optional modules
+none
+
+#Retrieved chemical species
+iso H2O TiO VO K
+bg  H2He
+
+#Opacity species&folders
+CIA-H2-H2   CIA/H2-H2
+CIA-H2-He   CIA/H2-He
+H2          Rayleigh
+He          Rayleigh
+H2O         Molecules/1H2-16O__POKAZATEL_e2b
+TiO         Molecules/48Ti-16O__Toto_e2b
+VO          Molecules/51V-16O__VOMYT_e2b
