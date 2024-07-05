@@ -30,10 +30,14 @@ Cross-sections are required to be tabulated as a function of wavenumber. All cro
 have to be given on the same wavenumber grid to avoid having to constantly interpolating them
 in wavenumber space when reading them in. By default, BeAR will use the HELIOS-k opacities. 
 In that case, the opacity data is calculated on a wavenumber grid with a constant step of 
-0.01 :math:`\mathrm{cm^{-1}}`, starting from 0 :math:`\mathrm{cm^{-1}}`.
+0.01 :math:`\mathrm{cm^{-1}}`, starting from 0 :math:`\mathrm{cm^{-1}}`. Unless indicated otherwise,
+BeAR will implicitely assume that this standard HELIOS-k grid is used and no further configuration is needed.
 
+However, if other opacity data is used, the wavenumber grid has to be provided as well. In that case,
 BeAR expects to find this global wavenumber grid in a special file. The location of the opacity 
 data and the wavenumber file are handled by the ``retrieval.config`` configuration file.
+Within the root opacity folder indicated in the ``retrieval.config`` file, BeAR expects to find a file 
+called ``wavenumbers_full.dat``.
 
 This file has the following, simple structure.
 

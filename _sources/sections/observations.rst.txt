@@ -1,5 +1,8 @@
+.. _sec:observational_data:
+
 Observations
 ============
+
 
 Supported observational types
 -----------------------------

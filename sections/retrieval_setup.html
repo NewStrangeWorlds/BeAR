@@ -11,6 +11,7 @@
     <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=359c27e9"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Temperature profiles" href="temperature_profiles.html" />
@@ -38,7 +39,7 @@
 <div><ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">retrieval.config</span></code> - the main configuration file for the retrieval</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code> - the configuration file of chosen forward forward_model</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">prior.config</span></code> - the setup list for the prior distributions of the free parameters</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">priors.config</span></code> - the setup list for the prior distributions of the free parameters</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">observations.list</span></code> - the list of observational data files that the retrieval should use</p></li>
 </ul>
 </div></blockquote>
@@ -61,8 +62,8 @@
 <span class="c1">#forward model type</span>
 <span class="n">secondary_eclipse</span>
 
-<span class="c1">#Spectral resolution (cm-1)</span>
-<span class="mf">1.0</span>
+<span class="c1">#Spectral grid parametrisation</span>
+<span class="n">const_wavenumber</span> <span class="mf">1.0</span>
 
 <span class="c1">#Opacity data folder</span>
 <span class="o">/</span><span class="n">media</span><span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">opacity_data</span><span class="o">/</span><span class="n">helios</span><span class="o">-</span><span class="n">k</span><span class="o">/</span>
@@ -135,13 +136,20 @@ multi-core processor.</div>
 <p>Descriptions of the forward models can be found <a class="reference internal" href="forward_models.html#sec-forward-models"><span class="std std-ref">here</span></a></p>
 </div></blockquote>
 <div class="line-block">
-<div class="line"><code class="docutils literal notranslate"><span class="pre">Spectral</span> <span class="pre">resolution</span></code></div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">Spectral</span> <span class="pre">grid</span> <span class="pre">parametrisation</span></code></div>
 <div class="line-block">
-<div class="line">Sets the constant step in wavenumber space that will be used for the computation of the
-high-resolution spectrum. Note that this high-resolution grid should generally be finer than that of the
-observational data.</div>
+<div class="line">Sets the parametrisation of the spectral grid that will be used for the computation of the
+high-resolution spectrum. This high-resolution grid should generally be finer than that of the
+observational data.. The following options are available:</div>
 </div>
 </div>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">const_wavelength</span> <span class="pre">x</span></code> - a constant step in wavelength space with a step size of <code class="docutils literal notranslate"><span class="pre">x</span></code> in <span class="math notranslate nohighlight">\(\mathrm{\mu m}\)</span></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">const_wavenumber</span> <span class="pre">x</span></code> - a constant step in wavenumber space with a step size of <code class="docutils literal notranslate"><span class="pre">x</span></code> <span class="math notranslate nohighlight">\(\mathrm{cm}^{-1}\)</span></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">const_resolution</span> <span class="pre">x</span></code> - a constant spectral resolution <span class="math notranslate nohighlight">\(x = \lambda/\Delta\lambda\)</span></p></li>
+</ul>
+</div></blockquote>
 <div class="line-block">
 <div class="line"><code class="docutils literal notranslate"><span class="pre">Opacity</span> <span class="pre">data</span> <span class="pre">folder</span></code></div>
 <div class="line-block">
@@ -231,6 +239,91 @@ it is usually a good idea to deactivate this option. Otherwise, the output file 
 </div>
 </div>
 </section>
+<section id="forward-model-configuration-file">
+<h2>Forward model configuration file<a class="headerlink" href="#forward-model-configuration-file" title="Permalink to this heading">¶</a></h2>
+<p>The file <code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code> contains the configuration for the forward model.
+Its structure depends on the chosen model and is discussed in the <a class="reference internal" href="forward_models.html#sec-forward-models"><span class="std std-ref">section</span></a> on forward models.</p>
+</section>
+<section id="prior-distributions-file">
+<h2>Prior distributions file<a class="headerlink" href="#prior-distributions-file" title="Permalink to this heading">¶</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">priors.config</span></code> file contains the information on the prior distributions of the free parameters.
+The file has the following structure:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">delta</span>         <span class="n">log_g</span>           <span class="mf">2.99</span>     
+<span class="n">uniform</span>       <span class="n">r_planet</span>        <span class="mf">1.6</span>   <span class="mf">2.3</span>
+<span class="n">gaussian</span>      <span class="n">r_star</span>          <span class="mf">1.57</span>  <span class="mf">0.07</span>
+<span class="n">log_uniform</span>   <span class="n">H2O</span>             <span class="mf">1e-12</span> <span class="mf">1e-1</span>
+<span class="n">log_uniform</span>   <span class="n">TiO</span>             <span class="mf">1e-12</span> <span class="mf">1e-3</span>
+<span class="n">log_uniform</span>   <span class="n">VO</span>              <span class="mf">1e-12</span> <span class="mf">1e-3</span>
+<span class="n">log_uniform</span>   <span class="n">K</span>               <span class="mf">1e-12</span> <span class="mf">1e-3</span>
+<span class="n">uniform</span>       <span class="n">temperature</span>     <span class="mi">500</span>   <span class="mi">1600</span>
+</pre></div>
+</div>
+<p>The first column lists the distribution type of the prior, the second column the model parameter name, and the
+remaining columns the parameters of the distribution.</p>
+<p>BeAR supports the following types of distributions:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">delta</span></code> - a delta distribution with a fixed value</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">uniform</span></code> - a uniform distribution with a lower and upper bound</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">log_uniform</span></code> - a log-uniform distribution with a lower and upper bound</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">gaussian</span></code> - a Gaussian distribution with a mean and standard deviation</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">linked</span></code> - links this prior to that of another parameter</p></li>
+</ul>
+</div></blockquote>
+<p>The type, order and number of these parameters in prior distributions file is determined by chosen forward model.</p>
+<p>A special case is the <code class="docutils literal notranslate"><span class="pre">linked</span></code> distribution. This distribution links the prior distribution
+of one parameter to that of another. The config parameter for this distribution is the line number of the
+parameter distribution that it should be linked to.
+An example of this is shown below:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">uniform</span>       <span class="n">log_g</span>           <span class="mf">4.0</span>    <span class="mf">6.0</span>        
+<span class="n">uniform</span>       <span class="n">scaling_factor</span>  <span class="mf">0.1</span>    <span class="mf">5.0</span>        
+<span class="n">gaussian</span>      <span class="n">distance</span>        <span class="mf">5.8819</span> <span class="mf">0.0029</span>
+<span class="n">log_uniform</span>   <span class="n">mr_h2o</span>          <span class="mf">1e-12</span>  <span class="mf">0.01</span>  
+<span class="n">log_uniform</span>   <span class="n">mr_ch4</span>          <span class="mf">1e-12</span>  <span class="mf">0.01</span>  
+<span class="n">log_uniform</span>   <span class="n">mr_nh3</span>          <span class="mf">1e-12</span>  <span class="mf">0.01</span>
+<span class="n">log_uniform</span>   <span class="n">mr_k</span>            <span class="mf">1e-12</span>  <span class="mf">0.01</span>
+<span class="n">log_uniform</span>   <span class="n">mr_h2s</span>          <span class="mf">1e-12</span>  <span class="mf">0.01</span>
+<span class="n">linked</span>        <span class="n">mr_co2</span>          <span class="mi">5</span>
+<span class="n">uniform</span>       <span class="n">temperature1</span>    <span class="mi">5000</span>   <span class="mi">1000</span>      
+<span class="n">uniform</span>       <span class="n">temperature2</span>    <span class="mf">0.3</span>    <span class="mf">0.95</span>       
+<span class="n">uniform</span>       <span class="n">temperature3</span>    <span class="mf">0.3</span>    <span class="mf">0.95</span>       
+<span class="n">uniform</span>       <span class="n">temperature4</span>    <span class="mf">0.4</span>    <span class="mf">0.95</span>       
+<span class="n">uniform</span>       <span class="n">temperature5</span>    <span class="mf">0.5</span>    <span class="mf">0.95</span>
+</pre></div>
+</div>
+<p>Here, the prior for the CO2 mixing ratios is linked to the fifth parameter, which is the mixing ratio of CH4 in this example.
+Thus, CO2 will always have the same mixing ratio as methane for this retrieval setup. It is important to note that BeAR cannot
+check the consistency of the linked parameters. For example, if the linked parameter is a temperature, the resulting mixing ratios
+of CO2 would make no sense. It is the user’s responsibility to ensure that the linked parameters are consistent.</p>
+<p>Currently, BeAR assumes the following units for the free model parameters:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">log</span> <span class="pre">g</span></code> - logarithm of the surface gravity in <span class="math notranslate nohighlight">\(\mathrm{cm/s^2}\)</span></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">R_p</span></code> - planetary radius in <span class="math notranslate nohighlight">\(\mathrm{R_{Jup}}\)</span></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">R_s</span></code> - stellar radius in <span class="math notranslate nohighlight">\(\mathrm{R_{Sun}}\)</span></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">distance</span></code> - distance of the object in <span class="math notranslate nohighlight">\(\mathrm{pc}\)</span></p></li>
+</ul>
+</div></blockquote>
+</section>
+<section id="observational-data-file">
+<h2>Observational data file<a class="headerlink" href="#observational-data-file" title="Permalink to this heading">¶</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">observations.list</span></code> file contains a list of data files with the observational data that the retrieval should use.
+An example is shown below:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">wasp</span><span class="o">-</span><span class="mi">43</span><span class="n">b_wfc3</span><span class="o">.</span><span class="n">dat</span>
+<span class="n">wasp</span><span class="o">-</span><span class="mi">43</span><span class="n">b_grond_k</span><span class="o">.</span><span class="n">dat</span>
+<span class="n">wasp</span><span class="o">-</span><span class="mi">43</span><span class="n">b_hawki_nb1190</span><span class="o">.</span><span class="n">dat</span>
+<span class="n">wasp</span><span class="o">-</span><span class="mi">43</span><span class="n">b_hawki_nb2090</span><span class="o">.</span><span class="n">dat</span>
+<span class="n">wasp</span><span class="o">-</span><span class="mi">43</span><span class="n">b_wircam_h</span><span class="o">.</span><span class="n">dat</span>
+<span class="n">wasp</span><span class="o">-</span><span class="mi">43</span><span class="n">b_wircam_ks</span><span class="o">.</span><span class="n">dat</span>
+<span class="n">wasp</span><span class="o">-</span><span class="mi">43</span><span class="n">b_spitzer_1</span><span class="o">.</span><span class="n">dat</span>
+<span class="n">wasp</span><span class="o">-</span><span class="mi">43</span><span class="n">b_spitzer_2</span><span class="o">.</span><span class="n">dat</span>
+</pre></div>
+</div>
+<p>BeAR can use multiple observational data files at the same time. The observations do not need to be orderer in any specific way.
+They also do not need to be continuous in wavelength space, gaps are are allowed to be present between the different observations.
+It also possible to mix different observational types, e.g. photometric data together with spectroscopic data. The format of the
+these files is described in the <a class="reference internal" href="observations.html#sec-observational-data"><span class="std std-ref">section</span></a> on observational data.</p>
+</section>
 </section>
 
 
@@ -273,6 +366,9 @@ it is usually a good idea to deactivate this option. Otherwise, the output file 
 <li class="toctree-l1"><a class="reference internal" href="forward_models.html">Forward Models</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Setting up a retrieval</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#main-retrieval-file">Main retrieval file</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#forward-model-configuration-file">Forward model configuration file</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#prior-distributions-file">Prior distributions file</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#observational-data-file">Observational data file</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="temperature_profiles.html">Temperature profiles</a></li>

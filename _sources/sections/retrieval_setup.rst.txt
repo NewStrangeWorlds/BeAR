@@ -7,7 +7,7 @@ To start a retrieval calculation, BeAR requires the following files in the folde
   
   - ``forward_model.config`` - the configuration file of chosen forward forward_model
   
-  - ``prior.config`` - the setup list for the prior distributions of the free parameters
+  - ``priors.config`` - the setup list for the prior distributions of the free parameters
   
   - ``observations.list`` - the list of observational data files that the retrieval should use
 
@@ -46,10 +46,16 @@ The following parameters need to be set:
   
   Descriptions of the forward models can be found :ref:`here <sec:forward_models>` 
 
-| ``Spectral resolution``
-|  Sets the constant step in wavenumber space that will be used for the computation of the 
-  high-resolution spectrum. Note that this high-resolution grid should generally be finer than that of the
-  observational data.
+| ``Spectral grid parametrisation``
+|  Sets the parametrisation of the spectral grid that will be used for the computation of the 
+  high-resolution spectrum. This high-resolution grid should generally be finer than that of the
+  observational data.. The following options are available:
+
+     - ``const_wavelength x`` - a constant step in wavelength space with a step size of ``x`` in :math:`\mathrm{\mu m}`
+     
+     - ``const_wavenumber x`` - a constant step in wavenumber space with a step size of ``x`` :math:`\mathrm{cm}^{-1}`
+     
+     - ``const_resolution x`` - a constant spectral resolution :math:`x = \lambda/\Delta\lambda`
 
 | ``Opacity data folder``
 |  Location of the folder with opacities for the gas species. Details on the required format
@@ -110,4 +116,75 @@ The parameters that can be set here include:
 |  Determines whether the parameter values and the computed likelihood values for all models should be displayed 
   (``Y`` or ``1``).  If BeAR is run on a cluster and the terminal output is redirected to a file, 
   it is usually a good idea to deactivate this option. Otherwise, the output file could become quite large.
+
+
+Forward model configuration file
+................................
+
+The file ``forward_model.config`` contains the configuration for the forward model.
+Its structure depends on the chosen model and is discussed in the :ref:`section <sec:forward_models>` on forward models.
+
+
+Prior distributions file
+........................
+
+The ``priors.config`` file contains the information on the prior distributions of the free parameters.
+The file has the following structure:
+
+.. include:: ../examples/priors_example1.config
+   :literal:
+
+The first column lists the distribution type of the prior, the second column the model parameter name, and the 
+remaining columns the parameters of the distribution.
+
+BeAR supports the following types of distributions:
+
+  - ``delta`` - a delta distribution with a fixed value
+
+  - ``uniform`` - a uniform distribution with a lower and upper bound
+
+  - ``log_uniform`` - a log-uniform distribution with a lower and upper bound
+
+  - ``gaussian`` - a Gaussian distribution with a mean and standard deviation
+
+  - ``linked`` - links this prior to that of another parameter
+
+The type, order and number of these parameters in prior distributions file is determined by chosen forward model.
+
+A special case is the ``linked`` distribution. This distribution links the prior distribution 
+of one parameter to that of another. The config parameter for this distribution is the line number of the
+parameter distribution that it should be linked to.
+An example of this is shown below:
+
+.. include:: ../examples/priors_example2.config
+   :literal:
+
+Here, the prior for the CO2 mixing ratios is linked to the fifth parameter, which is the mixing ratio of CH4 in this example.
+Thus, CO2 will always have the same mixing ratio as methane for this retrieval setup. It is important to note that BeAR cannot 
+check the consistency of the linked parameters. For example, if the linked parameter is a temperature, the resulting mixing ratios
+of CO2 would make no sense. It is the user's responsibility to ensure that the linked parameters are consistent.
+
+Currently, BeAR assumes the following units for the free model parameters:
   
+  - ``log g`` - logarithm of the surface gravity in :math:`\mathrm{cm/s^2}`
+
+  - ``R_p`` - planetary radius in :math:`\mathrm{R_{Jup}}`
+
+  - ``R_s`` - stellar radius in :math:`\mathrm{R_{Sun}}`
+
+  - ``distance`` - distance of the object in :math:`\mathrm{pc}`
+
+
+Observational data file
+.......................
+
+The ``observations.list`` file contains a list of data files with the observational data that the retrieval should use.
+An example is shown below:
+
+.. include:: ../examples/observations_example.list
+   :literal:
+
+BeAR can use multiple observational data files at the same time. The observations do not need to be orderer in any specific way.
+They also do not need to be continuous in wavelength space, gaps are are allowed to be present between the different observations.
+It also possible to mix different observational types, e.g. photometric data together with spectroscopic data. The format of the 
+these files is described in the :ref:`section <sec:observational_data>` on observational data.
