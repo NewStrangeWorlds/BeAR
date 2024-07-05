@@ -6,13 +6,17 @@ Cloud Models
 
 BeAR currently includes the following cloud descriptions:
 
-  - Grey cloud layer
+  - :ref:`Grey cloud layer <sec:cloud_model_grey>`
 
-  - Non-grey cloud fit from 
+  - :ref:`Non-grey cloud fit <sec:cloud_model_kh>` from 
     `Kitzmann \& Heng (2018) <https://ui.adsabs.harvard.edu/abs/2018MNRAS.475...94K/>`_
 
-  - Power law cloud layer
+  - :ref:`Power law cloud layer <sec:cloud_model_power_law>` 
 
+The code also supports the :ref:`mixing of different cloud models <sec:cloud_model_mixing>` in a single retrieval.
+
+
+.. _sec:cloud_model_grey:
 
 Grey Cloud Model
 ----------------
@@ -59,6 +63,8 @@ below the cloud top. In this case, only two free parameters are required in the 
 
   - cloud top pressure in bar
 
+
+.. _sec:cloud_model_kh:
 
 Kitzmann & Heng Non-Grey Cloud Model
 ------------------------------------
@@ -153,6 +159,8 @@ below the cloud top. In this case, only five free parameters are required in the
   - cloud top pressure in bar
 
 
+.. _sec:cloud_model_power_law:
+
 Power-Law Cloud Model
 ---------------------
 
@@ -212,6 +220,8 @@ below the cloud top. In this case, only two three parameters are required in the
 
   - cloud top pressure in bar
 
+
+.. _sec:cloud_model_mixing:
 
 Mixing different cloud models
 -----------------------------

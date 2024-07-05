@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Stellar spectra &#8212; BeAR 1.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=4f649999" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=5bc47236" />
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=359c27e9"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Parametrisations of vertical profiles" href="profile_parametrisations.html" />
+    <link rel="prev" title="Cloud Models" href="cloud_models.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="stellar-spectra">
+<span id="sec-stellar-spectra"></span><h1>Stellar spectra<a class="headerlink" href="#stellar-spectra" title="Permalink to this heading">¶</a></h1>
+<p>Some forward models or optional modules in BeAR require a stellar spectrum as input. BeAR can handle
+stellar spectra in the three different ways:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference internal" href="#sec-stellar-spectrum-bb"><span class="std std-ref">Blackbody spectra</span></a></p></li>
+<li><p><a class="reference internal" href="#sec-stellar-spectrum-file"><span class="std std-ref">A single, tabulated stellar spectrum</span></a></p></li>
+<li><p><a class="reference internal" href="#sec-stellar-spectrum-bb"><span class="std std-ref">A grid of stellar atmosphere spectra</span></a></p></li>
+</ul>
+</div></blockquote>
+<section id="blackbody-spectra">
+<span id="sec-stellar-spectrum-bb"></span><h2>Blackbody spectra<a class="headerlink" href="#blackbody-spectra" title="Permalink to this heading">¶</a></h2>
+<p>The simplest way to provide a stellar spectrum is by using a blackbody spectrum. It is chosen by using
+the keyword <code class="code docutils literal notranslate"><span class="pre">blackbody</span></code> in the corresponding section in the <code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code> file:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Stellar spectrum</span>
+<span class="n">blackbody</span>
+</pre></div>
+</div>
+<p>This option requires the user to provide the temperature of the blackbody spectrum in Kelvin as a free
+parameter in the priors configuration file.</p>
+</section>
+<section id="tabulated-stellar-spectrum">
+<span id="sec-stellar-spectrum-file"></span><h2>Tabulated stellar spectrum<a class="headerlink" href="#tabulated-stellar-spectrum" title="Permalink to this heading">¶</a></h2>
+<p>If a tabulated stellar spectrum is used, the keyword <code class="code docutils literal notranslate"><span class="pre">file</span></code> has to be used in the corresponding</p>
+<p><cite>forward_model.config`</cite> file:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Stellar spectrum</span>
+<span class="n">file</span> <span class="n">WASP</span><span class="o">-</span><span class="mf">43.</span><span class="n">dat</span>
+</pre></div>
+</div>
+<p>with the file name of the stellar spectrum following the keyword. The file has to be located in the
+main retrieval folder. It has the following structure:</p>
+<pre class="literal-block">#Wavelength (micron)    Flux (W/m2/micron)
+5.551000e-02    5.693171e-33
+5.552000e-02    5.800245e-33
+5.553000e-02    5.909291e-33
+5.554000e-02    6.020349e-33
+5.555000e-02    6.133451e-33
+5.556000e-02    6.248634e-33
+5.557000e-02    6.365938e-33
+5.558000e-02    6.485398e-33
+5.559000e-02    6.607055e-33
+5.560000e-02    6.730948e-33
+5.561000e-02    6.857117e-33
+5.562000e-02    6.985604e-33
+5.563000e-02    7.116450e-33
+5.564000e-02    7.249697e-33
+5.565000e-02    7.385387e-33
+5.566000e-02    7.523568e-33
+5.567000e-02    7.664280e-33
+5.568000e-02    7.807571e-33
+5.569000e-02    7.953487e-33
+5.570000e-02    8.102075e-33
+5.571000e-02    8.253380e-33
+5.572000e-02    8.407459e-33
+5.573000e-02    8.564354e-33
+5.574000e-02    8.724117e-33
+5.575000e-02    8.886800e-33
+5.576000e-02    9.052455e-33
+</pre>
+<p>The first column contains the wavelengths in micrometers, while the second column contains the stellar photospheric
+flux in <span class="math notranslate nohighlight">\(\mathrm{W/m^2/\mu m}\)</span>. The spectrum will be interpolated to the wavenumber grid of the retrieval.
+However, it needs to cover the entire wavelength range of the observations that are used in a retrieval.
+BeAR will not extrapolate the spectrum but replace missing values outside of the tabulated range with zeros.
+This stellar spectrum does not require a free parameter in the priors configuration file.</p>
+</section>
+<section id="grid-of-tabulated-stellar-spectra">
+<span id="sec-stellar-spectrum-grid"></span><h2>Grid of tabulated stellar spectra<a class="headerlink" href="#grid-of-tabulated-stellar-spectra" title="Permalink to this heading">¶</a></h2>
+<p>In some cases, it is necessary to use a grid of stellar atmosphere models. This is especially the case
+when one wants to sample stellar spectra for a range of different effective temperatures, surface gravities, or metallicities.
+Exmaples of grids of stellar spectra are the <a class="reference external" href="https://phoenix.astro.physik.uni-goettingen.de/">PHOENIX stellar atmosphere library</a>
+or the <a class="reference external" href="https://zenodo.org/records/7416042">SPHINX library</a></p>
+<p>To use a grid of stellar spectra, the keyword <code class="code docutils literal notranslate"><span class="pre">grid</span></code> has to be used in the corresponding <code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code> file:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Stellar spectrum</span>
+<span class="n">grid</span> <span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">phoenix_grid</span><span class="o">/</span>
+</pre></div>
+</div>
+<p>followed by a path to the folder that contains the grid of stellar atmosphere models.
+BeAR currently assumes that the grid is given in terms of:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>stellar effective temperature in Kelvin</p></li>
+<li><p>logarithm of the surface gravity in <span class="math notranslate nohighlight">\(\mathrm{cm/s^2}\)</span></p></li>
+<li><p>metallicity in logarithm of solar units (typically [Fe/H])</p></li>
+</ul>
+</div></blockquote>
+<p>The folder with the stellar grid should contain a file called <code class="docutils literal notranslate"><span class="pre">grid_parameters.dat</span></code> that
+lists the parameters of the grid. It needs to have the following structure:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mf">2300.0</span>  <span class="mf">2400.0</span>  <span class="mf">2500.0</span>  <span class="mf">2600.0</span>  <span class="mf">2700.0</span>  <span class="mf">2800.0</span>  <span class="mf">2900.0</span>  <span class="mf">3000.0</span>  <span class="mf">3100.0</span>  <span class="mf">3200.0</span>  <span class="mf">3300.0</span>  <span class="mf">3400.0</span>  <span class="mf">3500.0</span>  <span class="mf">3600.0</span>  <span class="mf">3700.0</span>
+<span class="mf">2.5</span>  <span class="mf">3.0</span>  <span class="mf">3.5</span>  <span class="mf">4.0</span>  <span class="mf">4.5</span>  <span class="mf">5.0</span>  <span class="mf">5.5</span>  <span class="mf">6.0</span>
+<span class="o">-</span><span class="mf">1.0</span>  <span class="o">-</span><span class="mf">0.5</span>  <span class="mf">0.0</span>  <span class="mf">0.5</span>  <span class="mf">1.0</span>
+<span class="n">wavelengths</span><span class="o">.</span><span class="n">bin</span>
+<span class="mf">3500.0</span>  <span class="mf">3.5</span>  <span class="o">-</span><span class="mf">0.5</span>  <span class="n">lte03500</span><span class="o">-</span><span class="mf">3.50</span><span class="o">-</span><span class="mf">0.5</span><span class="o">.</span><span class="n">PHOENIX</span><span class="o">-</span><span class="n">ACES</span><span class="o">-</span><span class="n">AGSS</span><span class="o">-</span><span class="n">COND</span><span class="o">-</span><span class="mi">2011</span><span class="o">-</span><span class="n">HiRes</span><span class="o">.</span><span class="n">bin</span>
+<span class="mf">3400.0</span>  <span class="mf">3.5</span>  <span class="mf">0.0</span>  <span class="n">lte03400</span><span class="o">-</span><span class="mf">3.50</span><span class="o">-</span><span class="mf">0.0</span><span class="o">.</span><span class="n">PHOENIX</span><span class="o">-</span><span class="n">ACES</span><span class="o">-</span><span class="n">AGSS</span><span class="o">-</span><span class="n">COND</span><span class="o">-</span><span class="mi">2011</span><span class="o">-</span><span class="n">HiRes</span><span class="o">.</span><span class="n">bin</span>
+<span class="mf">5300.0</span>  <span class="mf">5.5</span>  <span class="mf">0.5</span>  <span class="n">lte05300</span><span class="o">-</span><span class="mf">5.50</span><span class="o">+</span><span class="mf">0.5</span><span class="o">.</span><span class="n">PHOENIX</span><span class="o">-</span><span class="n">ACES</span><span class="o">-</span><span class="n">AGSS</span><span class="o">-</span><span class="n">COND</span><span class="o">-</span><span class="mi">2011</span><span class="o">-</span><span class="n">HiRes</span><span class="o">.</span><span class="n">bin</span>
+<span class="mf">3100.0</span>  <span class="mf">6.0</span>  <span class="mf">0.5</span>  <span class="n">lte03100</span><span class="o">-</span><span class="mf">6.00</span><span class="o">+</span><span class="mf">0.5</span><span class="o">.</span><span class="n">PHOENIX</span><span class="o">-</span><span class="n">ACES</span><span class="o">-</span><span class="n">AGSS</span><span class="o">-</span><span class="n">COND</span><span class="o">-</span><span class="mi">2011</span><span class="o">-</span><span class="n">HiRes</span><span class="o">.</span><span class="n">bin</span>
+<span class="mf">5700.0</span>  <span class="mf">3.0</span>  <span class="o">-</span><span class="mf">0.5</span>  <span class="n">lte05700</span><span class="o">-</span><span class="mf">3.00</span><span class="o">-</span><span class="mf">0.5</span><span class="o">.</span><span class="n">PHOENIX</span><span class="o">-</span><span class="n">ACES</span><span class="o">-</span><span class="n">AGSS</span><span class="o">-</span><span class="n">COND</span><span class="o">-</span><span class="mi">2011</span><span class="o">-</span><span class="n">HiRes</span><span class="o">.</span><span class="n">bin</span>
+<span class="mf">3000.0</span>  <span class="mf">6.0</span>  <span class="o">-</span><span class="mf">0.5</span>  <span class="n">lte03000</span><span class="o">-</span><span class="mf">6.00</span><span class="o">-</span><span class="mf">0.5</span><span class="o">.</span><span class="n">PHOENIX</span><span class="o">-</span><span class="n">ACES</span><span class="o">-</span><span class="n">AGSS</span><span class="o">-</span><span class="n">COND</span><span class="o">-</span><span class="mi">2011</span><span class="o">-</span><span class="n">HiRes</span><span class="o">.</span><span class="n">bin</span>
+<span class="mf">3400.0</span>  <span class="mf">6.0</span>  <span class="mf">0.0</span>  <span class="n">lte03400</span><span class="o">-</span><span class="mf">6.00</span><span class="o">-</span><span class="mf">0.0</span><span class="o">.</span><span class="n">PHOENIX</span><span class="o">-</span><span class="n">ACES</span><span class="o">-</span><span class="n">AGSS</span><span class="o">-</span><span class="n">COND</span><span class="o">-</span><span class="mi">2011</span><span class="o">-</span><span class="n">HiRes</span><span class="o">.</span><span class="n">bin</span>
+<span class="mf">2300.0</span>  <span class="mf">4.0</span>  <span class="o">-</span><span class="mf">0.5</span>  <span class="n">lte02300</span><span class="o">-</span><span class="mf">4.00</span><span class="o">-</span><span class="mf">0.5</span><span class="o">.</span><span class="n">PHOENIX</span><span class="o">-</span><span class="n">ACES</span><span class="o">-</span><span class="n">AGSS</span><span class="o">-</span><span class="n">COND</span><span class="o">-</span><span class="mi">2011</span><span class="o">-</span><span class="n">HiRes</span><span class="o">.</span><span class="n">bin</span>
+</pre></div>
+</div>
+<p>The first line contains the list of stellar effective temperatures, the second line the list of surface gravities,
+and the third line the list of metallicities. BeAR assumes that the grid rectangular and regular, which means that
+every possible combinations of the parameters should have a tabulated stellar spectrum.
+If the original grid is not complete, the user has to extraplate the grid to cover all possible combinations or
+create dummy data sets if those spectra will not get sampled during a retrieval.</p>
+<p>The fourth line contains the name of the file that contains the wavelength grid for the stellar spectra. Each spectrum
+has to be tabulated at these wavelengths. These wavelengths have to be in micrometers and saved in a binary file that
+contains single precision floating point numbers.</p>
+<p>Below the wavelength file, the actual grid of stellar spectra is listed.
+Each line contains the effective temperature, the surface gravity, the metallicity, and the file name of the tabulated spectrum.
+Like the wavelength file, the spectra have to be saved in binary format and have to be tabulated at the wavelengths listed
+in the wavelength file. The spectra need to cover the entire wavelength range of the observations that are used in a retrieval.
+BeAR will not extrapolate the spectra but replace missing values outside of the tabulated range with zeros.</p>
+<p>The binrary files should contain the stellar photospheric flux in <span class="math notranslate nohighlight">\(\mathrm{W/m^2/\mu m}\)</span> as single-precision
+floating point numbers. As mentioned above, BeAR expects to find a stellar spectrum entry for every possible combination
+of stellar parameters. If this is not the case, an error message will be displayed and the code will terminate.</p>
+<p>The use of the stellar grid requires the user to provide the effective temperature, the surface gravity, and the
+metallicity as free parameters in the priors configuration file.</p>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../index.html">
+    <img class="logo" src="../_static/bear.png" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+<p class="blurb">BeAR - The Bern Atmospheric Retrieval code</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=daniel-kitzmann&repo=bear&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="licence.html">Licence</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="opacity_data.html">Opacity data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="observations.html">Observations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="forward_models.html">Forward Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="retrieval_setup.html">Setting up a retrieval</a></li>
+<li class="toctree-l1"><a class="reference internal" href="temperature_profiles.html">Temperature profiles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="chemistry_models.html">Chemistry Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cloud_models.html">Cloud Models</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Stellar spectra</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#blackbody-spectra">Blackbody spectra</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#tabulated-stellar-spectrum">Tabulated stellar spectrum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#grid-of-tabulated-stellar-spectra">Grid of tabulated stellar spectra</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="profile_parametrisations.html">Parametrisations of vertical profiles</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="cloud_models.html" title="previous chapter">Cloud Models</a></li>
+      <li>Next: <a href="profile_parametrisations.html" title="next chapter">Parametrisations of vertical profiles</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020 - 2024, Daniel Kitzmann.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      
+      |
+      <a href="../_sources/sections/stellar_spectra.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

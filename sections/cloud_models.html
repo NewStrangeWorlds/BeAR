@@ -14,7 +14,7 @@
     <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Parametrisations of vertical profiles" href="profile_parametrisations.html" />
+    <link rel="next" title="Stellar spectra" href="stellar_spectra.html" />
     <link rel="prev" title="Chemistry Models" href="chemistry_models.html" />
    
   <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
@@ -37,14 +37,15 @@
 <p>BeAR currently includes the following cloud descriptions:</p>
 <blockquote>
 <div><ul class="simple">
-<li><p>Grey cloud layer</p></li>
-<li><p>Non-grey cloud fit from
+<li><p><a class="reference internal" href="#sec-cloud-model-grey"><span class="std std-ref">Grey cloud layer</span></a></p></li>
+<li><p><a class="reference internal" href="#sec-cloud-model-kh"><span class="std std-ref">Non-grey cloud fit</span></a> from
 <a class="reference external" href="https://ui.adsabs.harvard.edu/abs/2018MNRAS.475...94K/">Kitzmann &amp; Heng (2018)</a></p></li>
-<li><p>Power law cloud layer</p></li>
+<li><p><a class="reference internal" href="#sec-cloud-model-power-law"><span class="std std-ref">Power law cloud layer</span></a></p></li>
 </ul>
 </div></blockquote>
+<p>The code also supports the <a class="reference internal" href="#sec-cloud-model-mixing"><span class="std std-ref">mixing of different cloud models</span></a> in a single retrieval.</p>
 <section id="grey-cloud-model">
-<h2>Grey Cloud Model<a class="headerlink" href="#grey-cloud-model" title="Permalink to this heading">¶</a></h2>
+<span id="sec-cloud-model-grey"></span><h2>Grey Cloud Model<a class="headerlink" href="#grey-cloud-model" title="Permalink to this heading">¶</a></h2>
 <p>The grey cloud layer model is the most simple cloud parametrisation available in BeAR.
 It puts a cloud layer with a certain geometric height and a wavelength-independent
 optical depth into the atmosphere. It is selected by using the keyword
@@ -85,7 +86,7 @@ below the cloud top. In this case, only two free parameters are required in the 
 </div></blockquote>
 </section>
 <section id="kitzmann-heng-non-grey-cloud-model">
-<h2>Kitzmann &amp; Heng Non-Grey Cloud Model<a class="headerlink" href="#kitzmann-heng-non-grey-cloud-model" title="Permalink to this heading">¶</a></h2>
+<span id="sec-cloud-model-kh"></span><h2>Kitzmann &amp; Heng Non-Grey Cloud Model<a class="headerlink" href="#kitzmann-heng-non-grey-cloud-model" title="Permalink to this heading">¶</a></h2>
 <p>This description of a non-grey cloud layer is based on analytical fits to the Mie efficiencies
 of the cloud particles presented by
 <a class="reference external" href="https://ui.adsabs.harvard.edu/abs/2018MNRAS.475...94K/">Kitzmann &amp; Heng (2018)</a>.
@@ -161,7 +162,7 @@ below the cloud top. In this case, only five free parameters are required in the
 </div></blockquote>
 </section>
 <section id="power-law-cloud-model">
-<h2>Power-Law Cloud Model<a class="headerlink" href="#power-law-cloud-model" title="Permalink to this heading">¶</a></h2>
+<span id="sec-cloud-model-power-law"></span><h2>Power-Law Cloud Model<a class="headerlink" href="#power-law-cloud-model" title="Permalink to this heading">¶</a></h2>
 <p>This cloud model uses a power law to describe the wavelength-dependent optical depth of
 the cloud layer. It uses the optical depth at a reference wavelength as normalisation:</p>
 <div class="math notranslate nohighlight">
@@ -211,7 +212,7 @@ below the cloud top. In this case, only two three parameters are required in the
 </div></blockquote>
 </section>
 <section id="mixing-different-cloud-models">
-<h2>Mixing different cloud models<a class="headerlink" href="#mixing-different-cloud-models" title="Permalink to this heading">¶</a></h2>
+<span id="sec-cloud-model-mixing"></span><h2>Mixing different cloud models<a class="headerlink" href="#mixing-different-cloud-models" title="Permalink to this heading">¶</a></h2>
 <p>BeAR also has the ability to use multiple clouds simultaneously. For example, to perform a retrieval with
 grey cloud layer and a second cloud with a power-law optical depth to simulate, for example, a haze-like
 behaviour, the following can be used as configuration in the <code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code> file:</p>
@@ -286,6 +287,7 @@ cloud models listed in <code class="docutils literal notranslate"><span class="p
 <li class="toctree-l2"><a class="reference internal" href="#mixing-different-cloud-models">Mixing different cloud models</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="stellar_spectra.html">Stellar spectra</a></li>
 <li class="toctree-l1"><a class="reference internal" href="profile_parametrisations.html">Parametrisations of vertical profiles</a></li>
 </ul>
 
@@ -294,7 +296,7 @@ cloud models listed in <code class="docutils literal notranslate"><span class="p
 <ul>
   <li><a href="../index.html">Documentation overview</a><ul>
       <li>Previous: <a href="chemistry_models.html" title="previous chapter">Chemistry Models</a></li>
-      <li>Next: <a href="profile_parametrisations.html" title="next chapter">Parametrisations of vertical profiles</a></li>
+      <li>Next: <a href="stellar_spectra.html" title="next chapter">Stellar spectra</a></li>
   </ul></li>
 </ul>
 </div>
