@@ -1,0 +1,33 @@
+#Number of levels
+70
+
+#Bottom of atmosphere pressure (bar)
+300
+
+#Top of atmosphere pressure (bar)
+1e-3
+
+#Temperature profile
+cubicbspline 5
+
+#Cloud model
+none
+
+#Radiative transfer (scm/disort)
+scm
+
+#Retrieved chemical species
+iso H2O CH4 NH3 K H2S CO2
+bg H2He
+
+#Opacity species&folders
+CIA-H2-H2   CIA/H2-H2
+CIA-H2-He   CIA/H2-He
+K           Alkali_Allard/K
+Na          Alkali_Allard/Na
+H2O         Molecules/1H2-16O__POKAZATEL_e2b
+CH4         Molecules/12C-1H4__YT34to10_e2b
+NH3         Molecules/14N-1H3__CoYuTe_e2b
+H2S         Molecules/1H2-32S__AYT2_e2b
+CO2         Molecules/12C-16O2__CDSD_4000_e2b
+

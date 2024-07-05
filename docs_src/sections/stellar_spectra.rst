@@ -45,8 +45,8 @@ If a tabulated stellar spectrum is used, the keyword :code:`file` has to be used
    #Stellar spectrum
    file WASP-43.dat
 
-with the file name of the stellar spectrum following the keyword. The file has to be located in the
-main retrieval folder. It has the following structure:
+with the file name of the stellar spectrum following the keyword. The file location hast to be given relative 
+to the path of the BeAR executable. It has the following structure:
 
 .. include:: ../examples/WASP-43.dat
    :literal:
