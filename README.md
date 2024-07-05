@@ -12,5 +12,5 @@ Successful applications include retrieval of brown dwarf emission spectra (Kitzm
 
 # User guide #
 
-BeAR comes with a user guide that can be found here: https://newstrangeworlds.github.io/BeAR/ . It describes the installation and usage of BeAR, including a details on the different forward models and additional modules it contains.
+BeAR comes with a user guide that can be found here: https://newstrangeworlds.github.io/BeAR/ . It describes the installation and usage of BeAR, including a details on the different forward models and additional modules it contains. The documentation is currently under heavy revision and might not yet be fully complete.
 
