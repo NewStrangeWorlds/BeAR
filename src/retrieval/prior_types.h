@@ -25,6 +25,8 @@
 #include <cmath>
 #include <vector>
 
+#include "../additional/physical_const.h"
+
 #define BOOST_IF_CONSTEXPR if
 #include "../../_deps/boost_math-src/include/boost/math/special_functions/erf.hpp"
 
@@ -63,6 +65,25 @@ class BasicPrior{
   protected:
     std::string distribution_type = "";
     std::string parameter_name = "";
+
+    double unit = 1.0;
+    std::string unit_description = "";
+
+    void setUnit() {
+      if (unit_description == "Me" ||  unit_description == "Mearth") {
+        unit = constants::mass_earth;
+      } else if (unit_description == "Mj" || unit_description == "Mjupiter") {
+        unit = constants::mass_jupiter;
+      } else if (unit_description == "Ms" || unit_description == "Msun") {
+        unit = constants::mass_sun;
+      } else if (unit_description == "Re" || unit_description == "Rearth") {
+        unit = constants::radius_earth;
+      } else if (unit_description == "Rj" || unit_description == "Rjupiter") {
+        unit = constants::radius_jupiter;
+      } else if (unit_description == "Rs" || unit_description == "Rsun") {
+        unit = constants::radius_sun;
+      }
+    };
 };
 
 

@@ -1,0 +1,12 @@
+#observation description
+#instrument
+MIRI F1500W
+
+#type
+photometry
+
+#filter transmission function
+../telescope_data/JWST_MIRI_F1500W.dat
+
+#lower wavelength (micron)  upper wavelength (micron)   eclipse depth   error
+12.77	17.5100	 320.726738 	31.348

@@ -53,7 +53,7 @@ SecondaryEclipseBlackBodyModel::SecondaryEclipseBlackBodyModel (
 {
   std::cout << "Forward model selected: Secondary Eclipse Black Body\n\n";
 
-  //this forward model has three free general parameters
+  //this forward model has two free general parameters
   nb_general_param = 2;
 
   for (auto & i : observations)

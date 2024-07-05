@@ -68,8 +68,8 @@ SecondaryEclipseModel::SecondaryEclipseModel (
 
   std::cout << "Forward model selected: Secondary Eclipse\n\n";
 
-  //this forward model has three free general parameters
-  nb_general_param = 3;
+  //this forward model has two free general parameters
+  nb_general_param = 2;
 
   for (auto & i : observations)
   {

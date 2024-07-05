@@ -29,6 +29,7 @@
 #include "../../chemistry/select_chemistry.h"
 #include "../../temperature/select_temperature_profile.h"
 #include "../../cloud_model/select_cloud_model.h"
+#include "../modules/select_module.h"
 
 
 namespace bear{
@@ -74,6 +75,25 @@ void TransmissionModel::initModules(const TransmissionModelConfig& model_config)
   
   for (auto & i : cloud_models)
     nb_total_cloud_param += i->nbParameters();
+
+  if (model_config.use_optional_modules)
+  {
+    for (size_t i=0; i<model_config.modules.size(); ++i)
+    {
+      Module* module = selectModule(
+        model_config.modules[i], 
+        model_config.modules_parameters[i],
+        spectral_grid);
+    
+      if (module != nullptr)
+        modules.push_back(module);
+    }
+  
+    nb_total_modules_param = 0;
+  
+    for (auto & i : modules)
+      nb_total_modules_param += i->nbParameters();
+    }
 
   //if (cloud_model != nullptr) nb_cloud_param = cloud_model->nbParameters();
 }

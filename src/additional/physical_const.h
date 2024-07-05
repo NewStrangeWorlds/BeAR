@@ -38,10 +38,11 @@ double const gas_constant = 8.314472e7;                     //universal gas cons
 
 //additional constants
 double const radius_earth = 6.37123e8;                      //mean Earth radius in cm
-double const radius_sun = 696342.*100000.;                  //Solar radius in cm
+double const radius_sun = 6.96342e10;                       //Solar radius in cm
 double const radius_jupiter = 7.1492e9;                     //mean Jupiter radius in cm
-double const mass_earth = 5.97219e24 * 1000.;               //Earth mass in g
-double const mass_jupiter = 1.89813e27 * 1000.;             //Jupiter mass in g
+double const mass_earth = 5.97219e27;                       //Earth mass in g
+double const mass_jupiter = 1.89813e30;                     //Jupiter mass in g
+double const mass_sun = 1.9884e33;                          //Solar mass in g
 
 double const parsec = 3.08567758135e18;                     //1 parsec in cm
 
