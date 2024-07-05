@@ -8,11 +8,11 @@ BeAR currently includes the following forward models:
 
   - :ref:`Transmission spectrum <sec:forward_model_transmission>`
 
-  - Emission spectrum
+  - :ref:`Emission spectrum <sec:forward_model_em>`
 
-  - Secondary eclipse spectrum
+  - :ref:`Secondary eclipse spectrum <sec:forward_model_se>`
 
-  - Secondary eclipse spectra with a planetary blackbody
+  - :ref:`Secondary eclipse spectra with a planetary blackbody <sec:forward_model_se_bb>`
 
   - :ref:`Flat line <sec:forward_model_flat>`
 
@@ -113,8 +113,174 @@ prior configuration file.
 
 With the next two entries, the parametrisation for the 
 :ref:`temperature profile <sec:temperature_profiles>` and
-the :ref:`cloud models <sec:cloud_models>` are set. After than, optional
+the :ref:`cloud models <sec:cloud_models>` are set. After that, optional
 modules can be added to the forward model.
+
+Finally, the different :ref:`chemistry models <sec:chemistry_models>`, chemical species, and the
+:ref:`opacity sources <sec:opacity_data>` are selected. It is important to note that
+chemical species that are used as part of the chemistry models, should normally also have
+an associated opacity source. Otherwise, the impact of that species on the 
+resulting spectrum might be negligible and, therefore, its abundance will be 
+likely be unconstrained.
+
+On the other hand, it is theoretically also possible to add opacity species
+without including this species in any of the chemistry models. In this case, the
+abundance of this species will be zero and, thus, won't show up in the spectrum.
+
+
+
+.. _sec:forward_model_se:
+
+Secondary eclipse spectrum
+--------------------------
+
+This forward model computes the wavelength-dependent secondary eclipse (or occulation) 
+depth :math:`D(\lambda)` of an exoplanet atmosphere, given by
+
+.. math::
+  D(\lambda) = \frac{F_p(\lambda)}{F_*(\lambda)} \left(\frac{R_p(\lambda)}{R_*}\right)^2 \ ,
+
+where :math:`F_p(\lambda)` is the outgoing flux at top of the planet's atmosphere,
+:math:`F_*(\lambda)` is the stellar photospheric flux, :math:`R_p(\lambda)` 
+is the wavelength-dependent planetary radius and :math:`R_*` the radius of the host star. 
+In BeAR, :math:`D(\lambda)` has units of ppm.
+
+In the retrieval config file ``retrieval.config`` it is selected by choosing:
+
+.. code:: 
+
+   #Forward model
+   secondary_eclipse
+
+The secondary eclipse spectrum forward model has two general free parameters that
+have to be added to the priors configuration file in the following order:
+
+  - logarithm of surface gravity :math:`\log g` in cgs units
+
+  - ratio of the planet's and stellar radius :math:`\mathrm{R_p/R_*}`
+
+The ``forward_model.config`` file for the secondary eclipse spectrum model has
+the following structure:
+
+.. include:: ../examples/forward_model_se.dat
+   :literal:
+
+The first three entries refer to the vertical discretisation of the atmosphere.
+This includes the number of atmospheric layers as well as the bottom and 
+top-of-atmosphere pressures in units of bars.
+
+With the next two entries, the parametrisation for the :ref:`temperature profile <sec:temperature_profiles>`, 
+the :ref:`stellar spectrum <sec:stellar_spectra>`, and the :ref:`cloud models <sec:cloud_models>` are set. 
+
+After that, the radiative transfer scheme is chosen. There are currently two 
+different options:
+
+  - ``scm`` - the short characteristic method, available for CPU and GPU
+
+  - ``disort`` - the discrete-ordinate solver DISORT, only available for CPU
+
+Finally, the different :ref:`chemistry models <sec:chemistry_models>`, chemical species, and the
+:ref:`opacity sources <sec:opacity_data>` are selected. It is important to note that
+chemical species that are used as part of the chemistry models, should normally also have
+an associated opacity source. Otherwise, the impact of that species on the 
+resulting spectrum might be negligible and, therefore, its abundance will be 
+likely be unconstrained.
+
+On the other hand, it is theoretically also possible to add opacity species
+without including this species in any of the chemistry models. In this case, the
+abundance of this species will be zero and, thus, won't show up in the spectrum.
+
+
+
+.. _sec:forward_model_se_bb:
+
+Secondary eclipse spectrum with planetary blackbody
+---------------------------------------------------
+
+This forward model computes the wavelength-dependent secondary eclipse (or occulation) 
+depth :math:`D(\lambda)` of an exoplanet atmosphere, given by
+
+.. math::
+  D(\lambda) = \frac{F_p(\lambda)}{F_*(\lambda)} \left(\frac{R_p(\lambda)}{R_*}\right)^2 \ ,
+
+where :math:`F_p(\lambda)` is the outgoing flux at top of the planet's atmosphere,
+:math:`F_*(\lambda)` is the stellar photospheric flux, :math:`R_p(\lambda)` 
+is the wavelength-dependent planetary radius and :math:`R_*` the radius of the host star. 
+In BeAR, :math:`D(\lambda)` has units of ppm.
+
+This model is a special case of the secondary eclipse spectrum model, where the planet's flux
+is assumed to be blackbody radiation. This is often used to test if the observational data warrants 
+a more complex model or when only a few, usually photometric, data points are available.
+
+In the retrieval config file ``retrieval.config`` it is selected by choosing:
+
+.. code:: 
+
+   #Forward model
+   secondary_eclipse_bb
+
+This forward model has two general free parameters that
+have to be added to the priors configuration file in the following order:
+
+  - the planet's effective temperature in Kelvin
+
+  - ratio of the planet's and stellar radius :math:`\mathrm{R_p/R_*}`
+
+The ``forward_model.config`` file for the secondary eclipse spectrum model has
+the following structure:
+
+.. include:: ../examples/forward_model_se_bb.dat
+   :literal:
+
+It contains a single option related to description of the stellar spectrum. Information
+on the available options can be found in the :ref:`section <sec:stellar_spectra>` on stellar spectra.
+
+
+.. _sec:forward_model_em:
+
+Emission spectrum
+-----------------
+
+This forward model computes the emission spectrum :math:`F(\lambda)` of an exoplanet or brown dwarf atmosphere.
+In BeAR, :math:`F(\lambda)` has units of :math:`\mathrm{W} \mathrm{m^{-2}} \mathrm{\mu m^{-1}}`.
+
+In the retrieval config file ``retrieval.config`` it is selected by choosing:
+
+.. code:: 
+
+   #Forward model
+   emission
+
+The emission spectrum forward model has two general free parameters that
+have to be added to the priors configuration file in the following order:
+
+  - logarithm of surface gravity :math:`\log g` in cgs units
+
+  - a scaling factor :math:`f` for the radius/distance relationship, 
+    where the radius is internally set to 1 Jupiter radius
+
+  - distance to the object in parsecs
+
+The ``forward_model.config`` file for the emission spectrum model has
+the following structure:
+
+.. include:: ../examples/forward_model_em.dat
+   :literal:
+
+The first three entries refer to the vertical discretisation of the atmosphere.
+This includes the number of atmospheric layers as well as the bottom and 
+top-of-atmosphere pressures in units of bars.
+
+With the next two entries, the parametrisation for the 
+:ref:`temperature profile <sec:temperature_profiles>` and
+the :ref:`cloud models <sec:cloud_models>` are set. 
+
+After that, the radiative transfer scheme is set. There are currently two 
+different options:
+
+  - ``scm`` - the short characteristic method, available for CPU and GPU
+
+  - ``disort`` - the discrete-ordinate solver DISORT, only available for CPU
 
 Finally, the different :ref:`chemistry models <sec:chemistry_models>`, chemical species, and the
 :ref:`opacity sources <sec:opacity_data>` are selected. It is important to note that

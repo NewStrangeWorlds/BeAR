@@ -38,9 +38,9 @@
 <blockquote>
 <div><ul class="simple">
 <li><p><a class="reference internal" href="#sec-forward-model-transmission"><span class="std std-ref">Transmission spectrum</span></a></p></li>
-<li><p>Emission spectrum</p></li>
-<li><p>Secondary eclipse spectrum</p></li>
-<li><p>Secondary eclipse spectra with a planetary blackbody</p></li>
+<li><p><a class="reference internal" href="#sec-forward-model-em"><span class="std std-ref">Emission spectrum</span></a></p></li>
+<li><p><a class="reference internal" href="#sec-forward-model-se"><span class="std std-ref">Secondary eclipse spectrum</span></a></p></li>
+<li><p><a class="reference internal" href="#sec-forward-model-se-bb"><span class="std std-ref">Secondary eclipse spectra with a planetary blackbody</span></a></p></li>
 <li><p><a class="reference internal" href="#sec-forward-model-flat"><span class="std std-ref">Flat line</span></a></p></li>
 </ul>
 </div></blockquote>
@@ -150,8 +150,217 @@ a corresponding prior needs to be added as a fourth model parameter in the
 prior configuration file.</p>
 <p>With the next two entries, the parametrisation for the
 <a class="reference internal" href="temperature_profiles.html#sec-temperature-profiles"><span class="std std-ref">temperature profile</span></a> and
-the <a class="reference internal" href="cloud_models.html#sec-cloud-models"><span class="std std-ref">cloud models</span></a> are set. After than, optional
+the <a class="reference internal" href="cloud_models.html#sec-cloud-models"><span class="std std-ref">cloud models</span></a> are set. After that, optional
 modules can be added to the forward model.</p>
+<p>Finally, the different <a class="reference internal" href="chemistry_models.html#sec-chemistry-models"><span class="std std-ref">chemistry models</span></a>, chemical species, and the
+<a class="reference internal" href="opacity_data.html#sec-opacity-data"><span class="std std-ref">opacity sources</span></a> are selected. It is important to note that
+chemical species that are used as part of the chemistry models, should normally also have
+an associated opacity source. Otherwise, the impact of that species on the
+resulting spectrum might be negligible and, therefore, its abundance will be
+likely be unconstrained.</p>
+<p>On the other hand, it is theoretically also possible to add opacity species
+without including this species in any of the chemistry models. In this case, the
+abundance of this species will be zero and, thus, won’t show up in the spectrum.</p>
+</section>
+<section id="secondary-eclipse-spectrum">
+<span id="sec-forward-model-se"></span><h2>Secondary eclipse spectrum<a class="headerlink" href="#secondary-eclipse-spectrum" title="Permalink to this heading">¶</a></h2>
+<p>This forward model computes the wavelength-dependent secondary eclipse (or occulation)
+depth <span class="math notranslate nohighlight">\(D(\lambda)\)</span> of an exoplanet atmosphere, given by</p>
+<div class="math notranslate nohighlight">
+\[D(\lambda) = \frac{F_p(\lambda)}{F_*(\lambda)} \left(\frac{R_p(\lambda)}{R_*}\right)^2 \ ,\]</div>
+<p>where <span class="math notranslate nohighlight">\(F_p(\lambda)\)</span> is the outgoing flux at top of the planet’s atmosphere,
+<span class="math notranslate nohighlight">\(F_*(\lambda)\)</span> is the stellar photospheric flux, <span class="math notranslate nohighlight">\(R_p(\lambda)\)</span>
+is the wavelength-dependent planetary radius and <span class="math notranslate nohighlight">\(R_*\)</span> the radius of the host star.
+In BeAR, <span class="math notranslate nohighlight">\(D(\lambda)\)</span> has units of ppm.</p>
+<p>In the retrieval config file <code class="docutils literal notranslate"><span class="pre">retrieval.config</span></code> it is selected by choosing:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Forward model</span>
+<span class="n">secondary_eclipse</span>
+</pre></div>
+</div>
+<p>The secondary eclipse spectrum forward model has two general free parameters that
+have to be added to the priors configuration file in the following order:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>logarithm of surface gravity <span class="math notranslate nohighlight">\(\log g\)</span> in cgs units</p></li>
+<li><p>ratio of the planet’s and stellar radius <span class="math notranslate nohighlight">\(\mathrm{R_p/R_*}\)</span></p></li>
+</ul>
+</div></blockquote>
+<p>The <code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code> file for the secondary eclipse spectrum model has
+the following structure:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Number of levels</span>
+<span class="mi">70</span>
+
+<span class="c1">#Bottom of atmosphere pressure (bar)</span>
+<span class="mi">100</span>
+
+<span class="c1">#Top of atmosphere pressure (bar)</span>
+<span class="mf">1e-3</span>
+
+<span class="c1">#Temperature profile</span>
+<span class="n">poly</span> <span class="mi">6</span> <span class="mi">1</span>
+
+<span class="c1">#stellar spectrum</span>
+<span class="n">file</span> <span class="n">SecondaryEclipseExample</span><span class="o">/</span><span class="n">WASP</span><span class="o">-</span><span class="mf">43.</span><span class="n">dat</span>
+
+<span class="c1">#cloud layer</span>
+<span class="n">none</span>
+
+<span class="c1">#Radiative transfer (scm/disort)</span>
+<span class="n">scm</span>
+
+<span class="c1">#Retrieved chemical species</span>
+<span class="n">eq</span> <span class="n">fastchem_parameters</span><span class="o">.</span><span class="n">dat</span>
+
+<span class="c1">#Opacity species&amp;folders</span>
+<span class="n">CIA</span><span class="o">-</span><span class="n">H2</span><span class="o">-</span><span class="n">H2</span>   <span class="n">CIA</span><span class="o">/</span><span class="n">H2</span><span class="o">-</span><span class="n">H2</span>
+<span class="n">CIA</span><span class="o">-</span><span class="n">H2</span><span class="o">-</span><span class="n">He</span>   <span class="n">CIA</span><span class="o">/</span><span class="n">H2</span><span class="o">-</span><span class="n">He</span>
+<span class="n">Na</span>          <span class="n">Alkali_Allard</span><span class="o">/</span><span class="n">Na</span>
+<span class="n">K</span>           <span class="n">Alkali_Allard</span><span class="o">/</span><span class="n">K</span>
+<span class="n">H2O</span>         <span class="n">Molecules</span><span class="o">/</span><span class="n">H2O_pokazatel</span>
+<span class="n">CO</span>          <span class="n">Molecules</span><span class="o">/</span><span class="mi">12</span><span class="n">C</span><span class="o">-</span><span class="mi">16</span><span class="n">O__Li2015_e2b</span>
+<span class="n">TiO</span>         <span class="n">Molecules</span><span class="o">/</span><span class="mi">48</span><span class="n">Ti</span><span class="o">-</span><span class="mi">16</span><span class="n">O__Toto_e2b</span>
+<span class="n">VO</span>          <span class="n">Molecules</span><span class="o">/</span><span class="mi">51</span><span class="n">V</span><span class="o">-</span><span class="mi">16</span><span class="n">O__VOMYT_e2b</span>
+<span class="n">SH</span>          <span class="n">Molecules</span><span class="o">/</span><span class="mi">32</span><span class="n">S</span><span class="o">-</span><span class="mi">1</span><span class="n">H__GYT_e2b</span>
+<span class="n">H2S</span>         <span class="n">Molecules</span><span class="o">/</span><span class="mi">1</span><span class="n">H2</span><span class="o">-</span><span class="mi">32</span><span class="n">S__AYT2_e2b</span>
+<span class="n">FeH</span>         <span class="n">Molecules</span><span class="o">/</span><span class="mi">56</span><span class="n">Fe</span><span class="o">-</span><span class="mi">1</span><span class="n">H__Yueqi_e2b</span>
+<span class="n">CH4</span>         <span class="n">Molecules</span><span class="o">/</span><span class="mi">12</span><span class="n">C</span><span class="o">-</span><span class="mi">1</span><span class="n">H4__YT34to10_e2b</span>
+<span class="n">CO2</span>         <span class="n">Molecules</span><span class="o">/</span><span class="mi">12</span><span class="n">C</span><span class="o">-</span><span class="mi">16</span><span class="n">O2__CDSD_4000_e2b</span>
+<span class="n">HCN</span>         <span class="n">Molecules</span><span class="o">/</span><span class="mi">1</span><span class="n">H</span><span class="o">-</span><span class="mi">12</span><span class="n">C</span><span class="o">-</span><span class="mi">14</span><span class="n">N__Harris_e2b</span>
+<span class="n">MgH</span>         <span class="n">Molecules</span><span class="o">/</span><span class="mi">26</span><span class="n">Mg</span><span class="o">-</span><span class="mi">1</span><span class="n">H__Yadin_e2b</span>
+<span class="n">TiH</span>         <span class="n">Molecules</span><span class="o">/</span><span class="mi">48</span><span class="n">Ti</span><span class="o">-</span><span class="mi">1</span><span class="n">H__MoLLIST_e2b</span>
+<span class="n">CrH</span>         <span class="n">Molecules</span><span class="o">/</span><span class="mi">52</span><span class="n">Cr</span><span class="o">-</span><span class="mi">1</span><span class="n">H__Yueqi_e2b</span>
+<span class="n">CaH</span>         <span class="n">Molecules</span><span class="o">/</span><span class="mi">40</span><span class="n">Ca</span><span class="o">-</span><span class="mi">1</span><span class="n">H__MoLLIST_e2b</span>
+
+</pre></div>
+</div>
+<p>The first three entries refer to the vertical discretisation of the atmosphere.
+This includes the number of atmospheric layers as well as the bottom and
+top-of-atmosphere pressures in units of bars.</p>
+<p>With the next two entries, the parametrisation for the <a class="reference internal" href="temperature_profiles.html#sec-temperature-profiles"><span class="std std-ref">temperature profile</span></a>,
+the <a class="reference internal" href="stellar_spectra.html#sec-stellar-spectra"><span class="std std-ref">stellar spectrum</span></a>, and the <a class="reference internal" href="cloud_models.html#sec-cloud-models"><span class="std std-ref">cloud models</span></a> are set.</p>
+<p>After that, the radiative transfer scheme is chosen. There are currently two
+different options:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">scm</span></code> - the short characteristic method, available for CPU and GPU</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">disort</span></code> - the discrete-ordinate solver DISORT, only available for CPU</p></li>
+</ul>
+</div></blockquote>
+<p>Finally, the different <a class="reference internal" href="chemistry_models.html#sec-chemistry-models"><span class="std std-ref">chemistry models</span></a>, chemical species, and the
+<a class="reference internal" href="opacity_data.html#sec-opacity-data"><span class="std std-ref">opacity sources</span></a> are selected. It is important to note that
+chemical species that are used as part of the chemistry models, should normally also have
+an associated opacity source. Otherwise, the impact of that species on the
+resulting spectrum might be negligible and, therefore, its abundance will be
+likely be unconstrained.</p>
+<p>On the other hand, it is theoretically also possible to add opacity species
+without including this species in any of the chemistry models. In this case, the
+abundance of this species will be zero and, thus, won’t show up in the spectrum.</p>
+</section>
+<section id="secondary-eclipse-spectrum-with-planetary-blackbody">
+<span id="sec-forward-model-se-bb"></span><h2>Secondary eclipse spectrum with planetary blackbody<a class="headerlink" href="#secondary-eclipse-spectrum-with-planetary-blackbody" title="Permalink to this heading">¶</a></h2>
+<p>This forward model computes the wavelength-dependent secondary eclipse (or occulation)
+depth <span class="math notranslate nohighlight">\(D(\lambda)\)</span> of an exoplanet atmosphere, given by</p>
+<div class="math notranslate nohighlight">
+\[D(\lambda) = \frac{F_p(\lambda)}{F_*(\lambda)} \left(\frac{R_p(\lambda)}{R_*}\right)^2 \ ,\]</div>
+<p>where <span class="math notranslate nohighlight">\(F_p(\lambda)\)</span> is the outgoing flux at top of the planet’s atmosphere,
+<span class="math notranslate nohighlight">\(F_*(\lambda)\)</span> is the stellar photospheric flux, <span class="math notranslate nohighlight">\(R_p(\lambda)\)</span>
+is the wavelength-dependent planetary radius and <span class="math notranslate nohighlight">\(R_*\)</span> the radius of the host star.
+In BeAR, <span class="math notranslate nohighlight">\(D(\lambda)\)</span> has units of ppm.</p>
+<p>This model is a special case of the secondary eclipse spectrum model, where the planet’s flux
+is assumed to be blackbody radiation. This is often used to test if the observational data warrants
+a more complex model or when only a few, usually photometric, data points are available.</p>
+<p>In the retrieval config file <code class="docutils literal notranslate"><span class="pre">retrieval.config</span></code> it is selected by choosing:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Forward model</span>
+<span class="n">secondary_eclipse_bb</span>
+</pre></div>
+</div>
+<p>This forward model has two general free parameters that
+have to be added to the priors configuration file in the following order:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>the planet’s effective temperature in Kelvin</p></li>
+<li><p>ratio of the planet’s and stellar radius <span class="math notranslate nohighlight">\(\mathrm{R_p/R_*}\)</span></p></li>
+</ul>
+</div></blockquote>
+<p>The <code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code> file for the secondary eclipse spectrum model has
+the following structure:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Stellar Spectrum</span>
+<span class="n">blackbody</span>
+</pre></div>
+</div>
+<p>It contains a single option related to description of the stellar spectrum. Information
+on the available options can be found in the <a class="reference internal" href="stellar_spectra.html#sec-stellar-spectra"><span class="std std-ref">section</span></a> on stellar spectra.</p>
+</section>
+<section id="emission-spectrum">
+<span id="sec-forward-model-em"></span><h2>Emission spectrum<a class="headerlink" href="#emission-spectrum" title="Permalink to this heading">¶</a></h2>
+<p>This forward model computes the emission spectrum <span class="math notranslate nohighlight">\(F(\lambda)\)</span> of an exoplanet or brown dwarf atmosphere.
+In BeAR, <span class="math notranslate nohighlight">\(F(\lambda)\)</span> has units of <span class="math notranslate nohighlight">\(\mathrm{W} \mathrm{m^{-2}} \mathrm{\mu m^{-1}}\)</span>.</p>
+<p>In the retrieval config file <code class="docutils literal notranslate"><span class="pre">retrieval.config</span></code> it is selected by choosing:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Forward model</span>
+<span class="n">emission</span>
+</pre></div>
+</div>
+<p>The emission spectrum forward model has two general free parameters that
+have to be added to the priors configuration file in the following order:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>logarithm of surface gravity <span class="math notranslate nohighlight">\(\log g\)</span> in cgs units</p></li>
+<li><p>a scaling factor <span class="math notranslate nohighlight">\(f\)</span> for the radius/distance relationship,
+where the radius is internally set to 1 Jupiter radius</p></li>
+<li><p>distance to the object in parsecs</p></li>
+</ul>
+</div></blockquote>
+<p>The <code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code> file for the emission spectrum model has
+the following structure:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Number of levels</span>
+<span class="mi">70</span>
+
+<span class="c1">#Bottom of atmosphere pressure (bar)</span>
+<span class="mi">300</span>
+
+<span class="c1">#Top of atmosphere pressure (bar)</span>
+<span class="mf">1e-3</span>
+
+<span class="c1">#Temperature profile</span>
+<span class="n">cubicbspline</span> <span class="mi">5</span>
+
+<span class="c1">#Cloud model</span>
+<span class="n">none</span>
+
+<span class="c1">#Radiative transfer (scm/disort)</span>
+<span class="n">scm</span>
+
+<span class="c1">#Retrieved chemical species</span>
+<span class="n">iso</span> <span class="n">H2O</span> <span class="n">CH4</span> <span class="n">NH3</span> <span class="n">K</span> <span class="n">H2S</span> <span class="n">CO2</span>
+<span class="n">bg</span> <span class="n">H2He</span>
+
+<span class="c1">#Opacity species&amp;folders</span>
+<span class="n">CIA</span><span class="o">-</span><span class="n">H2</span><span class="o">-</span><span class="n">H2</span>   <span class="n">CIA</span><span class="o">/</span><span class="n">H2</span><span class="o">-</span><span class="n">H2</span>
+<span class="n">CIA</span><span class="o">-</span><span class="n">H2</span><span class="o">-</span><span class="n">He</span>   <span class="n">CIA</span><span class="o">/</span><span class="n">H2</span><span class="o">-</span><span class="n">He</span>
+<span class="n">K</span>           <span class="n">Alkali_Allard</span><span class="o">/</span><span class="n">K</span>
+<span class="n">Na</span>          <span class="n">Alkali_Allard</span><span class="o">/</span><span class="n">Na</span>
+<span class="n">H2O</span>         <span class="n">Molecules</span><span class="o">/</span><span class="mi">1</span><span class="n">H2</span><span class="o">-</span><span class="mi">16</span><span class="n">O__POKAZATEL_e2b</span>
+<span class="n">CH4</span>         <span class="n">Molecules</span><span class="o">/</span><span class="mi">12</span><span class="n">C</span><span class="o">-</span><span class="mi">1</span><span class="n">H4__YT34to10_e2b</span>
+<span class="n">NH3</span>         <span class="n">Molecules</span><span class="o">/</span><span class="mi">14</span><span class="n">N</span><span class="o">-</span><span class="mi">1</span><span class="n">H3__CoYuTe_e2b</span>
+<span class="n">H2S</span>         <span class="n">Molecules</span><span class="o">/</span><span class="mi">1</span><span class="n">H2</span><span class="o">-</span><span class="mi">32</span><span class="n">S__AYT2_e2b</span>
+<span class="n">CO2</span>         <span class="n">Molecules</span><span class="o">/</span><span class="mi">12</span><span class="n">C</span><span class="o">-</span><span class="mi">16</span><span class="n">O2__CDSD_4000_e2b</span>
+
+</pre></div>
+</div>
+<p>The first three entries refer to the vertical discretisation of the atmosphere.
+This includes the number of atmospheric layers as well as the bottom and
+top-of-atmosphere pressures in units of bars.</p>
+<p>With the next two entries, the parametrisation for the
+<a class="reference internal" href="temperature_profiles.html#sec-temperature-profiles"><span class="std std-ref">temperature profile</span></a> and
+the <a class="reference internal" href="cloud_models.html#sec-cloud-models"><span class="std std-ref">cloud models</span></a> are set.</p>
+<p>After that, the radiative transfer scheme is set. There are currently two
+different options:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">scm</span></code> - the short characteristic method, available for CPU and GPU</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">disort</span></code> - the discrete-ordinate solver DISORT, only available for CPU</p></li>
+</ul>
+</div></blockquote>
 <p>Finally, the different <a class="reference internal" href="chemistry_models.html#sec-chemistry-models"><span class="std std-ref">chemistry models</span></a>, chemical species, and the
 <a class="reference internal" href="opacity_data.html#sec-opacity-data"><span class="std std-ref">opacity sources</span></a> are selected. It is important to note that
 chemical species that are used as part of the chemistry models, should normally also have
@@ -204,6 +413,9 @@ abundance of this species will be zero and, thus, won’t show up in the spectru
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Forward Models</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#flat-line">Flat line</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#transmission-spectrum">Transmission spectrum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#secondary-eclipse-spectrum">Secondary eclipse spectrum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#secondary-eclipse-spectrum-with-planetary-blackbody">Secondary eclipse spectrum with planetary blackbody</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#emission-spectrum">Emission spectrum</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="retrieval_setup.html">Setting up a retrieval</a></li>
