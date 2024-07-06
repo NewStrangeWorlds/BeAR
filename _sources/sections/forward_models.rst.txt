@@ -138,11 +138,11 @@ This forward model computes the wavelength-dependent secondary eclipse (or occul
 depth :math:`D(\lambda)` of an exoplanet atmosphere, given by
 
 .. math::
-  D(\lambda) = \frac{F_p(\lambda)}{F_*(\lambda)} \left(\frac{R_p(\lambda)}{R_*}\right)^2 \ ,
+  D(\lambda) = \frac{F_p(\lambda)}{F_*(\lambda)} \left(\frac{R_p}{R_*}\right)^2 \ ,
 
 where :math:`F_p(\lambda)` is the outgoing flux at top of the planet's atmosphere,
-:math:`F_*(\lambda)` is the stellar photospheric flux, :math:`R_p(\lambda)` 
-is the wavelength-dependent planetary radius and :math:`R_*` the radius of the host star. 
+:math:`F_*(\lambda)` is the stellar photospheric flux, :math:`R_p` 
+is the planetary radius and :math:`R_*` the radius of the host star. 
 In BeAR, :math:`D(\lambda)` has units of ppm.
 
 In the retrieval config file ``retrieval.config`` it is selected by choosing:
@@ -201,11 +201,11 @@ This forward model computes the wavelength-dependent secondary eclipse (or occul
 depth :math:`D(\lambda)` of an exoplanet atmosphere, given by
 
 .. math::
-  D(\lambda) = \frac{F_p(\lambda)}{F_*(\lambda)} \left(\frac{R_p(\lambda)}{R_*}\right)^2 \ ,
+  D(\lambda) = \frac{F_p(\lambda)}{F_*(\lambda)} \left(\frac{R_p}{R_*}\right)^2 \ ,
 
 where :math:`F_p(\lambda)` is the outgoing flux at top of the planet's atmosphere,
-:math:`F_*(\lambda)` is the stellar photospheric flux, :math:`R_p(\lambda)` 
-is the wavelength-dependent planetary radius and :math:`R_*` the radius of the host star. 
+:math:`F_*(\lambda)` is the stellar photospheric flux, :math:`R_p` 
+is the planetary radius and :math:`R_*` the radius of the host star. 
 In BeAR, :math:`D(\lambda)` has units of ppm.
 
 This model is a special case of the secondary eclipse spectrum model, where the planet's flux

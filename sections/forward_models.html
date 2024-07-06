@@ -167,10 +167,10 @@ abundance of this species will be zero and, thus, won’t show up in the spectru
 <p>This forward model computes the wavelength-dependent secondary eclipse (or occulation)
 depth <span class="math notranslate nohighlight">\(D(\lambda)\)</span> of an exoplanet atmosphere, given by</p>
 <div class="math notranslate nohighlight">
-\[D(\lambda) = \frac{F_p(\lambda)}{F_*(\lambda)} \left(\frac{R_p(\lambda)}{R_*}\right)^2 \ ,\]</div>
+\[D(\lambda) = \frac{F_p(\lambda)}{F_*(\lambda)} \left(\frac{R_p}{R_*}\right)^2 \ ,\]</div>
 <p>where <span class="math notranslate nohighlight">\(F_p(\lambda)\)</span> is the outgoing flux at top of the planet’s atmosphere,
-<span class="math notranslate nohighlight">\(F_*(\lambda)\)</span> is the stellar photospheric flux, <span class="math notranslate nohighlight">\(R_p(\lambda)\)</span>
-is the wavelength-dependent planetary radius and <span class="math notranslate nohighlight">\(R_*\)</span> the radius of the host star.
+<span class="math notranslate nohighlight">\(F_*(\lambda)\)</span> is the stellar photospheric flux, <span class="math notranslate nohighlight">\(R_p\)</span>
+is the planetary radius and <span class="math notranslate nohighlight">\(R_*\)</span> the radius of the host star.
 In BeAR, <span class="math notranslate nohighlight">\(D(\lambda)\)</span> has units of ppm.</p>
 <p>In the retrieval config file <code class="docutils literal notranslate"><span class="pre">retrieval.config</span></code> it is selected by choosing:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Forward model</span>
@@ -261,10 +261,10 @@ abundance of this species will be zero and, thus, won’t show up in the spectru
 <p>This forward model computes the wavelength-dependent secondary eclipse (or occulation)
 depth <span class="math notranslate nohighlight">\(D(\lambda)\)</span> of an exoplanet atmosphere, given by</p>
 <div class="math notranslate nohighlight">
-\[D(\lambda) = \frac{F_p(\lambda)}{F_*(\lambda)} \left(\frac{R_p(\lambda)}{R_*}\right)^2 \ ,\]</div>
+\[D(\lambda) = \frac{F_p(\lambda)}{F_*(\lambda)} \left(\frac{R_p}{R_*}\right)^2 \ ,\]</div>
 <p>where <span class="math notranslate nohighlight">\(F_p(\lambda)\)</span> is the outgoing flux at top of the planet’s atmosphere,
-<span class="math notranslate nohighlight">\(F_*(\lambda)\)</span> is the stellar photospheric flux, <span class="math notranslate nohighlight">\(R_p(\lambda)\)</span>
-is the wavelength-dependent planetary radius and <span class="math notranslate nohighlight">\(R_*\)</span> the radius of the host star.
+<span class="math notranslate nohighlight">\(F_*(\lambda)\)</span> is the stellar photospheric flux, <span class="math notranslate nohighlight">\(R_p\)</span>
+is the planetary radius and <span class="math notranslate nohighlight">\(R_*\)</span> the radius of the host star.
 In BeAR, <span class="math notranslate nohighlight">\(D(\lambda)\)</span> has units of ppm.</p>
 <p>This model is a special case of the secondary eclipse spectrum model, where the planet’s flux
 is assumed to be blackbody radiation. This is often used to test if the observational data warrants

@@ -1,8 +1,8 @@
 
+.. _sec:opacity_data:
+
 Opacity data
 ============
-
-.. _sec:opacity_data:
 
 BeAR uses mainly tabulated absorption cross-sections for its radiative transfer calculations. 
 The cross-sections have to be given in units of :math:`\mathrm{cm^{2}}` or in cross-sections
@@ -162,3 +162,44 @@ either added to the code or simply be pre-tabulated and then used as the regular
 data discussed above.
 
 
+.. _sec:opacity_config:
+
+Choosing opacity sources in forward models
+..........................................
+
+Most forward models in BeAR require the user to specify the opacity sources that should be used.
+The general format for this is as follows:
+
+.. include:: ../examples/opacity_sources1.dat
+   :literal:
+
+The first column refers to the species' chemical formulas. These need to be listed in the internal
+chemical species list of BeAR as discussed :ref:`here <sec:chemistry_models>`. The second column
+indicates the folder where the opacity data, or more specifically the summary file ``filelist.dat``, 
+for the species can be found. The folders here are relative to the root opacity folder that is set
+as a config parameter in the file ``retrieval.config``. The species do not have to appear in any
+specific order.
+
+For the Rayleigh-scattering species mentioned above, the folder name is replaced by the keyword
+``Rayleigh`` as shown in the following example, where Rayleigh scattering for H2 and He is added.
+
+.. include:: ../examples/opacity_sources2.dat
+   :literal:
+
+Special cases are the bound-free and free-free continuum absorptions for H- and collision-induced
+absorption (CIA). These are added by using the keywords ``H-`` and ``CIA``, respectively, as shown
+below:
+
+.. include:: ../examples/opacity_sources3.dat
+   :literal:
+
+BeAR currently can add the following CIA sources:
+
+  - ``CIA-H2-H2`` - CIA by H2 and H2
+
+  - ``CIA-H2-He`` - CIA by H2 and He
+
+  - ``CIA-H-He`` - CIA by atomic H and He
+
+The opacity for the hydrogen anion H- is calculated by BeAR on-the-fly and does not need a folder
+to be specified. Thus, the keyword ``none`` is used here instead.

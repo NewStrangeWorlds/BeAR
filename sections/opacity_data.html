@@ -33,8 +33,8 @@
           <div class="body" role="main">
             
   <section id="opacity-data">
-<h1>Opacity data<a class="headerlink" href="#opacity-data" title="Permalink to this heading">¶</a></h1>
-<p id="sec-opacity-data">BeAR uses mainly tabulated absorption cross-sections for its radiative transfer calculations.
+<span id="sec-opacity-data"></span><h1>Opacity data<a class="headerlink" href="#opacity-data" title="Permalink to this heading">¶</a></h1>
+<p>BeAR uses mainly tabulated absorption cross-sections for its radiative transfer calculations.
 The cross-sections have to be given in units of <span class="math notranslate nohighlight">\(\mathrm{cm^{2}}\)</span> or in cross-sections
 per species mass <span class="math notranslate nohighlight">\(\mathrm{cm^{2}/g}\)</span>. BeAR is primarily designed to be used
 with the output files from the HELIOS-k opacity calculator. HELIOS-k is an open-source code
@@ -195,6 +195,60 @@ the overall opacity.</p>
 either added to the code or simply be pre-tabulated and then used as the regular opacity
 data discussed above.</p>
 </section>
+<section id="choosing-opacity-sources-in-forward-models">
+<span id="sec-opacity-config"></span><h2>Choosing opacity sources in forward models<a class="headerlink" href="#choosing-opacity-sources-in-forward-models" title="Permalink to this heading">¶</a></h2>
+<p>Most forward models in BeAR require the user to specify the opacity sources that should be used.
+The general format for this is as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Opacity species&amp;folders</span>
+<span class="n">H2O</span>         <span class="n">Molecules</span><span class="o">/</span><span class="mi">1</span><span class="n">H2</span><span class="o">-</span><span class="mi">16</span><span class="n">O__POKAZATEL_e2b</span>
+<span class="n">CH4</span>         <span class="n">Molecules</span><span class="o">/</span><span class="mi">12</span><span class="n">C</span><span class="o">-</span><span class="mi">1</span><span class="n">H4__YT34to10_e2b</span>
+<span class="n">NH3</span>         <span class="n">Molecules</span><span class="o">/</span><span class="mi">14</span><span class="n">N</span><span class="o">-</span><span class="mi">1</span><span class="n">H3__CoYuTe_e2b</span>
+<span class="n">H2S</span>         <span class="n">Molecules</span><span class="o">/</span><span class="mi">1</span><span class="n">H2</span><span class="o">-</span><span class="mi">32</span><span class="n">S__AYT2_e2b</span>
+<span class="n">CO2</span>         <span class="n">Molecules</span><span class="o">/</span><span class="mi">12</span><span class="n">C</span><span class="o">-</span><span class="mi">16</span><span class="n">O2__CDSD_4000_e2b</span>
+
+</pre></div>
+</div>
+<p>The first column refers to the species’ chemical formulas. These need to be listed in the internal
+chemical species list of BeAR as discussed <a class="reference internal" href="chemistry_models.html#sec-chemistry-models"><span class="std std-ref">here</span></a>. The second column
+indicates the folder where the opacity data, or more specifically the summary file <code class="docutils literal notranslate"><span class="pre">filelist.dat</span></code>,
+for the species can be found. The folders here are relative to the root opacity folder that is set
+as a config parameter in the file <code class="docutils literal notranslate"><span class="pre">retrieval.config</span></code>. The species do not have to appear in any
+specific order.</p>
+<p>For the Rayleigh-scattering species mentioned above, the folder name is replaced by the keyword
+<code class="docutils literal notranslate"><span class="pre">Rayleigh</span></code> as shown in the following example, where Rayleigh scattering for H2 and He is added.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Opacity species&amp;folders</span>
+<span class="n">H2</span>          <span class="n">Rayleigh</span>
+<span class="n">He</span>          <span class="n">Rayleigh</span>
+<span class="n">H2O</span>         <span class="n">Molecules</span><span class="o">/</span><span class="mi">1</span><span class="n">H2</span><span class="o">-</span><span class="mi">16</span><span class="n">O__POKAZATEL_e2b</span>
+<span class="n">CH4</span>         <span class="n">Molecules</span><span class="o">/</span><span class="mi">12</span><span class="n">C</span><span class="o">-</span><span class="mi">1</span><span class="n">H4__YT34to10_e2b</span>
+
+</pre></div>
+</div>
+<p>Special cases are the bound-free and free-free continuum absorptions for H- and collision-induced
+absorption (CIA). These are added by using the keywords <code class="docutils literal notranslate"><span class="pre">H-</span></code> and <code class="docutils literal notranslate"><span class="pre">CIA</span></code>, respectively, as shown
+below:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Opacity species&amp;folders</span>
+<span class="n">CIA</span><span class="o">-</span><span class="n">H2</span><span class="o">-</span><span class="n">H2</span>   <span class="n">CIA</span><span class="o">/</span><span class="n">H2</span><span class="o">-</span><span class="n">H2</span>
+<span class="n">CIA</span><span class="o">-</span><span class="n">H2</span><span class="o">-</span><span class="n">He</span>   <span class="n">CIA</span><span class="o">/</span><span class="n">H2</span><span class="o">-</span><span class="n">He</span>
+<span class="n">H</span><span class="o">-</span>          <span class="n">none</span>
+<span class="n">H2</span>          <span class="n">Rayleigh</span>
+<span class="n">He</span>          <span class="n">Rayleigh</span>
+<span class="n">H2O</span>         <span class="n">Molecules</span><span class="o">/</span><span class="mi">1</span><span class="n">H2</span><span class="o">-</span><span class="mi">16</span><span class="n">O__POKAZATEL_e2b</span>
+<span class="n">TiO</span>         <span class="n">Molecules</span><span class="o">/</span><span class="mi">48</span><span class="n">Ti</span><span class="o">-</span><span class="mi">16</span><span class="n">O__Toto_e2b</span>
+<span class="n">VO</span>          <span class="n">Molecules</span><span class="o">/</span><span class="mi">51</span><span class="n">V</span><span class="o">-</span><span class="mi">16</span><span class="n">O__VOMYT_e2b</span>
+</pre></div>
+</div>
+<p>BeAR currently can add the following CIA sources:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">CIA-H2-H2</span></code> - CIA by H2 and H2</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CIA-H2-He</span></code> - CIA by H2 and He</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CIA-H-He</span></code> - CIA by atomic H and He</p></li>
+</ul>
+</div></blockquote>
+<p>The opacity for the hydrogen anion H- is calculated by BeAR on-the-fly and does not need a folder
+to be specified. Thus, the keyword <code class="docutils literal notranslate"><span class="pre">none</span></code> is used here instead.</p>
+</section>
 </section>
 
 
@@ -236,6 +290,7 @@ data discussed above.</p>
 <li class="toctree-l2"><a class="reference internal" href="#global-wavenumber-grid">Global wavenumber grid</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#opacity-data-for-a-specific-species">Opacity data for a specific species</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#opacities-included-in-bear">Opacities included in BeAR</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#choosing-opacity-sources-in-forward-models">Choosing opacity sources in forward models</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="observations.html">Observations</a></li>
