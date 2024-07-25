@@ -102,11 +102,6 @@ class SecondaryEclipseBlackBodyModel : public ForwardModel{
     }
 
     virtual void setPriors(Priors* priors);
-    void readPriorConfigFile(
-      const std::string& file_name,
-      std::vector<std::string>& prior_type,
-      std::vector<std::string>& prior_description, 
-      std::vector<std::vector<double>>& prior_parameter);
     void initModules(const SecondaryEclipseBlackBodyConfig& model_config);
 
     void calcSecondaryEclipseGPU(

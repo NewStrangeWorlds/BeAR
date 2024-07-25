@@ -45,7 +45,7 @@ Priors::~Priors()
 void Priors::add(
   const std::vector<std::string>& type, 
   const std::vector<std::string>& description, 
-  const std::vector<std::vector<double>>& parameter)
+  const std::vector<std::vector<std::string>>& parameter)
 {
   if (description.size() != type.size() || parameter.size() != type.size())
   {
@@ -62,82 +62,130 @@ void Priors::add(
 
 
 void Priors::addSingle(
-  const std::string& type, const std::string& description, const std::vector<double>& parameter)
+  const std::string& type, 
+  const std::string& description, 
+  const std::vector<std::string>& parameter)
 {
-  //find the corresponding prior to the supplied "type" string
-  auto it = std::find(bear::priors::prior_type_strings.begin(), bear::priors::prior_type_strings.end(), type);
-
-  if (it == bear::priors::prior_type_strings.end())
+  if (type == "uniform")
   {
-    std::string error_message = "Prior type " + type + " for " + description + " unknown!\n";
-    throw InvalidInput(std::string ("Retrieval::setPrior"), error_message);
+    if (parameter.size() != 2 && parameter.size() != 3)
+    {
+      std::string error_message = "uniform prior " + description + " requires two parameters with an optional unit!\n";
+      throw InvalidInput(std::string ("pirors.config"), error_message);
+    }
+
+    if (parameter.size() == 2)
+    {
+      UniformPrior* uniform_prior = new UniformPrior(
+        description, std::stod(parameter[0]), std::stod(parameter[1]), "");
+      distributions.push_back(uniform_prior);
+    }
+    else
+    {
+      UniformPrior* uniform_prior = new UniformPrior(
+        description, std::stod(parameter[0]), std::stod(parameter[1]), parameter[2]);
+      distributions.push_back(uniform_prior);
+    }
+
+    return;
   }
 
 
-  PriorType prior_type = 
-    bear::priors::prior_types[std::distance(bear::priors::prior_type_strings.begin(), it)];
-
-
-  switch (prior_type)
+  if (type == "log_uniform")
   {
-    case PriorType::uniform :
-      if (parameter.size() == 2) {
-        UniformPrior* uniform_prior = 
-          new UniformPrior(description, parameter[0], parameter[1]);
-        distributions.push_back(uniform_prior);
-      }
-      else { 
-        std::string error_message = "uniform prior " + description + " requires two parameters!\n"; 
-        throw InvalidInput(std::string ("pirors.config"), error_message);
-      }
-      break;
-    case PriorType::log_uniform : 
-      if (parameter.size() == 2) {
-        LogUniformPrior* log_uniform_prior = 
-          new LogUniformPrior(description, parameter[0], parameter[1]);
-        distributions.push_back(log_uniform_prior);
-      }
-      else { 
-        std::string error_message = "log-uniform prior " + description + " requires two parameters!\n"; 
-        throw InvalidInput(std::string ("pirors.config"), error_message);
-      }
-      break;
-    case PriorType::gaussian :
-      if (parameter.size() == 2) {
-        GaussianPrior* gaussian_prior = 
-          new GaussianPrior(description, parameter[0], parameter[1]);
-        distributions.push_back(gaussian_prior);
-      }
-      else { 
-        std::string error_message = "gaussian prior " + description + " requires two parameters!\n"; 
-        throw InvalidInput(std::string ("pirors.config"), error_message);
-      }  
-      break;
-    case PriorType::delta :
-      if (parameter.size() == 1) {
-        DeltaPrior* delta_prior = new DeltaPrior(description, parameter[0]);
-        distributions.push_back(delta_prior);
-      } 
-      else { 
-        std::string error_message = "delta prior " + description + " requires one parameter!\n"; 
-        throw InvalidInput(std::string ("pirors.config"), error_message);
-      }
-      break;
-    case PriorType::linked :
-      if (parameter.size() == 1) {
-        DeltaPrior* delta_prior = new DeltaPrior(description, 0.0);
-        distributions.push_back(delta_prior);
-      } 
-      else { 
-        std::string error_message = "linked prior " + description + " requires one parameter!\n"; 
-        throw InvalidInput(std::string ("pirors.config"), error_message);
-      }  
-      break;
-    default :
-      std::cout << "Unknown prior type " << type << " for " << description << "\n"; //this shouldn't really happen here
+    if (parameter.size() != 2 && parameter.size() != 3)
+    {
+      std::string error_message = "log uniform prior " + description + " requires two parameters with an optional unit!\n";
+      throw InvalidInput(std::string ("pirors.config"), error_message);
+    }
+
+    if (parameter.size() == 2)
+    {
+      LogUniformPrior* uniform_prior = new LogUniformPrior(
+        description, std::stod(parameter[0]), std::stod(parameter[1]), "");
+      distributions.push_back(uniform_prior);
+    }
+    else
+    {
+      LogUniformPrior* uniform_prior = new LogUniformPrior(
+        description, std::stod(parameter[0]), std::stod(parameter[1]), parameter[2]);
+      distributions.push_back(uniform_prior);
+    }
+
+    return;
   }
 
+
+  if (type == "gaussian")
+  {
+    if (parameter.size() != 2 && parameter.size() != 3)
+    {
+      std::string error_message = "Gaussian prior " + description + " requires two parameters with an optional unit!\n";
+      throw InvalidInput(std::string ("pirors.config"), error_message);
+    }
+
+    if (parameter.size() == 2)
+    {
+      GaussianPrior* gaussian_prior = new GaussianPrior(
+        description, std::stod(parameter[0]), std::stod(parameter[1]), "");
+      distributions.push_back(gaussian_prior);
+    }
+    else
+    {
+      GaussianPrior* uniform_prior = new GaussianPrior(
+        description, std::stod(parameter[0]), std::stod(parameter[1]), parameter[2]);
+      distributions.push_back(uniform_prior);
+    }
+
+    return;
+  }
+
+
+  if (type == "delta")
+  {
+    if (parameter.size() != 1 && parameter.size() != 2)
+    {
+      std::string error_message = "Delta distribution prior " + description + " requires one parameter with an optional unit!\n";
+      throw InvalidInput(std::string ("pirors.config"), error_message);
+    }
+
+    if (parameter.size() == 1)
+    {
+      DeltaPrior* gaussian_prior = new DeltaPrior(
+        description, std::stod(parameter[0]), "");
+      distributions.push_back(gaussian_prior);
+    }
+    else
+    {
+      DeltaPrior* uniform_prior = new DeltaPrior(
+        description, std::stod(parameter[0]), parameter[2]);
+      distributions.push_back(uniform_prior);
+    }
+
+    return;
+  }
+
+
+  if (type == "linked")
+  {
+    if (parameter.size() != 1)
+    {
+      std::string error_message = "linked prior " + description + " requires one parameter!\n";
+      throw InvalidInput(std::string ("pirors.config"), error_message);
+    }
+    
+    DeltaPrior* gaussian_prior = new DeltaPrior(
+      description, std::stod(parameter[0]), "");
+    distributions.push_back(gaussian_prior);
+
+    return;
+  }
+
+  std::string error_message = "Prior type " + type + " for " + description + " unknown!\n";
+  throw InvalidInput(std::string ("Retrieval::setPrior"), error_message);
 }
+
+
 
 
 void Priors::printInfo()
@@ -155,7 +203,7 @@ void Priors::printInfo()
 void Priors::setupLinkedPriors(
   const std::vector<std::string>& type,
   const std::vector<std::string>& description,
-  const std::vector<std::vector<double>>& parameter)
+  const std::vector<std::vector<std::string>>& parameter)
 {
   prior_links.assign(type.size(), 0);
 
@@ -166,7 +214,7 @@ void Priors::setupLinkedPriors(
       //delete the place holder
       delete(distributions[i]);
       
-      size_t prior_index = static_cast<int>(parameter[i][0]) - 1;
+      size_t prior_index = std::stoi(parameter[i][0]) - 1;
 
       if (prior_index > type.size())
       {

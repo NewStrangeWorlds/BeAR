@@ -45,6 +45,7 @@ double const mass_jupiter = 1.89813e30;                     //Jupiter mass in g
 double const mass_sun = 1.9884e33;                          //Solar mass in g
 
 double const parsec = 3.08567758135e18;                     //1 parsec in cm
+double const light_year = 9.4607304725808e17;               //1 light year in cm
 
 double const pi = 3.14159265358979323846;
 double const deg_to_rad = pi / 180.;

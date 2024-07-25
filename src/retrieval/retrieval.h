@@ -87,6 +87,11 @@ class Retrieval{
     
     ForwardModel* selectForwardModel(const std::string model_description);
   private:
+    void convertHypercubeParameters(
+      double *cube,
+      const size_t nb_param,
+      std::vector<double>& parameter,
+      std::vector<double>& physical_parameter);
     static void multinestLogLike(
       double *Cube, 
       int &ndim, 

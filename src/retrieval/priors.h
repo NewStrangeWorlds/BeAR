@@ -35,7 +35,7 @@ class Priors{
     void add(
       const std::vector<std::string>& type, 
       const std::vector<std::string>& description, 
-      const std::vector<std::vector<double>>& parameter);
+      const std::vector<std::vector<std::string>>& parameter);
     size_t number() {return distributions.size();}
     void printInfo();
 
@@ -45,11 +45,11 @@ class Priors{
     void addSingle(
       const std::string& type, 
       const std::string& description, 
-      const std::vector<double>& parameter);
+      const std::vector<std::string>& parameter);
     void setupLinkedPriors(
       const std::vector<std::string>& type,
       const std::vector<std::string>& description,
-      const std::vector<std::vector<double>>& parameter);
+      const std::vector<std::vector<std::string>>& parameter);
 
   private:
 };

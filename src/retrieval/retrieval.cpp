@@ -203,7 +203,7 @@ void Retrieval::setAdditionalPriors()
     priors.add(
       std::vector<std::string>{std::string("uniform")}, 
       std::vector<std::string>{std::string("error exponent")}, 
-      std::vector<std::vector<double>>{std::vector<double> {error_min, error_max}});
+      std::vector<std::vector<std::string>>{std::vector<std::string> {std::to_string(error_min), std::to_string(error_max)}});
   }
 }
 

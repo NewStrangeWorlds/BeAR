@@ -40,7 +40,7 @@ void FlatLine::setPriors(Priors* priors)
 
   std::vector<std::string> prior_type; 
   std::vector<std::string> prior_description; 
-  std::vector<std::vector<double>> prior_parameter;
+  std::vector<std::vector<std::string>> prior_parameter;
 
 
   readPriorConfigFile(file_name, prior_type, prior_description, prior_parameter);
@@ -56,50 +56,6 @@ void FlatLine::setPriors(Priors* priors)
 
   priors->add(prior_type, prior_description, prior_parameter);
 }
-
-
-
-
-void FlatLine::readPriorConfigFile(
-  const std::string& file_path, 
-  std::vector<std::string>& prior_type, 
-  std::vector<std::string>& prior_description, 
-  std::vector<std::vector<double>>& prior_parameter)
-{
-  std::fstream file;
-  file.open(file_path.c_str(), std::ios::in);
-
-
-  if (file.fail())  
-    throw FileNotFound(std::string ("FlatLine::readPriorConfigFile"), file_path);
-
-
-  std::string line;
-
-  while (std::getline(file, line))
-  {
-    std::istringstream input(line);
-
-    std::string type, description;
-    std::vector<double> parameter;
-
-    input >> type >> description;
-
-    double single_parameter;
-
-    while (input >> single_parameter)
-      parameter.push_back(single_parameter);
-
-
-    prior_type.push_back(type);
-    prior_description.push_back(description);
-    prior_parameter.push_back(parameter);
-  }
-
-
-  file.close();
-}
-
 
 
 }

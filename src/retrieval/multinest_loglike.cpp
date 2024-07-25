@@ -36,6 +36,47 @@
 namespace bear{
 
 
+//convert the normalised cube values into the real parameter values
+//write back the parameter values into the cube for MultiNest output
+void Retrieval::convertHypercubeParameters(
+  double *cube,
+  const size_t nb_param,
+  std::vector<double>& parameter,
+  std::vector<double>& physical_parameter)
+{
+  parameter.assign(nb_param, 0.0);
+  physical_parameter.assign(nb_param, 0.0);
+
+  for (size_t i=0; i<parameter.size(); ++i)
+  {
+    if (priors.distributions[i]->distributionType() == "Linked prior")
+    {
+      parameter[i] = priors.distributions[i]->parameterValue(cube[priors.prior_links[i]]);
+      physical_parameter[i] = priors.distributions[i]->parameterPhysicalValue(cube[priors.prior_links[i]]);
+    }
+    else
+    {
+      parameter[i] = priors.distributions[i]->parameterValue(cube[i]);
+      physical_parameter[i] = priors.distributions[i]->parameterPhysicalValue(cube[i]);
+    }
+  }
+
+  for (size_t i=0; i<parameter.size(); ++i)
+    cube[i] = parameter[i];
+
+  if (config->multinest_print_iter_values)
+  {
+    std::cout << "model ";
+    
+    for (auto & i : parameter) std::cout << i << "   ";
+    std::cout << "\n";
+
+    for (auto & i : physical_parameter) std::cout << i << "   ";
+    std::cout << "\n";
+  }
+}
+
+
 // Input arguments
 // ndim 						= dimensionality (total number of free parameters) of the problem
 // npars 						= total number of free plus derived parameters
@@ -52,40 +93,17 @@ void Retrieval::multinestLogLike(double *cube, int &ndim, int &nb_param, double 
   //context contains a pointer to the retrieval object
   //we now recast it accordingly to use the retrieval object here
   Retrieval *retrieval_ptr = static_cast<Retrieval*>(context);
+  
+  std::vector<double> parameter {};
+  std::vector<double> physical_parameter {};
 
-
-  //convert the normalised cube values into the real parameter values
-  //write back the parameter values into the cube for MultiNest output
-  std::vector<double> parameter(nb_param, 0.0);
-
-  for (size_t i=0; i<parameter.size(); ++i)
-  {
-    if (retrieval_ptr->priors.distributions[i]->distributionType() == "Linked prior")
-      parameter[i] = retrieval_ptr->priors.distributions[i]->parameterValue(cube[retrieval_ptr->priors.prior_links[i]]);
-    else
-      parameter[i] = retrieval_ptr->priors.distributions[i]->parameterValue(cube[i]);
-  }
-
-
-  for (size_t i=0; i<parameter.size(); ++i)
-    cube[i] = parameter[i];
-
-
-  if (retrieval_ptr->config->multinest_print_iter_values)
-  {
-    std::cout << "model ";
-    
-    for (auto & i : parameter) std::cout << i << "   ";
-
-    std::cout << "\n";
-  }
-
+  retrieval_ptr->convertHypercubeParameters(cube, nb_param, parameter, physical_parameter);
 
   //run the forward model with the parameter set to obtain a high-res model spectrum
   std::vector<double> model_spectrum(retrieval_ptr->spectral_grid.nbSpectralPoints(), 0.0);
   std::vector<double> model_spectrum_bands(retrieval_ptr->nb_observation_points, 0.0);
 
-  bool neglect = retrieval_ptr->forward_model->calcModel(parameter, model_spectrum, model_spectrum_bands);
+  bool neglect = retrieval_ptr->forward_model->calcModel(physical_parameter, model_spectrum, model_spectrum_bands);
 
 
   double error_inflation = 0;
@@ -144,31 +162,10 @@ void Retrieval::multinestLogLikeGPU(double *cube, int &nb_dim, int &nb_param, do
   }
 
 
-  //convert the normalised cube values into the real parameter values
-  //write back the parameter values into the cube for multinest output
-  std::vector<double> parameter(nb_param, 0.0);
+  std::vector<double> parameter {};
+  std::vector<double> physical_parameter {};
 
-  for (size_t i=0; i<parameter.size(); ++i)
-  {
-    if (retrieval_ptr->priors.distributions[i]->distributionType() == "Linked prior")
-      parameter[i] = retrieval_ptr->priors.distributions[i]->parameterValue(cube[retrieval_ptr->priors.prior_links[i]]);
-    else
-      parameter[i] = retrieval_ptr->priors.distributions[i]->parameterValue(cube[i]);
-  }
-
-
-  for (size_t i=0; i<parameter.size(); ++i)
-    cube[i] = parameter[i];
-
-
-  if (retrieval_ptr->config->multinest_print_iter_values)
-  {
-    std::cout << "model ";
-
-    for (auto & i : parameter) std::cout << i << "   ";
-
-    std::cout << "\n";
-  }
+  retrieval_ptr->convertHypercubeParameters(cube, nb_param, parameter, physical_parameter);
   
   //pointer to the spectrum on the GPU
   double* model_spectrum_bands = nullptr;
@@ -178,7 +175,7 @@ void Retrieval::multinestLogLikeGPU(double *cube, int &nb_dim, int &nb_param, do
   intializeOnDevice(retrieval_ptr->model_spectrum_gpu, nb_points);
 
   //call the forward model
-  bool neglect = retrieval_ptr->forward_model->calcModelGPU(parameter, retrieval_ptr->model_spectrum_gpu, model_spectrum_bands);
+  bool neglect = retrieval_ptr->forward_model->calcModelGPU(physical_parameter, retrieval_ptr->model_spectrum_gpu, model_spectrum_bands);
 
 
   double error_inflation = 0;

@@ -21,8 +21,13 @@
 #ifndef _forward_model_h
 #define _forward_model_h
 
+#include <string>
+#include <iostream>
+#include <fstream>
 #include <vector>
+#include <sstream>
 
+#include "../additional/exceptions.h"
 #include "../retrieval/priors.h"
 
 
@@ -59,7 +64,51 @@ class ForwardModel{
       double* model_spectrum) = 0;
   protected:
     virtual void setPriors(Priors* priors) = 0;
+    void readPriorConfigFile(
+      const std::string& file_name, 
+      std::vector<std::string>& prior_type, 
+      std::vector<std::string>& prior_description, 
+      std::vector<std::vector<std::string>>& prior_parameter);
 };
+
+
+
+inline void ForwardModel::readPriorConfigFile(
+  const std::string& file_path, 
+  std::vector<std::string>& prior_type, 
+  std::vector<std::string>& prior_description, 
+  std::vector<std::vector<std::string>>& prior_parameter)
+{
+  std::fstream file;
+  file.open(file_path.c_str(), std::ios::in);
+
+  if (file.fail())  
+    throw FileNotFound(std::string ("ForwardModel::readPriorConfigFile"), file_path);
+
+
+  std::string line;
+
+  while (std::getline(file, line))
+  {
+    std::istringstream input(line);
+
+    std::string type, description;
+    std::vector<std::string> parameter;
+
+    input >> type >> description;
+
+    std::string single_parameter;
+
+    while (input >> single_parameter)
+      parameter.push_back(single_parameter);
+
+    prior_type.push_back(type);
+    prior_description.push_back(description);
+    prior_parameter.push_back(parameter);
+  }
+
+  file.close();
+}
 
 
 }

@@ -140,11 +140,6 @@ class EmissionModel : public ForwardModel{
     size_t nb_grid_points = 0;
 
     virtual void setPriors(Priors* priors);
-    void readPriorConfigFile(
-      const std::string& file_name, 
-      std::vector<std::string>& prior_type, 
-      std::vector<std::string>& prior_description, 
-      std::vector<std::vector<double>>& prior_parameter);
     void initModules(const EmissionModelConfig& model_config);
 
     bool calcAtmosphereStructure(const std::vector<double>& parameter);

@@ -162,13 +162,6 @@ class TransmissionModel : public ForwardModel{
     bool fit_scale_height = false;
 
     virtual void setPriors(Priors* priors);
-
-    void readPriorConfigFile(
-      const std::string& file_name, 
-      std::vector<std::string>& prior_type, 
-      std::vector<std::string>& prior_description, 
-      std::vector<std::vector<double>>& prior_parameter);
-    
     void initModules(const TransmissionModelConfig& model_config);
 
     bool calcAtmosphereStructure(const std::vector<double>& parameter);

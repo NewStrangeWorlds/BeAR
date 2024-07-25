@@ -26,6 +26,7 @@
 #include <vector>
 
 #include "../additional/physical_const.h"
+#include "../additional/exceptions.h"
 
 #define BOOST_IF_CONSTEXPR if
 #include "../../_deps/boost_math-src/include/boost/math/special_functions/erf.hpp"
@@ -36,28 +37,30 @@ namespace bear {
 
 
 //types of priors
-enum class PriorType { uniform, log_uniform, gaussian, delta, linked };
+// enum class PriorType { uniform, log_uniform, gaussian, delta, linked };
 
-namespace priors{  
-  const std::vector<PriorType> prior_types{
-    PriorType::uniform, 
-    PriorType::log_uniform, 
-    PriorType::gaussian, 
-    PriorType::delta,
-    PriorType::linked};
-  const std::vector<std::string> prior_type_strings{
-    "uniform", 
-    "log_uniform", 
-    "gaussian", 
-    "delta",
-    "linked"};
-}
+// namespace priors{  
+//   const std::vector<PriorType> prior_types{
+//     PriorType::uniform, 
+//     PriorType::log_uniform, 
+//     PriorType::gaussian, 
+//     PriorType::delta,
+//     PriorType::linked};
+//   const std::vector<std::string> prior_type_strings{
+//     "uniform", 
+//     "log_uniform", 
+//     "gaussian", 
+//     "delta",
+//     "linked"};
+// }
 
 
 //abstract class describing a general prior
 class BasicPrior{
   public:
-    virtual double parameterValue(const double& hypercube_parameter) = 0; 
+    virtual double parameterValue(const double& hypercube_parameter) = 0;
+    double parameterPhysicalValue(const double& hypercube_parameter) {
+      return parameterValue(hypercube_parameter) * unit;};
     virtual ~BasicPrior() {}
     std::string distributionType() {return distribution_type;}
     std::string parameterName() {return parameter_name;}
@@ -70,6 +73,8 @@ class BasicPrior{
     std::string unit_description = "";
 
     void setUnit() {
+      if (unit_description == "") return;
+
       if (unit_description == "Me" ||  unit_description == "Mearth") {
         unit = constants::mass_earth;
       } else if (unit_description == "Mj" || unit_description == "Mjupiter") {
@@ -82,6 +87,15 @@ class BasicPrior{
         unit = constants::radius_jupiter;
       } else if (unit_description == "Rs" || unit_description == "Rsun") {
         unit = constants::radius_sun;
+      } else if (unit_description == "ly") {
+        unit = constants::light_year;
+      } else if (unit_description == "pc") {
+        unit = constants::parsec;
+      } else {
+        std::string error_message = "Unit " + unit_description 
+                                  + " for parameter " + parameter_name 
+                                  + " unknown!\n";
+        throw InvalidInput(std::string ("pirors.config"), error_message);
       }
     };
 };
@@ -89,16 +103,27 @@ class BasicPrior{
 
 //simple uniform prior
 //the constructor requires three parameters: the upper and lower domain boundary and the parameter name
+//additionally, it can have an optional unit
 class UniformPrior : public BasicPrior {
   public:
     UniformPrior (
-      const std::string& parameter,
-      const double& upper_bnd,
-      const double& lower_bnd) {
-        parameter_name = parameter; 
+      const std::string parameter,
+      const double upper_bnd,
+      const double lower_bnd,
+      const std::string unit_desc) {
+        parameter_name = parameter;
+
         upper_bound = upper_bnd; 
-        lower_bound = lower_bnd; 
-        distribution_type = "uniform prior";}
+        lower_bound = lower_bnd;
+
+        if (upper_bound < lower_bound)
+          std::swap(upper_bound, lower_bound); 
+
+        unit_description = unit_desc;
+        distribution_type = "uniform prior";
+        
+        setUnit();
+      };
     virtual ~UniformPrior() {}
     virtual double parameterValue (const double& hypercube_value) {
         return lower_bound + hypercube_value * (upper_bound - lower_bound);}
@@ -106,7 +131,9 @@ class UniformPrior : public BasicPrior {
       std::cout << std::setw(15) << std::left << parameter_name << "  "
                 << std::setw(20) << std::left << distribution_type
                 << "lower boundary: " << lower_bound 
-                << ", upper boundary: " << upper_bound << "\n";
+                << ", upper boundary: " << upper_bound 
+                << ", unit: " << unit_description
+                << "\n";
     }
   private:
     double lower_bound = 0;
@@ -116,16 +143,27 @@ class UniformPrior : public BasicPrior {
 
 //uniform prior in log space
 //the constructor requires three parameters: the upper and lower domain boundary and the parameter name
+//additionally, it can have an optional unit
 class LogUniformPrior : public BasicPrior {
   public:
     LogUniformPrior (
-      const std::string& parameter,
-      const double& upper_bnd,
-      const double& lower_bnd) {
-        parameter_name = parameter; 
-        log_upper_bound = std::log10(upper_bnd); 
-        log_lower_bound = std::log10(lower_bnd); 
-        distribution_type = "log-uniform prior";}
+      const std::string parameter,
+      const double upper_bnd,
+      const double lower_bnd,
+      const std::string unit_desc) {
+        parameter_name = parameter;
+
+        log_upper_bound = std::log10(upper_bnd);
+        log_lower_bound = std::log10(lower_bnd);
+
+        if (log_upper_bound < log_lower_bound)
+          std::swap(log_upper_bound, log_lower_bound);
+
+        unit_description = unit_desc;
+        distribution_type = "log-uniform prior";
+
+        setUnit();
+      };
     virtual ~LogUniformPrior() {}
     virtual double parameterValue(const double& hypercube_value) {
         return std::pow(10.0, log_lower_bound + hypercube_value * (log_upper_bound - log_lower_bound));}
@@ -133,7 +171,9 @@ class LogUniformPrior : public BasicPrior {
       std::cout << std::setw(15) << std::left << parameter_name << "  "
                 << std::setw(20) << std::left << distribution_type
                 << "lower boundary: " << log_lower_bound 
-                << ", upper boundary: " << log_upper_bound << "\n";
+                << ", upper boundary: " << log_upper_bound 
+                << ", unit: " << unit_description
+                << "\n";
     }
   private:
     double log_lower_bound = 0;
@@ -143,16 +183,22 @@ class LogUniformPrior : public BasicPrior {
 
 //Gaussian prior
 //the constructor requires three parameters: the mean value of the Gaussian, its standard deviation, and the parameter name
+//additionally, it can have an optional unit
 class GaussianPrior : public BasicPrior {
   public:
     GaussianPrior (
-      const std::string& parameter,
-      const double& mean,
-      const double& standard_deviation) {
+      const std::string parameter,
+      const double mean,
+      const double standard_deviation,
+      const std::string unit_desc) {
         parameter_name = parameter; 
         mu = mean; 
-        sigma = standard_deviation; 
-        distribution_type = "Gaussian prior";}
+        sigma = standard_deviation;
+        unit_description = unit_desc;
+        distribution_type = "Gaussian prior";
+
+        setUnit();
+      };
     virtual ~GaussianPrior() {}
     inline virtual double parameterValue(const double& hypercube_value) {
       return mu + sigma * std::sqrt(2.0) * boost::math::erf_inv(2.*hypercube_value - 1.);}
@@ -160,7 +206,9 @@ class GaussianPrior : public BasicPrior {
       std::cout << std::setw(15) << std::left << parameter_name << "  "
                 << std::setw(20) << std::left << distribution_type
                 << "mean: " << mu 
-                << ", standard deviation: " << sigma << "\n";
+                << ", standard deviation: " << sigma 
+                << ", unit: " << unit_description
+                << "\n";
     }
   private:
     double mu = 0;
@@ -170,19 +218,29 @@ class GaussianPrior : public BasicPrior {
 
 //Delta distribution (constant) prior
 //the constructor requires one parameters: constant parameter value
+//additionally, it can have an optional unit
 class DeltaPrior : public BasicPrior {
   public:
     DeltaPrior (
-      const std::string& parameter,
-      const double& value) {
-        parameter_name = parameter; const_value = value; distribution_type = "Delta prior";}
+      const std::string parameter,
+      const double value,
+      const std::string unit_desc) {
+        parameter_name = parameter; 
+        const_value = value; 
+        unit_description = unit_desc; 
+        distribution_type = "Delta prior";
+
+        setUnit();
+      };
     virtual ~DeltaPrior() {}
     virtual double parameterValue(const double& hypercube_value) {
       return const_value;}
     virtual void printInfo() {
       std::cout << std::setw(15) << std::left << parameter_name << "  "
                 << std::setw(20) << std::left << distribution_type
-                << "constant value: " << const_value << "\n";
+                << "constant value: " << const_value 
+                << ", unit: " << unit_description
+                << "\n";
     }
   private:
     double const_value = 0;
@@ -195,10 +253,11 @@ class DeltaPrior : public BasicPrior {
 class LinkedPrior : public BasicPrior {
   public:
     LinkedPrior (
-      const std::string& parameter,
+      const std::string parameter,
       BasicPrior* prior)
-      : linked_prior(prior)
-      { parameter_name = parameter; distribution_type = "Linked prior";}
+      : linked_prior(prior){ 
+        parameter_name = parameter;
+        distribution_type = "Linked prior";};
     virtual ~LinkedPrior() {}
     virtual double parameterValue(const double& hypercube_value) {
       return linked_prior->parameterValue(hypercube_value);}

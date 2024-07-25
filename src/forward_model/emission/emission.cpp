@@ -85,7 +85,7 @@ EmissionModel::EmissionModel (
 double EmissionModel::radiusDistanceScaling(const std::vector<double>& parameter)
 {
   const double scaling_factor = parameter[1];
-  const double distance = parameter[2] * constants::parsec;
+  const double distance = parameter[2];
 
    //we assume a fixed prior radius of 1 Rj
   const double prior_radius = constants::radius_jupiter; 

@@ -152,18 +152,13 @@ class SecondaryEclipseModel : public ForwardModel{
 
 
     virtual void setPriors(Priors* priors);
-    void readPriorConfigFile(
-      const std::string& file_name,
-      std::vector<std::string>& prior_type,
-      std::vector<std::string>& prior_description, 
-      std::vector<std::vector<double>>& prior_parameter);
     void initModules(const SecondaryEclipseConfig& model_config);
 
-    // std::vector<double> calcSecondaryEclipse(
-    //   std::vector<double>& planet_spectrum_bands,
-    //   const double radius_ratio,
-    //   const double geometric_albedo,
-    //   const double radius_distance_ratio);
+    std::vector<double> calcSecondaryEclipse(
+      std::vector<double>& planet_spectrum_bands,
+      const double radius_ratio,
+      const double geometric_albedo,
+      const double radius_distance_ratio);
     void calcSecondaryEclipseGPU(
       double* secondary_eclipse,
       double* planet_spectrum,
