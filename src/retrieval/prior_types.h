@@ -35,32 +35,14 @@
 
 namespace bear {
 
-
-//types of priors
-// enum class PriorType { uniform, log_uniform, gaussian, delta, linked };
-
-// namespace priors{  
-//   const std::vector<PriorType> prior_types{
-//     PriorType::uniform, 
-//     PriorType::log_uniform, 
-//     PriorType::gaussian, 
-//     PriorType::delta,
-//     PriorType::linked};
-//   const std::vector<std::string> prior_type_strings{
-//     "uniform", 
-//     "log_uniform", 
-//     "gaussian", 
-//     "delta",
-//     "linked"};
-// }
-
-
 //abstract class describing a general prior
 class BasicPrior{
   public:
     virtual double parameterValue(const double& hypercube_parameter) = 0;
     double parameterPhysicalValue(const double& hypercube_parameter) {
       return parameterValue(hypercube_parameter) * unit;};
+    virtual double applyParameterUnit(const double& parameter) {
+      return parameter * unit;};
     virtual ~BasicPrior() {}
     std::string distributionType() {return distribution_type;}
     std::string parameterName() {return parameter_name;}
@@ -261,6 +243,8 @@ class LinkedPrior : public BasicPrior {
     virtual ~LinkedPrior() {}
     virtual double parameterValue(const double& hypercube_value) {
       return linked_prior->parameterValue(hypercube_value);}
+    virtual double applyParameterUnit(const double& parameter) {
+      return linked_prior->applyParameterUnit(parameter);};
     virtual void printInfo() {
       std::cout << std::setw(15) << std::left << parameter_name << "  "
                 << std::setw(20) << std::left << distribution_type 

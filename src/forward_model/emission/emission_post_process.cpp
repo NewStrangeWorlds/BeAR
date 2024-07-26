@@ -40,7 +40,6 @@ namespace bear{
 //calls the model specific posterior calculations
 void EmissionModel::postProcess(
   const std::vector< std::vector<double> >& model_parameter, 
-  const std::vector< std::vector<double> >& model_spectrum_bands, 
   const size_t best_fit_model)
 {
   const size_t nb_models = model_parameter.size();
@@ -51,7 +50,10 @@ void EmissionModel::postProcess(
 
   std::vector<chemical_species_id> postprocess_species {_H2O, _K, _NH3, _CH4};
   std::vector<std::vector<std::vector<double>>> mixing_ratios(nb_models, std::vector<std::vector<double>>(constants::species_data.size(), std::vector<double>(nb_grid_points,0)));
+  
+  std::vector< std::vector<double> > model_spectrum_bands;
 
+  calcPostProcessSpectra(model_parameter, best_fit_model, model_spectrum_bands);
 
   for (size_t i=0; i<nb_models; ++i)
   {
@@ -251,16 +253,20 @@ void EmissionModel::saveContributionFunctions(
 }
 
 
+//overload of the generic forward model function
+//changes units of the computed spectrum from W m-2 cm to W m-2 micron-1
+void EmissionModel::saveBestFitSpectrum(const std::vector<double>& spectrum)
+{ 
+  std::string file_name = config->retrieval_folder_path + "/spectrum_best_fit_hr.dat";
 
-std::vector<double> EmissionModel::convertSpectrumToModel(const std::vector<double>& spectrum)
-{
-  std::vector<double> model_spectrum = spectrum;
-  
-  //convert from W m-2 cm to W m-2 micron-1
-  for (size_t i=0; i<spectral_grid->nbSpectralPoints(); ++i)
-    model_spectrum[i] = model_spectrum[i]/spectral_grid->wavelength_list[i]/spectral_grid->wavelength_list[i]*10000.0;
+  std::fstream file(file_name.c_str(), std::ios::out);
 
-  return model_spectrum;
+  for (size_t i=0; i<spectrum.size(); ++i)
+    file << std::setprecision(10) << std::scientific
+         << spectral_grid->wavelength_list[i]/spectral_grid->wavelength_list[i]/spectral_grid->wavelength_list[i]*10000.0 << "\t"
+         << spectrum[i] << "\n";
+
+  file.close();
 }
 
 

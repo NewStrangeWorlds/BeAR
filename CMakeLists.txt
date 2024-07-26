@@ -61,6 +61,7 @@ set(SRC
   src/additional/aux_functions.cpp
   src/additional/piecewise_poly.cpp
   src/config/global_config.cpp
+  src/forward_model/forward_model.cpp
   src/forward_model/emission/emission_model_config.cpp
   src/forward_model/emission/emission_post_process_temperatures.cpp
   src/forward_model/emission/emission_post_process.cpp

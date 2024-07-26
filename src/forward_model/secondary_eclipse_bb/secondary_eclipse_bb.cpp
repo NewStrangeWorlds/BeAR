@@ -47,20 +47,12 @@ SecondaryEclipseBlackBodyModel::SecondaryEclipseBlackBodyModel (
   GlobalConfig* config_,
   SpectralGrid* spectral_grid_,
   std::vector<Observation>& observations_) 
-    : config(config_)
-    , spectral_grid(spectral_grid_)
-    , observations(observations_)
+    : ForwardModel(config_, spectral_grid_, observations_)
 {
   std::cout << "Forward model selected: Secondary Eclipse Black Body\n\n";
 
   //this forward model has two free general parameters
   nb_general_param = 2;
-
-  for (auto & i : observations)
-  {
-    nb_observation_points += i.nbPoints();
-    nb_spectrum_modifier_param += i.nb_modifier_param;
-  }
 
   initModules(model_config);
 

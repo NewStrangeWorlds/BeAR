@@ -39,21 +39,12 @@ namespace bear{
 
 //calls the model specific posterior calculations
 void SecondaryEclipseBlackBodyModel::postProcess(
-  const std::vector< std::vector<double> >& model_parameter, 
-  const std::vector< std::vector<double> >& model_spectrum_bands, 
+  const std::vector< std::vector<double> >& model_parameter,
   const size_t best_fit_model)
 {
-  //nothing to do here 
-
-}
-
-
-std::vector<double> SecondaryEclipseBlackBodyModel::convertSpectrumToModel(const std::vector<double>& spectrum)
-{
-  //the high-res spectrum is already a secondary eclipse depth in ppm
-  std::vector<double> model_spectrum = spectrum;
-
-  return model_spectrum;
+  std::vector< std::vector<double> > model_spectrum_bands;
+  
+  calcPostProcessSpectra(model_parameter, best_fit_model, model_spectrum_bands);
 }
 
 

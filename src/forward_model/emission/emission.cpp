@@ -47,8 +47,7 @@ EmissionModel::EmissionModel (
   GlobalConfig* config_,
   SpectralGrid* spectral_grid_,
   std::vector<Observation>& observations_)
-    : config(config_)
-    , spectral_grid(spectral_grid_)
+    : ForwardModel(config_, spectral_grid_, observations_)
     , atmosphere(
         model_config.nb_grid_points,
         model_config.atmos_boundaries,
@@ -61,7 +60,6 @@ EmissionModel::EmissionModel (
         model_config.opacity_species_folder,
         config->use_gpu,
         model_config.use_cloud_model)
-    , observations(observations_)
 {
   nb_grid_points = model_config.nb_grid_points;
   
@@ -69,12 +67,6 @@ EmissionModel::EmissionModel (
 
   //this forward model has three free general parameters
   nb_general_param = 3;
-
-  for (auto & i : observations)
-  {
-    nb_observation_points += i.nbPoints();
-    nb_spectrum_modifier_param += i.nb_modifier_param;
-  }
 
   initModules(model_config);
 
@@ -296,6 +288,10 @@ void EmissionModel::postProcessSpectrum(
     std::copy(observation_bands.begin(), observation_bands.end(), it);
     it += observation_bands.size();
   }
+  
+  //for potential output purposes, convert from W m-2 cm to W m-2 micron-1
+  for (size_t i=0; i<spectral_grid->nbSpectralPoints(); ++i)
+    model_spectrum[i] = model_spectrum[i]/spectral_grid->wavelength_list[i]/spectral_grid->wavelength_list[i]*10000.0;
 }
 
 

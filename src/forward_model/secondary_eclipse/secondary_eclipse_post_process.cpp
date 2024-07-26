@@ -40,7 +40,6 @@ namespace bear{
 //calls the model specific posterior calculations
 void SecondaryEclipseModel::postProcess(
   const std::vector< std::vector<double> >& model_parameter, 
-  const std::vector< std::vector<double> >& model_spectrum_bands, 
   const size_t best_fit_model)
 {
   const size_t nb_models = model_parameter.size();
@@ -53,7 +52,10 @@ void SecondaryEclipseModel::postProcess(
   std::vector<std::vector<std::vector<double>>> mixing_ratios(
     nb_models, 
     std::vector<std::vector<double>>(constants::species_data.size(), std::vector<double>(nb_grid_points,0)));
+  
+  std::vector< std::vector<double> > model_spectrum_bands;
 
+  calcPostProcessSpectra(model_parameter, best_fit_model, model_spectrum_bands);
 
   for (size_t i=0; i<nb_models; ++i)
   {
@@ -248,16 +250,6 @@ void SecondaryEclipseModel::saveContributionFunctions(
 
   file.close();
 }
-
-
-std::vector<double> SecondaryEclipseModel::convertSpectrumToModel(const std::vector<double>& spectrum)
-{
-  //the high-res spectrum is already a secondary eclipse depth in ppm
-  std::vector<double> model_spectrum = spectrum;
-
-  return model_spectrum;
-}
-
 
 
 }

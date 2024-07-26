@@ -98,15 +98,7 @@ bool PostProcess::doRetrieval()
   } 
 
 
-  std::vector< std::vector<double> > model_spectrum_bands;  
-
-  postProcessSpectra(model_spectrum_bands);
-
-  saveOutput(model_spectrum_bands);
-
-
-  //call the post postprocess method of the forward model
-  forward_model->postProcess(model_parameter, model_spectrum_bands, best_fit_model);
+  forward_model->postProcess(model_parameter, best_fit_model);
 
 
   delete forward_model;
@@ -175,6 +167,14 @@ void PostProcess::readPosteriorData()
   file.close();
 
 
+  //scale the model parameters with their units
+  for (auto & m : model_parameter)
+    for (size_t i=0; i<m.size(); ++i)
+    {
+      m[i] = priors.distributions[i]->applyParameterUnit(m[i]);
+    }
+
+
   //find best-fit model
   best_fit_model = 0;
   best_log_like = log_like[0];
@@ -187,42 +187,6 @@ void PostProcess::readPosteriorData()
     }
 
   std::cout << "best fit model " << best_fit_model << "\t" << best_log_like << "\n";
-}
-
-
-void PostProcess::saveOutput(const std::vector< std::vector<double> >& model_spectrum_bands)
-{
-  const size_t nb_models = model_parameter.size();
-
-  //write the spectra to files
-  unsigned int band_index = 0;
-
-  for (size_t j=0; j<nb_observations; ++j)
-  {
-    std::string observation_name = observations[j].observationName();
-    std::replace(observation_name.begin(), observation_name.end(), ' ', '_'); 
-    
-    std::string file_name = config->retrieval_folder_path + "/spectrum_post_" + observation_name + ".dat"; 
-  
-
-    std::fstream file(file_name.c_str(), std::ios::out);
-
-    for (size_t i=0; i<observations[j].spectral_bands.nbBands(); ++i)
-    {
-
-      file << std::setprecision(10) << std::scientific << observations[j].spectral_bands.center_wavelengths[i];
-      
-      for (size_t k=0; k<nb_models; ++k)
-        file << "\t" << model_spectrum_bands[k][band_index + i];
-     
-      file << "\n";
-    }
-
-    file.close();
-
-    band_index += observations[j].spectral_bands.nbBands();
-  }
-
 }
 
 

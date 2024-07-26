@@ -112,20 +112,14 @@ class TransmissionModel : public ForwardModel{
       double* model_spectrum_bands);
     
     virtual void postProcess(
-      const std::vector< std::vector<double> >& model_parameter, 
-      const std::vector< std::vector<double> >& model_spectrum_bands,
+      const std::vector< std::vector<double> >& model_parameter,
       const size_t best_fit_model);
-
-    virtual std::vector<double> convertSpectrumToModel(const std::vector<double>& spectrum);
     
     virtual bool testModel(
       const std::vector<double>& parameter, 
       double* model_spectrum_gpu);
 
   protected:
-    GlobalConfig* config;
-    SpectralGrid* spectral_grid;
-
     Atmosphere atmosphere;
     OpacityCalculation opacity_calc;
 
@@ -133,9 +127,6 @@ class TransmissionModel : public ForwardModel{
     std::vector<Chemistry*> chemistry;
     std::vector<CloudModel*> cloud_models;
     std::vector<Module*> modules;
-
-    std::vector<Observation>& observations;
-    size_t nb_observation_points = 0;
 
     size_t nb_general_param = 0;
     size_t nb_total_chemistry_param = 0;

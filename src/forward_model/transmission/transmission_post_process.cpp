@@ -37,10 +37,12 @@ namespace bear{
 //calls the model specific posterior calculations
 void TransmissionModel::postProcess(
   const std::vector< std::vector<double> >& model_parameter, 
-  const std::vector< std::vector<double> >& model_spectrum_bands, 
   const size_t best_fit_model)
 {
   const size_t nb_models = model_parameter.size();
+  std::vector< std::vector<double> > model_spectrum_bands;
+
+  calcPostProcessSpectra(model_parameter, best_fit_model, model_spectrum_bands);
 
   //data structures for post process
   std::vector<std::vector<double>> temperature_profiles(nb_models, std::vector<double>(nb_grid_points, 0));
@@ -136,16 +138,6 @@ void TransmissionModel::savePostProcessTemperatures(const std::vector<std::vecto
   }
 
 }
-
-
-std::vector<double> TransmissionModel::convertSpectrumToModel(const std::vector<double>& spectrum)
-{
-  //the high-res spectrum is already a transit depth
-  std::vector<double> model_spectrum = spectrum;
-
-  return model_spectrum;
-}
-
 
 
 }

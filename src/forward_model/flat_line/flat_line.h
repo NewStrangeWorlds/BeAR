@@ -58,21 +58,12 @@ class FlatLine : public ForwardModel{
       double* model_spectrum_bands);
     
     virtual void postProcess(
-      const std::vector< std::vector<double> >& model_parameter, 
-      const std::vector< std::vector<double> >& model_spectrum_bands,
+      const std::vector< std::vector<double> >& model_parameter,
       const size_t best_fit_model);
-
-    virtual std::vector<double> convertSpectrumToModel(const std::vector<double>& spectrum);
     
     virtual bool testModel(
       const std::vector<double>& parameter, double* model_spectrum_gpu);
   protected:
-    GlobalConfig* config;
-    SpectralGrid* spectral_grid;
-
-    std::vector<Observation>& observations;
-    size_t nb_observation_points = 0;
-    
     size_t nb_general_param = 1;
 
     size_t nb_total_param() 
