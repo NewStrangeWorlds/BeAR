@@ -104,10 +104,12 @@ void ForwardModel::calcPostProcessSpectra(
   const size_t nb_models = model_parameter.size();
 
   model_spectrum_bands.resize(nb_models);
+  
+  std::cout << "\n";
 
   for (size_t i=0; i<nb_models; ++i)
   {
-    std::cout << "Postprocess spectrum, model " << i << "\n";
+    std::cout << "\rPostprocess spectra, model " << i << " of " << nb_models << std::flush;
     
     std::vector<double> model_spectrum_high_res;
 
@@ -119,6 +121,8 @@ void ForwardModel::calcPostProcessSpectra(
     if (i == best_fit_model)
       saveBestFitSpectrum(model_spectrum_high_res);
   }
+
+  std::cout << "\n";
 
   savePostProcessSpectra(model_spectrum_bands);
 }

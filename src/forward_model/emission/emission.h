@@ -28,6 +28,7 @@
 #include <string>
 
 #include "../forward_model.h"
+#include "../generic_config.h"
 
 #include "../../config/global_config.h"
 #include "../../spectral_grid/spectral_grid.h"
@@ -48,7 +49,7 @@ namespace bear {
 //this struct handles the Emission config
 //it will read in the corresponding parameter file
 //and will then be used to create a model object
-struct EmissionModelConfig{
+struct EmissionModelConfig : public GenericConfig {
   size_t nb_grid_points = 0;
 
   double atmos_boundaries[2] {0, 0};
@@ -74,9 +75,6 @@ struct EmissionModelConfig{
 
   EmissionModelConfig (const std::string& folder_path);
   void readConfigFile(const std::string& file_name);
-  void readCloudConfig(std::fstream& file);
-  void readChemistryConfig(std::fstream& file);
-  void readOpacityConfig(std::fstream& file);
 };
 
 

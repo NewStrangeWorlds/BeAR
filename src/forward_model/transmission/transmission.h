@@ -29,6 +29,7 @@
 #include <string>
 
 #include "../forward_model.h"
+#include "../generic_config.h"
 
 #include "../../config/global_config.h"
 #include "../../spectral_grid/spectral_grid.h"
@@ -53,7 +54,7 @@ constexpr double transmission_cutoff = 4.5399929e-5; //exp(-tau)
 //this struct handles the Transmission Spectrum config
 //it will read in the corresponding parameter file
 //and will then be used to create a model object
-struct TransmissionModelConfig{
+struct TransmissionModelConfig : public GenericConfig{
   size_t nb_grid_points = 0;
 
   double atmos_boundaries[2] {0, 0};
@@ -82,13 +83,23 @@ struct TransmissionModelConfig{
   std::vector<std::string> opacity_species_folder;
 
   TransmissionModelConfig (const std::string& folder_path);
-  void readConfigFile(const std::string& file_name);
-  void readCloudConfig(std::fstream& file);
-  void readModuleConfig(std::fstream& file);
-  void readChemistryConfig(std::fstream& file);
-  void readOpacityConfig(std::fstream& file);
+  virtual void readConfigFile(const std::string& file_name);
 };
 
+
+//this struct handles the Transmission Spectrum 
+//post process config
+struct TransmissionPostProcessConfig{
+  std::vector<chemical_species_id> species_to_save;
+
+  bool save_temperatures = false;
+  bool save_spectra = true;
+
+  bool delete_sampler_files = false;
+
+  TransmissionPostProcessConfig (const std::string& folder_path);
+  void readConfigFile(const std::string& file_name);
+};
 
 
 class TransmissionModel : public ForwardModel{
