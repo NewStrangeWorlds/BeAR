@@ -56,7 +56,7 @@ struct SecondaryEclipseBlackBodyConfig{
 
 class SecondaryEclipseBlackBodyPostConfig : public GenericConfig{
   public:
-    bool save_spectra = false;
+    bool save_spectra = true;
     bool delete_sampler_files = false;
 
     SecondaryEclipseBlackBodyPostConfig (const std::string& folder_path);
