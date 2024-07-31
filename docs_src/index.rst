@@ -19,6 +19,7 @@ to daniel.kitzmann@unibe.ch .
    sections/opacity_data
    sections/observations
    sections/forward_models
+   sections/priors
    sections/retrieval_setup
    sections/temperature_profiles
    sections/chemistry_models

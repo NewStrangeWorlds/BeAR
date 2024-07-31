@@ -34,6 +34,9 @@ Additionally, BeAR can use :ref:`filter transmission functions <sec:filter_respo
 While this is typically only used in photometric observations, BeAR also supports 
 them for both spectroscopy and band spectroscopy.
 
+Each retrieval calculation needs a separate file with a list of the observational data files 
+that should be used. The structure of the file is described in the :ref:`section <sec:obs_file>`.
+
 
 .. _sec:spectroscopy:
 
@@ -305,3 +308,39 @@ by BeAR for a given retrieval calculation.
 
 BeAR already comes with a set of selected filter response function files. They can
 be found in the folder ``telescope_data``.
+
+
+.. _sec:obs_file:
+
+Observational data file
+.......................
+
+Each retrieval needs a file ``observations.list`` with a list of the observational data files that should be used.
+An example for this file is shown below:
+
+.. include:: ../examples/observations_example.list
+   :literal:
+
+BeAR can use multiple observational data files at the same time. The observations do not need to be orderer in any specific way.
+They also do not need to be continuous in wavelength space, gaps are are allowed to be present between the different observations.
+It also possible to mix different observational types, e.g. photometric data together with spectroscopic data. The format of the 
+these files is described in the :ref:`section <sec:observational_data>` on observational data.
+
+It is important to note that each individual observational file should not contain gaps in wavelength space. For example, the two
+different parts of a JWST G395H spectrum should be placed in two separate files.
+
+BeAR also the option to optionally modifiy a specific observational data set. This is sometimes necessary when multiple data sets 
+from different telescopes are used. In such cases, due to the different data reductions or instrument systematics, some data sets 
+might have offsets in comparison to other data sets used in the retrieval. For such a scenario, BeAR has the option to add an offset
+to computed spectra. This offset is added to the model spectrum before the comparison to the observational data. 
+
+BeAR currently supports a constant shift as a modifier. To enable the offset, the keyword ``shift_const`` needs to be added to the 
+``observations.list`` file after the corresponding observation. An example is shown below, where the WFC3 data set will be shifted by
+an constant offset:
+
+.. include:: ../examples/observations_example_2.list
+   :literal:
+
+The offset itself is a free paramter that needs to have a corresponding entry in the ``priors.config`` file. The free parameter in
+the priors config file needs to have same units as the observational data. For example, for a transmission spectrum the offset
+has to be given in ppm, while for an emission spectrum it needs to be specified in :math:`\mathrm{W/m^2/\mu m}`.
