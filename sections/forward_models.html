@@ -79,9 +79,8 @@ Species that BeAR does not know will be ignored.</p></li>
 </ul>
 </div></blockquote>
 </section>
-</section>
 <section id="flat-line">
-<span id="sec-forward-model-flat"></span><h1>Flat line<a class="headerlink" href="#flat-line" title="Permalink to this heading">¶</a></h1>
+<span id="sec-forward-model-flat"></span><h2>Flat line<a class="headerlink" href="#flat-line" title="Permalink to this heading">¶</a></h2>
 <p>This model simply fits a flat line through the observational data. Usually, this
 model is used to test if the use of a more complex model is warranted to explain
 the observation. The test is normally done by comparing their
@@ -92,7 +91,7 @@ Bayesian evidences.</p>
 </pre></div>
 </div>
 <section id="model-config-file">
-<h2>Model config file<a class="headerlink" href="#model-config-file" title="Permalink to this heading">¶</a></h2>
+<h3>Model config file<a class="headerlink" href="#model-config-file" title="Permalink to this heading">¶</a></h3>
 <p>The flat line model does not need a <code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code> file since it
 has no configurable parameters. In the prior distribution file, this model
 requires a single free parameter that determines the flat line.</p>
@@ -102,7 +101,7 @@ for an emission spectrum, it needs to have units of
 <span class="math notranslate nohighlight">\(\mathrm{W} \mathrm{m^{-2}} \mathrm{\mu m^{-1}}\)</span>.</p>
 </section>
 <section id="id1">
-<h2>Model postprocessing<a class="headerlink" href="#id1" title="Permalink to this heading">¶</a></h2>
+<h3>Model postprocessing<a class="headerlink" href="#id1" title="Permalink to this heading">¶</a></h3>
 <p>The optional postprocessing file <code class="docutils literal notranslate"><span class="pre">post_process.config</span></code> has the following structure and
 options:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Delete unused MultiNest files</span>
@@ -122,7 +121,7 @@ options:</p>
 </section>
 </section>
 <section id="transmission-spectrum">
-<span id="sec-forward-model-transmission"></span><h1>Transmission spectrum<a class="headerlink" href="#transmission-spectrum" title="Permalink to this heading">¶</a></h1>
+<span id="sec-forward-model-transmission"></span><h2>Transmission spectrum<a class="headerlink" href="#transmission-spectrum" title="Permalink to this heading">¶</a></h2>
 <p>This forward model computes the wavelength-dependent transit depth
 <span class="math notranslate nohighlight">\(D(\lambda)\)</span> of an exoplanet atmosphere, given by</p>
 <div class="math notranslate nohighlight">
@@ -145,7 +144,7 @@ have to be added to the priors configuration file in the following order:</p>
 </ul>
 </div></blockquote>
 <section id="id2">
-<h2>Model config file<a class="headerlink" href="#id2" title="Permalink to this heading">¶</a></h2>
+<h3>Model config file<a class="headerlink" href="#id2" title="Permalink to this heading">¶</a></h3>
 <p>The <code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code> file for the transmission spectrum model has
 the following structure:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Number of levels</span>
@@ -219,7 +218,7 @@ without including this species in any of the chemistry models. In this case, the
 abundance of this species will be zero and, thus, won’t show up in the spectrum.</p>
 </section>
 <section id="id3">
-<h2>Model postprocessing<a class="headerlink" href="#id3" title="Permalink to this heading">¶</a></h2>
+<h3>Model postprocessing<a class="headerlink" href="#id3" title="Permalink to this heading">¶</a></h3>
 <p>The optional postprocessing file <code class="docutils literal notranslate"><span class="pre">post_process.config</span></code> has the following structure and
 options:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Delete unused MultiNest files</span>
@@ -247,7 +246,7 @@ options:</p>
 </section>
 </section>
 <section id="secondary-eclipse-spectrum">
-<span id="sec-forward-model-se"></span><h1>Secondary eclipse spectrum<a class="headerlink" href="#secondary-eclipse-spectrum" title="Permalink to this heading">¶</a></h1>
+<span id="sec-forward-model-se"></span><h2>Secondary eclipse spectrum<a class="headerlink" href="#secondary-eclipse-spectrum" title="Permalink to this heading">¶</a></h2>
 <p>This forward model computes the wavelength-dependent secondary eclipse (or occulation)
 depth <span class="math notranslate nohighlight">\(D(\lambda)\)</span> of an exoplanet atmosphere, given by</p>
 <div class="math notranslate nohighlight">
@@ -270,7 +269,7 @@ have to be added to the priors configuration file in the following order:</p>
 </ul>
 </div></blockquote>
 <section id="id4">
-<h2>Model config file<a class="headerlink" href="#id4" title="Permalink to this heading">¶</a></h2>
+<h3>Model config file<a class="headerlink" href="#id4" title="Permalink to this heading">¶</a></h3>
 <p>The <code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code> file for the secondary eclipse spectrum model has
 the following structure:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Number of levels</span>
@@ -343,7 +342,7 @@ without including this species in any of the chemistry models. In this case, the
 abundance of this species will be zero and, thus, won’t show up in the spectrum.</p>
 </section>
 <section id="id5">
-<h2>Model postprocessing<a class="headerlink" href="#id5" title="Permalink to this heading">¶</a></h2>
+<h3>Model postprocessing<a class="headerlink" href="#id5" title="Permalink to this heading">¶</a></h3>
 <p>The optional postprocessing file <code class="docutils literal notranslate"><span class="pre">post_process.config</span></code> has the following structure and
 options:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Delete unused MultiNest files</span>
@@ -375,7 +374,7 @@ options:</p>
 </section>
 </section>
 <section id="secondary-eclipse-spectrum-with-planetary-blackbody">
-<span id="sec-forward-model-se-bb"></span><h1>Secondary eclipse spectrum with planetary blackbody<a class="headerlink" href="#secondary-eclipse-spectrum-with-planetary-blackbody" title="Permalink to this heading">¶</a></h1>
+<span id="sec-forward-model-se-bb"></span><h2>Secondary eclipse spectrum with planetary blackbody<a class="headerlink" href="#secondary-eclipse-spectrum-with-planetary-blackbody" title="Permalink to this heading">¶</a></h2>
 <p>This forward model computes the wavelength-dependent secondary eclipse (or occulation)
 depth <span class="math notranslate nohighlight">\(D(\lambda)\)</span> of an exoplanet atmosphere, given by</p>
 <div class="math notranslate nohighlight">
@@ -401,7 +400,7 @@ have to be added to the priors configuration file in the following order:</p>
 </ul>
 </div></blockquote>
 <section id="id6">
-<h2>Model config file<a class="headerlink" href="#id6" title="Permalink to this heading">¶</a></h2>
+<h3>Model config file<a class="headerlink" href="#id6" title="Permalink to this heading">¶</a></h3>
 <p>The <code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code> file for the secondary eclipse spectrum model has
 the following structure:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Stellar Spectrum</span>
@@ -412,7 +411,7 @@ the following structure:</p>
 on the available options can be found in the <a class="reference internal" href="stellar_spectra.html#sec-stellar-spectra"><span class="std std-ref">section</span></a> on stellar spectra.</p>
 </section>
 <section id="id7">
-<h2>Model postprocessing<a class="headerlink" href="#id7" title="Permalink to this heading">¶</a></h2>
+<h3>Model postprocessing<a class="headerlink" href="#id7" title="Permalink to this heading">¶</a></h3>
 <p>The optional postprocessing file <code class="docutils literal notranslate"><span class="pre">post_process.config</span></code> has the following structure and
 options:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Delete unused MultiNest files</span>
@@ -432,7 +431,7 @@ options:</p>
 </section>
 </section>
 <section id="emission-spectrum">
-<span id="sec-forward-model-em"></span><h1>Emission spectrum<a class="headerlink" href="#emission-spectrum" title="Permalink to this heading">¶</a></h1>
+<span id="sec-forward-model-em"></span><h2>Emission spectrum<a class="headerlink" href="#emission-spectrum" title="Permalink to this heading">¶</a></h2>
 <p>This forward model computes the emission spectrum <span class="math notranslate nohighlight">\(F(\lambda)\)</span> of an exoplanet or brown dwarf atmosphere.
 In BeAR, <span class="math notranslate nohighlight">\(F(\lambda)\)</span> has units of <span class="math notranslate nohighlight">\(\mathrm{W} \mathrm{m^{-2}} \mathrm{\mu m^{-1}}\)</span>.</p>
 <p>In the retrieval config file <code class="docutils literal notranslate"><span class="pre">retrieval.config</span></code> it is selected by choosing:</p>
@@ -451,7 +450,7 @@ where the radius is internally set to 1 Jupiter radius</p></li>
 </ul>
 </div></blockquote>
 <section id="id8">
-<h2>Model config file<a class="headerlink" href="#id8" title="Permalink to this heading">¶</a></h2>
+<h3>Model config file<a class="headerlink" href="#id8" title="Permalink to this heading">¶</a></h3>
 <p>The <code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code> file for the emission spectrum model has
 the following structure:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Number of levels</span>
@@ -514,7 +513,7 @@ without including this species in any of the chemistry models. In this case, the
 abundance of this species will be zero and, thus, won’t show up in the spectrum.</p>
 </section>
 <section id="id9">
-<h2>Model postprocessing<a class="headerlink" href="#id9" title="Permalink to this heading">¶</a></h2>
+<h3>Model postprocessing<a class="headerlink" href="#id9" title="Permalink to this heading">¶</a></h3>
 <p>The optional postprocessing file <code class="docutils literal notranslate"><span class="pre">post_process.config</span></code> has the following structure and
 options:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Delete unused MultiNest files</span>
@@ -547,6 +546,7 @@ options:</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">Save</span> <span class="pre">chemical</span> <span class="pre">species</span></code> : None</p></li>
 </ul>
 </div></blockquote>
+</section>
 </section>
 </section>
 
@@ -589,31 +589,11 @@ options:</p>
 <li class="toctree-l1"><a class="reference internal" href="observations.html">Observations</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Forward Models</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#model-postprocessing">Model postprocessing</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="#flat-line">Flat line</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#model-config-file">Model config file</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id1">Model postprocessing</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="#transmission-spectrum">Transmission spectrum</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#id2">Model config file</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id3">Model postprocessing</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="#secondary-eclipse-spectrum">Secondary eclipse spectrum</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#id4">Model config file</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id5">Model postprocessing</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="#secondary-eclipse-spectrum-with-planetary-blackbody">Secondary eclipse spectrum with planetary blackbody</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#id6">Model config file</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id7">Model postprocessing</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="#emission-spectrum">Emission spectrum</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#id8">Model config file</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#id9">Model postprocessing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#flat-line">Flat line</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#transmission-spectrum">Transmission spectrum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#secondary-eclipse-spectrum">Secondary eclipse spectrum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#secondary-eclipse-spectrum-with-planetary-blackbody">Secondary eclipse spectrum with planetary blackbody</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#emission-spectrum">Emission spectrum</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="priors.html">Prior distributions</a></li>
