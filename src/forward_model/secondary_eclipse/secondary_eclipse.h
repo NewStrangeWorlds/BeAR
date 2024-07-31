@@ -28,6 +28,7 @@
 #include <string>
 
 #include "../forward_model.h"
+#include "../generic_config.h"
 
 #include "../../config/global_config.h"
 #include "../../spectral_grid/spectral_grid.h"
@@ -50,14 +51,12 @@ namespace bear {
 //this struct handles the Brown Dwarf config
 //it will read in the corresponding parameter file
 //and will then be used to create a model object
-struct SecondaryEclipseConfig{
+struct SecondaryEclipseConfig : public GenericConfig{
   size_t nb_grid_points = 0;
 
   double atmos_boundaries[2] {0, 0};
   double atmos_top_pressure = 0;
   double atmos_bottom_pressure = 0;
-
-  //std::string stellar_spectrum_file = "";
 
   bool use_cloud_model = false;
 
@@ -81,9 +80,22 @@ struct SecondaryEclipseConfig{
 
   SecondaryEclipseConfig (const std::string& folder_path);
   void readConfigFile(const std::string& file_name);
-  void readCloudConfig(std::fstream& file);
-  void readChemistryConfig(std::fstream& file);
-  void readOpacityConfig(std::fstream& file);
+};
+
+
+
+class SecondaryEclipsePostProcessConfig : public GenericConfig{
+  public:
+    std::vector<chemical_species_id> species_to_save;
+
+    bool save_temperatures = true;
+    bool save_spectra = true;
+    bool save_contribution_functions = false;
+
+    bool delete_sampler_files = false;
+
+    SecondaryEclipsePostProcessConfig (const std::string& folder_path);
+    void readConfigFile(const std::string& file_name);
 };
 
 
@@ -108,19 +120,14 @@ class SecondaryEclipseModel : public ForwardModel{
       double* model_spectrum_bands);
     
     virtual void postProcess(
-      const std::vector< std::vector<double> >& model_parameter, 
-      const std::vector< std::vector<double> >& model_spectrum_bands,
-      const size_t best_fit_model);
-
-    virtual std::vector<double> convertSpectrumToModel(const std::vector<double>& spectrum);
+      const std::vector< std::vector<double> >& model_parameter,
+      const size_t best_fit_model,
+      bool& delete_unused_files);
 
     virtual bool testModel(
       const std::vector<double>& parameter,
       double* model_spectrum_gpu);
   protected:
-    GlobalConfig* config;
-    SpectralGrid* spectral_grid;
-
     Atmosphere atmosphere;
     OpacityCalculation opacity_calc;
 
@@ -129,9 +136,6 @@ class SecondaryEclipseModel : public ForwardModel{
     std::vector<Chemistry*> chemistry;
     std::vector<CloudModel*> cloud_models;
     StellarSpectrumModel* stellar_model;
-
-    std::vector<Observation>& observations;
-    size_t nb_observation_points = 0;
 
     size_t nb_grid_points = 0;
     size_t nb_general_param = 0;
@@ -152,18 +156,13 @@ class SecondaryEclipseModel : public ForwardModel{
 
 
     virtual void setPriors(Priors* priors);
-    void readPriorConfigFile(
-      const std::string& file_name,
-      std::vector<std::string>& prior_type,
-      std::vector<std::string>& prior_description, 
-      std::vector<std::vector<double>>& prior_parameter);
     void initModules(const SecondaryEclipseConfig& model_config);
 
-    // std::vector<double> calcSecondaryEclipse(
-    //   std::vector<double>& planet_spectrum_bands,
-    //   const double radius_ratio,
-    //   const double geometric_albedo,
-    //   const double radius_distance_ratio);
+    std::vector<double> calcSecondaryEclipse(
+      std::vector<double>& planet_spectrum_bands,
+      const double radius_ratio,
+      const double geometric_albedo,
+      const double radius_distance_ratio);
     void calcSecondaryEclipseGPU(
       double* secondary_eclipse,
       double* planet_spectrum,
@@ -183,12 +182,8 @@ class SecondaryEclipseModel : public ForwardModel{
 
     void postProcessModel(
       const std::vector<double>& parameter,
-      const std::vector<double>& model_spectrum_bands,
       std::vector<double>& temperature_profile,
-      double& effective_temperature,
       std::vector<std::vector<double>>& mixing_ratios);
-    double postProcessEffectiveTemperature(
-      const std::vector<double>& model_spectrum_bands);
     void postProcessContributionFunctions(
       const std::vector<double>& model_parameter);
     void saveContributionFunctions(
@@ -199,8 +194,6 @@ class SecondaryEclipseModel : public ForwardModel{
       const unsigned int species);
     void savePostProcessTemperatures(
       const std::vector<std::vector<double>>& temperature_profiles);
-    void savePostProcessEffectiveTemperatures(
-      const std::vector<double>& effective_temperatures);
 
     bool testCPUvsGPU(const std::vector<double>& parameter, double* model_spectrum_gpu);
 };

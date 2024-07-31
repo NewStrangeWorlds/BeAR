@@ -47,8 +47,7 @@ EmissionModel::EmissionModel (
   GlobalConfig* config_,
   SpectralGrid* spectral_grid_,
   std::vector<Observation>& observations_)
-    : config(config_)
-    , spectral_grid(spectral_grid_)
+    : ForwardModel(config_, spectral_grid_, observations_)
     , atmosphere(
         model_config.nb_grid_points,
         model_config.atmos_boundaries,
@@ -61,7 +60,6 @@ EmissionModel::EmissionModel (
         model_config.opacity_species_folder,
         config->use_gpu,
         model_config.use_cloud_model)
-    , observations(observations_)
 {
   nb_grid_points = model_config.nb_grid_points;
   
@@ -69,12 +67,6 @@ EmissionModel::EmissionModel (
 
   //this forward model has three free general parameters
   nb_general_param = 3;
-
-  for (auto & i : observations)
-  {
-    nb_observation_points += i.nbPoints();
-    nb_spectrum_modifier_param += i.nb_modifier_param;
-  }
 
   initModules(model_config);
 
@@ -85,7 +77,7 @@ EmissionModel::EmissionModel (
 double EmissionModel::radiusDistanceScaling(const std::vector<double>& parameter)
 {
   const double scaling_factor = parameter[1];
-  const double distance = parameter[2] * constants::parsec;
+  const double distance = parameter[2];
 
    //we assume a fixed prior radius of 1 Rj
   const double prior_radius = constants::radius_jupiter; 
@@ -296,6 +288,7 @@ void EmissionModel::postProcessSpectrum(
     std::copy(observation_bands.begin(), observation_bands.end(), it);
     it += observation_bands.size();
   }
+  
 }
 
 

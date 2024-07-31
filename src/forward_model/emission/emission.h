@@ -28,6 +28,7 @@
 #include <string>
 
 #include "../forward_model.h"
+#include "../generic_config.h"
 
 #include "../../config/global_config.h"
 #include "../../spectral_grid/spectral_grid.h"
@@ -48,35 +49,49 @@ namespace bear {
 //this struct handles the Emission config
 //it will read in the corresponding parameter file
 //and will then be used to create a model object
-struct EmissionModelConfig{
-  size_t nb_grid_points = 0;
+class EmissionModelConfig : public GenericConfig {
+  public:
+    size_t nb_grid_points = 0;
 
-  double atmos_boundaries[2] {0, 0};
-  double atmos_top_pressure = 0;
-  double atmos_bottom_pressure = 0;
+    double atmos_boundaries[2] {0, 0};
+    double atmos_top_pressure = 0;
+    double atmos_bottom_pressure = 0;
 
-  bool use_cloud_model = false;
+    bool use_cloud_model = false;
 
-  std::string temperature_profile_model;
-  std::vector<std::string> temperature_profile_parameters;
+    std::string temperature_profile_model;
+    std::vector<std::string> temperature_profile_parameters;
 
-  std::string radiative_transfer_model;
-  std::vector<std::string> radiative_transfer_parameters;
+    std::string radiative_transfer_model;
+    std::vector<std::string> radiative_transfer_parameters;
 
-  std::vector<std::string> chemistry_model;
-  std::vector<std::vector<std::string>> chemistry_parameters;
+    std::vector<std::string> chemistry_model;
+    std::vector<std::vector<std::string>> chemistry_parameters;
 
-  std::vector<std::string> cloud_model;
-  std::vector<std::vector<std::string>> cloud_model_parameters;
+    std::vector<std::string> cloud_model;
+    std::vector<std::vector<std::string>> cloud_model_parameters;
 
-  std::vector<std::string> opacity_species_symbol;
-  std::vector<std::string> opacity_species_folder;
+    std::vector<std::string> opacity_species_symbol;
+    std::vector<std::string> opacity_species_folder;
 
-  EmissionModelConfig (const std::string& folder_path);
-  void readConfigFile(const std::string& file_name);
-  void readCloudConfig(std::fstream& file);
-  void readChemistryConfig(std::fstream& file);
-  void readOpacityConfig(std::fstream& file);
+    EmissionModelConfig (const std::string& folder_path);
+    void readConfigFile(const std::string& file_name);
+};
+
+
+class EmissionPostProcessConfig : public GenericConfig{
+  public:
+    std::vector<chemical_species_id> species_to_save;
+
+    bool save_temperatures = true;
+    bool save_effective_temperatures = true;
+    bool save_spectra = true;
+    bool save_contribution_functions = false;
+
+    bool delete_sampler_files = false;
+
+    EmissionPostProcessConfig (const std::string& folder_path);
+    void readConfigFile(const std::string& file_name);
 };
 
 
@@ -101,18 +116,13 @@ class EmissionModel : public ForwardModel{
       double* model_spectrum_bands);
     
     virtual void postProcess(
-      const std::vector< std::vector<double> >& model_parameter, 
-      const std::vector< std::vector<double> >& model_spectrum_bands,
-      const size_t best_fit_model);
-
-    virtual std::vector<double> convertSpectrumToModel(const std::vector<double>& spectrum);
+      const std::vector< std::vector<double> >& model_parameter,
+      const size_t best_fit_model,
+      bool& delete_unused_files);
     
     virtual bool testModel(
       const std::vector<double>& parameter, double* model_spectrum_gpu);
   protected:
-    GlobalConfig* config;
-    SpectralGrid* spectral_grid;
-
     Atmosphere atmosphere;
     OpacityCalculation opacity_calc;
 
@@ -120,9 +130,6 @@ class EmissionModel : public ForwardModel{
     Temperature* temperature_profile = nullptr;
     std::vector<Chemistry*> chemistry;
     std::vector<CloudModel*> cloud_models;
-
-    std::vector<Observation>& observations;
-    size_t nb_observation_points = 0;
     
     size_t nb_general_param = 0;
     size_t nb_total_chemistry_param = 0;
@@ -140,11 +147,6 @@ class EmissionModel : public ForwardModel{
     size_t nb_grid_points = 0;
 
     virtual void setPriors(Priors* priors);
-    void readPriorConfigFile(
-      const std::string& file_name, 
-      std::vector<std::string>& prior_type, 
-      std::vector<std::string>& prior_description, 
-      std::vector<std::vector<double>>& prior_parameter);
     void initModules(const EmissionModelConfig& model_config);
 
     bool calcAtmosphereStructure(const std::vector<double>& parameter);
@@ -157,12 +159,20 @@ class EmissionModel : public ForwardModel{
 
     void postProcessModel(
       const std::vector<double>& parameter, 
-      const std::vector<double>& model_spectrum_bands, 
+      const double integrated_flux, 
       std::vector<double>& temperature_profile, 
       double& effective_temperature,
       std::vector<std::vector<double>>& mixing_ratios);
+    void calcPostProcessSpectra(
+      const std::vector< std::vector<double> >& model_parameter,
+      const size_t best_fit_model,
+      const bool save_spectra,
+      std::vector<double>& integrated_flux);
+    virtual void saveBestFitSpectrum(
+      const std::vector<double>& spectrum);
     double postProcessEffectiveTemperature(
-      const std::vector<double>& model_spectrum_bands, const double radius_distance_scaling);
+      const double integrated_flux, 
+      const double radius_distance_scaling);
     void savePostProcessChemistry(
       const std::vector<std::vector<std::vector<double>>>& mixing_ratios, 
       const unsigned int species);

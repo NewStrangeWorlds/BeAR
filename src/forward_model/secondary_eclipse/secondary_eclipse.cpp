@@ -48,8 +48,7 @@ SecondaryEclipseModel::SecondaryEclipseModel (
   GlobalConfig* config_,
   SpectralGrid* spectral_grid_,
   std::vector<Observation>& observations_) 
-    : config(config_)
-    , spectral_grid(spectral_grid_)
+    : ForwardModel(config_, spectral_grid_, observations_)
     , atmosphere(
         model_config.nb_grid_points,
         model_config.atmos_boundaries,
@@ -62,7 +61,6 @@ SecondaryEclipseModel::SecondaryEclipseModel (
         model_config.opacity_species_folder,
         config->use_gpu,
         model_config.use_cloud_model)
-    , observations(observations_)
 {
   nb_grid_points = model_config.nb_grid_points;
 
@@ -70,12 +68,6 @@ SecondaryEclipseModel::SecondaryEclipseModel (
 
   //this forward model has two free general parameters
   nb_general_param = 2;
-
-  for (auto & i : observations)
-  {
-    nb_observation_points += i.nbPoints();
-    nb_spectrum_modifier_param += i.nb_modifier_param;
-  }
 
   initModules(model_config);
 

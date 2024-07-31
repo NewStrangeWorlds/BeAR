@@ -45,9 +45,7 @@ FlatLine::FlatLine (
   GlobalConfig* config_,
   SpectralGrid* spectral_grid_,
   std::vector<Observation>& observations_)
-    : config(config_)
-    , spectral_grid(spectral_grid_)
-    , observations(observations_)
+    : ForwardModel(config_, spectral_grid_, observations_)
 {
   std::cout << "Forward model selected: Flat line\n\n"; 
 
@@ -55,9 +53,6 @@ FlatLine::FlatLine (
   nb_general_param = 1;
 
   setPriors(priors_);
-
-  for (auto & i : observations)
-    nb_observation_points += i.nbPoints();
 }
 
 
@@ -148,25 +143,6 @@ void FlatLine::postProcessSpectrumGPU(
   }
 }
 
-
-//Postprocess
-void FlatLine::postProcess(
-  const std::vector< std::vector<double> >& model_parameter, 
-  const std::vector< std::vector<double> >& model_spectrum_bands, 
-  const size_t best_fit_model)
-{
-  //nothing to do here...
-
-}
-
-
-std::vector<double> FlatLine::convertSpectrumToModel(const std::vector<double>& spectrum)
-{
-  //the high-res spectrum is already a flat line
-  std::vector<double> model_spectrum = spectrum;
-
-  return model_spectrum;
-}
 
 
 FlatLine::~FlatLine()

@@ -56,12 +56,8 @@ class PostProcess : public Retrieval{
 
     void readPosteriorData();  
     void postProcessSpectra(std::vector< std::vector<double> >& model_spectrum_bands);
-    void calcSpectrum(const unsigned int model_id, std::vector<double>& model_spectrum_bands);
-    void calcSpectrumGPU(const unsigned int model_id, std::vector<double>& model_spectrum_bands);
-    
 
-    void saveOutput(const std::vector< std::vector<double> >& model_spectrum_bands);
-    void saveBestFitSpectrum(const std::vector<double>& spectrum);
+    void deleteSamplerFiles(const std::vector<std::string>& file_list);
 };
 
 

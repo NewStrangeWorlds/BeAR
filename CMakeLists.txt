@@ -61,15 +61,15 @@ set(SRC
   src/additional/aux_functions.cpp
   src/additional/piecewise_poly.cpp
   src/config/global_config.cpp
+  src/forward_model/forward_model.cpp
+  src/forward_model/generic_config.cpp
   src/forward_model/emission/emission_model_config.cpp
-  src/forward_model/emission/emission_post_process_temperatures.cpp
   src/forward_model/emission/emission_post_process.cpp
   src/forward_model/emission/emission_priors.cpp
   src/forward_model/emission/emission_init.cpp
   src/forward_model/emission/emission.cpp
   src/forward_model/emission/emission_test.cpp
   src/forward_model/secondary_eclipse/secondary_eclipse_model_config.cpp
-  src/forward_model/secondary_eclipse/secondary_eclipse_post_process_temperatures.cpp
   src/forward_model/secondary_eclipse/secondary_eclipse_post_process.cpp
   src/forward_model/secondary_eclipse/secondary_eclipse_priors.cpp
   src/forward_model/secondary_eclipse/secondary_eclipse_init.cpp
@@ -90,6 +90,7 @@ set(SRC
   src/forward_model/transmission/transmission_test.cpp
   src/forward_model/flat_line/flat_line_priors.cpp
   src/forward_model/flat_line/flat_line.cpp
+  src/forward_model/flat_line/flat_line_post_process.cpp
   src/forward_model/flat_line/flat_line_test.cpp
   src/forward_model/atmosphere/atmosphere.cpp
   src/forward_model/stellar_spectrum/sampled_stellar_spectrum.cpp

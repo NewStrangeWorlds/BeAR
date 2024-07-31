@@ -21,22 +21,25 @@
 #include <string>
 #include <iostream>
 #include <fstream>
-#include <sstream>
-#include <iomanip>
+#include <cmath>
 #include <vector>
-#include <algorithm>
+#include <omp.h>
+#include <iomanip>
 
-#include "secondary_eclipse_bb.h"
+#include "flat_line.h"
 
-#include "../../chemistry/chem_species.h"
+#include "../../config/global_config.h"
+#include "../../spectral_grid/spectral_grid.h"
+#include "../../retrieval/priors.h"
+#include "../../observations/observations.h"
+#include "../../additional/physical_const.h"
+#include "../../additional/exceptions.h"
 #include "../../CUDA_kernels/data_management_kernels.h"
-#include "../../CUDA_kernels/contribution_function_kernels.h"
-#include "../atmosphere/atmosphere.h"
 
 
 namespace bear{
 
-SecondaryEclipseBlackBodyPostConfig::SecondaryEclipseBlackBodyPostConfig (const std::string& folder_path)
+FlatLinePostProcessConfig::FlatLinePostProcessConfig (const std::string& folder_path)
 {
   const std::string config_file_name = folder_path + "post_process.config";
 
@@ -44,7 +47,7 @@ SecondaryEclipseBlackBodyPostConfig::SecondaryEclipseBlackBodyPostConfig (const 
 }
 
 
-void SecondaryEclipseBlackBodyPostConfig::readConfigFile(const std::string& file_name)
+void FlatLinePostProcessConfig::readConfigFile(const std::string& file_name)
 {
   std::fstream file;
   file.open(file_name.c_str(), std::ios::in);
@@ -66,13 +69,14 @@ void SecondaryEclipseBlackBodyPostConfig::readConfigFile(const std::string& file
 }
 
 
-//calls the model specific posterior calculations
-void SecondaryEclipseBlackBodyModel::postProcess(
+
+
+void FlatLine::postProcess(
   const std::vector< std::vector<double> >& model_parameter,
   const size_t best_fit_model,
   bool& delete_unused_files)
 {
-  SecondaryEclipseBlackBodyPostConfig post_process_config(config->retrieval_folder_path);
+  FlatLinePostProcessConfig post_process_config(config->retrieval_folder_path);
 
   if (post_process_config.delete_sampler_files)
     delete_unused_files = true;

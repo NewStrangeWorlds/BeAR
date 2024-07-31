@@ -49,13 +49,15 @@ void SpectralBands::setConvolutionQuadratureIntervals()
 
   for (size_t i=0; i<nb_high_res_points; ++i)
   {
+    const size_t spectral_index = i + obs_index_range.first;
+
     //initialise with largest possible interval
     convolution_quadrature_intervals[i][0] = obs_index_range.first;
     convolution_quadrature_intervals[i][1] = obs_index_range.second;
 
-    const double cutoff_distance = 5.0 * instrument_profile_sigma[i];
-
-    setConvolutionQuadratureIntervals(i+obs_index_range.first, cutoff_distance);
+    const double cutoff_distance = 5.0 * instrument_profile_sigma[spectral_index];
+    
+    setConvolutionQuadratureIntervals(spectral_index, cutoff_distance);
   }
 }
 
@@ -68,14 +70,14 @@ void SpectralBands::setConvolutionQuadratureIntervals(
   const double cutoff_distance)
 { 
   const size_t conv_intervall_idx = index - obs_index_range.first;
-
+  
   if (cutoff_distance == 0)
   {
     convolution_quadrature_intervals[conv_intervall_idx][0] = index;
     convolution_quadrature_intervals[conv_intervall_idx][1] = index;
   }
   else
-  {
+  { 
     const double left_wavelength_edge = spectral_grid->wavelength_list[index] + cutoff_distance;
     convolution_quadrature_intervals[conv_intervall_idx][0] = spectral_grid->findClosestIndex(
       left_wavelength_edge,
@@ -87,8 +89,9 @@ void SpectralBands::setConvolutionQuadratureIntervals(
       right_wavelength_edge,
       spectral_grid->wavelength_list,
       spectral_grid->wavelength_list.begin() + convolution_quadrature_intervals[conv_intervall_idx][0]);
+   
   }
-
+  
 }
 
 
@@ -99,11 +102,10 @@ std::vector<double> SpectralBands::convolveSpectrum(const std::vector<double>& s
   if (instrument_profile_sigma.size() == 0) return spectrum;
 
   std::vector<double> convolved_spectrum(spectrum.size(), 0.0);
-
+  
   #pragma omp parallel for
   for (size_t i=obs_index_range.first; i<obs_index_range.second+1; ++i)
     convolved_spectrum[i] = convolveSpectrum(spectrum, i);
-
 
   return convolved_spectrum;
 }
@@ -114,17 +116,17 @@ std::vector<double> SpectralBands::convolveSpectrum(const std::vector<double>& s
 double SpectralBands::convolveSpectrum(
   const std::vector<double>& spectrum,
   const unsigned int index)
-{
+{ 
   const size_t conv_idx = index - obs_index_range.first;
 
-  if (convolution_quadrature_intervals[conv_idx][0] == convolution_quadrature_intervals[conv_idx][1])
+  if (convolution_quadrature_intervals[conv_idx][0] == convolution_quadrature_intervals[conv_idx][1] || instrument_profile_sigma[index] == 0)
     return spectrum[index];
 
   //copy the relevant part from the wavelength vector
   const std::vector<double> x(
     spectral_grid->wavelength_list.begin()+convolution_quadrature_intervals[conv_idx][0],
     spectral_grid->wavelength_list.begin()+convolution_quadrature_intervals[conv_idx][1]);
-
+ 
   std::vector<double> y(
     spectrum.begin()+convolution_quadrature_intervals[conv_idx][0],
     spectrum.begin()+convolution_quadrature_intervals[conv_idx][1]);

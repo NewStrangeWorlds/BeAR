@@ -21,9 +21,18 @@
 #ifndef _forward_model_h
 #define _forward_model_h
 
+#include <string>
+#include <iostream>
+#include <fstream>
 #include <vector>
+#include <sstream>
 
+#include "../additional/exceptions.h"
 #include "../retrieval/priors.h"
+#include "../config/global_config.h"
+#include "../spectral_grid/spectral_grid.h"
+#include "../CUDA_kernels/data_management_kernels.h"
+#include "../observations/observations.h"
 
 
 namespace bear {
@@ -33,6 +42,10 @@ namespace bear {
 //a derived class *has to* implement all the various, virtual methods
 class ForwardModel{
   public:
+  ForwardModel (
+      GlobalConfig* config_, 
+      SpectralGrid* spectral_grid_,
+      std::vector<Observation>& observations_);
     virtual ~ForwardModel() {}
     //calculate a model on the CPU
     //the return value signals the retrieval to neglect this model
@@ -48,22 +61,44 @@ class ForwardModel{
       double* model_spectrum_bands) = 0;
     //model-specific post process
     virtual void postProcess(
-      const std::vector< std::vector<double> >& model_parameter, 
-      const std::vector< std::vector<double> >& model_spectrum_bands,
-      const size_t best_fit_model) = 0;
-    //converts a high-resolution spectrum to a model observation (e.g. a transit depth)
-    virtual std::vector<double> convertSpectrumToModel(const std::vector<double>& spectrum) = 0;
+      const std::vector< std::vector<double> >& model_parameter,
+      const size_t best_fit_model,
+      bool& delete_unused_files) = 0;
     //model-specific tests
     virtual bool testModel(
       const std::vector<double>& parameter, 
       double* model_spectrum) = 0;
   protected:
+    GlobalConfig* config;
+    SpectralGrid* spectral_grid;
+    std::vector<Observation>& observations;
+
+    size_t nb_observation_points = 0;
+    size_t nb_spectrum_modifier_param = 0;
+    size_t nb_spectral_points = 0;
+    
     virtual void setPriors(Priors* priors) = 0;
+    virtual void readPriorConfigFile(
+      const std::string& file_name, 
+      std::vector<std::string>& prior_type, 
+      std::vector<std::string>& prior_description, 
+      std::vector<std::vector<std::string>>& prior_parameter);
+    
+    virtual void calcPostProcessSpectra(
+      const std::vector< std::vector<double> >& model_parameter,
+      const size_t best_fit_model,
+      std::vector< std::vector<double> >& model_spectrum_bands);
+    virtual void calcPostProcessSpectrum(
+      const std::vector<double>& model_parameter,
+      std::vector<double>& model_spectrum,
+      std::vector<double>& model_spectrum_bands);
+    virtual void saveBestFitSpectrum(
+      const std::vector<double>& spectrum);
+    virtual void savePostProcessSpectra(
+      const std::vector< std::vector<double> >& model_spectrum_bands);
 };
 
-
 }
-
 
 #endif
 

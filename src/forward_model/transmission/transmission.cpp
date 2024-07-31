@@ -47,8 +47,7 @@ TransmissionModel::TransmissionModel (
   GlobalConfig* config_,
   SpectralGrid* spectral_grid_,
   std::vector<Observation>& observations_)
-    : config(config_)
-    , spectral_grid(spectral_grid_)
+    : ForwardModel(config_, spectral_grid_, observations_)
     , atmosphere(
         model_config.nb_grid_points,
         model_config.atmos_boundaries,
@@ -61,7 +60,6 @@ TransmissionModel::TransmissionModel (
         model_config.opacity_species_folder,
         config->use_gpu,
         model_config.use_cloud_model)
-    , observations(observations_)
 {
   nb_grid_points = model_config.nb_grid_points;
   
@@ -75,12 +73,6 @@ TransmissionModel::TransmissionModel (
 
   fit_mean_molecular_weight = model_config.fit_mean_molecular_weight;
   fit_scale_height = model_config.fit_scale_height;
-
-  for (auto & i : observations)
-  {
-    nb_observation_points += i.nbPoints();
-    nb_spectrum_modifier_param += i.nb_modifier_param;
-  }
 
   //select and set up the modules
   initModules(model_config);
@@ -160,8 +152,8 @@ bool TransmissionModel::calcModel(
 
   spectrum.assign(spectral_grid->nbSpectralPoints(), 0.0);
 
-  const double bottom_radius = parameter[1] * constants::radius_jupiter;
-  const double star_radius = parameter[2] * constants::radius_sun;
+  const double bottom_radius = parameter[1];
+  const double star_radius = parameter[2];
   
   cloud_extinction.assign(
       spectral_grid->nbSpectralPoints(), 
@@ -262,8 +254,8 @@ bool TransmissionModel::calcModelGPU(
   }
 
 
-  const double bottom_radius = parameter[1] * constants::radius_jupiter;
-  const double star_radius = parameter[2] * constants::radius_sun;
+  const double bottom_radius = parameter[1];
+  const double star_radius = parameter[2];
 
   calcTransitDepthGPU(
     model_spectrum_gpu, 

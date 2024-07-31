@@ -28,6 +28,7 @@
 #include <string>
 
 #include "../forward_model.h"
+#include "../generic_config.h"
 
 #include "../../config/global_config.h"
 #include "../../spectral_grid/spectral_grid.h"
@@ -36,6 +37,17 @@
 
 
 namespace bear {
+
+
+class FlatLinePostProcessConfig : public GenericConfig{
+  public:
+    bool save_spectra = false;
+    bool delete_sampler_files = false;
+
+    FlatLinePostProcessConfig (const std::string& folder_path);
+    void readConfigFile(const std::string& file_name);
+};
+
 
 
 class FlatLine : public ForwardModel{
@@ -58,32 +70,19 @@ class FlatLine : public ForwardModel{
       double* model_spectrum_bands);
     
     virtual void postProcess(
-      const std::vector< std::vector<double> >& model_parameter, 
-      const std::vector< std::vector<double> >& model_spectrum_bands,
-      const size_t best_fit_model);
-
-    virtual std::vector<double> convertSpectrumToModel(const std::vector<double>& spectrum);
+      const std::vector< std::vector<double> >& model_parameter,
+      const size_t best_fit_model,
+      bool& delete_unused_files);
     
     virtual bool testModel(
       const std::vector<double>& parameter, double* model_spectrum_gpu);
   protected:
-    GlobalConfig* config;
-    SpectralGrid* spectral_grid;
-
-    std::vector<Observation>& observations;
-    size_t nb_observation_points = 0;
-    
     size_t nb_general_param = 1;
 
     size_t nb_total_param() 
       {return nb_general_param;}
 
     virtual void setPriors(Priors* priors);
-    void readPriorConfigFile(
-      const std::string& file_name, 
-      std::vector<std::string>& prior_type, 
-      std::vector<std::string>& prior_description, 
-      std::vector<std::vector<double>>& prior_parameter);
 
     void postProcessSpectrum(
       std::vector<double>& model_spectrum, std::vector<double>& model_spectrum_bands);
