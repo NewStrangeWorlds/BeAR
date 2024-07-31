@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Prior distributions &#8212; BeAR 1.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=4f649999" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=5bc47236" />
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=359c27e9"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Setting up and starting a retrieval" href="retrieval_setup.html" />
+    <link rel="prev" title="Forward Models" href="forward_models.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="prior-distributions">
+<span id="sec-prior-distributions"></span><h1>Prior distributions<a class="headerlink" href="#prior-distributions" title="Permalink to this heading">¶</a></h1>
+<p>Each free parameter of a retireval calculations needs to have an associated prior distribution. The prior distribution
+describes any prior knowledge that is available about the parameter. The number and type of the free grid_parameters
+depend on the chosen forward model and user-specied configuration options.</p>
+<p>BeAR supports the following types of distributions:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">delta</span></code> - a delta distribution with a fixed value</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">uniform</span></code> - a uniform distribution with a lower and upper bound</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">log_uniform</span></code> - a log-uniform distribution with a lower and upper bound</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">gaussian</span></code> - a Gaussian distribution with a mean and standard deviation</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">linked</span></code> - links this prior to that of another parameter</p></li>
+</ul>
+</div></blockquote>
+<p>A special case is the <code class="docutils literal notranslate"><span class="pre">linked</span></code> distribution. This distribution links the prior distribution
+of one parameter to that of another. Thus, these two parameters will always have the same value during a retrieval
+calculation.</p>
+<section id="prior-distributions-units">
+<h2>Prior distributions units<a class="headerlink" href="#prior-distributions-units" title="Permalink to this heading">¶</a></h2>
+<p>BeAR also supports units for its prior distributions. The following units are currenty taken into account:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">Rs</span></code> or <code class="docutils literal notranslate"><span class="pre">Rsun</span></code> - the solar radius</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Rj</span></code> or <code class="docutils literal notranslate"><span class="pre">Rjupiter</span></code> - Jupiter’s radius</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Re</span></code> or <code class="docutils literal notranslate"><span class="pre">Rearth</span></code> - Earth’s radius</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pc</span></code> - distance in parsec</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ly</span></code> - distance in light years</p></li>
+</ul>
+</div></blockquote>
+<p>Priors without units are assumed to be in cgs units.</p>
+</section>
+<section id="prior-distributions-file">
+<h2>Prior distributions file<a class="headerlink" href="#prior-distributions-file" title="Permalink to this heading">¶</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">priors.config</span></code> file contains the information on the prior distributions of the free parameters.
+The file has the following structure:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">delta</span>         <span class="n">log_g</span>           <span class="mf">2.99</span>     
+<span class="n">uniform</span>       <span class="n">r_planet</span>        <span class="mf">1.6</span>    <span class="mf">2.3</span>    <span class="n">Rj</span>
+<span class="n">gaussian</span>      <span class="n">r_star</span>          <span class="mf">1.57</span>   <span class="mf">0.07</span>   <span class="n">Rs</span>
+<span class="n">log_uniform</span>   <span class="n">H2O</span>             <span class="mf">1e-12</span>  <span class="mf">1e-1</span>
+<span class="n">log_uniform</span>   <span class="n">TiO</span>             <span class="mf">1e-12</span>  <span class="mf">1e-3</span>
+<span class="n">log_uniform</span>   <span class="n">VO</span>              <span class="mf">1e-12</span>  <span class="mf">1e-3</span>
+<span class="n">log_uniform</span>   <span class="n">K</span>               <span class="mf">1e-12</span>  <span class="mf">1e-3</span>
+<span class="n">uniform</span>       <span class="n">temperature</span>     <span class="mi">500</span>    <span class="mi">1600</span>
+</pre></div>
+</div>
+<p>The first column lists the distribution type of the prior, the second column the model parameter name, and the
+remaining columns the parameters of the distribution, while the optional, last column is the unit of the parameter.</p>
+<p>The type, order and number of these parameters in prior distributions file is determined by chosen forward model.</p>
+<p>A special case is the <code class="docutils literal notranslate"><span class="pre">linked</span></code> distribution. This distribution links the prior distribution
+of one parameter to that of another. The config parameter for this distribution is the line number of the
+parameter distribution that it should be linked to.
+An example of this is shown below:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">uniform</span>       <span class="n">log_g</span>           <span class="mf">4.0</span>     <span class="mf">6.0</span>        
+<span class="n">uniform</span>       <span class="n">scaling_factor</span>  <span class="mf">0.1</span>     <span class="mf">5.0</span>        
+<span class="n">gaussian</span>      <span class="n">distance</span>        <span class="mf">5.8819</span>  <span class="mf">0.0029</span>  <span class="n">pc</span>
+<span class="n">log_uniform</span>   <span class="n">mr_h2o</span>          <span class="mf">1e-12</span>   <span class="mf">0.01</span>  
+<span class="n">log_uniform</span>   <span class="n">mr_ch4</span>          <span class="mf">1e-12</span>   <span class="mf">0.01</span>  
+<span class="n">log_uniform</span>   <span class="n">mr_nh3</span>          <span class="mf">1e-12</span>   <span class="mf">0.01</span>
+<span class="n">log_uniform</span>   <span class="n">mr_k</span>            <span class="mf">1e-12</span>   <span class="mf">0.01</span>
+<span class="n">log_uniform</span>   <span class="n">mr_h2s</span>          <span class="mf">1e-12</span>   <span class="mf">0.01</span>
+<span class="n">linked</span>        <span class="n">mr_co2</span>          <span class="mi">5</span>
+<span class="n">uniform</span>       <span class="n">temperature1</span>    <span class="mi">5000</span>    <span class="mi">1000</span>      
+<span class="n">uniform</span>       <span class="n">temperature2</span>    <span class="mf">0.3</span>     <span class="mf">0.95</span>       
+<span class="n">uniform</span>       <span class="n">temperature3</span>    <span class="mf">0.3</span>     <span class="mf">0.95</span>       
+<span class="n">uniform</span>       <span class="n">temperature4</span>    <span class="mf">0.4</span>     <span class="mf">0.95</span>       
+<span class="n">uniform</span>       <span class="n">temperature5</span>    <span class="mf">0.5</span>     <span class="mf">0.95</span>
+</pre></div>
+</div>
+<p>Here, the prior for the CO2 mixing ratios is linked to the fifth parameter, which is the mixing ratio of CH4 in this example.
+Thus, CO2 will always have the same mixing ratio as methane for this retrieval setup. It is important to note that BeAR cannot
+check the consistency of the linked parameters. For example, if the linked parameter is a temperature, the resulting mixing ratios
+of CO2 would make no sense. It is the user’s responsibility to ensure that the linked parameters are consistent.</p>
+</section>
+<section id="order-of-prior-distributions">
+<h2>Order of prior distributions<a class="headerlink" href="#order-of-prior-distributions" title="Permalink to this heading">¶</a></h2>
+<p>The order of the prior distributions in the <code class="docutils literal notranslate"><span class="pre">priors.config</span></code> file is very important. In general they have to appear in the
+following order:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>general forward model parameters, as discussed in the <a class="reference internal" href="forward_models.html#sec-forward-models"><span class="std std-ref">section</span></a> on forward models</p></li>
+<li><p>priors for the chosen chemistry models, as discussed in the <a class="reference internal" href="chemistry_models.html#sec-chemistry-models"><span class="std std-ref">section</span></a> on chemistry models</p></li>
+<li><p>temperature profile priors, as discussed in this <a class="reference internal" href="temperature_profiles.html#sec-temperature-profiles"><span class="std std-ref">section</span></a></p></li>
+<li><p>cloud model priors as discussed in the <a class="reference internal" href="cloud_models.html#sec-cloud-models"><span class="std std-ref">section</span></a> on cloud models</p></li>
+<li><p>priors for optional modules that can be used for a specific forward model</p></li>
+<li><p>observational offset priors as discussed in the <a class="reference internal" href="observations.html#sec-observational-data"><span class="std std-ref">section</span></a> on observations</p></li>
+</ul>
+</div></blockquote>
+<p>A general prior configuration file, therefore has the following structure:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">uniform</span>       <span class="n">forward_model_param1</span>   <span class="mf">0.0</span>     <span class="mf">10.0</span>
+<span class="n">uniform</span>       <span class="n">forward_model_param2</span>   <span class="mf">0.0</span>     <span class="mf">10.0</span>
+<span class="n">uniform</span>       <span class="n">forward_model_param3</span>   <span class="mf">0.0</span>     <span class="mf">10.0</span>
+<span class="n">log_uniform</span>   <span class="n">chemistry_param1</span>       <span class="mf">1e-12</span>   <span class="mf">0.01</span>  
+<span class="n">log_uniform</span>   <span class="n">chemistry_param2</span>       <span class="mf">1e-12</span>   <span class="mf">0.01</span>
+<span class="n">log_uniform</span>   <span class="n">chemistry_param3</span>       <span class="mf">1e-12</span>   <span class="mf">0.01</span>
+<span class="n">log_uniform</span>   <span class="n">chemistry_param4</span>       <span class="mf">1e-12</span>   <span class="mf">0.01</span>
+<span class="n">log_uniform</span>   <span class="n">chemistry_param5</span>       <span class="mf">1e-12</span>   <span class="mf">0.01</span>
+<span class="n">uniform</span>       <span class="n">temperature_param1</span>     <span class="mi">5000</span>    <span class="mi">1000</span>      
+<span class="n">uniform</span>       <span class="n">temperature_param2</span>     <span class="mf">0.3</span>     <span class="mf">0.95</span>       
+<span class="n">uniform</span>       <span class="n">temperature_param3</span>     <span class="mf">0.3</span>     <span class="mf">0.95</span>       
+<span class="n">uniform</span>       <span class="n">temperature_param4</span>     <span class="mf">0.4</span>     <span class="mf">0.95</span>       
+<span class="n">uniform</span>       <span class="n">temperature_param5</span>     <span class="mf">0.5</span>     <span class="mf">0.95</span>
+<span class="n">log_uniform</span>   <span class="n">cloud_param1</span>           <span class="mf">0.0</span>     <span class="mf">10.0</span>
+<span class="n">log_uniform</span>   <span class="n">cloud_param2</span>           <span class="mf">0.0</span>     <span class="mf">10.0</span>
+<span class="n">log_uniform</span>   <span class="n">cloud_param3</span>           <span class="mf">0.0</span>     <span class="mf">10.0</span>
+<span class="n">uniform</span>       <span class="n">module_param1</span>          <span class="mf">0.0</span>     <span class="mf">1.00</span>       
+<span class="n">uniform</span>       <span class="n">module_param2</span>          <span class="mf">0.0</span>     <span class="mf">1.00</span>       
+<span class="n">uniform</span>       <span class="n">module_param3</span>          <span class="mf">0.0</span>     <span class="mf">1.00</span>
+<span class="n">gaussian</span>      <span class="n">observation_offset1</span>    <span class="mi">100</span>     <span class="mf">0.4</span>
+<span class="n">gaussian</span>      <span class="n">observation_offset2</span>    <span class="mi">100</span>     <span class="mf">0.4</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../index.html">
+    <img class="logo" src="../_static/bear.png" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+<p class="blurb">BeAR - The Bern Atmospheric Retrieval code</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=daniel-kitzmann&repo=bear&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="licence.html">Licence</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="opacity_data.html">Opacity data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="observations.html">Observations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="forward_models.html">Forward Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="forward_models.html#flat-line">Flat line</a></li>
+<li class="toctree-l1"><a class="reference internal" href="forward_models.html#transmission-spectrum">Transmission spectrum</a></li>
+<li class="toctree-l1"><a class="reference internal" href="forward_models.html#secondary-eclipse-spectrum">Secondary eclipse spectrum</a></li>
+<li class="toctree-l1"><a class="reference internal" href="forward_models.html#secondary-eclipse-spectrum-with-planetary-blackbody">Secondary eclipse spectrum with planetary blackbody</a></li>
+<li class="toctree-l1"><a class="reference internal" href="forward_models.html#emission-spectrum">Emission spectrum</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Prior distributions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#prior-distributions-units">Prior distributions units</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#prior-distributions-file">Prior distributions file</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#order-of-prior-distributions">Order of prior distributions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="retrieval_setup.html">Setting up and starting a retrieval</a></li>
+<li class="toctree-l1"><a class="reference internal" href="temperature_profiles.html">Temperature profiles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="chemistry_models.html">Chemistry Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cloud_models.html">Cloud Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="stellar_spectra.html">Stellar spectra</a></li>
+<li class="toctree-l1"><a class="reference internal" href="profile_parametrisations.html">Parametrisations of vertical profiles</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="forward_models.html" title="previous chapter">Forward Models</a></li>
+      <li>Next: <a href="retrieval_setup.html" title="next chapter">Setting up and starting a retrieval</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020 - 2024, Daniel Kitzmann.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      
+      |
+      <a href="../_sources/sections/priors.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,7 +1,40 @@
-Setting up a retrieval
-======================
+Setting up and starting a retrieval
+===================================
 
-To start a retrieval calculation, BeAR requires the following files in the folder the executable is called with:
+To start a retrieval calculation, the executable ``bear`` needs to be called from the command line
+with a folder that contains the necessary :ref:`configuration files <sec:config_files>` as a command line argument:
+
+.. code:: bash
+
+   ./bear path_to_retrieval_folder/
+
+The folder typically contains all the necessary configuration files for the retrieval and observational data.
+:ref:`Output files <sec:output_files>` will also be written to this folder.
+
+Additionally, BeAR can optionally use the following command line arguments:
+
+  - ``-r`` - restart a retrieval that has been interrupted
+  
+  - ``-p`` - perform only the postprocessing step
+
+The additional arguments are added after the folder path:
+
+.. code:: bash
+
+   ./bear path_to_retrieval_folder/ -p
+
+To restart a retrieval, the folder needs to contain all necessary MultiNest files from the previous run. Likewise, for
+the postprocess, the posterior data needs to be present in the folder. The GitHub repository of BeAR contains an example for each 
+forward model that can be used to test the retrieval code or as templates for other retrievals. 
+The example folders contain all necessary files to run a retrieval calculation.
+
+
+.. _sec:config_files:
+
+Configuration files
+-------------------
+
+BeAR requires the following files in the folder the executable is called with:
 
   - ``retrieval.config`` - the main configuration file for the retrieval
   
@@ -11,7 +44,13 @@ To start a retrieval calculation, BeAR requires the following files in the folde
   
   - ``observations.list`` - the list of observational data files that the retrieval should use
 
-  
+Optionally, the postprocessing step can be configured with the following file:
+
+  - ``post_process.config`` - the configuration file for the postprocessing step
+
+If this file is not present, BeAR will use default settings for the postprocessing.
+
+
 Main retrieval file
 ...................
 
@@ -128,63 +167,74 @@ Its structure depends on the chosen model and is discussed in the :ref:`section 
 Prior distributions file
 ........................
 
-The ``priors.config`` file contains the information on the prior distributions of the free parameters.
-The file has the following structure:
-
-.. include:: ../examples/priors_example1.config
-   :literal:
-
-The first column lists the distribution type of the prior, the second column the model parameter name, and the 
-remaining columns the parameters of the distribution.
-
-BeAR supports the following types of distributions:
-
-  - ``delta`` - a delta distribution with a fixed value
-
-  - ``uniform`` - a uniform distribution with a lower and upper bound
-
-  - ``log_uniform`` - a log-uniform distribution with a lower and upper bound
-
-  - ``gaussian`` - a Gaussian distribution with a mean and standard deviation
-
-  - ``linked`` - links this prior to that of another parameter
-
-The type, order and number of these parameters in prior distributions file is determined by chosen forward model.
-
-A special case is the ``linked`` distribution. This distribution links the prior distribution 
-of one parameter to that of another. The config parameter for this distribution is the line number of the
-parameter distribution that it should be linked to.
-An example of this is shown below:
-
-.. include:: ../examples/priors_example2.config
-   :literal:
-
-Here, the prior for the CO2 mixing ratios is linked to the fifth parameter, which is the mixing ratio of CH4 in this example.
-Thus, CO2 will always have the same mixing ratio as methane for this retrieval setup. It is important to note that BeAR cannot 
-check the consistency of the linked parameters. For example, if the linked parameter is a temperature, the resulting mixing ratios
-of CO2 would make no sense. It is the user's responsibility to ensure that the linked parameters are consistent.
-
-Currently, BeAR assumes the following units for the free model parameters:
-  
-  - ``log g`` - logarithm of the surface gravity in :math:`\mathrm{cm/s^2}`
-
-  - ``R_p`` - planetary radius in :math:`\mathrm{R_{Jup}}`
-
-  - ``R_s`` - stellar radius in :math:`\mathrm{R_{Sun}}`
-
-  - ``distance`` - distance of the object in :math:`\mathrm{pc}`
+The ``priors.config`` file contains the information on the prior distributions of the free parameters. More information
+on the format of the prior distributions file can be found in the :ref:`section <sec:prior_distributions>` and in the
+description of each forward model.
 
 
 Observational data file
 .......................
 
 The ``observations.list`` file contains a list of data files with the observational data that the retrieval should use.
-An example is shown below:
+Its structure depends on the chosen model and is discussed in the :ref:`section <sec:obs_file>` on the observational data.
 
-.. include:: ../examples/observations_example.list
-   :literal:
 
-BeAR can use multiple observational data files at the same time. The observations do not need to be orderer in any specific way.
-They also do not need to be continuous in wavelength space, gaps are are allowed to be present between the different observations.
-It also possible to mix different observational types, e.g. photometric data together with spectroscopic data. The format of the 
-these files is described in the :ref:`section <sec:observational_data>` on observational data.
+Postprocess configuration file
+..............................
+
+During the postprocess step after a retrieval calculation has been finished, BeAR can perform additional calculations. This
+includes the computation of spectra for the posterior sample, writing out all temperature structures, or computing the
+effective temperatures for emission spectroscopy retrievals. 
+
+The configuration file for the postprocess step is called
+``post_process.config``. This file is optional and BeAR will use default settings if it is not present. The structure of the
+file depends on the chosen forward model is discussed in the :ref:`section <sec:forward_models>` on forward models.
+
+
+.. _sec:output_files:
+
+Output files
+------------
+
+After a retrieval calculation has been finished, the retrieval folder will contain a set of output files, either directly
+from the MultiNest sampler or from the postprocess step of BeAR.
+
+The most important MultiNest files are:
+
+  - ``post_equal_weights.dat`` - the posterior distributions of the model parameters and likelihood values
+  
+  - ``summary.dat`` and ``stats.dat`` - a basic summary and some statistics of the nested sampling results, including the
+    Bayesian evidence
+  
+The folder will also contain additional MultiNest files that were used during the nested sampling process. More detailed 
+descriptions of the files' contents can be found in the MultiNest documentation in its `GitHub repository <https://github.com/farhanferoz/MultiNest/>`_ 
+
+If the corresponding option in the optional ``post_process.config`` has been enabled, BeAR will delete MultiNest files that are 
+not required for the postprocessing step.
+
+The postprocess step will write out additional files, depending on the chosen forward model. This can include:
+
+  - ``spectrum_post_XXXX.dat`` - the spectra for the observation/instrument ``XXXX`` for the posterior sample. Each observational data
+    set used in the retrieval will have a separate posterior spectrum file, where  ``XXXX`` is the name stated in the header of the observational 
+    data file. The spectra are binned to each observational data. The first column contains the wavelength in :math:`\mathrm{\mu m}`, while all
+    other columns are the spectra for each posterior sample. Thus, there are as many spectrum columns as there are posterior samples in the 
+    posterior distribution file ``post_equal_weights.dat``. If the original data set was either band-spectroscopy or photometry, the wavelengths
+    in the first column refer to the centre of each spectral bin.
+
+  - ``spectrum_best_fit_hr.dat`` - the high-resolution spectrum for the best-fit model, i.e. the model with the highest likelihood. This spectrum
+    is saved at the same resulution as the high-resolution grid used in the retrieval. The first column contains the wavelength in :math:`\mathrm{\mu m}`, while
+    the second column is the high-resolution spectrum.
+  
+  - ``temperature_structures.dat`` - the temperature structures for the posterior sample. The first column is the atmospheric pressure in bar. All other columns
+    contain the temperatures at these pressures for each posterior sample. The number of temperature columns is equal to the number of posterior samples.
+  
+  - ``effective_temperatures.dat`` - the effective temperatures for the posterior sample. Each line contains the effective temperature for one posterior sample.
+
+  - ``chem_XXX.dat`` - the mixing ratio of a chemical species ``XXX`` (for example H2O) for the posterior sample. The first column is the atmospheric pressure in bar. 
+    All other columns contain the mixing ratios at these pressures for each posterior sample. The number of mixing ratio columns is equal to the number of posterior samples.
+
+  - ``contribution_function_XXXX.dat`` - the contribution functions for the observation/instrument ``XXXX`` for the best-fit model. 
+    Each observational data set used in the retrieval will have a separate contribution file, where  ``XXXX`` is the name stated in the header of the observational 
+    data file. The first column contains the atmospheric pressure in bar, while all other columns contain the contribution functions for each wavelength/wavelength bin
+    of the observational data. The number of contribution function columns is, thus, equal to the number of wavelengths/wavelength bins in the observational data.
+    Note that the wavelengths are not saved in this file and have to be taken from either the corresponding observational data file or spectrum posterior file.
