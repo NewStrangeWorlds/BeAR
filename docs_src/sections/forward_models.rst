@@ -24,7 +24,7 @@ discussed below.
 
 
 Model postprocessing
-....................
+--------------------
 
 After the retrieval calculations are finished, the  BeAR will perform a postprocessing on 
 the resulting posterior sample. Depending on the chosen forward model, different 
@@ -63,7 +63,7 @@ available options are currently:
 .. _sec:forward_model_flat:
 
 Flat line
-=========
+---------
 
 This model simply fits a flat line through the observational data. Usually, this
 model is used to test if the use of a more complex model is warranted to explain
@@ -111,7 +111,7 @@ The default options that are used when this file is not present are:
 .. _sec:forward_model_transmission:
 
 Transmission spectrum
-=====================
+----------------------
 
 This forward model computes the wavelength-dependent transit depth 
 :math:`D(\lambda)` of an exoplanet atmosphere, given by
@@ -215,7 +215,7 @@ The default options that are used when this file is not present are:
 .. _sec:forward_model_se:
 
 Secondary eclipse spectrum
-==========================
+---------------------------
 
 This forward model computes the wavelength-dependent secondary eclipse (or occulation) 
 depth :math:`D(\lambda)` of an exoplanet atmosphere, given by
@@ -304,7 +304,7 @@ The default options that are used when this file is not present are:
 .. _sec:forward_model_se_bb:
 
 Secondary eclipse spectrum with planetary blackbody
-===================================================
+---------------------------------------------------
 
 This forward model computes the wavelength-dependent secondary eclipse (or occulation) 
 depth :math:`D(\lambda)` of an exoplanet atmosphere, given by
@@ -369,7 +369,7 @@ The default options that are used when this file is not present are:
 .. _sec:forward_model_em:
 
 Emission spectrum
-=================
+-----------------
 
 This forward model computes the emission spectrum :math:`F(\lambda)` of an exoplanet or brown dwarf atmosphere.
 In BeAR, :math:`F(\lambda)` has units of :math:`\mathrm{W} \mathrm{m^{-2}} \mathrm{\mu m^{-1}}`.
