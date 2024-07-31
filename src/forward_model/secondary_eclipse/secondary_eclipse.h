@@ -84,6 +84,22 @@ struct SecondaryEclipseConfig : public GenericConfig{
 
 
 
+class SecondaryEclipsePostProcessConfig : public GenericConfig{
+  public:
+    std::vector<chemical_species_id> species_to_save;
+
+    bool save_temperatures = true;
+    bool save_spectra = true;
+    bool save_contribution_functions = false;
+
+    bool delete_sampler_files = false;
+
+    SecondaryEclipsePostProcessConfig (const std::string& folder_path);
+    void readConfigFile(const std::string& file_name);
+};
+
+
+
 
 class SecondaryEclipseModel : public ForwardModel{
   public:
@@ -105,7 +121,8 @@ class SecondaryEclipseModel : public ForwardModel{
     
     virtual void postProcess(
       const std::vector< std::vector<double> >& model_parameter,
-      const size_t best_fit_model);
+      const size_t best_fit_model,
+      bool& delete_unused_files);
 
     virtual bool testModel(
       const std::vector<double>& parameter,
@@ -165,12 +182,8 @@ class SecondaryEclipseModel : public ForwardModel{
 
     void postProcessModel(
       const std::vector<double>& parameter,
-      const std::vector<double>& model_spectrum_bands,
       std::vector<double>& temperature_profile,
-      double& effective_temperature,
       std::vector<std::vector<double>>& mixing_ratios);
-    double postProcessEffectiveTemperature(
-      const std::vector<double>& model_spectrum_bands);
     void postProcessContributionFunctions(
       const std::vector<double>& model_parameter);
     void saveContributionFunctions(
@@ -181,8 +194,6 @@ class SecondaryEclipseModel : public ForwardModel{
       const unsigned int species);
     void savePostProcessTemperatures(
       const std::vector<std::vector<double>>& temperature_profiles);
-    void savePostProcessEffectiveTemperatures(
-      const std::vector<double>& effective_temperatures);
 
     bool testCPUvsGPU(const std::vector<double>& parameter, double* model_spectrum_gpu);
 };

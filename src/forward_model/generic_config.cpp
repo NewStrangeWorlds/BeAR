@@ -234,6 +234,8 @@ bool GenericConfig::readBooleanParameter(
 
   input >> param;
 
+  std::getline(file, line); //empty separator line
+
   if (param == "Yes" || param == "yes" || param == "Y" || param == "y")
   {
     std::cout << "  - " << parameter_name << ": yes\n";
@@ -249,8 +251,6 @@ bool GenericConfig::readBooleanParameter(
   std::string error_message = "Boolean parameter value for " + parameter_name + " in config file is invalid\n";
   throw InvalidInput(std::string ("GenericConfig::readBooleanParameter"), error_message);
 
-  std::getline(file, line); //empty separator line
-  
   return false;
 }
 
@@ -281,6 +281,44 @@ std::string GenericConfig::readParameter(
   }
   else
     return param;
+}
+
+
+
+std::vector<chemical_species_id> GenericConfig::readChemicalSpecies(
+  std::fstream& file,
+  const std::string& parameter_name)
+{
+  std::string line;
+  std::getline(file, line);  //parameter header
+  
+  std::getline(file, line);
+  std::istringstream input(line);
+  
+  std::string species;
+  std::vector<chemical_species_id> species_to_save;
+
+  while (input >> species)
+  {
+    for (size_t j=0; j<constants::species_data.size(); ++j)
+    {
+      if (constants::species_data[j].symbol == species)
+      {
+        species_to_save.push_back(constants::species_data[j].id); 
+        break;
+      }
+    }
+  }
+
+  std::getline(file, line); //empty separator line
+
+  std::cout << "  - " + parameter_name + ": ";
+
+  for (auto & i : species_to_save)
+    std::cout << constants::species_data[i].symbol << " ";
+  std::cout << "\n";
+
+  return species_to_save;
 }
 
 

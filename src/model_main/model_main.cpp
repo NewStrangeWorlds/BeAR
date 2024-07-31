@@ -91,8 +91,6 @@ int main(int argc, char *argv[])
   if (retrieval_success)
     retrieval_success = doPostProcess(config);
 
-
-
   
   if (retrieval_success)
   {

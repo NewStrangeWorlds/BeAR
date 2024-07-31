@@ -62,7 +62,8 @@ class ForwardModel{
     //model-specific post process
     virtual void postProcess(
       const std::vector< std::vector<double> >& model_parameter,
-      const size_t best_fit_model) = 0;
+      const size_t best_fit_model,
+      bool& delete_unused_files) = 0;
     //model-specific tests
     virtual bool testModel(
       const std::vector<double>& parameter, 

@@ -68,9 +68,8 @@ __global__ void convolveSpectrumDevice(
   const int start = start_index[i];
   const int end = end_index[i];
   const int sub_spectrum_size = end - start + 1;
-
-
-  if (start == end)
+  
+  if (start == end || sigma == 0)
   {
     if (threadIdx.x == 0)
       convolved_spectrum[i+index_start] = spectrum[i+index_start];
@@ -111,21 +110,20 @@ __global__ void convolveSpectrumDevice(
   for (int j = threadIdx.x; j < sub_spectrum_size; j += blockDim.x)
   {
     //distance from the central wavelength
-    const double distance = abs(mu - wavelengths[j+index_start + start]);
+    const double distance = abs(mu - wavelengths[j + start]);
 
     //the data for the convolution 
-    data[j] = spectrum[j+index_start+start] * normalDistribution(sigma, distance);
+    data[j] = spectrum[j+start] * normalDistribution(sigma, distance);
   }
 
-
+  
   __syncthreads();
 
-  
   //now we integrate with a trapezoidal rule
   double quad_sum = 0;
 
   for (int j = threadIdx.x; j < sub_spectrum_size-1; j += blockDim.x) 
-    quad_sum += (data[j] + data[j+1]) * (wavelengths[j + index_start + 1 + start] - wavelengths[j + index_start + start]);
+    quad_sum += (data[j] + data[j+1]) * (wavelengths[j + 1 + start] - wavelengths[j + start]);
   
 
   __syncthreads();

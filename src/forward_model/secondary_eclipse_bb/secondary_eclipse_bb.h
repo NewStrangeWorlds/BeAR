@@ -28,6 +28,7 @@
 #include <string>
 
 #include "../forward_model.h"
+#include "../generic_config.h"
 
 #include "../../config/global_config.h"
 #include "../../spectral_grid/spectral_grid.h"
@@ -53,6 +54,16 @@ struct SecondaryEclipseBlackBodyConfig{
 
 
 
+class SecondaryEclipseBlackBodyPostConfig : public GenericConfig{
+  public:
+    bool save_spectra = false;
+    bool delete_sampler_files = false;
+
+    SecondaryEclipseBlackBodyPostConfig (const std::string& folder_path);
+    void readConfigFile(const std::string& file_name);
+};
+
+
 
 class SecondaryEclipseBlackBodyModel : public ForwardModel{
   public:
@@ -74,7 +85,8 @@ class SecondaryEclipseBlackBodyModel : public ForwardModel{
     
     virtual void postProcess(
       const std::vector< std::vector<double> >& model_parameter,
-      const size_t best_fit_model);
+      const size_t best_fit_model,
+      bool& delete_unused_files);
 
     virtual bool testModel(
       const std::vector<double>& parameter,

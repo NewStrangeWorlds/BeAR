@@ -205,7 +205,6 @@ void ForwardModel::savePostProcessSpectra(
 
     band_index += observations[j].spectral_bands.nbBands();
   }
-
 }
 
 

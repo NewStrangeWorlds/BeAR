@@ -44,7 +44,6 @@ void SecondaryEclipseBlackBodyModel::setPriors(Priors* priors)
 
   readPriorConfigFile(file_name, prior_type, prior_description, prior_parameter);
 
-  std::cout << nb_general_param << "\t" << nb_stellar_param << "\t" << nb_spectrum_modifier_param << "\n" << nb_total_param() << "\n";
   //check if we have the correct number of piors
   if (prior_type.size() != nb_total_param())
   {

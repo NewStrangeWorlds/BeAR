@@ -22,6 +22,8 @@
 #define _multinest_parameter_h
 
 #include <string>
+#include <vector>
+
 #include "../config/global_config.h"
 
 
@@ -55,9 +57,19 @@ struct MultinestParameter{
   double logZero = -1E90; //points with loglike < logZero will be ignored by MultiNest
   int maxiter = 0;        //max no. of iterations, a non-positive value means infinity.
   void *context = 0;      //not required by MultiNest, any additional information user wants to pass
+
+  std::vector<std::string> unused_posterior_files = {
+    ".txt",
+    "dead-birth.txt",
+    "ev.dat",
+    "IS.iterinfo",
+    "IS.points",
+    "IS.ptprob",
+    "live.points",
+    "phys_live-birth.txt",
+    "phys_live.points",
+    "resume.dat"};
 };
-
-
 
 
 }

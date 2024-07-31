@@ -56,68 +56,13 @@ void TransmissionPostProcessConfig::readConfigFile(const std::string& file_name)
 
   std::cout << "\nParameters read from " << file_name << " :\n";
 
-  std::string line;
-  std::string input;
+  delete_sampler_files = readBooleanParameter(file, "Delete sampler files");
 
-  std::getline(file, line);
+  save_spectra = readBooleanParameter(file, "Save posterior spectra");
+
+  save_temperatures = readBooleanParameter(file, "Save temperature structures");
   
-  file >> input >> line;
-  if (input == "Yes" || input == "yes" || input == "Y" || input == "y")
-    delete_sampler_files = true;
-  
-  std::cout << "  - Delete sampler files: " << delete_sampler_files << "\n";
-
-
-  std::getline(file, line);
-
-  file >> input >> line;
-  if (input == "Yes" || input == "yes" || input == "Y" || input == "y")
-    save_spectra = true;
-  else
-    save_spectra = false;
-  
-  std::cout << "  - Save posterior spectra: " << save_spectra << "\n";
-
-
-  std::getline(file, line);
-
-  file >> input >> line;
-  if (input == "Yes" || input == "yes" || input == "Y" || input == "y")
-    save_temperatures = true;
-  else
-    save_temperatures = false;
-  
-  std::cout << "  - Save temperature structures: " << save_temperatures << "\n";
-
-
-  std::getline(file, line);
-  std::getline(file, line);
-  std::string species;
-
-
-
-  std::istringstream chem_input(line);
-  std::vector<std::string> chemical_species;
-
-  while (chem_input >> species)
-    chemical_species.push_back(species);
-
-  for (auto & i : chemical_species)
-  {
-    for (size_t j=0; j<constants::species_data.size(); ++j)
-    {
-      if (constants::species_data[j].symbol == i)
-      {
-        species_to_save.push_back(constants::species_data[j].id); 
-        break;
-      } 
-    }
-  }
-   
-  std::cout << "  - Save chemical species profiles: ";
-  for (auto & i : species_to_save)
-    std::cout << constants::species_data[i].symbol << " ";
-  std::cout << "\n";
+  species_to_save = readChemicalSpecies(file, "Save chemical species profiles");
 
   file.close();
 }
@@ -127,9 +72,13 @@ void TransmissionPostProcessConfig::readConfigFile(const std::string& file_name)
 //calls the model specific posterior calculations
 void TransmissionModel::postProcess(
   const std::vector< std::vector<double> >& model_parameter, 
-  const size_t best_fit_model)
+  const size_t best_fit_model,
+  bool& delete_unused_files)
 {
   TransmissionPostProcessConfig post_process_config(config->retrieval_folder_path);
+
+  if (post_process_config.delete_sampler_files)
+    delete_unused_files = true;
 
   const size_t nb_models = model_parameter.size();
   std::vector< std::vector<double> > model_spectrum_bands;

@@ -28,6 +28,7 @@
 #include <fstream>
 #include <string>
 
+#include "../chemistry/chem_species.h"
 
 namespace bear {
 
@@ -67,6 +68,9 @@ class GenericConfig{
       std::fstream& file,
       const std::string& parameter_name,
       const std::vector<std::string>& allowed_values);
+    std::vector<chemical_species_id> readChemicalSpecies(
+      std::fstream& file,
+      const std::string& parameter_name);
 };
 
 

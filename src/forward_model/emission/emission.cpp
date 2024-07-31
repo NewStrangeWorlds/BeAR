@@ -289,9 +289,6 @@ void EmissionModel::postProcessSpectrum(
     it += observation_bands.size();
   }
   
-  //for potential output purposes, convert from W m-2 cm to W m-2 micron-1
-  for (size_t i=0; i<spectral_grid->nbSpectralPoints(); ++i)
-    model_spectrum[i] = model_spectrum[i]/spectral_grid->wavelength_list[i]/spectral_grid->wavelength_list[i]*10000.0;
 }
 
 

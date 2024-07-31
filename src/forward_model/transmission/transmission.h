@@ -42,6 +42,7 @@
 #include "../../transport_coeff/transport_coeff.h"
 #include "../../transport_coeff/opacity_calc.h"
 #include "../modules/module.h"
+#include "../../chemistry/chem_species.h"
 
 
 namespace bear {
@@ -54,51 +55,51 @@ constexpr double transmission_cutoff = 4.5399929e-5; //exp(-tau)
 //this struct handles the Transmission Spectrum config
 //it will read in the corresponding parameter file
 //and will then be used to create a model object
-struct TransmissionModelConfig : public GenericConfig{
-  size_t nb_grid_points = 0;
+class TransmissionModelConfig : public GenericConfig{
+  public:
+    size_t nb_grid_points = 0;
 
-  double atmos_boundaries[2] {0, 0};
-  double atmos_top_pressure = 0;
-  double atmos_bottom_pressure = 0;
+    double atmos_boundaries[2] {0, 0};
+    double atmos_top_pressure = 0;
+    double atmos_bottom_pressure = 0;
 
-  bool fit_mean_molecular_weight = false;
-  bool fit_scale_height = false;
+    bool fit_mean_molecular_weight = false;
+    bool fit_scale_height = false;
 
-  bool use_cloud_model = false;
-  bool use_optional_modules = false;
+    bool use_cloud_model = false;
+    bool use_optional_modules = false;
 
-  std::string temperature_profile_model;
-  std::vector<std::string> temperature_profile_parameters;
+    std::string temperature_profile_model;
+    std::vector<std::string> temperature_profile_parameters;
 
-  std::vector<std::string> chemistry_model;
-  std::vector<std::vector<std::string>> chemistry_parameters;
+    std::vector<std::string> chemistry_model;
+    std::vector<std::vector<std::string>> chemistry_parameters;
 
-  std::vector<std::string> cloud_model;
-  std::vector<std::vector<std::string>> cloud_model_parameters;
+    std::vector<std::string> cloud_model;
+    std::vector<std::vector<std::string>> cloud_model_parameters;
 
-  std::vector<std::string> modules;
-  std::vector<std::vector<std::string>> modules_parameters;
+    std::vector<std::string> modules;
+    std::vector<std::vector<std::string>> modules_parameters;
 
-  std::vector<std::string> opacity_species_symbol;
-  std::vector<std::string> opacity_species_folder;
+    std::vector<std::string> opacity_species_symbol;
+    std::vector<std::string> opacity_species_folder;
 
-  TransmissionModelConfig (const std::string& folder_path);
-  virtual void readConfigFile(const std::string& file_name);
+    TransmissionModelConfig (const std::string& folder_path);
+    virtual void readConfigFile(const std::string& file_name);
 };
 
 
-//this struct handles the Transmission Spectrum 
-//post process config
-struct TransmissionPostProcessConfig{
-  std::vector<chemical_species_id> species_to_save;
+class TransmissionPostProcessConfig : public GenericConfig{
+  public:
+    std::vector<chemical_species_id> species_to_save;
 
-  bool save_temperatures = false;
-  bool save_spectra = true;
+    bool save_temperatures = false;
+    bool save_spectra = true;
 
-  bool delete_sampler_files = false;
+    bool delete_sampler_files = false;
 
-  TransmissionPostProcessConfig (const std::string& folder_path);
-  void readConfigFile(const std::string& file_name);
+    TransmissionPostProcessConfig (const std::string& folder_path);
+    void readConfigFile(const std::string& file_name);
 };
 
 
@@ -124,7 +125,8 @@ class TransmissionModel : public ForwardModel{
     
     virtual void postProcess(
       const std::vector< std::vector<double> >& model_parameter,
-      const size_t best_fit_model);
+      const size_t best_fit_model,
+      bool& delete_unused_files);
     
     virtual bool testModel(
       const std::vector<double>& parameter, 

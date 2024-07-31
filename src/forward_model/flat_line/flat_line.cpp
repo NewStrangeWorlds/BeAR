@@ -144,15 +144,6 @@ void FlatLine::postProcessSpectrumGPU(
 }
 
 
-void FlatLine::postProcess(
-  const std::vector< std::vector<double> >& model_parameter,
-  const size_t best_fit_model)
-{
-  std::vector< std::vector<double> > model_spectrum_bands;
-  
-  calcPostProcessSpectra(model_parameter, best_fit_model, model_spectrum_bands);
-}
-
 
 FlatLine::~FlatLine()
 {

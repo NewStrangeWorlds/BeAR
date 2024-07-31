@@ -26,6 +26,7 @@
 #include <cmath>
 #include <vector>
 #include <algorithm>
+#include <cstdio>
 
 #include "post_process.h"
 
@@ -38,7 +39,6 @@
 
 
 namespace bear{
-
 
 
 PostProcess::PostProcess(GlobalConfig* global_config) : Retrieval(global_config)
@@ -54,10 +54,8 @@ bool PostProcess::doRetrieval()
 {
   std::string folder = config->retrieval_folder_path;
   std::string observation_folder = folder;
+  bool delete_sampler_files = false;
 
-
-  //try to initialise the model
-  //if there is an error, we exit the post process
   try
   {
     std::vector<std::string> file_list, modifier_list;
@@ -78,34 +76,52 @@ bool PostProcess::doRetrieval()
       modifier_list.push_back("none");
       file.close(); 
     }
-
+    
     loadObservations(
       observation_folder,
       file_list,
       modifier_list);
 
-    std::cout << "\nTotal number of wavelength points: " << spectral_grid.nbSpectralPoints() << "\n\n";
-
-    //Initialise the forward model
+    std::cout << "\nTotal number of wavelength points: " 
+              << spectral_grid.nbSpectralPoints() << "\n\n";
+    
     forward_model = selectForwardModel(config->forward_model_type);
-
+    
     readPosteriorData();
+    
+    forward_model->postProcess(model_parameter, best_fit_model, delete_sampler_files);
   }
   catch(std::runtime_error& e) 
   {
     std::cout << e.what() << std::endl;
+   
     return false;
-  } 
-
-
-  forward_model->postProcess(model_parameter, best_fit_model);
-
+  }
+  
+  if (delete_sampler_files)
+  {
+    MultinestParameter param(config);
+    deleteSamplerFiles(param.unused_posterior_files);
+  }
 
   delete forward_model;
 
-
   return true;
 }
+
+
+
+void PostProcess::deleteSamplerFiles(const std::vector<std::string>& file_list)
+{ 
+  
+  for (auto & f : file_list)
+  {
+    std::string file_name = config->retrieval_folder_path + f;
+    std::remove(file_name.c_str());
+  }
+
+}
+
 
 
 void PostProcess::readPosteriorData()
@@ -142,7 +158,6 @@ void PostProcess::readPosteriorData()
   //return to the beginning of the file
   file.seekg(0, std::ios::beg);
 
-
   //read the posteriors and likelihoods
   while(std::getline(file, line))
   {
@@ -159,21 +174,18 @@ void PostProcess::readPosteriorData()
 
     line_stream >> log_z;
 
-
     model_parameter.push_back(param);
     log_like.push_back(log_z);
   }
 
   file.close();
 
-
   //scale the model parameters with their units
   for (auto & m : model_parameter)
-    for (size_t i=0; i<m.size(); ++i)
+    for (size_t i=0; i<priors.distributions.size(); ++i)
     {
       m[i] = priors.distributions[i]->applyParameterUnit(m[i]);
     }
-
 
   //find best-fit model
   best_fit_model = 0;
@@ -186,7 +198,7 @@ void PostProcess::readPosteriorData()
       best_log_like = log_like[i];
     }
 
-  std::cout << "best fit model " << best_fit_model << "\t" << best_log_like << "\n";
+  std::cout << "\nBest-fit model: " << best_fit_model << "\t ln(Z): " << best_log_like << "\n";
 }
 
 

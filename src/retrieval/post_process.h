@@ -56,6 +56,8 @@ class PostProcess : public Retrieval{
 
     void readPosteriorData();  
     void postProcessSpectra(std::vector< std::vector<double> >& model_spectrum_bands);
+
+    void deleteSamplerFiles(const std::vector<std::string>& file_list);
 };
 
 
