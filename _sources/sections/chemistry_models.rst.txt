@@ -172,7 +172,7 @@ should use. This file has the following structure
 .. include:: ../examples/fastchem_parameters.dat
    :literal:
    
-The first and second entry correspond to the location of the elemantal abundance file and the file with
+The first and second entry correspond to the location of the elemental abundance file and the file with
 the equilibrium constants, respectively. BeAR already includes a sample of these files in the folder
 ``fastchem_data``. Otherwise, they can be obtained from the `FastChem repository <https://github.com/NewStrangeWorlds/FastChem>`_.
 
@@ -253,7 +253,7 @@ in the ``forward_model.config`` file:
 
 BeAR will call the chemistry models in the order they appear in this list. That means, in this 
 example it would first set the constant mixing ratios of H2O, NH3, and CO2, then use a variable 
-profile based on cubic splines for methane, and finally fill up the rest of the atmospere with 
+profile based on cubic splines for methane, and finally fill up the rest of the atmosphere with 
 molecular nitrogen.
 
 The mean molecular weight is recalculated after each chemistry model. BeAR will also check the 
@@ -270,7 +270,7 @@ to retrieve a separate species assumed not to be in equilibrium:
 
 Here, BeAR would first use FastChem to determine the chemical composition in equilibrium and then replace the CO abundance
 by a constant mixing ratio that is a separate free parameter. This can, for example, simulate the impact of vertical mixing.
-An extension of that case could also include other non-constant species to take into account photochemistry effects in the
+An extension of that case could also include other non-constant species to take into account photochemical effects in the
 upper atmosphere:
 
 .. code:: 

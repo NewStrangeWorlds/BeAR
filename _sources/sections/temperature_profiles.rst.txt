@@ -58,9 +58,9 @@ Guillot profile
 
 The analytical profiles by Tristan Guillot 
 (`Guillot (2010) <https://ui.adsabs.harvard.edu/abs/2010A%26A...520A..27G/>`_) have been
-derived for irridiated planetary atmospheres. BeAR contains two different implementations
+derived for irradiated planetary atmospheres. BeAR contains two different implementations
 of the Guillot profile, one for an incident stellar beam (Eq. 27 from Guillot, 2010) and 
-for isotropic stellar irridiation (Eq. 29 from Guillot, 2010). They are chosen by setting 
+for isotropic stellar irradiation (Eq. 29 from Guillot, 2010). They are chosen by setting 
 the temperature profile to :code:`guillot beam`:
 
 .. code:: 
@@ -139,7 +139,7 @@ the ``forward_model.config`` file:
 
 As stated :ref:`here <sec:profile_parametrisations>`, the number of free parameters for this
 parametrisation is :math:`k q + 1`.
-The first free parameter in the prior distrubution file refers to the bottom temperature. 
+The first free parameter in the prior distribution file refers to the bottom temperature. 
 All subsequent :math:`k q` parameters are factors :math:`b_i`, such that the temperature at the
 control point :math:`i` is determined by the one from the previous control point :math:`i-1` 
 following :math:`T_i = T_{i-1} b_i`. The control points are distributed 
@@ -165,7 +165,7 @@ points :code:`k` need to be added to the ``forward_model.config`` file:
 As stated :ref:`here <sec:profile_parametrisations>`, the number of free parameters for this
 parametrisation is equal to the number of control points :math:`k` and needs to be at least 5.
 
-The first free parameter in the prior distrubution file refers to the bottom temperature. 
+The first free parameter in the prior distribution file refers to the bottom temperature. 
 All subsequent :math:`k-1` parameters are factors :math:`b_i`, such that the temperature at the
 control point :math:`i` is determined by the one from the previous control point :math:`i-1` 
 following :math:`T_i = T_{i-1} b_i`. The control points are distributed 

@@ -62,7 +62,7 @@ The example folders contain all necessary files to run a retrieval calculation.<
 <blockquote>
 <div><ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">retrieval.config</span></code> - the main configuration file for the retrieval</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code> - the configuration file of chosen forward forward_model</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code> - the configuration file of chosen forward forward model</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">priors.config</span></code> - the setup list for the prior distributions of the free parameters</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">observations.list</span></code> - the list of observational data files that the retrieval should use</p></li>
 </ul>
@@ -152,14 +152,14 @@ multi-core processor.</div>
 <div class="line-block">
 <div class="line"><code class="docutils literal notranslate"><span class="pre">forward</span> <span class="pre">model</span> <span class="pre">type</span></code></div>
 <div class="line-block">
-<div class="line">Sets the forward model that is supppsed to be used. BeAR currently supports the following models:</div>
+<div class="line">Sets the forward model that is supposed to be used. BeAR currently supports the following models:</div>
 </div>
 </div>
 <blockquote>
 <div><blockquote>
 <div><ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">transmission</span></code> - Transmission spectrum</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">secondary_eclipse</span></code> - Secondary eclipse / occulation spectrum</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">secondary_eclipse</span></code> - Secondary eclipse / occultation spectrum</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">emission</span></code> - Emission spectrum</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">flat_line</span></code> - Fits a flat line to the data</p></li>
 </ul>
@@ -191,7 +191,7 @@ of the opacity data can be found in this <a class="reference internal" href="opa
 <div class="line-block">
 <div class="line"><code class="docutils literal notranslate"><span class="pre">Use</span> <span class="pre">error</span> <span class="pre">inflation</span> <span class="pre">prior</span></code></div>
 <div class="line-block">
-<div class="line">Determines the use of the error inflation. This will artifically enlarge the error bars of the
+<div class="line">Determines the use of the error inflation. This will artificially enlarge the error bars of the
 observational data and, thus, will generally make it easier for the retrieval to find a
 solution. The use of the error inflation acknowledges that certain physical or chemical processes
 are missing from the simple forward model of the retrieval. The form of the employed error inflation
@@ -225,7 +225,7 @@ might not work properly.</div>
 <div class="line"><code class="docutils literal notranslate"><span class="pre">Number</span> <span class="pre">of</span> <span class="pre">live</span> <span class="pre">points</span></code></div>
 <div class="line-block">
 <div class="line">Sets the number of live points uses by MultiNest. Generally speaking, a high-dimensional parameter space
-requires a higher amount of live points. It is strongly recommended to perform sensitivy tests by
+requires a higher amount of live points. It is strongly recommended to perform sensitivity tests by
 increasing this number and check if the posterior distributions have converged.</div>
 </div>
 </div>
@@ -249,7 +249,7 @@ A value of <code class="docutils literal notranslate"><span class="pre">0</span>
 <div class="line"><code class="docutils literal notranslate"><span class="pre">Resume</span></code></div>
 <div class="line-block">
 <div class="line">If this is set to <code class="docutils literal notranslate"><span class="pre">Y</span></code> or <code class="docutils literal notranslate"><span class="pre">1</span></code>, MultiNest will try to resume a previously started retrieval run. The files MultiNest
-needs to restart the nested sampling must all be present in the retrieval folder. This option is usefull if BeAR
+needs to restart the nested sampling must all be present in the retrieval folder. This option is useful if BeAR
 is run on a cluster with a strict time limit. A restart can also be used if a previous MultiNest run was stopped
 at its maximum number of iterations.</div>
 </div>

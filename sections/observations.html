@@ -117,7 +117,7 @@ chosen forward model. For example, the <code class="docutils literal notranslate
 in units of <span class="math notranslate nohighlight">\(\mathrm{W} \mathrm{m}^{-2}  \mathrm{\mu m}^{-1}\)</span>, while the <code class="docutils literal notranslate"><span class="pre">transmission</span></code> spectroscopy model requires
 the transit depth in ppm. The third column contains the error of the observational data in
 the same units as the previous column.</p>
-<p>As mentionend above, an optional Gaussian <a class="reference internal" href="#sec-instrument-line-profile"><span class="std std-ref">instrument line profiles</span></a>,
+<p>As mentioned above, an optional Gaussian <a class="reference internal" href="#sec-instrument-line-profile"><span class="std std-ref">instrument line profiles</span></a>,
 characterised by its FWHM, can be used in BeAR. This information is added in an optional fourth column
 as shown below.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#observation description</span>
@@ -238,7 +238,7 @@ in an optional fifth column as shown below.</p>
 <p>The additional column contains the FWHM of the Gaussian profile in <span class="math notranslate nohighlight">\(\mathrm{\mu m}\)</span>. Setting the FWHM to
 0 will result in the instrument line profile being neglected as shown in the example above.
 Another optional sixth column contains a  weighting factor for each observational band.
-This allows to give unreliable data points a lower impact during thecomputation of the likelihood
+This allows to give unreliable data points a lower impact during the computation of the likelihood
 or to neglect certain points entirely.</p>
 </section>
 </section>
@@ -278,7 +278,7 @@ For photometry, the <code class="docutils literal notranslate"><span class="pre"
 <p>This is followed by the location of the file with the <a class="reference internal" href="#sec-filter-response"><span class="std std-ref">bandpass transmission function</span></a>.
 When setting this to <code class="docutils literal notranslate"><span class="pre">none</span></code>, BeAR will use a transmission function of unity within
 the wavelength boundaries given below.</p>
-<p>The observational data is given in at least four columns. The first two columns respresent
+<p>The observational data is given in at least four columns. The first two columns represent
 the wavelength boundaries over which the photometric data should be integrated.
 The third column reprents the the observational photometry data. The units of the data depend on the
 chosen forward model. For example, the <code class="docutils literal notranslate"><span class="pre">emission</span></code> forward model expects a radiation flux
@@ -401,19 +401,19 @@ An example for this file is shown below:</p>
 <span class="n">wasp</span><span class="o">-</span><span class="mi">43</span><span class="n">b_spitzer_2</span><span class="o">.</span><span class="n">dat</span>
 </pre></div>
 </div>
-<p>BeAR can use multiple observational data files at the same time. The observations do not need to be orderer in any specific way.
+<p>BeAR can use multiple observational data files at the same time. The observations do not need to be ordered in any specific way.
 They also do not need to be continuous in wavelength space, gaps are are allowed to be present between the different observations.
 It also possible to mix different observational types, e.g. photometric data together with spectroscopic data. The format of the
 these files is described in the <a class="reference internal" href="#sec-observational-data"><span class="std std-ref">section</span></a> on observational data.</p>
 <p>It is important to note that each individual observational file should not contain gaps in wavelength space. For example, the two
 different parts of a JWST G395H spectrum should be placed in two separate files.</p>
-<p>BeAR also the option to optionally modifiy a specific observational data set. This is sometimes necessary when multiple data sets
+<p>BeAR also the option to optionally modify a specific observational data set. This is sometimes necessary when multiple data sets
 from different telescopes are used. In such cases, due to the different data reductions or instrument systematics, some data sets
 might have offsets in comparison to other data sets used in the retrieval. For such a scenario, BeAR has the option to add an offset
 to computed spectra. This offset is added to the model spectrum before the comparison to the observational data.</p>
 <p>BeAR currently supports a constant shift as a modifier. To enable the offset, the keyword <code class="docutils literal notranslate"><span class="pre">shift_const</span></code> needs to be added to the
 <code class="docutils literal notranslate"><span class="pre">observations.list</span></code> file after the corresponding observation. An example is shown below, where the WFC3 data set will be shifted by
-an constant offset:</p>
+a constant offset:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">wasp</span><span class="o">-</span><span class="mi">43</span><span class="n">b_wfc3</span><span class="o">.</span><span class="n">dat</span>          <span class="n">shift_const</span>
 <span class="n">wasp</span><span class="o">-</span><span class="mi">43</span><span class="n">b_grond_k</span><span class="o">.</span><span class="n">dat</span>
 <span class="n">wasp</span><span class="o">-</span><span class="mi">43</span><span class="n">b_hawki_nb1190</span><span class="o">.</span><span class="n">dat</span>
@@ -424,7 +424,7 @@ an constant offset:</p>
 <span class="n">wasp</span><span class="o">-</span><span class="mi">43</span><span class="n">b_spitzer_2</span><span class="o">.</span><span class="n">dat</span>
 </pre></div>
 </div>
-<p>The offset itself is a free paramter that needs to have a corresponding entry in the <code class="docutils literal notranslate"><span class="pre">priors.config</span></code> file. The free parameter in
+<p>The offset itself is a free parameter that needs to have a corresponding entry in the <code class="docutils literal notranslate"><span class="pre">priors.config</span></code> file. The free parameter in
 the priors config file needs to have same units as the observational data. For example, for a transmission spectrum the offset
 has to be given in ppm, while for an emission spectrum it needs to be specified in <span class="math notranslate nohighlight">\(\mathrm{W/m^2/\mu m}\)</span>.</p>
 </section>

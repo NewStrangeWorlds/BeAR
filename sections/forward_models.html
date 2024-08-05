@@ -53,7 +53,7 @@ discussed below.</p>
 <p>After the retrieval calculations are finished, the  BeAR will perform a postprocessing on
 the resulting posterior sample. Depending on the chosen forward model, different
 postprocessing steps can be used, including saving all posterior spectra or temperature
-profiles. Details on the output files can be found in the <a class="reference internal" href="retrieval_setup.html#sec-output-files"><span class="std std-ref">section</span></a>
+profiles. Details can be found in the <a class="reference internal" href="retrieval_setup.html#sec-output-files"><span class="std std-ref">section</span></a>
 on output files.</p>
 <p>These postprocessing steps can also be configured in the optional
 <code class="docutils literal notranslate"><span class="pre">post_process.config</span></code> file. If this file is not present, BeAR will use
@@ -73,7 +73,7 @@ Available options: <code class="docutils literal notranslate"><span class="pre">
 <li><p><code class="docutils literal notranslate"><span class="pre">Save</span> <span class="pre">contribution</span> <span class="pre">functions</span></code> - Compute and save the contribution functions for each observational/instrument
 for the best-fit model. Available options: <code class="docutils literal notranslate"><span class="pre">Yes</span></code> or <code class="docutils literal notranslate"><span class="pre">No</span></code>.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">Save</span> <span class="pre">chemical</span> <span class="pre">species</span></code> - Save the mixing ratio profiles for selected chemical species for all
-posterior samples. The options for this paramter are the forumulas of the chemical species that should be saved,
+posterior samples. The options for this parameter are the forumulas of the chemical species that should be saved,
 separated by white spaces. For example, <code class="docutils literal notranslate"><span class="pre">H2O</span> <span class="pre">CO2</span></code> will save the mixing ratios of water and carbon dioxide.
 Species that BeAR does not know will be ignored.</p></li>
 </ul>
@@ -93,7 +93,7 @@ Bayesian evidences.</p>
 <section id="model-config-file">
 <h3>Model config file<a class="headerlink" href="#model-config-file" title="Permalink to this heading">¶</a></h3>
 <p>The flat line model does not need a <code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code> file since it
-has no configurable parameters. In the prior distribution file, this model
+has no configurable parameters. In the prior distribution file this model
 requires a single free parameter that determines the flat line.</p>
 <p>This parameter needs to have the same units as the observational data. For example,
 in case of a transmission spectrum, this parameter refers to the transit depth in ppm, while
@@ -194,7 +194,7 @@ parameter.</p>
 <p>Furthermore, for transmission spectra, the surface gravity, the mean molecular
 weight, and the temperature might become degenerate in a retrieval. This is
 often the case when no constraints on the surface gravity can be provided
-and the dominating background specise is not known. In such a scenario, BeAR
+and the dominating background species is not known. In such a scenario, BeAR
 can use the (constant) atmospheric scale height in units of km as a free
 parameter.</p>
 <p>For the standard case, the keyword <code class="docutils literal notranslate"><span class="pre">no</span></code> needs to be used here. If BeAR should
@@ -247,7 +247,7 @@ options:</p>
 </section>
 <section id="secondary-eclipse-spectrum">
 <span id="sec-forward-model-se"></span><h2>Secondary eclipse spectrum<a class="headerlink" href="#secondary-eclipse-spectrum" title="Permalink to this heading">¶</a></h2>
-<p>This forward model computes the wavelength-dependent secondary eclipse (or occulation)
+<p>This forward model computes the wavelength-dependent secondary eclipse (or occultation)
 depth <span class="math notranslate nohighlight">\(D(\lambda)\)</span> of an exoplanet atmosphere, given by</p>
 <div class="math notranslate nohighlight">
 \[D(\lambda) = \frac{F_p(\lambda)}{F_*(\lambda)} \left(\frac{R_p}{R_*}\right)^2 \ ,\]</div>
@@ -375,7 +375,7 @@ options:</p>
 </section>
 <section id="secondary-eclipse-spectrum-with-planetary-blackbody">
 <span id="sec-forward-model-se-bb"></span><h2>Secondary eclipse spectrum with planetary blackbody<a class="headerlink" href="#secondary-eclipse-spectrum-with-planetary-blackbody" title="Permalink to this heading">¶</a></h2>
-<p>This forward model computes the wavelength-dependent secondary eclipse (or occulation)
+<p>This forward model computes the wavelength-dependent secondary eclipse (or occultation)
 depth <span class="math notranslate nohighlight">\(D(\lambda)\)</span> of an exoplanet atmosphere, given by</p>
 <div class="math notranslate nohighlight">
 \[D(\lambda) = \frac{F_p(\lambda)}{F_*(\lambda)} \left(\frac{R_p}{R_*}\right)^2 \ ,\]</div>

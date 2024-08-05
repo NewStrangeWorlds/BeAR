@@ -102,7 +102,7 @@ This stellar spectrum does not require a free parameter in the priors configurat
 <span id="sec-stellar-spectrum-grid"></span><h2>Grid of tabulated stellar spectra<a class="headerlink" href="#grid-of-tabulated-stellar-spectra" title="Permalink to this heading">¶</a></h2>
 <p>In some cases, it is necessary to use a grid of stellar atmosphere models. This is especially the case
 when one wants to sample stellar spectra for a range of different effective temperatures, surface gravities, or metallicities.
-Exmaples of grids of stellar spectra are the <a class="reference external" href="https://phoenix.astro.physik.uni-goettingen.de/">PHOENIX stellar atmosphere library</a>
+Examples of grids of stellar spectra are the <a class="reference external" href="https://phoenix.astro.physik.uni-goettingen.de/">PHOENIX stellar atmosphere library</a>
 or the <a class="reference external" href="https://zenodo.org/records/7416042">SPHINX library</a></p>
 <p>To use a grid of stellar spectra, the keyword <code class="code docutils literal notranslate"><span class="pre">grid</span></code> has to be used in the corresponding <code class="docutils literal notranslate"><span class="pre">forward_model.config</span></code> file:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Stellar spectrum</span>
@@ -137,7 +137,7 @@ lists the parameters of the grid. It needs to have the following structure:</p>
 <p>The first line contains the list of stellar effective temperatures, the second line the list of surface gravities,
 and the third line the list of metallicities. BeAR assumes that the grid rectangular and regular, which means that
 every possible combinations of the parameters should have a tabulated stellar spectrum.
-If the original grid is not complete, the user has to extraplate the grid to cover all possible combinations or
+If the original grid is not complete, the user has to extrapolate the grid to cover all possible combinations or
 create dummy data sets if those spectra will not get sampled during a retrieval.</p>
 <p>The fourth line contains the name of the file that contains the wavelength grid for the stellar spectra. Each spectrum
 has to be tabulated at these wavelengths. These wavelengths have to be in micrometers and saved in a binary file that
@@ -147,7 +147,7 @@ Each line contains the effective temperature, the surface gravity, the metallici
 Like the wavelength file, the spectra have to be saved in binary format and have to be tabulated at the wavelengths listed
 in the wavelength file. The spectra need to cover the entire wavelength range of the observations that are used in a retrieval.
 BeAR will not extrapolate the spectra but replace missing values outside of the tabulated range with zeros.</p>
-<p>The binrary files should contain the stellar photospheric flux in <span class="math notranslate nohighlight">\(\mathrm{W/m^2/\mu m}\)</span> as single-precision
+<p>The binary files should contain the stellar photospheric flux in <span class="math notranslate nohighlight">\(\mathrm{W/m^2/\mu m}\)</span> as single-precision
 floating point numbers. As mentioned above, BeAR expects to find a stellar spectrum entry for every possible combination
 of stellar parameters. If this is not the case, an error message will be displayed and the code will terminate.</p>
 <p>The use of the stellar grid requires the user to provide the effective temperature, the surface gravity, and the

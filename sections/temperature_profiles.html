@@ -79,9 +79,9 @@ be listed in the prior config file in the following order:</p>
 <h2>Guillot profile<a class="headerlink" href="#guillot-profile" title="Permalink to this heading">¶</a></h2>
 <p>The analytical profiles by Tristan Guillot
 (<a class="reference external" href="https://ui.adsabs.harvard.edu/abs/2010A%26A...520A..27G/">Guillot (2010)</a>) have been
-derived for irridiated planetary atmospheres. BeAR contains two different implementations
+derived for irradiated planetary atmospheres. BeAR contains two different implementations
 of the Guillot profile, one for an incident stellar beam (Eq. 27 from Guillot, 2010) and
-for isotropic stellar irridiation (Eq. 29 from Guillot, 2010). They are chosen by setting
+for isotropic stellar irradiation (Eq. 29 from Guillot, 2010). They are chosen by setting
 the temperature profile to <code class="code docutils literal notranslate"><span class="pre">guillot</span> <span class="pre">beam</span></code>:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#Temperature profile</span>
 <span class="n">guillot</span> <span class="n">beam</span>
@@ -144,7 +144,7 @@ the <code class="docutils literal notranslate"><span class="pre">forward_model.c
 </div>
 <p>As stated <a class="reference internal" href="profile_parametrisations.html#sec-profile-parametrisations"><span class="std std-ref">here</span></a>, the number of free parameters for this
 parametrisation is <span class="math notranslate nohighlight">\(k q + 1\)</span>.
-The first free parameter in the prior distrubution file refers to the bottom temperature.
+The first free parameter in the prior distribution file refers to the bottom temperature.
 All subsequent <span class="math notranslate nohighlight">\(k q\)</span> parameters are factors <span class="math notranslate nohighlight">\(b_i\)</span>, such that the temperature at the
 control point <span class="math notranslate nohighlight">\(i\)</span> is determined by the one from the previous control point <span class="math notranslate nohighlight">\(i-1\)</span>
 following <span class="math notranslate nohighlight">\(T_i = T_{i-1} b_i\)</span>. The control points are distributed
@@ -164,7 +164,7 @@ points <code class="code docutils literal notranslate"><span class="pre">k</span
 </div>
 <p>As stated <a class="reference internal" href="profile_parametrisations.html#sec-profile-parametrisations"><span class="std std-ref">here</span></a>, the number of free parameters for this
 parametrisation is equal to the number of control points <span class="math notranslate nohighlight">\(k\)</span> and needs to be at least 5.</p>
-<p>The first free parameter in the prior distrubution file refers to the bottom temperature.
+<p>The first free parameter in the prior distribution file refers to the bottom temperature.
 All subsequent <span class="math notranslate nohighlight">\(k-1\)</span> parameters are factors <span class="math notranslate nohighlight">\(b_i\)</span>, such that the temperature at the
 control point <span class="math notranslate nohighlight">\(i\)</span> is determined by the one from the previous control point <span class="math notranslate nohighlight">\(i-1\)</span>
 following <span class="math notranslate nohighlight">\(T_i = T_{i-1} b_i\)</span>. The control points are distributed
