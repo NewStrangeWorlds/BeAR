@@ -35,8 +35,8 @@ is:
 -  an OpenMP library
 
 The C++ compiler will be detected by the CMake script when it
-generates the makefiles. The codes and libraries downloaded and compiled during
-the installation of BeAR have addiational requirements.
+generates the make files. The codes and libraries downloaded and compiled during
+the installation of BeAR have additional requirements.
 This includes, in particular,
 
 - a FORTRAN compiler (e.g. ``gfortran``) for the MultiNest library
@@ -53,7 +53,7 @@ Configuration and compilation with CMake
 
 | Before BeAR can be compiled, ``CMake`` is required to
   configure the compilation files, locate libraries, and write the
-  makefiles that will perform the actual compilations. If required
+  make files that will perform the actual compilations. If required
   libraries are missing, ``CMake`` will report a corresponding error
   message. In this case, the missing libraries or compilers need to be
   installed before the configuration can be completed.

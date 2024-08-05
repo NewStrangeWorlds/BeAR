@@ -38,7 +38,7 @@ BeAR requires the following files in the folder the executable is called with:
 
   - ``retrieval.config`` - the main configuration file for the retrieval
   
-  - ``forward_model.config`` - the configuration file of chosen forward forward_model
+  - ``forward_model.config`` - the configuration file of chosen forward forward model
   
   - ``priors.config`` - the setup list for the prior distributions of the free parameters
   
@@ -73,11 +73,11 @@ The following parameters need to be set:
   multi-core processor.
     
 | ``forward model type`` 
-|  Sets the forward model that is supppsed to be used. BeAR currently supports the following models:
+|  Sets the forward model that is supposed to be used. BeAR currently supports the following models:
 
      - ``transmission`` - Transmission spectrum
     
-     - ``secondary_eclipse`` - Secondary eclipse / occulation spectrum
+     - ``secondary_eclipse`` - Secondary eclipse / occultation spectrum
      
      - ``emission`` - Emission spectrum
      
@@ -101,7 +101,7 @@ The following parameters need to be set:
     of the opacity data can be found in this :ref:`section <sec:opacity_data>` 
     
 | ``Use error inflation prior``
-|  Determines the use of the error inflation. This will artifically enlarge the error bars of the
+|  Determines the use of the error inflation. This will artificially enlarge the error bars of the
   observational data and, thus, will generally make it easier for the retrieval to find a
   solution. The use of the error inflation acknowledges that certain physical or chemical processes
   are missing from the simple forward model of the retrieval. The form of the employed error inflation
@@ -128,7 +128,7 @@ The parameters that can be set here include:
   
 | ``Number of live points``
 |  Sets the number of live points uses by MultiNest. Generally speaking, a high-dimensional parameter space
-  requires a higher amount of live points. It is strongly recommended to perform sensitivy tests by
+  requires a higher amount of live points. It is strongly recommended to perform sensitivity tests by
   increasing this number and check if the posterior distributions have converged.
   
 | ``Efficiency``
@@ -143,7 +143,7 @@ The parameters that can be set here include:
   
 | ``Resume``
 |  If this is set to ``Y`` or ``1``, MultiNest will try to resume a previously started retrieval run. The files MultiNest 
-  needs to restart the nested sampling must all be present in the retrieval folder. This option is usefull if BeAR 
+  needs to restart the nested sampling must all be present in the retrieval folder. This option is useful if BeAR 
   is run on a cluster with a strict time limit. A restart can also be used if a previous MultiNest run was stopped 
   at its maximum number of iterations.
   

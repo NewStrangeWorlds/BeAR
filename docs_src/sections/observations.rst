@@ -91,7 +91,7 @@ the transit depth in ppm. The third column contains the error of the observation
 the same units as the previous column.
 
 
-As mentionend above, an optional Gaussian :ref:`instrument line profiles <sec:instrument_line_profile>`,
+As mentioned above, an optional Gaussian :ref:`instrument line profiles <sec:instrument_line_profile>`,
 characterised by its FWHM, can be used in BeAR. This information is added in an optional fourth column 
 as shown below.
 
@@ -164,7 +164,7 @@ in an optional fifth column as shown below.
 The additional column contains the FWHM of the Gaussian profile in :math:`\mathrm{\mu m}`. Setting the FWHM to
 0 will result in the instrument line profile being neglected as shown in the example above. 
 Another optional sixth column contains a  weighting factor for each observational band. 
-This allows to give unreliable data points a lower impact during thecomputation of the likelihood 
+This allows to give unreliable data points a lower impact during the computation of the likelihood 
 or to neglect certain points entirely.
 
 
@@ -206,7 +206,7 @@ This is followed by the location of the file with the :ref:`bandpass transmissio
 When setting this to ``none``, BeAR will use a transmission function of unity within 
 the wavelength boundaries given below.
 
-The observational data is given in at least four columns. The first two columns respresent
+The observational data is given in at least four columns. The first two columns represent
 the wavelength boundaries over which the photometric data should be integrated. 
 The third column reprents the the observational photometry data. The units of the data depend on the
 chosen forward model. For example, the ``emission`` forward model expects a radiation flux
@@ -321,7 +321,7 @@ An example for this file is shown below:
 .. include:: ../examples/observations_example.list
    :literal:
 
-BeAR can use multiple observational data files at the same time. The observations do not need to be orderer in any specific way.
+BeAR can use multiple observational data files at the same time. The observations do not need to be ordered in any specific way.
 They also do not need to be continuous in wavelength space, gaps are are allowed to be present between the different observations.
 It also possible to mix different observational types, e.g. photometric data together with spectroscopic data. The format of the 
 these files is described in the :ref:`section <sec:observational_data>` on observational data.
@@ -329,18 +329,18 @@ these files is described in the :ref:`section <sec:observational_data>` on obser
 It is important to note that each individual observational file should not contain gaps in wavelength space. For example, the two
 different parts of a JWST G395H spectrum should be placed in two separate files.
 
-BeAR also the option to optionally modifiy a specific observational data set. This is sometimes necessary when multiple data sets 
+BeAR also the option to optionally modify a specific observational data set. This is sometimes necessary when multiple data sets 
 from different telescopes are used. In such cases, due to the different data reductions or instrument systematics, some data sets 
 might have offsets in comparison to other data sets used in the retrieval. For such a scenario, BeAR has the option to add an offset
 to computed spectra. This offset is added to the model spectrum before the comparison to the observational data. 
 
 BeAR currently supports a constant shift as a modifier. To enable the offset, the keyword ``shift_const`` needs to be added to the 
 ``observations.list`` file after the corresponding observation. An example is shown below, where the WFC3 data set will be shifted by
-an constant offset:
+a constant offset:
 
 .. include:: ../examples/observations_example_2.list
    :literal:
 
-The offset itself is a free paramter that needs to have a corresponding entry in the ``priors.config`` file. The free parameter in
+The offset itself is a free parameter that needs to have a corresponding entry in the ``priors.config`` file. The free parameter in
 the priors config file needs to have same units as the observational data. For example, for a transmission spectrum the offset
 has to be given in ppm, while for an emission spectrum it needs to be specified in :math:`\mathrm{W/m^2/\mu m}`.

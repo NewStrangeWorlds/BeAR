@@ -3,9 +3,9 @@
 Prior distributions
 ===================
 
-Each free parameter of a retireval calculations needs to have an associated prior distribution. The prior distribution
-describes any prior knowledge that is available about the parameter. The number and type of the free grid_parameters
-depend on the chosen forward model and user-specied configuration options.
+Each free parameter of a retrieval calculations needs to have an associated prior distribution. The prior distribution
+describes any prior knowledge that is available about the parameter. The number and type of the free parameters
+depend on the chosen forward model and user-specified configuration options.
 
 BeAR supports the following types of distributions:
 
@@ -27,7 +27,7 @@ calculation.
 Prior distributions units
 .........................
 
-BeAR also supports units for its prior distributions. The following units are currenty taken into account:
+BeAR also supports units for its prior distributions. The following units are currently taken into account:
 
   - ``Rs`` or ``Rsun`` - the solar radius
 

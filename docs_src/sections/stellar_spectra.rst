@@ -65,7 +65,7 @@ Grid of tabulated stellar spectra
 
 In some cases, it is necessary to use a grid of stellar atmosphere models. This is especially the case
 when one wants to sample stellar spectra for a range of different effective temperatures, surface gravities, or metallicities.
-Exmaples of grids of stellar spectra are the `PHOENIX stellar atmosphere library <https://phoenix.astro.physik.uni-goettingen.de/>`_ 
+Examples of grids of stellar spectra are the `PHOENIX stellar atmosphere library <https://phoenix.astro.physik.uni-goettingen.de/>`_ 
 or the `SPHINX library <https://zenodo.org/records/7416042>`_
 
 To use a grid of stellar spectra, the keyword :code:`grid` has to be used in the corresponding ``forward_model.config`` file:
@@ -94,7 +94,7 @@ lists the parameters of the grid. It needs to have the following structure:
 The first line contains the list of stellar effective temperatures, the second line the list of surface gravities, 
 and the third line the list of metallicities. BeAR assumes that the grid rectangular and regular, which means that
 every possible combinations of the parameters should have a tabulated stellar spectrum.
-If the original grid is not complete, the user has to extraplate the grid to cover all possible combinations or 
+If the original grid is not complete, the user has to extrapolate the grid to cover all possible combinations or 
 create dummy data sets if those spectra will not get sampled during a retrieval.
 
 The fourth line contains the name of the file that contains the wavelength grid for the stellar spectra. Each spectrum
@@ -107,7 +107,7 @@ Like the wavelength file, the spectra have to be saved in binary format and have
 in the wavelength file. The spectra need to cover the entire wavelength range of the observations that are used in a retrieval. 
 BeAR will not extrapolate the spectra but replace missing values outside of the tabulated range with zeros.
 
-The binrary files should contain the stellar photospheric flux in :math:`\mathrm{W/m^2/\mu m}` as single-precision 
+The binary files should contain the stellar photospheric flux in :math:`\mathrm{W/m^2/\mu m}` as single-precision 
 floating point numbers. As mentioned above, BeAR expects to find a stellar spectrum entry for every possible combination
 of stellar parameters. If this is not the case, an error message will be displayed and the code will terminate.
 

@@ -29,7 +29,7 @@ Model postprocessing
 After the retrieval calculations are finished, the  BeAR will perform a postprocessing on 
 the resulting posterior sample. Depending on the chosen forward model, different 
 postprocessing steps can be used, including saving all posterior spectra or temperature 
-profiles. Details on the output files can be found in the :ref:`section <sec:output_files>` 
+profiles. Details can be found in the :ref:`section <sec:output_files>` 
 on output files.
 
 These postprocessing steps can also be configured in the optional
@@ -54,7 +54,7 @@ available options are currently:
     for the best-fit model. Available options: ``Yes`` or ``No``.
 
   - ``Save chemical species`` - Save the mixing ratio profiles for selected chemical species for all 
-    posterior samples. The options for this paramter are the forumulas of the chemical species that should be saved,
+    posterior samples. The options for this parameter are the forumulas of the chemical species that should be saved,
     separated by white spaces. For example, ``H2O CO2`` will save the mixing ratios of water and carbon dioxide.
     Species that BeAR does not know will be ignored. 
 
@@ -82,7 +82,7 @@ Model config file
 .................
 
 The flat line model does not need a ``forward_model.config`` file since it
-has no configurable parameters. In the prior distribution file, this model 
+has no configurable parameters. In the prior distribution file this model 
 requires a single free parameter that determines the flat line. 
 
 This parameter needs to have the same units as the observational data. For example,
@@ -163,7 +163,7 @@ parameter.
 Furthermore, for transmission spectra, the surface gravity, the mean molecular
 weight, and the temperature might become degenerate in a retrieval. This is
 often the case when no constraints on the surface gravity can be provided
-and the dominating background specise is not known. In such a scenario, BeAR
+and the dominating background species is not known. In such a scenario, BeAR
 can use the (constant) atmospheric scale height in units of km as a free 
 parameter.
 
@@ -217,7 +217,7 @@ The default options that are used when this file is not present are:
 Secondary eclipse spectrum
 ---------------------------
 
-This forward model computes the wavelength-dependent secondary eclipse (or occulation) 
+This forward model computes the wavelength-dependent secondary eclipse (or occultation) 
 depth :math:`D(\lambda)` of an exoplanet atmosphere, given by
 
 .. math::
@@ -306,7 +306,7 @@ The default options that are used when this file is not present are:
 Secondary eclipse spectrum with planetary blackbody
 ---------------------------------------------------
 
-This forward model computes the wavelength-dependent secondary eclipse (or occulation) 
+This forward model computes the wavelength-dependent secondary eclipse (or occultation) 
 depth :math:`D(\lambda)` of an exoplanet atmosphere, given by
 
 .. math::

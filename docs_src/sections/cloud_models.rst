@@ -72,7 +72,7 @@ Kitzmann & Heng Non-Grey Cloud Model
 This description of a non-grey cloud layer is based on analytical fits to the Mie efficiencies
 of the cloud particles presented by 
 `Kitzmann \& Heng (2018) <https://ui.adsabs.harvard.edu/abs/2018MNRAS.475...94K/>`_.
-The Mie extinction efficiences as a function of wavelength :math:`Q_\mathrm{ext}` 
+The Mie extinction efficiencies as a function of wavelength :math:`Q_\mathrm{ext}` 
 are described via:
 
 .. math:: Q_\mathrm{ext}(\lambda) = \frac{Q_1}{Q_0 x^{-a_0}_\lambda + x^{0.2}_\lambda} ,
