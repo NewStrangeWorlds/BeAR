@@ -158,7 +158,7 @@ void Priors::addSingle(
     else
     {
       DeltaPrior* uniform_prior = new DeltaPrior(
-        description, std::stod(parameter[0]), parameter[2]);
+        description, std::stod(parameter[0]), parameter[1]);
       distributions.push_back(uniform_prior);
     }
 
