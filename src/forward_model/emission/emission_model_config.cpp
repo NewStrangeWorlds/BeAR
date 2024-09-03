@@ -64,6 +64,8 @@ void EmissionModelConfig::readConfigFile(const std::string& file_name)
 
   if (cloud_model.size() == 0) 
     use_cloud_model = false;
+  else
+    use_cloud_model = true;
 
   //the radiative transfer input
   std::getline(file, line);
