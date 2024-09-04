@@ -96,7 +96,6 @@ class SecondaryEclipseBlackBodyModel : public ForwardModel{
 
     size_t nb_general_param = 0;
     size_t nb_stellar_param = 0;
-    size_t nb_spectrum_modifier_param = 0;
 
     size_t nb_total_param() {
       return nb_general_param 
