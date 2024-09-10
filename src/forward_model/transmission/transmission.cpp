@@ -81,6 +81,30 @@ TransmissionModel::TransmissionModel (
 }
 
 
+TransmissionModel::TransmissionModel (
+  GlobalConfig* config_, 
+  SpectralGrid* spectral_grid_,
+  const size_t nb_grid_points_,
+  const std::vector<std::string>& opacity_species_symbol,
+  const std::vector<std::string>& opacity_species_folder)
+    : ForwardModel(config_, spectral_grid_, std::vector<Observation>() = {})
+    , atmosphere(
+        nb_grid_points_,
+        std::vector<double>(2) = {10, 1e-5},
+        config->use_gpu)
+    , opacity_calc(
+        config,
+        spectral_grid,
+        &atmosphere,
+        opacity_species_symbol,
+        opacity_species_folder,
+        config->use_gpu,
+        false)
+{
+  nb_grid_points = nb_grid_points_;
+
+}
+
 
 bool TransmissionModel::calcAtmosphereStructure(const std::vector<double>& parameter)
 {
@@ -357,6 +381,58 @@ void TransmissionModel::postProcessSpectrumGPU(
     start_index += observations[i].spectral_bands.nbBands();
   }
 }
+
+
+
+std::vector<double> TransmissionModel::calcSpectrum(
+  const double surface_gravity,
+  const double planet_radius,
+  const double radius_ratio,
+  const std::vector<double>& pressure,
+  const std::vector<double>& temperature,
+  const std::vector<std::string>& species_symbol,
+  const std::vector<std::vector<double>>& mixing_ratios,
+  const std::vector<std::vector<double>>& cloud_optical_depth)
+{
+  atmosphere.setAtmosphericStructure(
+    surface_gravity, 
+    pressure, 
+    temperature, 
+    species_symbol, 
+    mixing_ratios);
+
+  if (cloud_extinction_gpu == nullptr)
+    allocateOnDevice(cloud_extinction_gpu, nb_grid_points*spectral_grid->nbSpectralPoints());
+
+  opacity_calc.calculateGPU(cloud_models, std::vector<double> {});
+
+  const double bottom_radius = planet_radius;
+  const double star_radius = planet_radius/radius_ratio;
+
+  double* model_spectrum_gpu = nullptr;
+
+  allocateOnDevice(model_spectrum_gpu, spectral_grid->nbSpectralPoints());
+
+  calcTransitDepthGPU(
+    model_spectrum_gpu, 
+    opacity_calc.absorption_coeff_gpu, 
+    opacity_calc.scattering_coeff_dev, 
+    cloud_extinction_gpu,
+    atmosphere,
+    spectral_grid->nbSpectralPoints(), 
+    bottom_radius,
+    star_radius);
+
+  std::vector<double> spectrum(spectral_grid->nbSpectralPoints(), 0.0);
+
+  moveToHost(model_spectrum_gpu, spectrum);
+
+  deleteFromDevice(model_spectrum_gpu);
+  deleteFromDevice(cloud_extinction_gpu);
+  
+  return spectrum;
+}
+
 
 
 TransmissionModel::~TransmissionModel()

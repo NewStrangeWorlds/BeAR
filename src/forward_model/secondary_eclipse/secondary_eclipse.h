@@ -54,7 +54,7 @@ namespace bear {
 struct SecondaryEclipseConfig : public GenericConfig{
   size_t nb_grid_points = 0;
 
-  double atmos_boundaries[2] {0, 0};
+  std::vector<double> atmos_boundaries = {0, 0};
   double atmos_top_pressure = 0;
   double atmos_bottom_pressure = 0;
 

@@ -31,6 +31,7 @@
 #include "../../chemistry/chem_species.h"
 #include "../../additional/physical_const.h"
 #include "../../CUDA_kernels/data_management_kernels.h"
+#include "../../chemistry/fixed_chemistry.h"
 
 
 namespace bear{
@@ -38,7 +39,7 @@ namespace bear{
 
 Atmosphere::Atmosphere(
   const size_t nb_grid_points_,
-  const double atmos_boundaries [2],
+  const std::vector<double>& atmos_boundaries,
   const bool use_gpu) : nb_grid_points(nb_grid_points_)
 {
   createPressureGrid(atmos_boundaries);
@@ -222,6 +223,39 @@ bool Atmosphere::calcAtmosphereStructure(
 
 
 
+void Atmosphere::setAtmosphericStructure(
+  const double surface_gravity,
+  const std::vector<double>& pressure_,
+  const std::vector<double>& temperature_,
+  const std::vector<std::string>& species_symbols,
+  const std::vector< std::vector<double>>& mixing_ratios)
+{ 
+  temperature = temperature_;
+  pressure = pressure_;
+
+  FixedChemistry fixed_chemistry = FixedChemistry(species_symbols);
+  
+  std::vector<double> mean_molecular_weights(nb_grid_points, 0.0);
+
+  number_densities.assign(
+    nb_grid_points,
+    std::vector<double>(constants::species_data.size(), 0.0));
+  
+  fixed_chemistry.setChemicalComposition(
+    pressure, temperature, mixing_ratios, number_densities, mean_molecular_weights);
+
+  calcAltitude(surface_gravity, mean_molecular_weights);
+  calcScaleHeight(surface_gravity, mean_molecular_weights);
+
+  if (altitude_dev != nullptr)
+  {
+    moveToDevice(altitude_dev, altitude, false);
+    moveToDevice(temperature_dev, temperature, false);
+  }
+}
+
+
+
 //determine the vertical grid via hydrostatic equilibrium
 void Atmosphere::calcAltitude(
   const double surface_gravity, 
@@ -273,7 +307,7 @@ void Atmosphere::calcScaleHeight(
 
 //Creates a pressure grid between the two boundary points
 //nb_grid_point pressures vales are equidistantly spread in the log(p) space
-void Atmosphere::createPressureGrid(const double atmos_boundaries [2])
+void Atmosphere::createPressureGrid(const std::vector<double>& atmos_boundaries)
 {
   pressure.assign(nb_grid_points, 0.0);
 

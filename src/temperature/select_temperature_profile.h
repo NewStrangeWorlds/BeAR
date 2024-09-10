@@ -51,7 +51,7 @@ namespace temp_profile_modules{
 inline Temperature* selectTemperatureProfile(
   const std::string profile_type,
   const std::vector<std::string>& parameters, 
-  const double atmos_boundaries [2])
+  const std::vector<double>& atmos_boundaries)
 {
   //find the corresponding radiative transfer module to the supplied type string
   auto it = std::find(

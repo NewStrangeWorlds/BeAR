@@ -37,7 +37,7 @@ class PiecewisePolynomialTemperature : public Temperature{
     PiecewisePolynomialTemperature(
       const size_t nb_elements_in,
       const size_t polynomial_degree_in,
-      const double atmos_boundaries [2]);
+      const std::vector<double>& atmos_boundaries);
     virtual ~PiecewisePolynomialTemperature() {}
     virtual bool calcProfile(
       const std::vector<double>& parameters,

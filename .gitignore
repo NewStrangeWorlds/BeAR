@@ -19,3 +19,7 @@ RetrievalTest/*
 TransmissionTest/*
 EmissionTest/*
 SecondaryEclipseTest/*
+
+python/pybear.cpython*
+python/__pycache__/*
+python/src/__pycache__/*

@@ -38,7 +38,7 @@ class Atmosphere {
   public:
     Atmosphere (
       const size_t nb_grid_points_,
-      const double atmos_boundaries [2],
+      const std::vector<double>& atmos_boundaries,
       const bool use_gpu);
     ~Atmosphere();
 
@@ -74,8 +74,16 @@ class Atmosphere {
       const std::vector<double>& temp_parameters,
       std::vector<Chemistry*>& chemistry,
       const std::vector<double>& chem_parameters);
+
+    void setAtmosphericStructure(
+      const double surface_gravity,
+      const std::vector<double>& pressure_,
+      const std::vector<double>& temperature_,
+      const std::vector<std::string>& species_symbols,
+      const std::vector< std::vector<double>>& mixing_ratios);
+
   private:
-    void createPressureGrid(const double domain_boundaries [2]);
+    void createPressureGrid(const std::vector<double>& domain_boundaries);
     void calcAltitude(
       const double g, const std::vector<double>& mean_molecular_weights);
     void calcAltitude(

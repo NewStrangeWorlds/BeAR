@@ -59,7 +59,7 @@ class TransmissionModelConfig : public GenericConfig{
   public:
     size_t nb_grid_points = 0;
 
-    double atmos_boundaries[2] {0, 0};
+    std::vector<double> atmos_boundaries = {0, 0};
     double atmos_top_pressure = 0;
     double atmos_bottom_pressure = 0;
 
@@ -111,6 +111,13 @@ class TransmissionModel : public ForwardModel{
       GlobalConfig* config_, 
       SpectralGrid* spectral_grid_,
       std::vector<Observation>& observations_);
+    TransmissionModel (
+      GlobalConfig* config_, 
+      SpectralGrid* spectral_grid_,
+      const size_t nb_grid_points_,
+      const std::vector<std::string>& opacity_species_symbol,
+      const std::vector<std::string>& opacity_species_folder);
+    
     virtual ~TransmissionModel();
     
     virtual bool calcModel(
@@ -131,6 +138,16 @@ class TransmissionModel : public ForwardModel{
     virtual bool testModel(
       const std::vector<double>& parameter, 
       double* model_spectrum_gpu);
+
+    std::vector<double> calcSpectrum(
+      const double surface_gravity,
+      const double planet_radius,
+      const double radius_ratio,
+      const std::vector<double>& pressure,
+      const std::vector<double>& temperature,
+      const std::vector<std::string>& species_symbol,
+      const std::vector<std::vector<double>>& mixing_ratios,
+      const std::vector<std::vector<double>>& cloud_optical_depth);
 
   protected:
     Atmosphere atmosphere;

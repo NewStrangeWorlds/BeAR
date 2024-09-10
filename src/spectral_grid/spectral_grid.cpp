@@ -49,6 +49,29 @@ SpectralGrid::SpectralGrid(GlobalConfig* global_config)
 }
 
 
+SpectralGrid::SpectralGrid(
+  GlobalConfig* global_config,
+  const double wavelength_min,
+  const double wavlength_max)
+{
+  config = global_config;
+
+  loadWavenumberList();
+
+  wavelength_list_full = wavenumberToWavelength(wavenumber_list_full);
+  
+  std::vector<std::vector<double>> wavenumber_edges = 
+    {{wavelengthToWavenumber(wavlength_max), wavelengthToWavenumber(wavelength_min)}};
+
+  std::vector<std::vector<size_t>> edge_indices;
+  findBinEdges(wavenumber_edges, edge_indices);
+
+  std::vector<Observation> observations = {};
+
+  createHighResGrid(edge_indices, observations);
+}
+
+
 void SpectralGrid::createHeliosWavenumberList()
 {
   const double wavenumber_step = 0.01;

@@ -33,8 +33,6 @@ struct GlobalConfig {
   std::string cross_section_file_path = "";
   std::string wavenumber_file_path = "";
   std::string retrieval_folder_path = "";
-
-  //double spectral_resolution = 0;
   
   unsigned int spectral_disecretisation = 0;
   double const_wavenumber_step = 0;

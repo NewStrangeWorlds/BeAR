@@ -55,7 +55,7 @@ inline Chemistry* selectChemistryModule(
   const std::string chemistry_type, 
   const std::vector<std::string>& parameters, 
   GlobalConfig* config, 
-  const double atmos_boundaries [2])
+  const std::vector<double>& atmos_boundaries)
 {
   //find the corresponding chemistry module to the supplied "type" string
   auto it = std::find(

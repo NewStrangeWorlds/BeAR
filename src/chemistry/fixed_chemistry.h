@@ -18,12 +18,10 @@
 */
 
 
-#ifndef _free_chemistry_h
-#define _free_chemistry_h
+#ifndef _fixed_chemistry_h
+#define _fixed_chemistry_h
 
 #include "chemistry.h"
-
-#include "../additional/piecewise_poly.h"
 
 
 #include <vector>
@@ -33,26 +31,29 @@
 namespace bear {
 
 
-
-class FreeChemistry : public Chemistry{
+class FixedChemistry : public Chemistry{
   public:
-    FreeChemistry(
-      const std::string& chemical_species,
-      const size_t nb_elements_in,
-      const size_t polynomial_degree_in,
-      const std::vector<double>& atmos_boundaries);
-    virtual ~FreeChemistry() {}
-
+    FixedChemistry(const std::vector<std::string>& species_symbol);
+    virtual ~FixedChemistry() {}
     virtual bool calcChemicalComposition(
       const std::vector<double>& parameters,
       const std::vector<double>& temperature,
       const std::vector<double>& pressure,
       std::vector<std::vector<double>>& number_densities,
+      std::vector<double>& mean_molecular_weight) 
+      {
+        return true;
+      }
+
+    void setChemicalComposition(
+      const std::vector<double>& pressure,
+      const std::vector<double>& temperature,
+      const std::vector<std::vector<double>>& mixing_ratios,
+      std::vector<std::vector<double>>& number_densities,
       std::vector<double>& mean_molecular_weight);
-  private:
-    PiecewisePolynomial mixing_ratios;
-    const size_t nb_elements {}; 
-    const size_t polynomial_degree {};
+  protected:
+    void findSpecies(
+      const std::vector<std::string>& species_symbol);
 };
 
 
