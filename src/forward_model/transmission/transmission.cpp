@@ -401,35 +401,49 @@ std::vector<double> TransmissionModel::calcSpectrum(
     species_symbol, 
     mixing_ratios);
 
-  if (cloud_extinction_gpu == nullptr)
-    allocateOnDevice(cloud_extinction_gpu, nb_grid_points*spectral_grid->nbSpectralPoints());
-
-  opacity_calc.calculateGPU(cloud_models, std::vector<double> {});
-
   const double bottom_radius = planet_radius;
   const double star_radius = planet_radius/radius_ratio;
 
-  double* model_spectrum_gpu = nullptr;
-
-  allocateOnDevice(model_spectrum_gpu, spectral_grid->nbSpectralPoints());
-
-  calcTransitDepthGPU(
-    model_spectrum_gpu, 
-    opacity_calc.absorption_coeff_gpu, 
-    opacity_calc.scattering_coeff_dev, 
-    cloud_extinction_gpu,
-    atmosphere,
-    spectral_grid->nbSpectralPoints(), 
-    bottom_radius,
-    star_radius);
-
   std::vector<double> spectrum(spectral_grid->nbSpectralPoints(), 0.0);
-
-  moveToHost(model_spectrum_gpu, spectrum);
-
-  deleteFromDevice(model_spectrum_gpu);
-  deleteFromDevice(cloud_extinction_gpu);
   
+  if (config->use_gpu)
+  {
+    if (cloud_extinction_gpu == nullptr)
+      allocateOnDevice(cloud_extinction_gpu, nb_grid_points*spectral_grid->nbSpectralPoints());
+    
+     opacity_calc.calculateGPU(cloud_models, std::vector<double> {});
+
+     double* model_spectrum_gpu = nullptr;
+
+     allocateOnDevice(model_spectrum_gpu, spectral_grid->nbSpectralPoints());
+
+     calcTransitDepthGPU(
+       model_spectrum_gpu, 
+       opacity_calc.absorption_coeff_gpu, 
+       opacity_calc.scattering_coeff_dev, 
+       cloud_extinction_gpu,
+       atmosphere,
+       spectral_grid->nbSpectralPoints(), 
+       bottom_radius,
+       star_radius);
+
+    moveToHost(model_spectrum_gpu, spectrum);
+
+    deleteFromDevice(model_spectrum_gpu);
+    deleteFromDevice(cloud_extinction_gpu);
+  }
+  else
+  {
+    cloud_extinction.assign(
+      spectral_grid->nbSpectralPoints(), 
+      std::vector<double>(nb_grid_points, 0.0));
+
+    opacity_calc.calculate(cloud_models, std::vector<double> {});
+
+    calcTransmissionSpectrum(bottom_radius, star_radius, spectrum);
+  }
+
+
   return spectrum;
 }
 
