@@ -18,8 +18,7 @@ class BeARTransmissionModel:
       resolution,
       cross_section_file_path, 
       opacity_species_data,
-      wavenumber_file_path = None,
-      ) :
+      wavenumber_file_path = None) :
     
     if spectral_discretisation not in valid_spectral_discretisations:
       raise ValueError("Spectral discretisation must be one of %r." % valid_spectral_discretisations)
@@ -78,6 +77,12 @@ class BeARTransmissionModel:
     mixing_ratios,
     cloud_optical_depth) :
 
+    cloud_tau = np.copy(cloud_optical_depth)
+    
+    #reverse the cloud optical depth array because BeAR uses wavenumbers in increasing order
+    for i in range(cloud_tau.shape[0]):
+      cloud_tau[i] = np.flip(cloud_tau[i])
+
     spectrum = np.array(
       self.forward_model.calcSpectrum(
         surface_gravity, 
@@ -87,7 +92,7 @@ class BeARTransmissionModel:
         temperature, 
         chem_species, 
         mixing_ratios, 
-        cloud_optical_depth))
+        cloud_tau))
     
     spectrum = np.flip(spectrum)
 

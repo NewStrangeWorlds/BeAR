@@ -267,12 +267,16 @@ target_include_directories(bear_cuda PUBLIC ${boost_math_SOURCE_DIR}/include/)
 
 
 if (USE_PYTHON MATCHES ON)
+    #find the python version
+    find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
+    
+    set(PYBIND11_FINDPYTHON ON)
 
     include(FetchContent)
     FetchContent_Declare(
         pybind11
         GIT_REPOSITORY https://github.com/pybind/pybind11
-        GIT_TAG        97976c16fb7652f7faf02d76756666ef87adbe7d
+        GIT_TAG        7c33cdc2d39c7b99a122579f53bc94c8eb3332ff
     )
 
     FetchContent_GetProperties(pybind11)
@@ -280,6 +284,8 @@ if (USE_PYTHON MATCHES ON)
         FetchContent_Populate(pybind11)
         add_subdirectory(${pybind11_SOURCE_DIR} ${pybind11_BINARY_DIR})
     endif()
+    
+  
 
   #compilation target for BeAR's Python library
   add_library(bear_for_py ${SRC})
@@ -291,9 +297,6 @@ if (USE_PYTHON MATCHES ON)
   target_compile_options(bear_for_py PRIVATE "${OpenMP_CXX_FLAGS}" PRIVATE "-O3" PRIVATE "-fPIC")
   target_compile_options(bear_cuda_for_py PRIVATE "-fPIC")
 
-  
-  #find the python version
-  find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
   
   #compilation target for BeAR's Python wrapper
   pybind11_add_module(pybear ${SRC_PYTHON_WRAPPER})

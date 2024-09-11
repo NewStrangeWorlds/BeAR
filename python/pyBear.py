@@ -66,6 +66,7 @@ for i in range(chem_species.size):
 #note: cloud optical depths are layer quantities, so the number of layers is grid_points_number-1
 cloud_optical_depth = np.zeros((grid_points_number-1, transmission_model.wavelengths.size))
 
+#cloud_optical_depth[50,:] = 100
 
 spectrum = transmission_model.calcSpectrum(
   surface_gravity, 
