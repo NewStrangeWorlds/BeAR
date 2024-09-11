@@ -13,8 +13,18 @@ resolution = 1000.0
 
 cross_section_file_path = "/media/data/opacity_data/helios-k/"
 
-opacity_species = np.array(['CIA-H2-H2', 'CIA-H2-He', 'H2', 'He', 'H2O', 'CO', 'CO2', 'H2O', 'CO', 'CO2'])
-opacity_folders = np.array(['CIA/H2-H2', 'CIA/H2-H2', 'Rayleigh', 'Rayleigh', 'Molecules/1H2-16O__POKAZATEL_e2b_n', 'Molecules/12C-16O__Li2015_e2b_n', 'Molecules/12C-16O2__UCL-4000_e2b', 'Rayleigh' , 'Rayleigh', 'Rayleigh'])
+opacity_species_data = np.array([
+  ['CIA-H2-H2', 'CIA/H2-H2'], 
+  ['CIA-H2-He', 'CIA/H2-He'],
+  ['H2', 'Rayleigh'],
+  ['He', 'Rayleigh'],
+  ['H2O', 'Molecules/1H2-16O__POKAZATEL_e2b_n'],
+  ['CO', 'Molecules/12C-16O__Li2015_e2b_n'],
+  ['CO2', 'Molecules/12C-16O2__UCL-4000_e2b'],
+  ['H2O', 'Rayleigh'],
+  ['CO', 'Rayleigh'],
+  ['CO2', 'Rayleigh']])
+
 
 use_gpu = True
 grid_points_number = 100
@@ -28,8 +38,7 @@ transmission_model = BeARTransmissionModel(
   wavelength_max,
   resolution,
   cross_section_file_path, 
-  opacity_species,
-  opacity_folders)
+  opacity_species_data)
 
 
 #define the planet/atmosphere parameters

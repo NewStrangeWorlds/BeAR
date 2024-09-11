@@ -17,8 +17,7 @@ class BeARTransmissionModel:
       wavelength_max,
       resolution,
       cross_section_file_path, 
-      opacity_species,
-      opacity_folders,
+      opacity_species_data,
       wavenumber_file_path = None,
       ) :
     
@@ -56,6 +55,9 @@ class BeARTransmissionModel:
     
     self.wavelengths = np.flip(np.array(self.spectral_grid.wavelength_list))
     self.wavenumbers = np.flip(np.array(self.spectral_grid.wavenumber_list))
+
+    opacity_species = opacity_species_data[:, 0]
+    opacity_folders = opacity_species_data[:, 1]
 
     self.forward_model = pybear.TransmissionModel(
       bear_config, 
