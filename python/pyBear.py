@@ -66,8 +66,6 @@ for i in range(chem_species.size):
 #note: cloud optical depths are layer quantities, so the number of layers is grid_points_number-1
 cloud_optical_depth = np.zeros((grid_points_number-1, transmission_model.wavelengths.size))
 
-#cloud_optical_depth[50,:] = 100
-
 spectrum = transmission_model.calcSpectrum(
   surface_gravity, 
   planet_radius, 
@@ -78,8 +76,21 @@ spectrum = transmission_model.calcSpectrum(
   mixing_ratios,
   cloud_optical_depth)
 
+#adding a grey cloud layer with a constant optical depth at layer 30
+cloud_optical_depth[30,:] = 100.0
+
+spectrum2 = transmission_model.calcSpectrum(
+  surface_gravity, 
+  planet_radius, 
+  radius_ratio, 
+  pressure, 
+  temperature, 
+  chem_species, 
+  mixing_ratios,
+  cloud_optical_depth)
 
 
+cloud_optical_depth = np.zeros((grid_points_number-1, transmission_model.wavelengths.size))
 chem_species_concentration = np.array([0.0, 0.0, 0.3, 0.3, 0.3])
 mixing_ratios = np.zeros((grid_points_number, chem_species.size))
 
@@ -88,7 +99,7 @@ for i in range(chem_species.size):
 
 #temperature = np.full((grid_points_number), 1500.0)
 
-spectrum2 = transmission_model.calcSpectrum(
+spectrum3 = transmission_model.calcSpectrum(
   surface_gravity, 
   planet_radius, 
   radius_ratio, 
@@ -102,4 +113,5 @@ spectrum2 = transmission_model.calcSpectrum(
 fig, ax = plt.subplots()
 ax.plot(transmission_model.wavelengths, spectrum)
 ax.plot(transmission_model.wavelengths, spectrum2)
+ax.plot(transmission_model.wavelengths, spectrum3)
 plt.show()

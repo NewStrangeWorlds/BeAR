@@ -185,6 +185,8 @@ class TransmissionModel : public ForwardModel{
     void initModules(const TransmissionModelConfig& model_config);
 
     bool calcAtmosphereStructure(const std::vector<double>& parameter);
+    
+    void setCloudProperties(const std::vector<std::vector<double>>& cloud_optical_depth);
 
     void postProcessSpectrum(
       std::vector<double>& model_spectrum, 

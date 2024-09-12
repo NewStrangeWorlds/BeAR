@@ -36,6 +36,7 @@
 #include "../../additional/exceptions.h"
 #include "../atmosphere/atmosphere.h"
 #include "../../transport_coeff/opacity_calc.h"
+#include "../../cloud_model/fixed_cloud_model.h"
 
 
 namespace bear{
@@ -99,7 +100,7 @@ TransmissionModel::TransmissionModel (
         opacity_species_symbol,
         opacity_species_folder,
         config->use_gpu,
-        false)
+        true)
 {
   nb_grid_points = nb_grid_points_;
 
@@ -384,6 +385,50 @@ void TransmissionModel::postProcessSpectrumGPU(
 
 
 
+void TransmissionModel::setCloudProperties(
+  const std::vector<std::vector<double>>& cloud_optical_depth)
+{
+  if (config->use_gpu && cloud_extinction_gpu == nullptr)
+    allocateOnDevice(cloud_extinction_gpu, nb_grid_points*spectral_grid->nbSpectralPoints());
+  else
+    cloud_extinction.assign(
+      spectral_grid->nbSpectralPoints(), 
+      std::vector<double>(nb_grid_points, 0.0));
+  
+  bool use_cloud = false;
+
+  for (auto & i : cloud_optical_depth)
+  {
+    double max = *std::max_element(i.begin(), i.end());
+    if (max > 0)
+    {
+      use_cloud = true;
+      break;
+    }
+  }
+  
+  if (!use_cloud)
+    return;
+
+  std::vector<std::vector<double>> single_scattering_albedo(
+    nb_grid_points-1, 
+    std::vector<double>(spectral_grid->nbSpectralPoints(), 0.0));
+
+  std::vector<std::vector<double>> asymmetry_parameter(
+    nb_grid_points-1, 
+    std::vector<double>(spectral_grid->nbSpectralPoints(), 0.0));
+
+  FixedCloudModel* model = new FixedCloudModel(
+    cloud_optical_depth,
+    single_scattering_albedo,
+    asymmetry_parameter);
+
+  cloud_models.push_back(model);
+
+}
+
+
+
 std::vector<double> TransmissionModel::calcSpectrum(
   const double surface_gravity,
   const double planet_radius,
@@ -403,29 +448,40 @@ std::vector<double> TransmissionModel::calcSpectrum(
 
   const double bottom_radius = planet_radius;
   const double star_radius = planet_radius/radius_ratio;
+  
+  setCloudProperties(cloud_optical_depth);
 
   std::vector<double> spectrum(spectral_grid->nbSpectralPoints(), 0.0);
   
   if (config->use_gpu)
   {
-    if (cloud_extinction_gpu == nullptr)
-      allocateOnDevice(cloud_extinction_gpu, nb_grid_points*spectral_grid->nbSpectralPoints());
+    opacity_calc.calculateGPU(cloud_models, std::vector<double> {});
     
-     opacity_calc.calculateGPU(cloud_models, std::vector<double> {});
+    if (cloud_models.size() > 0)
+    { 
+      intializeOnDevice(cloud_extinction_gpu, nb_grid_points*spectral_grid->nbSpectralPoints());
 
-     double* model_spectrum_gpu = nullptr;
+      cloud_models[0]->convertOpticalDepthGPU(
+        opacity_calc.cloud_optical_depths_dev,
+        atmosphere.altitude_dev,
+        nb_grid_points,
+        spectral_grid->nbSpectralPoints(),
+        cloud_extinction_gpu);
+    }
 
-     allocateOnDevice(model_spectrum_gpu, spectral_grid->nbSpectralPoints());
+    double* model_spectrum_gpu = nullptr;
 
-     calcTransitDepthGPU(
-       model_spectrum_gpu, 
-       opacity_calc.absorption_coeff_gpu, 
-       opacity_calc.scattering_coeff_dev, 
-       cloud_extinction_gpu,
-       atmosphere,
-       spectral_grid->nbSpectralPoints(), 
-       bottom_radius,
-       star_radius);
+    allocateOnDevice(model_spectrum_gpu, spectral_grid->nbSpectralPoints());
+
+    calcTransitDepthGPU(
+      model_spectrum_gpu, 
+      opacity_calc.absorption_coeff_gpu, 
+      opacity_calc.scattering_coeff_dev, 
+      cloud_extinction_gpu,
+      atmosphere,
+      spectral_grid->nbSpectralPoints(), 
+      bottom_radius,
+      star_radius);
 
     moveToHost(model_spectrum_gpu, spectrum);
 
@@ -434,15 +490,24 @@ std::vector<double> TransmissionModel::calcSpectrum(
   }
   else
   {
-    cloud_extinction.assign(
-      spectral_grid->nbSpectralPoints(), 
-      std::vector<double>(nb_grid_points, 0.0));
-
     opacity_calc.calculate(cloud_models, std::vector<double> {});
+
+    if (cloud_models.size() > 0)
+    {
+      cloud_models[0]->convertOpticalDepth(
+        opacity_calc.cloud_optical_depths, 
+        cloud_extinction, 
+        atmosphere.altitude);
+    }
 
     calcTransmissionSpectrum(bottom_radius, star_radius, spectrum);
   }
 
+  if (cloud_models.size() > 0)
+  {
+    delete cloud_models[0];
+    cloud_models.clear();
+  }
 
   return spectrum;
 }

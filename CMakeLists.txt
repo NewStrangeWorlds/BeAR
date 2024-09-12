@@ -106,6 +106,7 @@ set(SRC
   src/forward_model/stellar_spectrum/stellar_spectrum_grid.cpp
   src/forward_model/modules/stellar_contamination.cpp
   src/cloud_model/grey_cloud_model.cpp
+  src/cloud_model/fixed_cloud_model.cpp
   src/cloud_model/kh_cloud_model.cpp
   src/cloud_model/power_law_cloud_model.cpp
   src/model_main/model_main.cpp
