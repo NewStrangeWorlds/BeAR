@@ -109,6 +109,15 @@ class SecondaryEclipseModel : public ForwardModel{
       GlobalConfig* config_,
       SpectralGrid* spectral_grid_,
       std::vector<Observation>& observations_);
+    SecondaryEclipseModel (
+      GlobalConfig* config_, 
+      SpectralGrid* spectral_grid_,
+      const size_t nb_grid_points_,
+      const std::vector<double>& stellar_spectrum_wavelengths,
+      const std::vector<double>& stellar_spectrum_flux,
+      const std::vector<std::string>& opacity_species_symbol,
+      const std::vector<std::string>& opacity_species_folder);
+
     virtual ~SecondaryEclipseModel();
     virtual bool calcModel(
       const std::vector<double>& parameter,
@@ -127,6 +136,15 @@ class SecondaryEclipseModel : public ForwardModel{
     virtual bool testModel(
       const std::vector<double>& parameter,
       double* model_spectrum_gpu);
+
+    std::vector<double> calcSpectrum(
+      const double surface_gravity,
+      const double radius_ratio,
+      const std::vector<double>& pressure,
+      const std::vector<double>& temperature,
+      const std::vector<std::string>& species_symbol,
+      const std::vector<std::vector<double>>& mixing_ratios,
+      const std::vector<std::vector<double>>& cloud_optical_depth);
   protected:
     Atmosphere atmosphere;
     OpacityCalculation opacity_calc;
@@ -171,6 +189,8 @@ class SecondaryEclipseModel : public ForwardModel{
       const double* albedo_contribution);
 
     bool calcAtmosphereStructure(const std::vector<double>& parameter);
+
+    void setCloudProperties(const std::vector<std::vector<double>>& cloud_optical_depth);
 
     void postProcessSpectrum(
       std::vector<double>& model_spectrum, 

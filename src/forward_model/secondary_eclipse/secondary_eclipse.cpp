@@ -36,8 +36,12 @@
 #include "../../additional/physical_const.h"
 #include "../../additional/exceptions.h"
 #include "../atmosphere/atmosphere.h"
+#include "../../radiative_transfer/select_radiative_transfer.h"
 
 #include "../stellar_spectrum/stellar_spectrum.h"
+#include "../stellar_spectrum/star_file_spectrum.h"
+#include "../../cloud_model/fixed_cloud_model.h"
+
 
 namespace bear{
 
@@ -72,6 +76,45 @@ SecondaryEclipseModel::SecondaryEclipseModel (
   initModules(model_config);
 
   setPriors(priors_);
+}
+
+
+
+SecondaryEclipseModel::SecondaryEclipseModel (
+  GlobalConfig* config_, 
+  SpectralGrid* spectral_grid_,
+  const size_t nb_grid_points_,
+  const std::vector<double>& stellar_spectrum_wavelengths,
+  const std::vector<double>& stellar_spectrum_flux,
+  const std::vector<std::string>& opacity_species_symbol,
+  const std::vector<std::string>& opacity_species_folder)
+    : ForwardModel(config_, spectral_grid_, std::vector<Observation>() = {})
+    , atmosphere(
+        nb_grid_points_,
+        std::vector<double>(2) = {10, 1e-5},
+        config->use_gpu)
+    , opacity_calc(
+        config,
+        spectral_grid,
+        &atmosphere,
+        opacity_species_symbol,
+        opacity_species_folder,
+        config->use_gpu,
+        true)
+{
+  nb_grid_points = nb_grid_points_;
+
+  stellar_model =  new StarSpectrumFile(
+    stellar_spectrum_wavelengths,
+    stellar_spectrum_flux,
+    spectral_grid);
+
+  radiative_transfer = selectRadiativeTransfer(
+    std::string("scm"), 
+    std::vector<std::string> {}, 
+    nb_grid_points, 
+    config, 
+    spectral_grid);
 }
 
 
@@ -335,6 +378,130 @@ bool SecondaryEclipseModel::calcModelGPU(
   return neglect;
 }
 
+
+
+void SecondaryEclipseModel::setCloudProperties(
+  const std::vector<std::vector<double>>& cloud_optical_depth)
+{
+  bool use_cloud = false;
+
+  for (auto & i : cloud_optical_depth)
+  {
+    double max = *std::max_element(i.begin(), i.end());
+    if (max > 0)
+    {
+      use_cloud = true;
+      break;
+    }
+  }
+  
+  if (!use_cloud)
+    return;
+
+  std::vector<std::vector<double>> single_scattering_albedo(
+    nb_grid_points-1, 
+    std::vector<double>(spectral_grid->nbSpectralPoints(), 0.0));
+
+  std::vector<std::vector<double>> asymmetry_parameter(
+    nb_grid_points-1, 
+    std::vector<double>(spectral_grid->nbSpectralPoints(), 0.0));
+
+  FixedCloudModel* model = new FixedCloudModel(
+    cloud_optical_depth,
+    single_scattering_albedo,
+    asymmetry_parameter);
+
+  cloud_models.push_back(model);
+}
+
+
+
+std::vector<double> SecondaryEclipseModel::calcSpectrum(
+      const double surface_gravity,
+      const double radius_ratio,
+      const std::vector<double>& pressure,
+      const std::vector<double>& temperature,
+      const std::vector<std::string>& species_symbol,
+      const std::vector<std::vector<double>>& mixing_ratios,
+      const std::vector<std::vector<double>>& cloud_optical_depth)
+{
+  atmosphere.setAtmosphericStructure(
+    surface_gravity, 
+    pressure, 
+    temperature, 
+    species_symbol, 
+    mixing_ratios);
+  
+  setCloudProperties(cloud_optical_depth);
+
+  std::vector<double> spectrum(spectral_grid->nbSpectralPoints(), 0.0);
+
+  if (config->use_gpu)
+  {
+    opacity_calc.calculateGPU(cloud_models, std::vector<double> {});
+
+    double* model_spectrum_gpu = nullptr;
+
+    allocateOnDevice(model_spectrum_gpu, spectral_grid->nbSpectralPoints());
+
+    radiative_transfer->calcSpectrumGPU(
+      atmosphere,
+      opacity_calc.absorption_coeff_gpu, 
+      opacity_calc.scattering_coeff_dev, 
+      opacity_calc.cloud_optical_depths_dev,
+      opacity_calc.cloud_single_scattering_dev,
+      opacity_calc.cloud_asym_param_dev,
+      1.0,
+      model_spectrum_gpu);
+
+    double* stellar_spectrum = nullptr;
+    allocateOnDevice(stellar_spectrum, spectral_grid->nbSpectralPoints());
+    stellar_model->calcFluxGPU(std::vector<double> {}, stellar_spectrum);
+
+    double* albedo_contribution_gpu = nullptr;
+
+    calcSecondaryEclipseGPU(
+      model_spectrum_gpu, 
+      model_spectrum_gpu, 
+      stellar_spectrum, 
+      spectral_grid->nbSpectralPoints(),
+      radius_ratio, 
+      albedo_contribution_gpu);
+
+    deleteFromDevice(albedo_contribution_gpu);
+    deleteFromDevice(stellar_spectrum);
+
+    moveToHost(model_spectrum_gpu, spectrum);
+    deleteFromDevice(model_spectrum_gpu);
+  }
+  else
+  {
+    opacity_calc.calculate(cloud_models, std::vector<double> {});
+    
+    radiative_transfer->calcSpectrum(
+      atmosphere,
+      opacity_calc.absorption_coeff, 
+      opacity_calc.absorption_coeff, 
+      opacity_calc.cloud_optical_depths, 
+      opacity_calc.cloud_single_scattering, 
+      opacity_calc.cloud_asym_param,
+      1.0, 
+      spectrum);
+    
+    std::vector<double> stellar_spectrum = stellar_model->calcFlux(std::vector<double> {});
+
+    for (size_t i=0; i<spectral_grid->nbSpectralPoints(); ++i)
+      spectrum[i] = spectrum[i] / stellar_spectrum[i] * radius_ratio*radius_ratio * 1e6;
+  }
+
+  if (cloud_models.size() > 0)
+  {
+    delete cloud_models[0];
+    cloud_models.clear();
+  }
+
+  return spectrum;
+}
 
 
 

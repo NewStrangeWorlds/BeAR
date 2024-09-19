@@ -10,6 +10,7 @@
 #include "../src/config/global_config.h"
 #include "../src/spectral_grid/spectral_grid.h"
 #include "../src/forward_model/transmission/transmission.h"
+#include "../src/forward_model/secondary_eclipse/secondary_eclipse.h"
 
 
 namespace py = pybind11;
@@ -35,6 +36,22 @@ PYBIND11_MODULE(pybear, m) {
         .def("wavelengthToWavenumber", static_cast<double (bear::SpectralGrid::*)(const double)>(&bear::SpectralGrid::wavelengthToWavenumber));
 
     py::class_<bear::TransmissionModel>(m, "TransmissionModel")
-        .def(py::init<bear::GlobalConfig*, bear::SpectralGrid*, const size_t, const std::vector<std::string>, const std::vector<std::string>>())
+        .def(py::init<
+          bear::GlobalConfig*, 
+          bear::SpectralGrid*, 
+          const size_t, 
+          const std::vector<std::string>, 
+          const std::vector<std::string>>())
         .def("calcSpectrum", &bear::TransmissionModel::calcSpectrum);
+
+    py::class_<bear::SecondaryEclipseModel>(m, "SecondaryEclipseModel")
+        .def(py::init<
+          bear::GlobalConfig*, 
+          bear::SpectralGrid*, 
+          const size_t, 
+          const std::vector<double>, 
+          const std::vector<double>, 
+          const std::vector<std::string>, 
+          const std::vector<std::string>>())
+        .def("calcSpectrum", &bear::SecondaryEclipseModel::calcSpectrum);
 }

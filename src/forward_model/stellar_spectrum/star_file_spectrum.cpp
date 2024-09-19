@@ -54,6 +54,24 @@ StarSpectrumFile::StarSpectrumFile(
 }
 
 
+StarSpectrumFile::StarSpectrumFile(
+  const std::vector<double>& wavelengths,
+  const std::vector<double>& flux_,
+  SpectralGrid* spectral_grid_)
+  : spectral_grid(spectral_grid_)
+{
+  nb_parameters = 0;
+  
+  std::vector<double> flux = flux_;
+
+  //convert from W m-2 mu-1 to W m-2 cm
+  for (size_t i=0; i<flux.size(); ++i)
+    flux[i] = flux[i]*wavelengths[i]*wavelengths[i]/10000.;
+
+  spectrum = spectral_grid->interpolateToWavelengthGrid(wavelengths, flux, false);
+}
+
+
 std::vector<double> StarSpectrumFile::calcFlux(
   const std::vector<double>& parameter)
 {
