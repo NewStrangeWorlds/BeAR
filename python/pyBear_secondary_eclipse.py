@@ -9,10 +9,10 @@ from astropy import units as u
 
 
 #setting the basic properties of the model
-spectral_discretisation = 'const_resolution'
+spectral_discretisation = 'const_wavenumber'
 wavelength_min = 1.0
 wavelength_max = 10.0
-resolution = 1000.0
+resolution = 1.0
 
 cross_section_file_path = "/media/data/opacity_data/helios-k/"
 

@@ -38,14 +38,15 @@ class BeARTransmissionModel:
     
     if spectral_discretisation == 'const_wavenumber':
       bear_config.spectral_disecretisation = 0
+      bear_config.const_wavenumber_step = resolution
 
     if spectral_discretisation == 'const_wavelength':
       bear_config.spectral_disecretisation = 1
+      bear_config.const_wavelength_step = resolution
 
     if spectral_discretisation == 'const_resolution':
       bear_config.spectral_disecretisation = 2
-      
-    bear_config.const_spectral_resolution = resolution
+      bear_config.const_spectral_resolution = resolution
    
     self.spectral_grid = pybear.SpectralGrid(
       bear_config,
@@ -124,7 +125,7 @@ class BeARSecondaryEclipseModel:
     bear_config = pybear.GlobalConfig()
     
     bear_config.use_gpu = np.bool_(use_gpu)
-    bear_config.forward_model_type = "transmission"
+    bear_config.forward_model_type = "secondary_eclipse"
     bear_config.cross_section_file_path = cross_section_file_path
 
     if wavenumber_file_path is not None:
@@ -134,14 +135,17 @@ class BeARSecondaryEclipseModel:
     
     if spectral_discretisation == 'const_wavenumber':
       bear_config.spectral_disecretisation = 0
+      bear_config.const_wavenumber_step = resolution
 
     if spectral_discretisation == 'const_wavelength':
       bear_config.spectral_disecretisation = 1
+      bear_config.const_wavelength_step = resolution
 
     if spectral_discretisation == 'const_resolution':
       bear_config.spectral_disecretisation = 2
+      bear_config.const_spectral_resolution = resolution
       
-    bear_config.const_spectral_resolution = resolution
+    
    
     self.spectral_grid = pybear.SpectralGrid(
       bear_config,
