@@ -32,7 +32,7 @@ bb_lam = models.BlackBody(temperature=4000*u.K, scale=1.0 * u.erg / (u.cm ** 2 *
 stellar_spectrum_flux = bb_lam(stellar_spectrum_wavelengths * u.micron).to('W m-2 micron-1 sr-1').value * np.pi
 
 
-use_gpu = False
+use_gpu = True
 grid_points_number = 100
 
 #create the BeAR forward model
