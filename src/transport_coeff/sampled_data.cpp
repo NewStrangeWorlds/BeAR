@@ -89,7 +89,8 @@ void SampledData::sampleCrossSections(
 
 SampledData::~SampledData()
 {
-  deleteFromDevice(cross_sections_device);
+  if (use_gpu)
+    deleteFromDevice(cross_sections_device);
 }
 
 

@@ -45,7 +45,7 @@ class StarSpectrumFile : public StellarSpectrumModel{
       const std::vector<double>& stellar_spectrum_flux,
       SpectralGrid* spectral_grid_);
     virtual ~StarSpectrumFile() {
-      deleteFromDevice(spectrum_dev);
+      if (spectrum_dev != nullptr) deleteFromDevice(spectrum_dev);
     }
     
     virtual std::vector<double> calcFlux(

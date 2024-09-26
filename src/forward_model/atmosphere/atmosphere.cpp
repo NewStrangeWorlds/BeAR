@@ -330,9 +330,9 @@ void Atmosphere::createPressureGrid(const std::vector<double>& atmos_boundaries)
 
 Atmosphere::~Atmosphere()
 {
-  deleteFromDevice(temperature_dev);
-  deleteFromDevice(altitude_dev);
-  deleteFromDevice(pressure_dev);
+  if (temperature_dev != nullptr) deleteFromDevice(temperature_dev);
+  if (altitude_dev != nullptr) deleteFromDevice(altitude_dev);
+  if (pressure_dev != nullptr) deleteFromDevice(pressure_dev);
 }
 
 

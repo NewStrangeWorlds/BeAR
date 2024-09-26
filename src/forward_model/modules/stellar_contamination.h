@@ -43,9 +43,9 @@ class StellarContamination : public Module{
       const std::vector<std::string>& stellar_model_parameters,
       SpectralGrid* spectral_grid_);
     virtual ~StellarContamination() {
-      deleteFromDevice(spectrum_phot_gpu);
-      deleteFromDevice(spectrum_fac_gpu);
-      deleteFromDevice(spectrum_spot_gpu);
+      if (spectrum_phot_gpu != nullptr) deleteFromDevice(spectrum_phot_gpu);
+      if (spectrum_fac_gpu != nullptr) deleteFromDevice(spectrum_fac_gpu);
+      if (spectrum_spot_gpu != nullptr) deleteFromDevice(spectrum_spot_gpu);
     }
     
     virtual void modifySpectrum(
