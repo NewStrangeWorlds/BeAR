@@ -161,7 +161,7 @@ void SpectralGrid::sampleSpectralGrid(std::vector<Observation>& observations)
 void SpectralGrid::createHighResGridConstWavenumber(
   const std::vector<std::vector<size_t>>& edge_indices,
   std::vector<int>& included_points)
-{
+{ 
   for (size_t i=0; i<edge_indices.size(); ++i)
   {
     included_points[edge_indices[i][0]] = 1;
@@ -169,10 +169,10 @@ void SpectralGrid::createHighResGridConstWavenumber(
     size_t last_index = edge_indices[i][0];
 
     for (size_t j=edge_indices[i][0]; j<edge_indices[i][1]; ++j)
-    {
-      if (wavenumber_list_full[last_index] + config->const_wavenumber_step == wavenumber_list_full[j] 
-        || (wavenumber_list_full[j] < wavenumber_list_full[last_index] + config->const_wavenumber_step 
-         && wavenumber_list_full[j+1] > wavenumber_list_full[last_index] + config->const_wavenumber_step))
+    { 
+      const double next_wavenumber = wavenumber_list_full[last_index] + config->const_wavenumber_step;
+      
+      if (next_wavenumber == wavenumber_list_full[j] || wavenumber_list_full[j+1] > next_wavenumber)
       { 
         included_points[j] = 1;
         last_index = j;
@@ -196,9 +196,9 @@ void SpectralGrid::createHighResGridConstWavelength(
 
     for (size_t j=edge_indices[i][0]; j<edge_indices[i][1]; ++j)
     {
-      if (wavelength_list_full[last_index] - config->const_wavelength_step == wavelength_list_full[j] 
-        || (wavelength_list_full[j] > wavelength_list_full[last_index] - config->const_wavelength_step 
-         && wavelength_list_full[j+1] < wavelength_list_full[last_index] - config->const_wavelength_step))
+      const double next_wavelength = wavelength_list_full[last_index] - config->const_wavelength_step;
+
+      if (next_wavelength == wavelength_list_full[j] || wavelength_list_full[j+1] < next_wavelength)
       { 
         included_points[j] = 1;
         last_index = j;
@@ -222,11 +222,9 @@ void SpectralGrid::createHighResGridConstResolution(
 
     for (size_t j=edge_indices[i][0]; j<edge_indices[i][1]; ++j)
     { 
-      const double new_lambda = wavelength_list_full[last_index] * (1 - 1./config->const_spectral_resolution);
+      const double next_wavelength = wavelength_list_full[last_index] * (1 - 1./config->const_spectral_resolution);
 
-      if (new_lambda == wavelength_list_full[j] 
-        || (wavelength_list_full[j] > new_lambda 
-         && wavelength_list_full[j+1] < new_lambda))
+      if (next_wavelength == wavelength_list_full[j] || wavelength_list_full[j+1] < next_wavelength)
       { 
         included_points[j] = 1;
         last_index = j;

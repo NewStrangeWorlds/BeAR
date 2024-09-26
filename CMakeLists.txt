@@ -290,6 +290,7 @@ if (USE_PYTHON MATCHES ON)
 
   #compilation target for BeAR's Python library
   add_library(bear_for_py ${SRC})
+  target_include_directories(bear_for_py PUBLIC ${boost_math_SOURCE_DIR}/include/)
   
   add_library(bear_cuda_for_py ${SRC_CUDA})
   target_include_directories(bear_cuda_for_py PUBLIC ${boost_math_SOURCE_DIR}/include/)
