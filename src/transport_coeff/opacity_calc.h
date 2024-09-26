@@ -244,6 +244,8 @@ inline void OpacityCalculation::calculate(
 
 inline void OpacityCalculation::initDeviceMemory()
 { 
+  if (!use_gpu) return;
+  
   const size_t nb_grid_points = atmosphere->nb_grid_points;
   const size_t nb_spectral_points = spectral_grid->nbSpectralPoints();
 
