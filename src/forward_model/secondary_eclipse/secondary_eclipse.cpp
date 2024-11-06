@@ -434,6 +434,8 @@ std::vector<double> SecondaryEclipseModel::calcSpectrum(
 {
   atmosphere.setAtmosphericStructure(
     surface_gravity, 
+    1.0,
+    false,
     pressure, 
     temperature, 
     species_symbol, 

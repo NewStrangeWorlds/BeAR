@@ -76,7 +76,8 @@ class BeARTransmissionModel:
     temperature, 
     chem_species, 
     mixing_ratios,
-    cloud_optical_depth) :
+    cloud_optical_depth,
+    use_variable_gravity=False) :
 
     cloud_tau = np.copy(cloud_optical_depth)
     
@@ -93,7 +94,8 @@ class BeARTransmissionModel:
         temperature, 
         chem_species, 
         mixing_ratios, 
-        cloud_tau))
+        cloud_tau,
+        np.bool_(use_variable_gravity)))
     
     spectrum = np.flip(spectrum)
 

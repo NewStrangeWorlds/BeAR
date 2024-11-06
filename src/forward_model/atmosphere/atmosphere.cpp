@@ -244,6 +244,8 @@ bool Atmosphere::calcAtmosphereStructure(
 
 void Atmosphere::setAtmosphericStructure(
   const double surface_gravity,
+  const double bottom_radius,
+  const bool use_variable_gravity,
   const std::vector<double>& pressure_,
   const std::vector<double>& temperature_,
   const std::vector<std::string>& species_symbols,
@@ -263,7 +265,14 @@ void Atmosphere::setAtmosphericStructure(
   fixed_chemistry.setChemicalComposition(
     pressure, temperature, mixing_ratios, number_densities, mean_molecular_weights);
 
-  calcAltitude(surface_gravity, mean_molecular_weights);
+  if (use_variable_gravity)
+    calcAltitudeVariableGravity(
+      surface_gravity, 
+      bottom_radius,
+      mean_molecular_weights);
+  else
+    calcAltitude(surface_gravity, mean_molecular_weights);
+  
   calcScaleHeight(surface_gravity, mean_molecular_weights);
 
   if (altitude_dev != nullptr)
@@ -309,7 +318,7 @@ void Atmosphere::calcAltitudeVariableGravity(
 
   for (size_t i=0; i<nb_grid_points; ++i)
     mass_density[i] = mean_molecular_weights[i] * pressure[i]*1e6 / (constants::gas_constant  * temperature[i]);
-
+  
   for (size_t i=1; i<nb_grid_points; i++)
   { 
     const double local_radius = bottom_radius + altitude[i-1];

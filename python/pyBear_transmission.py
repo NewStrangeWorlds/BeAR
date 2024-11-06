@@ -74,7 +74,8 @@ spectrum = transmission_model.calcSpectrum(
   temperature, 
   chem_species, 
   mixing_ratios,
-  cloud_optical_depth)
+  cloud_optical_depth,
+  use_variable_gravity=True)
 
 #adding a grey cloud layer with a constant optical depth at layer 30
 cloud_optical_depth[30,:] = 100.0

@@ -81,6 +81,8 @@ class Atmosphere {
 
     void setAtmosphericStructure(
       const double surface_gravity,
+      const double bottom_radius,
+      const bool use_variable_gravity,
       const std::vector<double>& pressure_,
       const std::vector<double>& temperature_,
       const std::vector<std::string>& species_symbols,

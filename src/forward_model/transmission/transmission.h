@@ -148,7 +148,8 @@ class TransmissionModel : public ForwardModel{
       const std::vector<double>& temperature,
       const std::vector<std::string>& species_symbol,
       const std::vector<std::vector<double>>& mixing_ratios,
-      const std::vector<std::vector<double>>& cloud_optical_depth);
+      const std::vector<std::vector<double>>& cloud_optical_depth,
+      const double use_variable_gravity);
 
   protected:
     Atmosphere atmosphere;
