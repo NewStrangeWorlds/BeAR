@@ -36,7 +36,7 @@ html_theme_options = {
 	'logo': 'bear.png',
 	'description': 'BeAR - The Bern Atmospheric Retrieval code',
 	'github_button': 'true',
-	'github_user': 'daniel-kitzmann',
+	'github_user': 'newstrangeworlds',
     'github_repo': 'bear',
 	'github_type': 'watch',
 	'page_width' : '1001px',

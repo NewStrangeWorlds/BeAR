@@ -123,7 +123,7 @@ file in the following order:
 
   - :math:`a_0`
 
-  - particle size :math:`a`
+  - particle size :math:`a` in microns
 
   - cloud top pressure in bar
 
