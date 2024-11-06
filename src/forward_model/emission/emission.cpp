@@ -123,6 +123,8 @@ bool EmissionModel::calcAtmosphereStructure(const std::vector<double>& parameter
 
   neglect_model = atmosphere.calcAtmosphereStructure(
     surface_gravity, 
+    1.0,
+    false,
     temperature_profile, 
     temp_parameters, 
     chemistry, 

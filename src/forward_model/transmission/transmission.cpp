@@ -74,6 +74,7 @@ TransmissionModel::TransmissionModel (
 
   fit_mean_molecular_weight = model_config.fit_mean_molecular_weight;
   fit_scale_height = model_config.fit_scale_height;
+  use_variable_gravity = model_config.use_variable_gravity;
 
   //select and set up the modules
   initModules(model_config);
@@ -110,6 +111,7 @@ TransmissionModel::TransmissionModel (
 bool TransmissionModel::calcAtmosphereStructure(const std::vector<double>& parameter)
 {
   const double surface_gravity = std::pow(10,parameter[0]);
+  const double bottom_radius = parameter[1];
 
   bool neglect_model = false;
 
@@ -127,6 +129,8 @@ bool TransmissionModel::calcAtmosphereStructure(const std::vector<double>& param
   {
     neglect_model = atmosphere.calcAtmosphereStructure(
       surface_gravity, 
+      bottom_radius,
+      use_variable_gravity,
       temperature_profile, 
       temp_parameters, 
       chemistry, 
@@ -134,11 +138,14 @@ bool TransmissionModel::calcAtmosphereStructure(const std::vector<double>& param
   }
   else
   {
+    //either mean molecular weight or scale height
     const double param = parameter[3];
 
     if (fit_mean_molecular_weight)
       neglect_model = atmosphere.calcAtmosphereStructure(
         surface_gravity, 
+        bottom_radius,
+        use_variable_gravity,
         temperature_profile, 
         temp_parameters, 
         chemistry, 

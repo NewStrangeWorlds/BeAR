@@ -65,6 +65,7 @@ class TransmissionModelConfig : public GenericConfig{
 
     bool fit_mean_molecular_weight = false;
     bool fit_scale_height = false;
+    bool use_variable_gravity = false;
 
     bool use_cloud_model = false;
     bool use_optional_modules = false;
@@ -180,6 +181,7 @@ class TransmissionModel : public ForwardModel{
 
     bool fit_mean_molecular_weight = false;
     bool fit_scale_height = false;
+    bool use_variable_gravity = false;
 
     virtual void setPriors(Priors* priors);
     void initModules(const TransmissionModelConfig& model_config);

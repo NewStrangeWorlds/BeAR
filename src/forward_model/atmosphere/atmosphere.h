@@ -56,12 +56,16 @@ class Atmosphere {
 
     bool calcAtmosphereStructure(
       const double surface_gravity,
+      const double bottom_radius,
+      const bool use_variable_gravity,
       Temperature* temperature_profile,
       const std::vector<double>& temp_parameters,
       std::vector<Chemistry*>& chemistry,
       const std::vector<double>& chem_parameters);
     bool calcAtmosphereStructure(
       const double surface_gravity,
+      const double bottom_radius,
+      const bool use_variable_gravity,
       Temperature* temperature_profile,
       const std::vector<double>& temp_parameters,
       std::vector<Chemistry*>& chemistry,
@@ -86,6 +90,10 @@ class Atmosphere {
     void createPressureGrid(const std::vector<double>& domain_boundaries);
     void calcAltitude(
       const double g, const std::vector<double>& mean_molecular_weights);
+    void calcAltitudeVariableGravity(
+      const double g, 
+      const double bottom_radius,
+      const std::vector<double>& mean_molecular_weights);
     void calcAltitude(
       const double constant_scale_height);
     void calcScaleHeight(

@@ -138,7 +138,14 @@ bool SecondaryEclipseModel::calcAtmosphereStructure(const std::vector<double>& p
                                        parameter.begin() + nb_previous_param + nb_total_chemistry_param);
   
   //determine atmosphere structure
-  neglect_model = atmosphere.calcAtmosphereStructure(surface_gravity, temperature_profile, temp_parameters, chemistry, chem_parameters);
+  neglect_model = atmosphere.calcAtmosphereStructure(
+    surface_gravity, 
+    1.0,
+    false,
+    temperature_profile, 
+    temp_parameters, 
+    chemistry, 
+    chem_parameters);
 
 
   return neglect_model;

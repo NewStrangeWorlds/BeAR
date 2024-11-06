@@ -75,6 +75,24 @@ void TransmissionModelConfig::readConfigFile(const std::string& file_name)
     std::cout << "- Fit for scale height: yes\n";
   }
   
+  
+  std::string var_gravity = readParameter(
+    file,
+    std::string("Use variable gravity"),
+    std::vector<std::string>({"Yes", "yes", "no", "No"}));
+  
+  if (var_gravity == "Yes" || var_gravity == "yes")
+  {
+    use_variable_gravity = true;
+    std::cout << "- Use variable gravity: yes\n";
+  }
+  else
+  {
+    use_variable_gravity = false;
+    std::cout << "- Use variable gravity: no\n";
+  }
+
+  
   readTemperatureConfig(file, temperature_profile_model, temperature_profile_parameters);
 
   readCloudConfig(file, cloud_model, cloud_model_parameters);
