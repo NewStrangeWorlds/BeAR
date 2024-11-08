@@ -46,7 +46,7 @@ class OpacitySpecies {
     virtual ~OpacitySpecies() {}
    
     bool dataAvailable() {
-      if (species_folder == "Rayleigh" && rayleigh_available)
+      if (rayleigh_available || continuum_available)
         return true;
 
       return cross_section_available;}
@@ -80,6 +80,7 @@ class OpacitySpecies {
 
     bool cross_section_available = false;
     bool rayleigh_available = false;
+    bool continuum_available = false;
 
     std::vector<SampledData> sampled_cross_sections;
     std::vector<std::vector<SampledData*>> ordered_data_list;

@@ -134,6 +134,7 @@ set(SRC
   src/transport_coeff/sampled_data.cpp
   src/transport_coeff/species_rayleigh_cross_sections.cpp
   src/transport_coeff/transport_coeff.cpp
+  src/transport_coeff/h_m.cpp
   src/chemistry/isoprofile_chemistry.cpp
   src/chemistry/background_chemistry.cpp
   src/chemistry/isoprofile_clr_chemistry.cpp
