@@ -52,7 +52,7 @@ bool TransmissionModel::testCPUvsGPU(const std::vector<double>& parameter, doubl
   allocateOnDevice(spectrum_bands_dev, nb_observation_points);
 
   //intialise the high-res spectrum on the GPU (set it to 0)
-  intializeOnDevice(model_spectrum_gpu, spectral_grid->nbSpectralPoints());
+  initializeOnDevice(model_spectrum_gpu, spectral_grid->nbSpectralPoints());
 
   calcModelGPU(parameter, model_spectrum_gpu, spectrum_bands_dev);
   

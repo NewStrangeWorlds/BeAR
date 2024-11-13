@@ -87,7 +87,7 @@ class GasGeneric : public OpacitySpecies {
 class GasHm : public OpacitySpecies {
   public:
     GasHm(GlobalConfig* config_ptr, SpectralGrid* spectral_grid_ptr) 
-        : OpacitySpecies(_Hm, "H-", "")
+        : OpacitySpecies(_Hm, "H-", "Continuum")
         { 
           config = config_ptr; 
           spectral_grid = spectral_grid_ptr; 

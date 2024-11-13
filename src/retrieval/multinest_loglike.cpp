@@ -172,7 +172,7 @@ void Retrieval::multinestLogLikeGPU(double *cube, int &nb_dim, int &nb_param, do
   
   size_t nb_points = retrieval_ptr->spectral_grid.nbSpectralPoints();
   allocateOnDevice(model_spectrum_bands, retrieval_ptr->nb_observation_points);
-  intializeOnDevice(retrieval_ptr->model_spectrum_gpu, nb_points);
+  initializeOnDevice(retrieval_ptr->model_spectrum_gpu, nb_points);
 
   //call the forward model
   bool neglect = retrieval_ptr->forward_model->calcModelGPU(physical_parameter, retrieval_ptr->model_spectrum_gpu, model_spectrum_bands);

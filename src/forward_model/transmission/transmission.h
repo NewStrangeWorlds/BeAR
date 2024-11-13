@@ -183,13 +183,26 @@ class TransmissionModel : public ForwardModel{
     bool fit_mean_molecular_weight = false;
     bool fit_scale_height = false;
     bool use_variable_gravity = false;
-
-    virtual void setPriors(Priors* priors);
-    void initModules(const TransmissionModelConfig& model_config);
-
-    bool calcAtmosphereStructure(const std::vector<double>& parameter);
     
-    void setCloudProperties(const std::vector<std::vector<double>>& cloud_optical_depth);
+    virtual void setPriors(Priors* priors);
+    
+    void initModules(
+      const TransmissionModelConfig& model_config);
+    
+    std::vector<double> model_parameters;
+    std::vector<double> chemistry_parameters;
+    std::vector<double> cloud_parameters;
+    std::vector<double> temperature_parameters;
+    std::vector<double> module_parameters;
+    std::vector<double> spectrum_modifier_parameters;
+    
+    void extracParameters(
+      const std::vector<double>& parameters);
+    
+    bool calcAtmosphereStructure(
+      const std::vector<double>& parameter);
+    void setCloudProperties(
+      const std::vector<std::vector<double>>& cloud_optical_depth);
 
     void postProcessSpectrum(
       std::vector<double>& model_spectrum, 

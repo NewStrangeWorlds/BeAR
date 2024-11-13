@@ -125,9 +125,9 @@ inline void OpacityCalculation::calculateGPU(
   { 
     const size_t nb_layers = nb_grid_points - 1;
     
-    intializeOnDevice(cloud_optical_depths_dev, nb_layers*nb_spectral_points);
-    intializeOnDevice(cloud_single_scattering_dev, nb_layers*nb_spectral_points);
-    intializeOnDevice(cloud_asym_param_dev, nb_layers*nb_spectral_points);
+    initializeOnDevice(cloud_optical_depths_dev, nb_layers*nb_spectral_points);
+    initializeOnDevice(cloud_single_scattering_dev, nb_layers*nb_spectral_points);
+    initializeOnDevice(cloud_asym_param_dev, nb_layers*nb_spectral_points);
 
     size_t nb_param = 0;
 
@@ -260,9 +260,9 @@ inline void OpacityCalculation::initDeviceMemory()
     allocateOnDevice(cloud_single_scattering_dev, nb_layers*nb_spectral_points);
     allocateOnDevice(cloud_asym_param_dev, nb_layers*nb_spectral_points);
 
-    intializeOnDevice(cloud_optical_depths_dev, nb_layers*nb_spectral_points);
-    intializeOnDevice(cloud_single_scattering_dev, nb_layers*nb_spectral_points);
-    intializeOnDevice(cloud_asym_param_dev, nb_layers*nb_spectral_points);
+    initializeOnDevice(cloud_optical_depths_dev, nb_layers*nb_spectral_points);
+    initializeOnDevice(cloud_single_scattering_dev, nb_layers*nb_spectral_points);
+    initializeOnDevice(cloud_asym_param_dev, nb_layers*nb_spectral_points);
   }
 }
 
