@@ -106,6 +106,8 @@ void TransmissionModelConfig::readConfigFile(const std::string& file_name)
 
   if (modules.size() == 0) 
     use_optional_modules = false;
+  else
+    use_optional_modules = true;
   
   readChemistryConfig(file, chemistry_model, chemistry_parameters);
   
