@@ -128,10 +128,10 @@ void GreyCloudModel::cloudPosition(
   }
 
 
-  if (top_pressure < atmosphere.pressure.back())
+  if (top_pressure <= atmosphere.pressure.back())
     top_index = atmosphere.nb_grid_points - 1;
 
-  if (bottom_pressure > atmosphere.pressure[0])
+  if (bottom_pressure >= atmosphere.pressure[0])
     bottom_index = 0;
 
 

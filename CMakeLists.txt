@@ -147,6 +147,7 @@ set(SRC
   src/temperature/cubic_b_spline_temperature.cpp
   src/temperature/milne_solution_temperature.cpp
   src/temperature/guillot_temperature.cpp
+  src/temperature/adiabate_cubic_spline.cpp
   src/radiative_transfer/cdisort_src/cdisort.c
   src/radiative_transfer/cdisort_src/locate.c)
   

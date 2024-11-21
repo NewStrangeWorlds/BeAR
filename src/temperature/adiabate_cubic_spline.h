@@ -18,38 +18,43 @@
 */
 
 
-#ifndef _temperature_h
-#define _temperature_h
+#ifndef _adiabate_spline_temperature_h
+#define _adiabate_spline_temperature_h
+
+#include "temperature.h"
 
 #include <vector>
-#include <cstddef>
 
 
 namespace bear {
 
 
-class Temperature{
+class AdiabateSplineTemperature : public Temperature{
   public:
-    virtual ~Temperature() {}
+    AdiabateSplineTemperature(const size_t nb_control_points_);
+    virtual ~AdiabateSplineTemperature() {}
     virtual bool calcProfile(
       const std::vector<double>& parameters,
       const double surface_gravity,
       const std::vector<double>& pressure,
-      std::vector<double>& temperature_profile) = 0;
-    size_t nbParameters() {return nb_parameters;}
-  protected:
-    size_t nb_parameters {};
-    
-    bool checkProfile(std::vector<double>& temperature) {
-      for (auto & i : temperature)
-        if (i < 50)
-        {
-          i = 50;
-          return true;
-        }
-      
-      return false;
-    };
+      std::vector<double>& temperature);
+  private:
+     int findRadiavativeConvectiveBoundary(
+      const double rcb_pressure,
+      const std::vector<double>& pressure);
+     void addAdiabate(
+      const double temperature_bottom,
+      const unsigned int rcb_idx,
+      const double gamma,
+      const std::vector<double>& pressure,
+      std::vector<double>& temperature);
+    void addCubicSpline(
+      const std::vector<double>& parameters,
+      const unsigned int rcb_idx,
+      const std::vector<double>& pressure,
+      std::vector<double>& temperature);
+
+     const size_t nb_control_points;
 };
 
 
