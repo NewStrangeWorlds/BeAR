@@ -65,7 +65,7 @@ void Retrieval::loadObservations(
   }
 
   nb_observation_points = observation_data.size();
-  std::cout << "test1\n";
+  
   //move the lists to the GPU, if necessary
   if (config->use_gpu)
   {
@@ -73,7 +73,6 @@ void Retrieval::loadObservations(
     moveToDevice(observation_error_gpu, observation_error);
     moveToDevice(observation_likelihood_weight_gpu, observation_likelihood_weight);
   }
-  std::cout << "test2\n";
 
   spectral_grid.sampleSpectralGrid(observations);
 
