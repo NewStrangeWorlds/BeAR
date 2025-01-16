@@ -256,15 +256,21 @@ void SpectralGrid::createHighResGrid(
   for (auto & o : observations)
   {
     auto it_start = wavenumber_list_full.begin();
+    double last_wavenumber = 0;
 
     for (auto & b : o.spectral_bands.edge_wavenumbers)
     {
+      //in case of overlapping bands, we need to start the search at the beginning
+      if (last_wavenumber > b[0])
+        it_start = wavenumber_list_full.begin();
+      
       const size_t idx_1 = findClosestIndex(b[0], wavenumber_list_full, it_start);
       const size_t idx_2 = findClosestIndex(b[1], wavenumber_list_full, it_start);
 
       included_points[idx_1] = 1;
       included_points[idx_2] = 1;
       
+      last_wavenumber = b[1];
       it_start = wavenumber_list_full.begin() + idx_2;
     }
   }
