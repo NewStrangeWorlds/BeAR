@@ -60,7 +60,7 @@ FlatLine::FlatLine (
 bool FlatLine::calcModel(
   const std::vector<double>& parameter, 
   std::vector<double>& spectrum, 
-  std::vector<double>& model_spectrum_bands)
+  std::vector<std::vector<double>>& spectrum_obs)
 {
   bool neglect = false;
 
@@ -68,7 +68,7 @@ bool FlatLine::calcModel(
 
   spectrum.assign(spectral_grid->nbSpectralPoints(), spectrum_value);
 
-  postProcessSpectrum(spectrum, model_spectrum_bands);
+  convertSpectrumToObservation(spectrum, false, spectrum_obs);
 
   return neglect;
 }
@@ -78,69 +78,21 @@ bool FlatLine::calcModel(
 //run the forward model with the help of the GPU
 //the atmospheric structure itself is still done on the CPU
 bool FlatLine::calcModelGPU(
-  const std::vector<double>& parameter, 
-  double* model_spectrum_gpu, 
-  double* model_spectrum_bands)
+  const std::vector<double>& parameters, 
+  double* spectrum, 
+  std::vector<double*>& spectrum_obs)
 { 
   bool neglect = false;
 
-  const double spectrum_value = parameter[0];
-  
-  std::vector<double> spectrum(spectral_grid->nbSpectralPoints(), spectrum_value);
-  
-  moveToDevice(model_spectrum_gpu, spectrum, false);
+  const double spectrum_value = parameters[0];
 
-  postProcessSpectrumGPU(model_spectrum_gpu, model_spectrum_bands);
+  std::vector<double> spectrum_cpu(spectral_grid->nbSpectralPoints(), spectrum_value);
+
+  moveToDevice(spectrum, spectrum_cpu, false);
+
+  convertSpectrumToObservationGPU(spectrum, false, spectrum_obs);
 
   return neglect;
-}
-
-
-
-//integrate the high-res spectrum to observational bands
-//and convolve if necessary 
-void FlatLine::postProcessSpectrum(
-  std::vector<double>& model_spectrum, 
-  std::vector<double>& model_spectrum_bands)
-{
-  model_spectrum_bands.assign(nb_observation_points, 0.0);
-  
-  std::vector<double>::iterator it = model_spectrum_bands.begin();
-
-  for (size_t i=0; i<observations.size(); ++i)
-  {
-    const bool is_flux = false;
-
-    std::vector<double> observation_bands = 
-      observations[i].processModelSpectrum(model_spectrum, is_flux);
-
-    //copy the band-integrated values for this observation into the global
-    //vector of all band-integrated points, model_spectrum_bands
-    std::copy(observation_bands.begin(), observation_bands.end(), it);
-    it += observation_bands.size();
-  }
-}
-
-
-//integrate the high-res spectrum to observational bands
-//and convolve if necessary 
-void FlatLine::postProcessSpectrumGPU(
-  double* model_spectrum_gpu, 
-  double* model_spectrum_bands)
-{
-  unsigned int start_index = 0;
-  for (size_t i=0; i<observations.size(); ++i)
-  {
-    const bool is_flux = false;
-
-    observations[i].processModelSpectrumGPU(
-      model_spectrum_gpu, 
-      model_spectrum_bands, 
-      start_index, 
-      is_flux);
-
-    start_index += observations[i].spectral_bands.nbBands();
-  }
 }
 
 

@@ -49,7 +49,6 @@ __global__ void bandIntegrationDevice(
   double* wavenumbers, 
   double* wavelengths,
   double* spectrum_bands,
-  const int global_start_index,
   const bool is_flux,
   const bool use_filter_transmission)
 {
@@ -85,13 +84,13 @@ __global__ void bandIntegrationDevice(
   if (threadIdx.x == 0)
   {
     if (is_flux)
-      spectrum_bands[blockIdx.x + global_start_index] = band_sum * 0.5 / (wavelengths[start_index] - wavelengths[end_index]);
+      spectrum_bands[blockIdx.x] = band_sum * 0.5 / (wavelengths[start_index] - wavelengths[end_index]);
     else 
     {
       if (use_filter_transmission)
-        spectrum_bands[blockIdx.x + global_start_index] = band_sum * 0.5;
+        spectrum_bands[blockIdx.x] = band_sum * 0.5;
       else
-        spectrum_bands[blockIdx.x + global_start_index] = band_sum * 0.5 / (wavelengths[start_index] - wavelengths[end_index]);
+        spectrum_bands[blockIdx.x] = band_sum * 0.5 / (wavelengths[start_index] - wavelengths[end_index]);
 
     }
       
@@ -104,7 +103,6 @@ __global__ void bandIntegrationDevice(
 __host__ void SpectralBands::bandIntegrateSpectrumGPU(
   double* spectrum, 
   double* spectrum_bands, 
-  const unsigned int start_index, 
   const bool is_flux,
   const bool use_filter_transmission)
 {
@@ -119,7 +117,6 @@ __host__ void SpectralBands::bandIntegrateSpectrumGPU(
     spectral_grid->wavenumber_list_gpu,
     spectral_grid->wavelength_list_gpu,
     spectrum_bands,
-    start_index,
     is_flux,
     use_filter_transmission);
 

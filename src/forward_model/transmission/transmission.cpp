@@ -109,7 +109,7 @@ TransmissionModel::TransmissionModel (
 
 
 
-void TransmissionModel::extracParameters(
+void TransmissionModel::extractParameters(
   const std::vector<double>& parameters)
 {
   model_parameters = std::vector<double>(
@@ -201,9 +201,9 @@ bool TransmissionModel::calcAtmosphereStructure(const std::vector<double>& param
 bool TransmissionModel::calcModel(
   const std::vector<double>& parameter, 
   std::vector<double>& spectrum, 
-  std::vector<double>& model_spectrum_bands)
+  std::vector<std::vector<double>>& spectrum_obs)
 {
-  extracParameters(parameter);
+  extractParameters(parameter);
 
   bool neglect = calcAtmosphereStructure(parameter);
 
@@ -245,29 +245,9 @@ bool TransmissionModel::calcModel(
   }
 
 
-  postProcessSpectrum(spectrum, model_spectrum_bands);
+  convertSpectrumToObservation(spectrum, false, spectrum_obs);
 
-
-  //apply spectrum modifier if necessary
-  size_t start_index = 0;
-
-  param_it = spectrum_modifier_parameters.begin();
-
-  for (size_t i=0; i<observations.size(); ++i)
-  {
-    if (observations[i].nb_modifier_param != 0)
-    {
-      const double spectrum_modifier = *param_it;
-
-      if (spectrum_modifier != 0)
-        for (size_t j=start_index; j<start_index+observations[i].nbPoints(); ++j)
-          model_spectrum_bands[j] += spectrum_modifier;
-
-      param_it += observations[i].nb_modifier_param;
-    }
-
-    start_index += observations[i].spectral_bands.nbBands();
-  }
+  applyObservationModifier(spectrum_modifier_parameters, spectrum_obs);
 
   return neglect;
 }
@@ -278,10 +258,10 @@ bool TransmissionModel::calcModel(
 //the atmospheric structure itself is still done on the CPU
 bool TransmissionModel::calcModelGPU(
   const std::vector<double>& parameter, 
-  double* model_spectrum_gpu, 
-  double* model_spectrum_bands)
+  double* spectrum, 
+  std::vector<double*>& spectrum_obs)
 {
-  extracParameters(parameter);
+  extractParameters(parameter);
 
   bool neglect = calcAtmosphereStructure(parameter);
 
@@ -307,7 +287,7 @@ bool TransmissionModel::calcModelGPU(
   const double star_radius = parameter[2];
 
   calcTransitDepthGPU(
-    model_spectrum_gpu, 
+    spectrum, 
     opacity_calc.absorption_coeff_gpu, 
     opacity_calc.scattering_coeff_dev, 
     cloud_extinction_gpu,
@@ -325,80 +305,17 @@ bool TransmissionModel::calcModelGPU(
       param_it,
       param_it + m->nbParameters());
   
-    m->modifySpectrumGPU(single_module_parameters, &atmosphere, model_spectrum_gpu);
+    m->modifySpectrumGPU(single_module_parameters, &atmosphere, spectrum);
     
     param_it += m->nbParameters();
   }
 
 
-  postProcessSpectrumGPU(model_spectrum_gpu, model_spectrum_bands);
+  convertSpectrumToObservationGPU(spectrum, false, spectrum_obs);
 
-
-  param_it = spectrum_modifier_parameters.begin();
-
-  //apply spectrum modifier if necessary
-  unsigned int start_index = 0;
-  
-  for (size_t i=0; i<observations.size(); ++i)
-  {
-    if (observations[i].nb_modifier_param != 0)
-    {
-      const double spectrum_modifier = *param_it;
-
-      if (spectrum_modifier != 0)
-        observations[i].addShiftToSpectrumGPU(
-          model_spectrum_bands, 
-          start_index, 
-          spectrum_modifier);
-
-      param_it += observations[i].nb_modifier_param;
-    }
-
-    start_index += observations[i].spectral_bands.nbBands();
-  }
+  applyObservationModifierGPU(spectrum_modifier_parameters, spectrum_obs);
 
   return neglect;
-}
-
-
-
-void TransmissionModel::postProcessSpectrum(
-  std::vector<double>& model_spectrum, 
-  std::vector<double>& model_spectrum_bands)
-{
-  model_spectrum_bands.assign(nb_observation_points, 0.0);
-  
-  std::vector<double>::iterator it = model_spectrum_bands.begin();
-
-  for (size_t i=0; i<observations.size(); ++i)
-  {
-    const bool is_flux = false;
-    std::vector<double> observation_bands = observations[i].processModelSpectrum(model_spectrum, is_flux);
-
-    //copy the band-integrated values for this observation into the global
-    //vector of all band-integrated points, model_spectrum_bands
-    std::copy(observation_bands.begin(), observation_bands.end(), it);
-    it += observation_bands.size();
-  }
-}
-
-
-void TransmissionModel::postProcessSpectrumGPU(
-  double* model_spectrum_gpu, 
-  double* model_spectrum_bands)
-{
-  unsigned int start_index = 0;
-  for (size_t i=0; i<observations.size(); ++i)
-  {
-    const bool is_flux = false;
-    observations[i].processModelSpectrumGPU(
-      model_spectrum_gpu, 
-      model_spectrum_bands, 
-      start_index, 
-      is_flux);
-
-    start_index += observations[i].spectral_bands.nbBands();
-  }
 }
 
 

@@ -50,6 +50,9 @@ Observation::~Observation()
 {
   if (config->use_gpu)
   {
+    deleteFromDevice(data_gpu);
+    deleteFromDevice(data_error_gpu);
+    deleteFromDevice(likelihood_weight_gpu);
     deleteFromDevice(filter_response_gpu);
     deleteFromDevice(filter_response_weight_gpu);
     deleteFromDevice(spectrum_filter_dev);
@@ -63,6 +66,10 @@ void Observation::initDeviceMemory()
 {
   if (config->use_gpu)
   {
+    moveToDevice(data_gpu, data, true);
+    moveToDevice(data_error_gpu, data_error, true);
+    moveToDevice(likelihood_weight_gpu, likelihood_weight, true);
+
     if (filter_response.size() != 0)
     allocateOnDevice(spectrum_filter_dev, spectral_grid->nbSpectralPoints());
 
@@ -94,8 +101,7 @@ std::vector<double> Observation::processModelSpectrum(
 
 void Observation::processModelSpectrumGPU(
   double* spectrum,
-  double* spectrum_bands,
-  const unsigned int start_index,
+  double* spectrum_obs,
   const bool is_flux)
 { 
   bool use_filter_response = filter_response.size() != 0;
@@ -112,8 +118,7 @@ void Observation::processModelSpectrumGPU(
 
       spectral_bands.bandIntegrateSpectrumGPU(
         spectrum_convolved_dev,
-        spectrum_bands,
-        start_index,
+        spectrum_obs,
         is_flux,
         use_filter_response);
     }
@@ -121,8 +126,7 @@ void Observation::processModelSpectrumGPU(
     {
       spectral_bands.bandIntegrateSpectrumGPU(
         spectrum_filter_dev,
-        spectrum_bands,
-        start_index,
+        spectrum_obs,
         is_flux,
         use_filter_response);
     }
@@ -135,16 +139,14 @@ void Observation::processModelSpectrumGPU(
 
     spectral_bands.bandIntegrateSpectrumGPU(
       spectrum_convolved_dev,
-      spectrum_bands,
-      start_index,
+      spectrum_obs,
       is_flux,
       use_filter_response);
   }
   else
     spectral_bands.bandIntegrateSpectrumGPU(
       spectrum,
-      spectrum_bands,
-      start_index,
+      spectrum_obs,
       is_flux,
       use_filter_response);
 }

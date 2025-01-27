@@ -79,23 +79,35 @@ void SecondaryEclipseModel::postProcess(
   const std::vector< std::vector<double> >& model_parameter, 
   const size_t best_fit_model,
   bool& delete_unused_files)
-{
+{ 
   SecondaryEclipsePostProcessConfig post_process_config(config->retrieval_folder_path);
-
+  
   if (post_process_config.delete_sampler_files)
     delete_unused_files = true;
-
+  
   const size_t nb_models = model_parameter.size();
-  std::vector< std::vector<double> > model_spectrum_bands;
   
   if (post_process_config.save_spectra)
-    calcPostProcessSpectra(model_parameter, best_fit_model, model_spectrum_bands);
-
+  { 
+    std::vector<std::vector<std::vector<double>>> model_spectra_obs;
+    
+    std::vector<double> model_spectrum_best_fit;
+    
+    calcPostProcessSpectra(
+      model_parameter, 
+      best_fit_model, 
+      model_spectra_obs,
+      model_spectrum_best_fit);
+    
+    saveBestFitSpectrum(model_spectrum_best_fit);
+    savePostProcessSpectra(model_spectra_obs);
+  }
+  
   //data structures for post process
   std::vector<std::vector<double>> temperature_profiles(
     nb_models,
     std::vector<double>(nb_grid_points, 0));
-
+  
   std::vector<std::vector<std::vector<double>>> mixing_ratios(
     nb_models, 
     std::vector<std::vector<double>>(constants::species_data.size(), 
@@ -111,11 +123,11 @@ void SecondaryEclipseModel::postProcess(
     if (i == best_fit_model && post_process_config.save_contribution_functions)
       postProcessContributionFunctions(model_parameter[i]);
   }
-
+  
   if (post_process_config.species_to_save.size() > 0)
     for (auto & i : post_process_config.species_to_save)
       savePostProcessChemistry(mixing_ratios, i);
-
+  
   if (post_process_config.save_temperatures)
     savePostProcessTemperatures(temperature_profiles);
 }
@@ -123,11 +135,13 @@ void SecondaryEclipseModel::postProcess(
 
 
 void SecondaryEclipseModel::postProcessModel(
-  const std::vector<double>& model_parameter, 
+  const std::vector<double>& parameters, 
   std::vector<double>& temperature_profile, 
   std::vector<std::vector<double>>& mixing_ratios)
 {
-  calcAtmosphereStructure(model_parameter);
+  extractParameters(parameters);
+
+  calcAtmosphereStructure(parameters);
 
   for (auto & i : constants::species_data)
   { 
@@ -192,16 +206,16 @@ void SecondaryEclipseModel::savePostProcessTemperatures(
 
 void SecondaryEclipseModel::postProcessContributionFunctions(
   const std::vector<double>& parameter)
-{
+{ 
   std::vector<double> cloud_parameters(
       parameter.begin() + nb_general_param + nb_total_chemistry_param + nb_temperature_param,
       parameter.begin() + nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_total_cloud_param);
-
+  
   opacity_calc.calculateGPU(cloud_models, cloud_parameters);
 
   double* contribution_functions_dev = nullptr;
   size_t nb_spectral_points = spectral_grid->nbSpectralPoints();
-
+  
   //intialise the high-res spectrum on the GPU (set it to 0) 
   allocateOnDevice(contribution_functions_dev, nb_spectral_points*nb_grid_points);
   
@@ -213,20 +227,18 @@ void SecondaryEclipseModel::postProcessContributionFunctions(
     atmosphere.altitude,
     nb_spectral_points);
 
-
+  
   std::vector<double> contribution_functions_all(nb_spectral_points*nb_grid_points, 0.0);
-
+  
   moveToHost(contribution_functions_dev, contribution_functions_all);
   deleteFromDevice(contribution_functions_dev);
-
+  
   std::vector< std::vector<double> > contribution_functions(nb_grid_points, std::vector<double>(nb_spectral_points, 0));
-
 
   for (size_t i=0; i<nb_spectral_points; ++i)
     for (size_t j=0; j<nb_grid_points; ++j)
       contribution_functions[j][i] = contribution_functions_all[j*nb_spectral_points + i];
 
-  
   for (size_t i=0; i<observations.size(); ++i)
   {
     std::vector<std::vector<double>> contribution_functions_band(
@@ -234,7 +246,7 @@ void SecondaryEclipseModel::postProcessContributionFunctions(
       std::vector<double>(observations[i].nbPoints(), 0));
 
     const bool is_flux = false;
-      
+    
     for (size_t j=0; j<nb_grid_points; ++j)
       contribution_functions_band[j] = 
         observations[i].processModelSpectrum(contribution_functions[j], is_flux);

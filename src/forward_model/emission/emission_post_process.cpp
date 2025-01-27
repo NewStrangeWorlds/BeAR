@@ -140,8 +140,8 @@ void EmissionModel::calcPostProcessSpectra(
 {
   const size_t nb_models = model_parameter.size();
   
-  std::vector<std::vector<double>> model_spectrum_bands;
-  model_spectrum_bands.resize(nb_models);
+  std::vector<std::vector<std::vector<double>>> model_spectrum_obs;
+  model_spectrum_obs.resize(nb_models);
 
   integrated_flux.assign(nb_models, 0);
   
@@ -156,9 +156,11 @@ void EmissionModel::calcPostProcessSpectra(
     calcPostProcessSpectrum(
       model_parameter[i],
       model_spectrum_high_res,
-      model_spectrum_bands[i]);
+      model_spectrum_obs[i]);
 
-    integrated_flux[i] = aux::quadratureTrapezoidal(spectral_grid->wavenumber_list, model_spectrum_high_res);
+    integrated_flux[i] = aux::quadratureTrapezoidal(
+      spectral_grid->wavenumber_list, 
+      model_spectrum_high_res);
 
     if (i == best_fit_model && save_spectra)
       saveBestFitSpectrum(model_spectrum_high_res);
@@ -167,19 +169,21 @@ void EmissionModel::calcPostProcessSpectra(
   std::cout << "\n";
   
   if (save_spectra)
-    savePostProcessSpectra(model_spectrum_bands);
+    savePostProcessSpectra(model_spectrum_obs);
 }
 
 
 
 void EmissionModel::postProcessModel(
-  const std::vector<double>& model_parameter, 
+  const std::vector<double>& parameters, 
   const double integrated_flux, 
   std::vector<double>& temperature_profile, 
   double& effective_temperature,
   std::vector<std::vector<double>>& mixing_ratios)
 {
-  calcAtmosphereStructure(model_parameter);
+  extractParameters(parameters);
+
+  calcAtmosphereStructure(parameters);
 
   for (auto & i : constants::species_data)
   { 
@@ -190,9 +194,11 @@ void EmissionModel::postProcessModel(
 
   temperature_profile = atmosphere.temperature;
 
-  const double radius_distance_scaling = radiusDistanceScaling(model_parameter);
+  const double radius_distance_scaling = radiusDistanceScaling(model_parameters);
 
-  effective_temperature = postProcessEffectiveTemperature(integrated_flux, radius_distance_scaling);
+  effective_temperature = postProcessEffectiveTemperature(
+    integrated_flux, 
+    radius_distance_scaling);
 }
 
 
@@ -273,18 +279,15 @@ void EmissionModel::savePostProcessEffectiveTemperatures(
 
 
 void EmissionModel::postProcessContributionFunctions(
-  const std::vector<double>& parameter)
+  const std::vector<double>& parameters)
 {
-  std::vector<double> cloud_parameters(
-      parameter.begin() + nb_general_param + nb_total_chemistry_param + nb_temperature_param,
-      parameter.begin() + nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_total_cloud_param);
+  extractParameters(parameters);
 
   opacity_calc.calculateGPU(cloud_models, cloud_parameters);
 
   double* contribution_functions_dev = nullptr;
   size_t nb_spectral_points = spectral_grid->nbSpectralPoints();
 
-  //intialise the high-res spectrum on the GPU (set it to 0) 
   allocateOnDevice(contribution_functions_dev, nb_spectral_points*nb_grid_points);
   
   contributionFunctionGPU(

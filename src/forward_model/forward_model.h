@@ -52,13 +52,13 @@ class ForwardModel{
     virtual bool calcModel(
       const std::vector<double>& parameter, 
       std::vector<double>& spectrum, 
-      std::vector<double>& spectrum_bands) = 0;
+      std::vector<std::vector<double>>& spectrum_obs) = 0;
     //calculate a model on the GPU
     //the return value signals the retrieval to neglect this model
     virtual bool calcModelGPU(
       const std::vector<double>& parameter, 
-      double* model_spectrum, 
-      double* model_spectrum_bands) = 0;
+      double* spectrum, 
+      std::vector<double*>& spectrum_obs) = 0;
     //model-specific post process
     virtual void postProcess(
       const std::vector< std::vector<double> >& model_parameter,
@@ -66,8 +66,7 @@ class ForwardModel{
       bool& delete_unused_files) = 0;
     //model-specific tests
     virtual bool testModel(
-      const std::vector<double>& parameter, 
-      double* model_spectrum) = 0;
+      const std::vector<double>& parameters) = 0;
   protected:
     GlobalConfig* config;
     SpectralGrid* spectral_grid;
@@ -83,19 +82,41 @@ class ForwardModel{
       std::vector<std::string>& prior_type, 
       std::vector<std::string>& prior_description, 
       std::vector<std::vector<std::string>>& prior_parameter);
+
+    virtual void convertSpectrumToObservation(
+      const std::vector<double>& spectrum, 
+      const bool is_flux,
+      std::vector<std::vector<double>>& spectrum_obs);
+
+    virtual void convertSpectrumToObservationGPU(
+      double* model_spectrum_gpu, 
+      const bool is_flux,
+      std::vector<double*>& model_spectrum_bands);
+
+    virtual void applyObservationModifier(
+      const std::vector<double>& spectrum_modifier_param,
+      std::vector<std::vector<double>>& spectrum_obs);
     
+    virtual void applyObservationModifierGPU(
+      const std::vector<double>& spectrum_modifier_param,
+      std::vector<double*>& spectrum_obs);
+
     virtual void calcPostProcessSpectra(
       const std::vector< std::vector<double> >& model_parameter,
       const size_t best_fit_model,
-      std::vector< std::vector<double> >& model_spectrum_bands);
+      std::vector<std::vector< std::vector<double>>>& model_spectra_obs,
+      std::vector<double>& spectrum_best_fit);
     virtual void calcPostProcessSpectrum(
       const std::vector<double>& model_parameter,
-      std::vector<double>& model_spectrum,
-      std::vector<double>& model_spectrum_bands);
+      std::vector<double>& spectrum,
+      std::vector<std::vector<double>>& spectrum_obs);
     virtual void saveBestFitSpectrum(
       const std::vector<double>& spectrum);
     virtual void savePostProcessSpectra(
-      const std::vector< std::vector<double> >& model_spectrum_bands);
+      const std::vector<std::vector< std::vector<double>>>& model_spectrum_obs);
+
+    virtual bool testCPUvsGPU(
+      const std::vector<double>& parameters);
 };
 
 }

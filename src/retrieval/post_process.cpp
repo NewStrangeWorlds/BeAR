@@ -205,11 +205,11 @@ void PostProcess::readPosteriorData()
 
 PostProcess::~PostProcess()
 {
-  if (config->use_gpu)
-  {
-    deleteFromDevice(observation_data_gpu);
-    deleteFromDevice(observation_error_gpu);
-  }
+  // if (config->use_gpu)
+  // {
+  //   deleteFromDevice(observation_data_gpu);
+  //   deleteFromDevice(observation_error_gpu);
+  // }
 
 }
 

@@ -122,7 +122,6 @@ __host__ void initializeOnDevice(T*& device_data, const size_t nb_points)
 }
 
 
-
 template void moveToHost<double>(double*&, std::vector<double>&);
 template void moveToHost<int>(int*&, std::vector<int>&);
 

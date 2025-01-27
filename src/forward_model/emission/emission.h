@@ -108,12 +108,12 @@ class EmissionModel : public ForwardModel{
     virtual bool calcModel(
       const std::vector<double>& parameter, 
       std::vector<double>& spectrum, 
-      std::vector<double>& model_spectrum_bands);
+      std::vector<std::vector<double>>& spectrum_obs);
     
     virtual bool calcModelGPU(
       const std::vector<double>& parameter, 
-      double* model_spectrum, 
-      double* model_spectrum_bands);
+      double* spectrum, 
+      std::vector<double*>& spectrum_obs);
     
     virtual void postProcess(
       const std::vector< std::vector<double> >& model_parameter,
@@ -121,7 +121,7 @@ class EmissionModel : public ForwardModel{
       bool& delete_unused_files);
     
     virtual bool testModel(
-      const std::vector<double>& parameter, double* model_spectrum_gpu);
+      const std::vector<double>& parameters);
   protected:
     Atmosphere atmosphere;
     OpacityCalculation opacity_calc;
@@ -148,13 +148,17 @@ class EmissionModel : public ForwardModel{
     virtual void setPriors(Priors* priors);
     void initModules(const EmissionModelConfig& model_config);
 
+    std::vector<double> model_parameters;
+    std::vector<double> chemistry_parameters;
+    std::vector<double> cloud_parameters;
+    std::vector<double> temperature_parameters;
+    std::vector<double> spectrum_modifier_parameters;
+
+    void extractParameters(
+      const std::vector<double>& parameters);
+
     bool calcAtmosphereStructure(const std::vector<double>& parameter);
     double radiusDistanceScaling(const std::vector<double>& parameter);
-
-    void postProcessSpectrum(
-      std::vector<double>& model_spectrum, std::vector<double>& model_spectrum_bands);
-    void postProcessSpectrumGPU(
-      double* model_spectrum, double* model_spectrum_bands);
 
     void postProcessModel(
       const std::vector<double>& parameter, 
@@ -184,9 +188,6 @@ class EmissionModel : public ForwardModel{
     void saveContributionFunctions(
       std::vector< std::vector<double>>& contribution_function,
       const size_t observation_index);
-
-    bool testCPUvsGPU(
-      const std::vector<double>& parameter, double* model_spectrum_gpu);
 };
 
 

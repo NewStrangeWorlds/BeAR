@@ -124,12 +124,12 @@ class TransmissionModel : public ForwardModel{
     virtual bool calcModel(
       const std::vector<double>& parameter, 
       std::vector<double>& spectrum, 
-      std::vector<double>& model_spectrum_bands);
+      std::vector<std::vector<double>>& spectrum_obs);
     
     virtual bool calcModelGPU(
       const std::vector<double>& parameter, 
-      double* model_spectrum, 
-      double* model_spectrum_bands);
+      double* spectrum, 
+      std::vector<double*>& spectrum_obs);
     
     virtual void postProcess(
       const std::vector< std::vector<double> >& model_parameter,
@@ -137,8 +137,7 @@ class TransmissionModel : public ForwardModel{
       bool& delete_unused_files);
     
     virtual bool testModel(
-      const std::vector<double>& parameter, 
-      double* model_spectrum_gpu);
+      const std::vector<double>& parameters);
 
     std::vector<double> calcSpectrum(
       const double surface_gravity,
@@ -196,7 +195,7 @@ class TransmissionModel : public ForwardModel{
     std::vector<double> module_parameters;
     std::vector<double> spectrum_modifier_parameters;
     
-    void extracParameters(
+    void extractParameters(
       const std::vector<double>& parameters);
     
     bool calcAtmosphereStructure(
@@ -204,16 +203,8 @@ class TransmissionModel : public ForwardModel{
     void setCloudProperties(
       const std::vector<std::vector<double>>& cloud_optical_depth);
 
-    void postProcessSpectrum(
-      std::vector<double>& model_spectrum, 
-      std::vector<double>& model_spectrum_bands);
-    void postProcessSpectrumGPU(
-      double* model_spectrum, 
-      double* model_spectrum_bands);
-
     void postProcessModel(
-      const std::vector<double>& parameter, 
-      const std::vector<double>& model_spectrum_bands, 
+      const std::vector<double>& parameters, 
       std::vector<double>& temperature_profile, 
       std::vector<std::vector<double>>& mixing_ratios);
 
@@ -254,10 +245,6 @@ class TransmissionModel : public ForwardModel{
       const unsigned int tangent_altitude, 
       const unsigned int altitude, 
       const double bottom_radius);
-
-    bool testCPUvsGPU(
-      const std::vector<double>& parameter, 
-      double* model_spectrum_gpu);
 };
 
 

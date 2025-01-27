@@ -77,11 +77,11 @@ class SecondaryEclipseBlackBodyModel : public ForwardModel{
     virtual bool calcModel(
       const std::vector<double>& parameter,
       std::vector<double>& spectrum,
-      std::vector<double>& model_spectrum_bands);
+      std::vector<std::vector<double>>& spectrum_obs);
     virtual bool calcModelGPU(
-      const std::vector<double>& parameter,
-      double* model_spectrum,
-      double* model_spectrum_bands);
+      const std::vector<double>& parameters,
+      double* spectrum,
+      std::vector<double*>& spectrum_obs);
     
     virtual void postProcess(
       const std::vector< std::vector<double> >& model_parameter,
@@ -89,8 +89,7 @@ class SecondaryEclipseBlackBodyModel : public ForwardModel{
       bool& delete_unused_files);
 
     virtual bool testModel(
-      const std::vector<double>& parameter,
-      double* model_spectrum_gpu);
+      const std::vector<double>& parameters);
   protected:
     StellarSpectrumModel* stellar_model;
 
@@ -106,6 +105,13 @@ class SecondaryEclipseBlackBodyModel : public ForwardModel{
     virtual void setPriors(Priors* priors);
     void initModules(const SecondaryEclipseBlackBodyConfig& model_config);
 
+    std::vector<double> model_parameters;
+    std::vector<double> stellar_parameters;
+    std::vector<double> spectrum_modifier_parameters;
+
+    void extractParameters(
+      const std::vector<double>& parameters);
+
     void calcSecondaryEclipseGPU(
       double* secondary_eclipse,
       double* planet_spectrum,
@@ -118,21 +124,12 @@ class SecondaryEclipseBlackBodyModel : public ForwardModel{
       const double planet_temperature,
       double* spectrum_dev);
 
-    void postProcessSpectrum(
-      std::vector<double>& model_spectrum, 
-      std::vector<double>& model_spectrum_bands);
-    void postProcessSpectrumGPU(
-      double* model_spectrum, 
-      double* model_spectrum_bands);
-
     void postProcessModel(
       const std::vector<double>& parameter,
       const std::vector<double>& model_spectrum_bands,
       std::vector<double>& temperature_profile,
       double& effective_temperature,
       std::vector<std::vector<double>>& mixing_ratios);
-
-    bool testCPUvsGPU(const std::vector<double>& parameter, double* model_spectrum_gpu);
 };
 
 

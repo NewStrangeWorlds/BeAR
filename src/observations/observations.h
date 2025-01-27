@@ -56,17 +56,22 @@ class Observation{
       const std::string& file_name,
       const std::string spectrum_modifier_id);
     std::string observationName() {return observation_name;}
-    size_t nbPoints() {return flux.size();}
+    size_t nbPoints() {return data.size();}
 
     SpectralBands spectral_bands;                                       //representation of the theoretical spectrum in the observational bands
     std::vector<double> wavelength_edges = {0, 0};                      //the wavelength boundaries this observation needs from the high-res spectrum
 
-    std::vector<double> flux;                                           //observational data
-    std::vector<double> flux_error;                                     //observational error
+    std::vector<double> data;                                           //observational data
+    std::vector<double> data_error;                                     //observational error
+    std::vector<double> likelihood_weight;                              //weight for the likelihood computation
+
+    double* data_gpu = nullptr;                                         //pointer to the corresponding data on the GPU
+    double* data_error_gpu = nullptr;                                   //pointer to the corresponding error on the GPU
+    double* likelihood_weight_gpu = nullptr;                            //pointer to the corresponding likelihood weight on the GPU
+    
     std::vector<double> instrument_profile_fwhm;                        //instrument profile (if it doesn't exist, the vector will have a size of 0)
     std::vector<double> filter_response;                                //filter response function
     std::vector<double> filter_response_weight;
-    std::vector<double> likelihood_weight;                              //weight for the likelihood computation
     std::string filter_detector_type = "";
     double filter_response_normalisation = 0.0;
 
@@ -89,13 +94,11 @@ class Observation{
       const bool is_flux);
     void processModelSpectrumGPU(
       double* spectrum,
-      double* spectrum_bands,
-      const unsigned int start_index,
+      double* spectrum_obs,
       const bool is_flux);
 
     void addShiftToSpectrumGPU(
-      double* spectrum_bands,
-      const unsigned int start_index,
+      double* spectrum_obs,
       const double spectrum_shift);
     void addShiftToSpectrum(
       std::vector<double>& spectrum_bands,

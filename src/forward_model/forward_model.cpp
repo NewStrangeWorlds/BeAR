@@ -96,14 +96,93 @@ void ForwardModel::readPriorConfigFile(
 
 
 
+void ForwardModel::convertSpectrumToObservation(
+  const std::vector<double>& spectrum, 
+  const bool is_flux,
+  std::vector<std::vector<double>>& spectrum_obs)
+{
+  for (size_t i=0; i<observations.size(); ++i)
+    spectrum_obs[i] = observations[i].processModelSpectrum(spectrum, is_flux);
+}
+
+
+void ForwardModel::convertSpectrumToObservationGPU(
+  double* spectrum, 
+  const bool is_flux,
+  std::vector<double*>& spectrum_obs)
+{
+  unsigned int start_index = 0;
+
+  for (size_t i=0; i<observations.size(); ++i)
+  {
+    observations[i].processModelSpectrumGPU(
+      spectrum, 
+      spectrum_obs[i], 
+      is_flux);
+
+    start_index += observations[i].spectral_bands.nbBands();
+  }
+}
+
+
+
+void ForwardModel::applyObservationModifier(
+  const std::vector<double>& spectrum_modifier_param,
+  std::vector<std::vector<double>>& spectrum_obs)
+{
+  auto param_it = spectrum_modifier_param.begin();
+
+  for (size_t i=0; i<observations.size(); ++i)
+  {
+    if (observations[i].nb_modifier_param != 0)
+    {
+      const double spectrum_modifier = *param_it;
+
+      if (spectrum_modifier != 0)
+        for (auto & s : spectrum_obs[i])
+          s += spectrum_modifier;
+
+      param_it += observations[i].nb_modifier_param;
+    }
+  }
+}
+
+
+
+void ForwardModel::applyObservationModifierGPU(
+  const std::vector<double>& spectrum_modifier_param,
+  std::vector<double*>& spectrum_obs)
+{
+  auto param_it = spectrum_modifier_param.begin();
+  
+  for (size_t i=0; i<observations.size(); ++i)
+  {
+    if (observations[i].nb_modifier_param != 0)
+    {
+      const double spectrum_modifier = *param_it;
+
+      if (spectrum_modifier != 0)
+        observations[i].addShiftToSpectrumGPU(
+          spectrum_obs[i], 
+          spectrum_modifier);
+
+      param_it += observations[i].nb_modifier_param;
+    }
+  }
+}
+
+
+
+
 void ForwardModel::calcPostProcessSpectra(
   const std::vector< std::vector<double> >& model_parameter,
   const size_t best_fit_model,
-  std::vector< std::vector<double> >& model_spectrum_bands)
-{
+  std::vector<std::vector< std::vector<double>>>& model_spectra_obs,
+  std::vector<double>& spectrum_best_fit)
+{ 
   const size_t nb_models = model_parameter.size();
 
-  model_spectrum_bands.resize(nb_models);
+  model_spectra_obs.resize(nb_models);
   
   std::cout << "\n";
 
@@ -116,46 +195,51 @@ void ForwardModel::calcPostProcessSpectra(
     calcPostProcessSpectrum(
       model_parameter[i],
       model_spectrum_high_res,
-      model_spectrum_bands[i]);
+      model_spectra_obs[i]);
 
     if (i == best_fit_model)
-      saveBestFitSpectrum(model_spectrum_high_res);
+      spectrum_best_fit = model_spectrum_high_res;
   }
 
   std::cout << "\n";
-
-  savePostProcessSpectra(model_spectrum_bands);
 }
 
 
 
 void ForwardModel::calcPostProcessSpectrum(
   const std::vector<double>& model_parameter,
-  std::vector<double>& model_spectrum,
-  std::vector<double>& model_spectrum_bands)
+  std::vector<double>& spectrum,
+  std::vector<std::vector<double>>& spectrum_obs)
 {
-  model_spectrum.assign(nb_spectral_points, 0.0);
-  model_spectrum_bands.assign(nb_observation_points, 0.0);
+  spectrum.assign(nb_spectral_points, 0.0);
+  spectrum_obs.assign(observations.size(), std::vector<double>(0.0));
 
   if (config->use_gpu)
   {
-    double* spectrum_dev = nullptr;
-    allocateOnDevice(spectrum_dev, nb_spectral_points);
+    double* spectrum_gpu = nullptr;
+    allocateOnDevice(spectrum_gpu, nb_spectral_points);
 
-    double* spectrum_bands_dev = nullptr;
-    allocateOnDevice(spectrum_bands_dev, nb_observation_points);
+    std::vector<double*> spectrum_obs_gpu(observations.size(), nullptr);
+    
+    for (size_t i=0; i<observations.size(); ++i)
+      allocateOnDevice(spectrum_obs_gpu[i], observations[i].nbPoints());
 
-    calcModelGPU(model_parameter, spectrum_dev, spectrum_bands_dev);
+    calcModelGPU(model_parameter, spectrum_gpu, spectrum_obs_gpu);
 
-    moveToHost(spectrum_dev, model_spectrum);
-    moveToHost(spectrum_bands_dev, model_spectrum_bands);
+    moveToHost(spectrum_gpu, spectrum);
+    deleteFromDevice(spectrum_gpu);
 
-    deleteFromDevice(spectrum_dev);
-    deleteFromDevice(spectrum_bands_dev);
+    for (size_t i=0; i<observations.size(); ++i)
+    {
+      spectrum_obs[i].assign(observations[i].nbPoints(), 0.0);
+
+      moveToHost(spectrum_obs_gpu[i], spectrum_obs[i]);
+      deleteFromDevice(spectrum_obs_gpu[i]);
+    }
   }
   else
   {
-    calcModel(model_parameter, model_spectrum, model_spectrum_bands);
+    calcModel(model_parameter, spectrum, spectrum_obs);
   }
 }
 
@@ -177,9 +261,9 @@ void ForwardModel::saveBestFitSpectrum(const std::vector<double>& spectrum)
 
 
 void ForwardModel::savePostProcessSpectra(
-  const std::vector< std::vector<double> >& model_spectrum_bands)
+  const std::vector<std::vector< std::vector<double>>>& model_spectra_obs)
 {
-  const size_t nb_models = model_spectrum_bands.size();
+  const size_t nb_models = model_spectra_obs.size();
 
   unsigned int band_index = 0;
 
@@ -191,20 +275,112 @@ void ForwardModel::savePostProcessSpectra(
     std::string file_name = config->retrieval_folder_path + "/spectrum_post_" + observation_name + ".dat"; 
     std::fstream file(file_name.c_str(), std::ios::out);
 
-    for (size_t i=0; i<observations[j].spectral_bands.nbBands(); ++i)
+    for (size_t i=0; i<observations[j].nbPoints(); ++i)
     {
       file << std::setprecision(10) << std::scientific << observations[j].spectral_bands.center_wavelengths[i];
-      
+
       for (size_t k=0; k<nb_models; ++k)
-        file << "\t" << model_spectrum_bands[k][band_index + i];
+         file << "\t" << model_spectra_obs[k][j][i];
      
-      file << "\n";
+       file << "\n";
     }
 
     file.close();
 
     band_index += observations[j].spectral_bands.nbBands();
   }
+}
+
+
+
+bool ForwardModel::testCPUvsGPU(const std::vector<double>& parameters)
+{ 
+  //first we calculate the model on the GPU
+  std::cout << "Start test on GPU\n";
+
+  double* spectrum_gpu_dev = nullptr;
+  allocateOnDevice(spectrum_gpu_dev, spectral_grid->nbSpectralPoints());
+
+  std::vector<double*> spectrum_obs_gpu_dev{observations.size(), nullptr};
+
+  for (size_t i=0; i<observations.size(); ++i)
+    allocateOnDevice(spectrum_obs_gpu_dev[i], observations[i].nbPoints());
+
+  calcModelGPU(parameters, spectrum_gpu_dev, spectrum_obs_gpu_dev);
+  
+  std::vector<double> spectrum_gpu(spectral_grid->nbSpectralPoints(), 0);
+  moveToHost(spectrum_gpu_dev, spectrum_gpu);
+  deleteFromDevice(spectrum_gpu_dev);
+
+  std::vector<std::vector<double>> spectrum_obs_gpu(
+    observations.size(), 
+    std::vector<double>{});
+
+  for (size_t i=0; i<observations.size(); ++i)
+  {
+    spectrum_obs_gpu[i].assign(observations[i].nbPoints(), 0.0);
+    moveToHost(spectrum_obs_gpu_dev[i], spectrum_obs_gpu[i]);
+    deleteFromDevice(spectrum_obs_gpu_dev[i]);
+  }
+
+  //now we run it on the CPU
+  std::cout << "Start test on CPU\n";
+  std::vector<double> spectrum_cpu(spectral_grid->nbSpectralPoints(), 0);
+  std::vector<std::vector<double>> spectrum_obs_cpu(
+    observations.size(), 
+    std::vector<double>{});
+
+  calcModel(parameters, spectrum_cpu, spectrum_obs_cpu);
+  
+  std::cout << "done.\n\n";
+  
+  std::cout << "Testing high-resolution spectrum:\n";
+  std::vector<double> difference_hr(spectral_grid->nbSpectralPoints(), 0);
+
+  for (size_t i=0; i<difference_hr.size(); ++i)
+    difference_hr[i] = std::abs(spectrum_cpu[i] - spectrum_gpu[i])/spectrum_cpu[i];
+
+  size_t max_diff_hr_index = std::max_element(difference_hr.begin(),difference_hr.end()) - difference_hr.begin();
+  double max_diff_hr = *std::max_element(difference_hr.begin(), difference_hr.end());
+  
+  std::cout << "Maximum difference of CPU vs GPU: " << max_diff_hr << " at index " << max_diff_hr_index << "\n";
+  
+  bool test_hr_ok = true;
+   if (max_diff_hr*100 > 0.1) test_hr_ok = false;
+
+  std::cout << "Test ok: " << test_hr_ok << "\n\n";
+  
+  bool test_obs_ok = true;
+  std::cout << "Testing binned spectra:\n";
+  
+  for (size_t i=0; i<observations.size(); ++i)
+  {
+    std::vector<double> difference_bands(observations[i].nbPoints(), 0);
+
+    for (size_t j=0; j<difference_bands.size(); ++j)
+      difference_bands[j] = std::abs(spectrum_obs_cpu[i][j] - spectrum_obs_gpu[i][j])/spectrum_obs_cpu[i][j];
+
+    size_t max_diff_bands_index = std::max_element(difference_bands.begin(),difference_bands.end()) - difference_bands.begin();
+    double max_diff_bands = *std::max_element(difference_bands.begin(), difference_bands.end());
+    
+    std::cout << "Maximum difference of CPU vs GPU for observation " << i << ": " << max_diff_bands << " at index " << max_diff_bands_index << "\n";
+    
+    bool test_bands_single_ok = true;
+    if (max_diff_bands*100 > 0.1) test_bands_single_ok = false;
+    
+    if (test_bands_single_ok == false)
+      test_obs_ok = false;
+    
+    std::cout << "Test ok: " << test_bands_single_ok << "\n\n";
+  }
+
+
+  bool test_ok = true;
+
+  if (test_hr_ok == false || test_obs_ok == false)
+    test_ok = false;
+  
+  return test_ok;
 }
 
 

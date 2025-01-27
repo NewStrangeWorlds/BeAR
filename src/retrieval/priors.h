@@ -50,8 +50,6 @@ class Priors{
       const std::vector<std::string>& type,
       const std::vector<std::string>& description,
       const std::vector<std::vector<std::string>>& parameter);
-
-  private:
 };
 
 

@@ -146,8 +146,8 @@ bool Observation::readPhotometryData(std::fstream& file)
   std::vector< std::vector<double> > wavelengths(1, {lower_wavelength, upper_wavelength});
  
 
-  flux.push_back(flux_single);
-  flux_error.push_back(error_single);
+  data.push_back(flux_single);
+  data_error.push_back(error_single);
 
   if (nb_data_columns == 5)
     likelihood_weight.push_back(retrieval_weight);
@@ -232,8 +232,8 @@ bool Observation::readBandSpectroscopyData(std::fstream& file)
     if (left_edge != 0.0 && error != 0.0)
     {
       bin_edges.push_back({left_edge, right_edge});
-      flux.push_back(flux_single);
-      flux_error.push_back(error);
+      data.push_back(flux_single);
+      data_error.push_back(error);
     }
 
 
@@ -253,8 +253,8 @@ bool Observation::readBandSpectroscopyData(std::fstream& file)
     if (bin_edges.front()[0] < bin_edges.back()[0])
     {
       std::reverse(bin_edges.begin(), bin_edges.end());
-      std::reverse(flux.begin(), flux.end());
-      std::reverse(flux_error.begin(), flux_error.end());
+      std::reverse(data.begin(), data.end());
+      std::reverse(data_error.begin(), data_error.end());
       std::reverse(instrument_profile_fwhm.begin(), instrument_profile_fwhm.end());
       std::reverse(likelihood_weight.begin(), likelihood_weight.end());
     }
@@ -340,8 +340,8 @@ bool Observation::readSpectroscopyData(std::fstream& file)
     if (wavelength_single != 0.0 && error_single != 0.0)
     {
       wavelengths.push_back(wavelength_single);
-      flux.push_back(flux_single);
-      flux_error.push_back(error_single);
+      data.push_back(flux_single);
+      data_error.push_back(error_single);
     }
 
 
@@ -361,8 +361,8 @@ bool Observation::readSpectroscopyData(std::fstream& file)
     if (wavelengths[0] < wavelengths[1])
     {
       std::reverse(wavelengths.begin(), wavelengths.end());
-      std::reverse(flux.begin(), flux.end());
-      std::reverse(flux_error.begin(), flux_error.end());
+      std::reverse(data.begin(), data.end());
+      std::reverse(data_error.begin(), data_error.end());
       std::reverse(instrument_profile_fwhm.begin(), instrument_profile_fwhm.end());
       std::reverse(likelihood_weight.begin(), likelihood_weight.end());
     }
@@ -433,7 +433,7 @@ void Observation::printObservationDetails()
 
     std::cout << "band edges: " << spectral_bands.edge_wavelengths[0][0] << "\t" << spectral_bands.edge_wavelengths[0][1] 
               << "\nband center: " << spectral_bands.center_wavelengths.front() << "\n";
-    std::cout << "photometry flux: " << flux.front() << "\t error: " << flux_error.front() << "\n";
+    std::cout << "photometry flux: " << data.front() << "\t error: " << data_error.front() << "\n";
     std::cout << "likelihood weight: " << likelihood_weight.front() << "\n\n";
   }
 
@@ -451,13 +451,13 @@ void Observation::printObservationDetails()
       std::cout << "Filter detector type: " << filter_detector_type << "\n";
     }
 
-    for (size_t i=0; i<flux.size(); ++i)
+    for (size_t i=0; i<data.size(); ++i)
     {
       std::cout << std::setprecision(5) << std::scientific 
                << spectral_bands.center_wavelengths[i] << "\t" 
                << spectral_bands.edge_wavelengths[i][0] << "\t" 
                << spectral_bands.edge_wavelengths[i][1] 
-               << "\t" << flux[i] << "\t" << flux_error[i];
+               << "\t" << data[i] << "\t" << data_error[i];
 
       if (instrument_profile_fwhm.size() > 0)
         std::cout << "\t" << instrument_profile_fwhm[i];

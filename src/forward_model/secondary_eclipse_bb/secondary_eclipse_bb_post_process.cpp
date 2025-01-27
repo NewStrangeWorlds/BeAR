@@ -77,10 +77,22 @@ void SecondaryEclipseBlackBodyModel::postProcess(
   if (post_process_config.delete_sampler_files)
     delete_unused_files = true;
 
-  std::vector< std::vector<double> > model_spectrum_bands;
-  
+
   if (post_process_config.save_spectra)
-    calcPostProcessSpectra(model_parameter, best_fit_model, model_spectrum_bands);
+  {
+    std::vector<std::vector<std::vector<double>>> model_spectra_obs;
+    std::vector<double> model_spectrum_best_fit;
+  
+    calcPostProcessSpectra(
+      model_parameter, 
+      best_fit_model, 
+      model_spectra_obs,
+      model_spectrum_best_fit);
+    
+    saveBestFitSpectrum(model_spectrum_best_fit);
+    savePostProcessSpectra(model_spectra_obs);
+  }
+
 }
 
 

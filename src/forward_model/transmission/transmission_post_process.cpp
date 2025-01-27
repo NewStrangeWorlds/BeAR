@@ -81,11 +81,21 @@ void TransmissionModel::postProcess(
     delete_unused_files = true;
 
   const size_t nb_models = model_parameter.size();
-  std::vector< std::vector<double> > model_spectrum_bands;
   
   if (post_process_config.save_spectra)
-    calcPostProcessSpectra(model_parameter, best_fit_model, model_spectrum_bands);
-
+  {
+    std::vector<std::vector<std::vector<double>>> model_spectra_obs;
+    std::vector<double> model_spectrum_best_fit;
+  
+    calcPostProcessSpectra(
+      model_parameter, 
+      best_fit_model, 
+      model_spectra_obs,
+      model_spectrum_best_fit);
+    
+    saveBestFitSpectrum(model_spectrum_best_fit);
+    savePostProcessSpectra(model_spectra_obs);
+  }
 
   std::vector<std::vector<double>> temperature_profiles(nb_models, std::vector<double>(nb_grid_points, 0));
 
@@ -98,7 +108,6 @@ void TransmissionModel::postProcess(
   for (size_t i=0; i<nb_models; ++i)
     postProcessModel(
       model_parameter[i], 
-      model_spectrum_bands[i], 
       temperature_profiles[i], 
       mixing_ratios[i]);
 
@@ -113,12 +122,13 @@ void TransmissionModel::postProcess(
 
 
 void TransmissionModel::postProcessModel(
-  const std::vector<double>& model_parameter, 
-  const std::vector<double>& model_spectrum_bands, 
+  const std::vector<double>& parameters, 
   std::vector<double>& temperature_profile,
   std::vector<std::vector<double>>& mixing_ratios)
 {
-  calcAtmosphereStructure(model_parameter);
+  extractParameters(parameters);
+
+  calcAtmosphereStructure(parameters);
 
   for (auto & i : constants::species_data)
   { 

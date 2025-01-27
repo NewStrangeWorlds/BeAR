@@ -33,14 +33,13 @@ namespace bear{
 
 __global__ void addShiftToSpectrumDev(
   double* spectrum_bands,
-  const unsigned int start_index,
   const double spectrum_shift,
   const int nb_points)
 {
 
   //the thread index tid is the observation point
   for (int tid = blockIdx.x * blockDim.x + threadIdx.x; tid < nb_points; tid += blockDim.x * gridDim.x)
-    spectrum_bands[start_index + tid] += spectrum_shift;
+    spectrum_bands[tid] += spectrum_shift;
 
 }
 
@@ -48,8 +47,7 @@ __global__ void addShiftToSpectrumDev(
 
 //converts layer optical depths to level-based extinction coefficients
 __host__ void Observation::addShiftToSpectrumGPU(
-  double* spectrum_bands,
-  const unsigned int start_index,
+  double* spectrum_obs,
   const double spectrum_shift)
 {
   int threads = 256;
@@ -59,8 +57,7 @@ __host__ void Observation::addShiftToSpectrumGPU(
   if (nb_points % threads) blocks++;
 
   addShiftToSpectrumDev<<<blocks,threads>>>(
-    spectrum_bands,
-    start_index,
+    spectrum_obs,
     spectrum_shift,
     nb_points);
 

@@ -121,13 +121,13 @@ bool Retrieval::doRetrieval()
     param.pWrap[i] = 0;
 
   //We give the MultiNest function a pointer to the retrieval class
-  //That way, we can access the current retrieval object in its static member routines
+  //That way, we can access the current retrieval object and its static member routines
   param.context = this;
 
 
-	//Call MultiNest
+  //Call MultiNest
   if (config->use_gpu == false)
-	  nested::run(
+    nested::run(
       param.is,
       param.mmodal,
       param.ceff,
@@ -191,14 +191,35 @@ bool Retrieval::doRetrieval()
 void Retrieval::setAdditionalPriors()
 {
   if (config->use_error_inflation)
-  {
+  { 
     //this creates the prior distribution for the error exponent
     //first, we need to find the minimum and maximum values of the observational data errors
-    std::vector<double>::iterator it = std::min_element(std::begin(observation_error), std::end(observation_error));
-    const double error_min = std::log10(0.1 * *it * *it);
+    double error_max = 0;
 
-    it = std::max_element(std::begin(observation_error), std::end(observation_error));
-    const double error_max = std::log10(100.0 * *it * *it);
+    for (auto & obs : observations)
+    {
+      double obs_error_max = *std::max_element(
+        std::begin(obs.data_error), 
+        std::end(obs.data_error));
+
+      if (obs_error_max > error_max)
+        error_max = obs_error_max;
+    }
+ 
+    double error_min = error_max;
+    
+    for (auto & obs : observations)
+    {
+      double obs_error_min = *std::min_element(
+        std::begin(obs.data_error), 
+        std::end(obs.data_error));
+      
+      if (obs_error_min < error_min)
+        error_min = obs_error_min;
+    }
+
+    error_min = std::log10(0.1 * error_min * error_min);
+    error_max = std::log10(100.0 * error_max * error_max);
 
     priors.add(
       std::vector<std::string>{std::string("uniform")}, 
@@ -211,14 +232,7 @@ void Retrieval::setAdditionalPriors()
 
 Retrieval::~Retrieval()
 {
-  if (config->use_gpu)
-  {
-    deleteFromDevice(model_spectrum_gpu);
-
-    deleteFromDevice(observation_data_gpu);
-    deleteFromDevice(observation_error_gpu);
-    deleteFromDevice(observation_likelihood_weight_gpu);
-  }
+  
 }
 
 
