@@ -46,6 +46,9 @@ class ForwardModel;
 //the main class that does the retrieval
 class Retrieval{
   public:
+    Retrieval(
+      GlobalConfig* global_config, 
+      const std::string additional_observation_file);
     Retrieval(GlobalConfig* global_config);
     ~Retrieval();
     

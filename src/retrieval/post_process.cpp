@@ -41,7 +41,8 @@
 namespace bear{
 
 
-PostProcess::PostProcess(GlobalConfig* global_config) : Retrieval(global_config)
+PostProcess::PostProcess(GlobalConfig* global_config) 
+  : Retrieval(global_config, std::string("postprocess_spectrum_data.dat"))
 {
   
   config = global_config;

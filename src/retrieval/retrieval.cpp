@@ -58,23 +58,26 @@ void signalHandler(int sig)
 
 
 Retrieval::Retrieval(GlobalConfig* global_config) 
-  : spectral_grid(global_config)
+  : Retrieval(global_config, std::string(""))
 {
-
   config = global_config;
 
   std::signal(SIGCONT, signalHandler);
-
 }
 
 
 
-
-bool Retrieval::run()
+Retrieval::Retrieval(
+  GlobalConfig* global_config,
+  const std::string additional_observation_file) 
+  : spectral_grid(global_config)
 {
+  config = global_config;
+
+  std::signal(SIGCONT, signalHandler);
+
   std::string folder = config->retrieval_folder_path;
   std::string observation_folder = folder;
-
 
   //try to initialise the model
   //if there is an error, we exit the retrieval
@@ -86,13 +89,28 @@ bool Retrieval::run()
       observation_folder, 
       file_list,
       modifier_list);
+
+    //if we do postprocessing, we may need to read in the file that describes the maximum wavelength range
+    //spectra will be generated for
+    //this is necessary to obtain an estimate for the effective temperature
+    if (additional_observation_file.size() > 0)
+    {
+      std::string postprocess_spectrum_data = config->retrieval_folder_path + additional_observation_file;
+      std::fstream file(postprocess_spectrum_data.c_str(), std::ios::in);
+
+      if (!file.fail())
+      {
+        file_list.push_back(additional_observation_file);
+        modifier_list.push_back("none");
+        file.close(); 
+      }
+    }
+
     loadObservations(
-      observation_folder, 
+      observation_folder,
       file_list,
       modifier_list);
-
-    //spectral_grid.sampleSpectralGrid(observations);
-
+  
     std::cout << "\nTotal number of wavelength points: " << spectral_grid.nbSpectralPoints() << "\n\n";
 
     forward_model = selectForwardModel(config->forward_model_type);
@@ -100,14 +118,19 @@ bool Retrieval::run()
   catch(std::runtime_error& e) 
   {
     std::cout << e.what() << std::endl;
-    return false;
+    exit(1);
   }
 
   setAdditionalPriors();
 
   priors.printInfo();
+}
 
 
+
+
+bool Retrieval::run()
+{
   //Configure Multinest
   MultinestParameter param(config);
 
