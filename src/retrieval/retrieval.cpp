@@ -70,7 +70,7 @@ Retrieval::Retrieval(GlobalConfig* global_config)
 
 
 
-bool Retrieval::doRetrieval()
+bool Retrieval::run()
 {
   std::string folder = config->retrieval_folder_path;
   std::string observation_folder = folder;

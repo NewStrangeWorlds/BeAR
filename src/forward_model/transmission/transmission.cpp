@@ -270,9 +270,13 @@ bool TransmissionModel::calcModelGPU(
   if (cloud_models.size() > 0)
   { 
     if (cloud_extinction_gpu == nullptr)
-      allocateOnDevice(cloud_extinction_gpu, nb_grid_points*spectral_grid->nbSpectralPoints());
+      allocateOnDevice(
+        cloud_extinction_gpu, 
+        nb_grid_points*spectral_grid->nbSpectralPoints());
 
-    initializeOnDevice(cloud_extinction_gpu, nb_grid_points*spectral_grid->nbSpectralPoints());
+    initializeOnDevice(
+      cloud_extinction_gpu, 
+      nb_grid_points*spectral_grid->nbSpectralPoints());
 
     cloud_models[0]->convertOpticalDepthGPU(
       opacity_calc.cloud_optical_depths_dev,
@@ -324,7 +328,9 @@ void TransmissionModel::setCloudProperties(
   const std::vector<std::vector<double>>& cloud_optical_depth)
 {
   if (config->use_gpu && cloud_extinction_gpu == nullptr)
-    allocateOnDevice(cloud_extinction_gpu, nb_grid_points*spectral_grid->nbSpectralPoints());
+    allocateOnDevice(
+      cloud_extinction_gpu, 
+      nb_grid_points*spectral_grid->nbSpectralPoints());
   else
     cloud_extinction.assign(
       spectral_grid->nbSpectralPoints(), 
@@ -398,9 +404,13 @@ std::vector<double> TransmissionModel::calcSpectrum(
     if (cloud_models.size() > 0)
     { 
       if (cloud_extinction_gpu == nullptr)
-        allocateOnDevice(cloud_extinction_gpu, nb_grid_points*spectral_grid->nbSpectralPoints());
+        allocateOnDevice(
+          cloud_extinction_gpu, 
+          nb_grid_points*spectral_grid->nbSpectralPoints());
 
-      initializeOnDevice(cloud_extinction_gpu, nb_grid_points*spectral_grid->nbSpectralPoints());
+      initializeOnDevice(
+        cloud_extinction_gpu, 
+        nb_grid_points*spectral_grid->nbSpectralPoints());
 
       cloud_models[0]->convertOpticalDepthGPU(
         opacity_calc.cloud_optical_depths_dev,

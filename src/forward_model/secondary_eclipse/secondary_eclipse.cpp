@@ -252,7 +252,7 @@ bool SecondaryEclipseModel::calcModel(
   applyObservationModifier(spectrum_modifier_parameters, spectrum_obs);
 
 
-  //convert the high-res spectrum to an occulation depth as well
+  //convert the high-res planet spectrum to an occulation depth as well
   for (size_t i=0; i<spectral_grid->nbSpectralPoints(); ++i)
     spectrum[i] = spectrum[i]/stellar_spectrum[i] * radius_ratio*radius_ratio * 1e6;
 
@@ -343,7 +343,7 @@ bool SecondaryEclipseModel::calcModelGPU(
   applyObservationModifierGPU(spectrum_modifier_parameters, spectrum_obs);
 
 
-  //convert the original high-res spectrum also to a secondary eclipse
+  //convert the original high-res planet spectrum also to a secondary eclipse
   calcSecondaryEclipseGPU(
     spectrum, 
     spectrum, 

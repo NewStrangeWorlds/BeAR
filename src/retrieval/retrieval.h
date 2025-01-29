@@ -56,7 +56,7 @@ class Retrieval{
     
     size_t nb_observations = 0;
 
-    virtual bool doRetrieval();
+    virtual bool run();
   protected:
     ForwardModel* forward_model = nullptr;
     

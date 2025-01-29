@@ -50,7 +50,7 @@ PostProcess::PostProcess(GlobalConfig* global_config) : Retrieval(global_config)
 
 
 
-bool PostProcess::doRetrieval()
+bool PostProcess::run()
 {
   std::string folder = config->retrieval_folder_path;
   std::string observation_folder = folder;

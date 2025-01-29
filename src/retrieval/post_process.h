@@ -46,7 +46,7 @@ class PostProcess : public Retrieval{
     PostProcess(GlobalConfig* global_config);
     ~PostProcess();
     
-    virtual bool doRetrieval();
+    virtual bool run();
   private:
     std::vector< std::vector<double> > model_parameter;      //the values of the posteriors
     std::vector<double> log_like;                            //and their likelihood values
