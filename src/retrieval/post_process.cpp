@@ -59,35 +59,6 @@ bool PostProcess::run()
 
   try
   {
-    std::vector<std::string> file_list, modifier_list;
-    loadObservationFileList(
-      observation_folder,
-      file_list,
-      modifier_list);
-  
-    //if we do postprocessing, we may need to read in the file that describes the maximum wavelength range
-    //spectra will be generated for
-    //this is necessary to obtain an estimate for the effective temperature
-    std::string postprocess_spectrum_data = config->retrieval_folder_path + "postprocess_spectrum_data.dat";
-    std::fstream file(postprocess_spectrum_data.c_str(), std::ios::in);
-
-    if (!file.fail())
-    {
-      file_list.push_back("postprocess_spectrum_data.dat");
-      modifier_list.push_back("none");
-      file.close(); 
-    }
-    
-    loadObservations(
-      observation_folder,
-      file_list,
-      modifier_list);
-
-    std::cout << "\nTotal number of wavelength points: " 
-              << spectral_grid.nbSpectralPoints() << "\n\n";
-    
-    forward_model = selectForwardModel(config->forward_model_type);
-    
     readPosteriorData();
     
     forward_model->postProcess(model_parameter, best_fit_model, delete_sampler_files);
@@ -206,11 +177,6 @@ void PostProcess::readPosteriorData()
 
 PostProcess::~PostProcess()
 {
-  // if (config->use_gpu)
-  // {
-  //   deleteFromDevice(observation_data_gpu);
-  //   deleteFromDevice(observation_error_gpu);
-  // }
 
 }
 
