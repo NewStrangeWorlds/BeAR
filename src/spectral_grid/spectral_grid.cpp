@@ -442,13 +442,12 @@ std::vector<double> SpectralGrid::wavelengthList(const std::vector<size_t>& indi
 
 
 SpectralGrid::~SpectralGrid()
-{
+{ 
   if (config->use_gpu)
   {
     deleteFromDevice(wavelength_list_gpu);
     deleteFromDevice(wavenumber_list_gpu);
   }
-
 }
 
 

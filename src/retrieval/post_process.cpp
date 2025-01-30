@@ -175,7 +175,7 @@ void PostProcess::readPosteriorData()
 
 PostProcess::~PostProcess()
 {
-  delete forward_model;
+  
 }
 
 

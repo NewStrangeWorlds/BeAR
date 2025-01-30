@@ -265,8 +265,6 @@ void ForwardModel::savePostProcessSpectra(
 {
   const size_t nb_models = model_spectra_obs.size();
 
-  unsigned int band_index = 0;
-
   for (size_t j=0; j<observations.size(); ++j)
   {
     std::string observation_name = observations[j].observationName();
@@ -274,20 +272,34 @@ void ForwardModel::savePostProcessSpectra(
     
     std::string file_name = config->retrieval_folder_path + "/spectrum_post_" + observation_name + ".dat"; 
     std::fstream file(file_name.c_str(), std::ios::out);
+    
+    
+    std::vector<double> mu = observations[j].spectral_bands.center_wavelengths;
+    std::vector<std::vector<double>> spectra = std::vector<std::vector<double>>(nb_models, std::vector<double>(0.0));
+    
+    for (size_t k=0; k<nb_models; ++k)
+      spectra[k] = model_spectra_obs[k][j];
+     
+    if (observations[j].ascending_wavelengths == true)
+    { 
+      std::reverse(mu.begin(), mu.end());
+      
+      for (size_t k=0; k<nb_models; ++k)
+        std::reverse(spectra[k].begin(), spectra[k].end());
+    }
+
 
     for (size_t i=0; i<observations[j].nbPoints(); ++i)
     {
-      file << std::setprecision(10) << std::scientific << observations[j].spectral_bands.center_wavelengths[i];
+      file << std::setprecision(10) << std::scientific << mu[i];
 
       for (size_t k=0; k<nb_models; ++k)
-         file << "\t" << model_spectra_obs[k][j][i];
+         file << "\t" << spectra[k][i];
      
        file << "\n";
     }
 
     file.close();
-
-    band_index += observations[j].spectral_bands.nbBands();
   }
 }
 

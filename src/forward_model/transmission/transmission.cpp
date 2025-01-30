@@ -470,13 +470,16 @@ std::vector<double> TransmissionModel::calcSpectrum(
 
 
 TransmissionModel::~TransmissionModel()
-{
+{ 
   delete temperature_profile;
 
   for (auto & i : cloud_models)
     delete i;
   
   for (auto & i : chemistry)
+    delete i;
+
+  for (auto & i : modules)
     delete i;
 
   if (cloud_extinction_gpu != nullptr)

@@ -61,6 +61,8 @@ class Observation{
     SpectralBands spectral_bands;                                       //representation of the theoretical spectrum in the observational bands
     std::vector<double> wavelength_edges = {0, 0};                      //the wavelength boundaries this observation needs from the high-res spectrum
 
+    bool ascending_wavelengths = true;                                  //if the wavelength points of the orginal spectrum are in ascending order
+
     std::vector<double> data;                                           //observational data
     std::vector<double> data_error;                                     //observational error
     std::vector<double> likelihood_weight;                              //weight for the likelihood computation

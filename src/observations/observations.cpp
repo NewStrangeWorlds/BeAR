@@ -47,7 +47,7 @@ void Observation::init(const std::string& file_name, const std::string spectrum_
 
 
 Observation::~Observation()
-{
+{ 
   if (config->use_gpu)
   {
     deleteFromDevice(data_gpu);

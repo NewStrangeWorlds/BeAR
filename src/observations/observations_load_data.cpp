@@ -78,7 +78,11 @@ void Observation::loadFile(const std::string& file_name)
     band_type = BAND_SPECTROSCOPY;
   else
   {
-    std::string error_message = "Unsupported observation type *" + band_type_input + "* in file: " + file_name + "\n";
+    std::string error_message = 
+      "Unsupported observation type *" 
+      + band_type_input 
+      + "* in file: " 
+      + file_name + "\n";
     throw InvalidInput(std::string ("Observation::loadFile"), error_message);
   }
     
@@ -107,7 +111,9 @@ bool Observation::readPhotometryData(std::fstream& file)
   //read the file name for the filter transmission function
   file >> filter_response_file_path;
 
-  if (filter_response_file_path != "None" && filter_response_file_path != "none" && filter_response_file_path != "")
+  if (filter_response_file_path != "None" 
+    && filter_response_file_path != "none" 
+    && filter_response_file_path != "")
     filter_response_file_path = config->retrieval_folder_path + filter_response_file_path;
   else
     filter_response_file_path = "";
@@ -132,8 +138,12 @@ bool Observation::readPhotometryData(std::fstream& file)
       
     if (nb_data_columns < 4)
     {
-      std::string error_message = "Expected at least four data columns in observational file, but only found " + std::to_string(nb_data_columns) + "\n";
-      throw InvalidInput(std::string ("Observation::readBandSpectroscopyData"), error_message);
+      std::string error_message = 
+        "Expected at least four data columns in observational file, but only found " 
+        + std::to_string(nb_data_columns) + "\n";
+      throw InvalidInput(
+        std::string ("Observation::readBandSpectroscopyData"), 
+        error_message);
     }
   }
   
@@ -155,7 +165,8 @@ bool Observation::readPhotometryData(std::fstream& file)
     likelihood_weight.push_back(1.0);
 
 
-  //wavelengths should be ordered in descending order because the opacity data is organized in ascending wavenumbers
+  //wavelengths should be ordered in descending order because the 
+  //opacity data is organized in ascending wavenumbers
   if (wavelengths[0][0] < wavelengths[0][1])
     std::reverse(wavelengths[0].begin(), wavelengths[0].end());
 
@@ -191,7 +202,9 @@ bool Observation::readBandSpectroscopyData(std::fstream& file)
   //read the file name for the filter transmission function
   file >> filter_response_file_path;
   
-  if (filter_response_file_path != "None" && filter_response_file_path != "none" && filter_response_file_path != "")
+  if (filter_response_file_path != "None" 
+    && filter_response_file_path != "none" 
+    && filter_response_file_path != "")
     filter_response_file_path = config->retrieval_folder_path + filter_response_file_path;
   else
     filter_response_file_path = "";
@@ -214,8 +227,12 @@ bool Observation::readBandSpectroscopyData(std::fstream& file)
       
       if (nb_data_columns < 4)
       {
-        std::string error_message = "Expected at least four data columns in observational file, but only found " + std::to_string(nb_data_columns) + "\n";
-        throw InvalidInput(std::string ("Observation::readBandSpectroscopyData"), error_message);
+        std::string error_message = 
+          "Expected at least four data columns in observational file, but only found " 
+          + std::to_string(nb_data_columns) + "\n";
+        throw InvalidInput(
+          std::string ("Observation::readBandSpectroscopyData"), 
+          error_message);
       }
     }
 
@@ -227,7 +244,12 @@ bool Observation::readBandSpectroscopyData(std::fstream& file)
     error = 0.0;
     line_profile_fwhm = 0.0;
 
-    input >> left_edge >> right_edge >> flux_single >> error >> line_profile_fwhm >> retrieval_weight;
+    input >> left_edge 
+      >> right_edge 
+      >> flux_single 
+      >> error 
+      >> line_profile_fwhm 
+      >> retrieval_weight;
 
     if (left_edge != 0.0 && error != 0.0)
     {
@@ -247,22 +269,28 @@ bool Observation::readBandSpectroscopyData(std::fstream& file)
   }
 
 
-  //wavelengths should be ordered in descending order because the opacity data is organized in ascending wavenumbers
+  //wavelengths should be ordered in descending order because the 
+  //opacity data is organized in ascending wavenumbers
   if (bin_edges.size() > 1)
   {
     if (bin_edges.front()[0] < bin_edges.back()[0])
     {
+      ascending_wavelengths = true;
+
       std::reverse(bin_edges.begin(), bin_edges.end());
       std::reverse(data.begin(), data.end());
       std::reverse(data_error.begin(), data_error.end());
       std::reverse(instrument_profile_fwhm.begin(), instrument_profile_fwhm.end());
       std::reverse(likelihood_weight.begin(), likelihood_weight.end());
     }
+    else
+      ascending_wavelengths = false;
   }
 
 
   for (size_t i=0; i<bin_edges.size(); ++i)
-    if (bin_edges[i][0] < bin_edges[i][1]) std::reverse(bin_edges[i].begin(), bin_edges[i].end());
+    if (bin_edges[i][0] < bin_edges[i][1]) 
+      std::reverse(bin_edges[i].begin(), bin_edges[i].end());
 
 
   std::vector<double> band_centres(bin_edges.size(), 0.0);
@@ -299,7 +327,9 @@ bool Observation::readSpectroscopyData(std::fstream& file)
   //read the file name for the filter transmission function
   file >> filter_response_file_path;
   
-  if (filter_response_file_path != "None" && filter_response_file_path != "none" && filter_response_file_path != "")
+  if (filter_response_file_path != "None" 
+    && filter_response_file_path != "none" 
+    && filter_response_file_path != "")
     filter_response_file_path = config->retrieval_folder_path + filter_response_file_path;
   else
     filter_response_file_path = "";
@@ -323,8 +353,12 @@ bool Observation::readSpectroscopyData(std::fstream& file)
       
       if (nb_data_columns < 3)
       {
-        std::string error_message = "Expected at least three data columns in observational file, but only found " + std::to_string(nb_data_columns) + "\n";
-        throw InvalidInput(std::string ("Observation::readSpectroscopyData"), error_message);
+        std::string error_message = 
+          "Expected at least three data columns in observational file, but only found " 
+          + std::to_string(nb_data_columns) + "\n";
+        throw InvalidInput(
+          std::string ("Observation::readSpectroscopyData"), 
+          error_message);
       }
     }
 
@@ -335,7 +369,11 @@ bool Observation::readSpectroscopyData(std::fstream& file)
     line_profile_fwhm = 0.0;
     retrieval_weight = 0.0;
 
-    input >> wavelength_single >> flux_single >> error_single >> line_profile_fwhm >> retrieval_weight;
+    input >> wavelength_single 
+      >> flux_single 
+      >> error_single 
+      >> line_profile_fwhm 
+      >> retrieval_weight;
 
     if (wavelength_single != 0.0 && error_single != 0.0)
     {
@@ -355,21 +393,28 @@ bool Observation::readSpectroscopyData(std::fstream& file)
   }
 
 
-  //wavelengths should be ordered in descending order because the opacity data is organized in ascending wavenumbers
+  //wavelengths should be ordered in descending order because the 
+  //opacity data is organized in ascending wavenumbers
   if (wavelengths.size() > 1)
   {
     if (wavelengths[0] < wavelengths[1])
     {
+      ascending_wavelengths = true;
+
       std::reverse(wavelengths.begin(), wavelengths.end());
       std::reverse(data.begin(), data.end());
       std::reverse(data_error.begin(), data_error.end());
       std::reverse(instrument_profile_fwhm.begin(), instrument_profile_fwhm.end());
       std::reverse(likelihood_weight.begin(), likelihood_weight.end());
     }
+    else
+      ascending_wavelengths = false;
   }
 
 
-  std::vector< std::vector<double> > bin_edges(wavelengths.size(), std::vector<double>(2, 0));
+  std::vector< std::vector<double> > bin_edges(
+    wavelengths.size(), 
+    std::vector<double>(2, 0));
 
 
   //set up the bin edges
