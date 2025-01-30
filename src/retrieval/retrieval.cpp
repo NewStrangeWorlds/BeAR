@@ -202,10 +202,6 @@ bool Retrieval::run()
       Retrieval::multinestDumper,
       param.context);
 
-
-  delete forward_model;
-
-
   return true;
 }
 
@@ -253,9 +249,141 @@ void Retrieval::setAdditionalPriors()
 
 
 
+double Retrieval::computeLikelihood(
+  std::vector<double>& physical_parameter)
+{
+  double log_like = 0;
+
+  if (!config->use_gpu)
+  {
+    log_like =  logLikelihood(physical_parameter);
+  }
+  else
+  {
+    log_like =  logLikelihoodGPU(physical_parameter);
+  }
+
+  return log_like;
+}
+
+
+
+double Retrieval::logLikelihood(
+  std::vector<double>& physical_parameters)
+{
+  std::vector<double> model_spectrum(
+    spectral_grid.nbSpectralPoints(), 
+    0.0);
+  
+  std::vector<std::vector<double>> model_spectrum_obs(
+    nb_observations, 
+    std::vector<double>{});
+
+
+  bool neglect = forward_model->calcModel(
+    physical_parameters, 
+    model_spectrum, 
+    model_spectrum_obs);
+
+
+  double error_inflation = 0;
+
+  if (config->use_error_inflation)
+    error_inflation = std::pow(10, physical_parameters.back());
+
+
+  double log_like = 0;
+
+  for (size_t i=0; i<observations.size(); ++i)
+  {
+    for (size_t j=0; j<observations[i].nbPoints(); ++j)
+    {
+      //Eq. 22 from Paper I
+      const double error_square = 
+        observations[i].data_error[j] 
+        * observations[i].data_error[j] 
+        + error_inflation;
+
+      const double obs_delta = observations[i].data[j] - model_spectrum_obs[i][j];
+      
+      //Eq. 23 from Paper I
+      log_like += 
+        (- 0.5 * std::log(error_square* 2.0 * constants::pi)
+         - 0.5 * obs_delta*obs_delta / error_square)
+         * observations[i].likelihood_weight[j];
+    }
+  }
+  
+  //if the forward model tells us to neglect the current set of parameters,
+  //set the likelihood to a low value
+  if (neglect == true) log_like = -1e30;
+
+
+  if (config->multinest_print_iter_values)
+    std::cout << log_like << "\n";
+
+  return log_like;
+}
+
+
+
+
+double Retrieval::logLikelihoodGPU(
+  std::vector<double>& physical_parameters)
+{
+  double* spectrum = nullptr;
+  allocateOnDevice(
+    spectrum, 
+    spectral_grid.nbSpectralPoints());
+
+
+  std::vector<double*> spectrum_obs{
+    observations.size(), 
+    nullptr};
+
+  for (size_t i=0; i<observations.size(); ++i)
+    allocateOnDevice(
+      spectrum_obs[i], 
+      observations[i].nbPoints());
+
+
+  bool neglect = forward_model->calcModelGPU(
+    physical_parameters, 
+    spectrum, 
+    spectrum_obs);
+
+
+  double error_inflation = 0;
+
+  if (config->use_error_inflation)
+    error_inflation = std::pow(10, physical_parameters.back());
+
+
+  double log_like = logLikeDev(spectrum_obs, error_inflation);
+
+  //if the forward model tells us to neglect the current set of parameters,
+  //set the likelihood to a low value
+  if (neglect == true) log_like = -1e30;
+
+
+  deleteFromDevice(spectrum);
+
+  for (size_t i=0; i<observations.size(); ++i)
+    deleteFromDevice(spectrum_obs[i]);
+
+
+  if (config->multinest_print_iter_values)
+    std::cout << log_like << "\n";
+
+  return log_like;
+}
+
+
+
+
 Retrieval::~Retrieval()
 {
-  
+  delete forward_model;
 }
 
 

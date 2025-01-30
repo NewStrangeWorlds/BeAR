@@ -38,6 +38,24 @@ namespace bear{
 
 //convert the normalised cube values into the real parameter values
 //write back the parameter values into the cube for MultiNest output
+std::pair<std::vector<double>, std::vector<double>> Retrieval::convertCubeParameters(
+  std::vector<double>& cube)
+{
+  std::vector<double> parameter;
+  std::vector<double> physical_parameter;
+
+  convertHypercubeParameters(
+    cube.data(),
+    cube.size(),
+    parameter,
+    physical_parameter);
+  
+  return std::make_pair(parameter, physical_parameter);
+}
+
+
+//convert the normalised cube values into the real parameter values
+//write back the parameter values into the cube for MultiNest output
 void Retrieval::convertHypercubeParameters(
   double *cube,
   const size_t nb_param,
@@ -79,6 +97,7 @@ void Retrieval::convertHypercubeParameters(
 }
 
 
+
 // Input arguments
 // ndim 						= dimensionality (total number of free parameters) of the problem
 // npars 						= total number of free plus derived parameters
@@ -97,71 +116,17 @@ void Retrieval::multinestLogLike(
   //we now recast it accordingly to use the retrieval object here
   Retrieval *retrieval_ptr = static_cast<Retrieval*>(context);
   
-  std::vector<double> parameter {};
-  std::vector<double> physical_parameter {};
+  std::vector<double> parameters {};
+  std::vector<double> physical_parameters {};
 
   retrieval_ptr->convertHypercubeParameters(
     cube, 
     nb_param, 
-    parameter, 
-    physical_parameter);
+    parameters, 
+    physical_parameters);
 
-  std::vector<double> model_spectrum(
-    retrieval_ptr->spectral_grid.nbSpectralPoints(), 
-    0.0);
-  
-  std::vector<std::vector<double>> model_spectrum_obs(
-    retrieval_ptr->nb_observations, 
-    std::vector<double>{});
-
-
-  bool neglect = retrieval_ptr->forward_model->calcModel(
-    physical_parameter, 
-    model_spectrum, 
-    model_spectrum_obs);
-
-
-  double error_inflation = 0;
-
-  if (retrieval_ptr->config->use_error_inflation)
-    error_inflation = std::pow(10, parameter.back());
-
-
-  double log_like = 0;
-
-  for (size_t i=0; i<retrieval_ptr->observations.size(); ++i)
-  {
-    for (size_t j=0; j<retrieval_ptr->observations[i].nbPoints(); ++j)
-    {
-      //Eq. 22 from Paper I
-      const double error_square = 
-        retrieval_ptr->observations[i].data_error[j] 
-        * retrieval_ptr->observations[i].data_error[j] 
-        + error_inflation;
-
-      const double obs_delta = retrieval_ptr->observations[i].data[j] - model_spectrum_obs[i][j];
-      
-      //Eq. 23 from Paper I
-      log_like += 
-        (- 0.5 * std::log(error_square* 2.0 * constants::pi)
-         - 0.5 * obs_delta*obs_delta / error_square)
-         * retrieval_ptr->observations[i].likelihood_weight[j];
-    }
-  }
-  
-  //if the forward model tells us to neglect the current set of parameters,
-  //set the likelihood to a low value
-  if (neglect == true) log_like = -1e30;
-
-
-  if (retrieval_ptr->config->multinest_print_iter_values)
-    std::cout << log_like << "\n";
-
-
-  lnew = log_like;
+  lnew = retrieval_ptr->logLikelihood(physical_parameters);
 }
-
-
 
 
 
@@ -194,55 +159,8 @@ void Retrieval::multinestLogLikeGPU(
     parameter, 
     physical_parameter);
   
-
-  double* spectrum = nullptr;
-  allocateOnDevice(
-    spectrum, 
-    retrieval_ptr->spectral_grid.nbSpectralPoints());
-
-
-  std::vector<double*> spectrum_obs{
-    retrieval_ptr->observations.size(), 
-    nullptr};
-
-  for (size_t i=0; i<retrieval_ptr->observations.size(); ++i)
-    allocateOnDevice(
-      spectrum_obs[i], 
-      retrieval_ptr->observations[i].nbPoints());
-
-
-  bool neglect = retrieval_ptr->forward_model->calcModelGPU(
-    physical_parameter, 
-    spectrum, 
-    spectrum_obs);
-
-
-  double error_inflation = 0;
-
-  if (retrieval_ptr->config->use_error_inflation)
-    error_inflation = std::pow(10, parameter.back());
-
-
-  double new_log_like = retrieval_ptr->logLikeDev(spectrum_obs, error_inflation);
-
-  //if the forward model tells us to neglect the current set of parameters,
-  //set the likelihood to a low value
-  if (neglect == true) new_log_like = -1e30;
-
-
-  deleteFromDevice(spectrum);
-
-  for (size_t i=0; i<retrieval_ptr->observations.size(); ++i)
-    deleteFromDevice(spectrum_obs[i]);
-
-
-  if (retrieval_ptr->config->multinest_print_iter_values)
-    std::cout << new_log_like << "\n";
-
-
-  lnew = new_log_like;
+  lnew = retrieval_ptr->logLikelihoodGPU(physical_parameter);
 }
-
 
 
 

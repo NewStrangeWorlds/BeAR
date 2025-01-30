@@ -60,6 +60,16 @@ class Retrieval{
     size_t nb_observations = 0;
 
     virtual bool run();
+
+    std::pair<std::vector<double>, std::vector<double>> convertCubeParameters(
+      std::vector<double>& cube);
+    
+    double computeLikelihood(
+      std::vector<double>& parameters);
+    
+    size_t nbParameters() {
+      return priors.number();}
+
   protected:
     ForwardModel* forward_model = nullptr;
     
@@ -75,6 +85,10 @@ class Retrieval{
       std::vector<std::string>& file_list,
       std::vector<std::string>& modifier_list);
   private:
+    double logLikelihood(
+      std::vector<double>& parameters);
+    double logLikelihoodGPU(
+      std::vector<double>& parameters);
     void convertHypercubeParameters(
       double *cube,
       const size_t nb_param,

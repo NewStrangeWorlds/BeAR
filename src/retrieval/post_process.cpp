@@ -76,8 +76,6 @@ bool PostProcess::run()
     deleteSamplerFiles(param.unused_posterior_files);
   }
 
-  delete forward_model;
-
   return true;
 }
 
@@ -177,7 +175,7 @@ void PostProcess::readPosteriorData()
 
 PostProcess::~PostProcess()
 {
-
+  delete forward_model;
 }
 
 
