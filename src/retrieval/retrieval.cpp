@@ -71,7 +71,7 @@ Retrieval::Retrieval(
   GlobalConfig* global_config,
   const std::string additional_observation_file) 
   : spectral_grid(global_config)
-{
+{ std::cout << "test1\n";
   config = global_config;
 
   std::signal(SIGCONT, signalHandler);

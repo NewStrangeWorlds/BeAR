@@ -9,6 +9,8 @@
 
 #include "../src/config/global_config.h"
 #include "../src/spectral_grid/spectral_grid.h"
+#include "../src/retrieval/retrieval.h"
+#include "../src/retrieval/post_process.h"
 #include "../src/forward_model/transmission/transmission.h"
 #include "../src/forward_model/secondary_eclipse/secondary_eclipse.h"
 
@@ -20,13 +22,25 @@ PYBIND11_MODULE(pybear, m) {
         .def(py::init<>())
         .def("loadConfigFile", &bear::GlobalConfig::loadConfigFile)
         .def_readwrite("forward_model_type", &bear::GlobalConfig::forward_model_type)
+        .def_readwrite("retrieval_folder_path", &bear::GlobalConfig::retrieval_folder_path)
         .def_readwrite("wavenumber_file_path", &bear::GlobalConfig::wavenumber_file_path)
         .def_readwrite("cross_section_file_path", &bear::GlobalConfig::cross_section_file_path)
         .def_readwrite("spectral_disecretisation", &bear::GlobalConfig::spectral_disecretisation)
         .def_readwrite("const_wavenumber_step", &bear::GlobalConfig::const_wavenumber_step)
         .def_readwrite("const_wavelength_step", &bear::GlobalConfig::const_wavelength_step)
         .def_readwrite("const_spectral_resolution", &bear::GlobalConfig::const_spectral_resolution)
+        .def_readwrite("multinest_print_iter_values", &bear::GlobalConfig::multinest_print_iter_values)
         .def_readwrite("use_gpu", &bear::GlobalConfig::use_gpu);
+
+    py::class_<bear::Retrieval>(m, "Retrieval")
+        .def(py::init<bear::GlobalConfig*>())
+        .def("nbParameters", &bear::Retrieval::nbParameters)
+        .def("convertCubeParameters", &bear::Retrieval::convertCubeParameters)
+        .def("computeLikelihood", &bear::Retrieval::computeLikelihood);
+
+    py::class_<bear::PostProcess>(m, "PostProcess")
+        .def(py::init<bear::GlobalConfig*>())
+        .def("run", &bear::PostProcess::run);
 
     py::class_<bear::SpectralGrid>(m, "SpectralGrid")
         .def(py::init<bear::GlobalConfig*>())

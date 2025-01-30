@@ -6,6 +6,51 @@ import numpy as np
 valid_spectral_discretisations = {'const_wavenumber', 'const_wavelength', 'const_resolution'}
 
 
+class BeARTransmissionRetrieval:
+
+  def __init__(
+      self,
+      use_gpu,
+      retrieval_folder,
+      spectral_discretisation,
+      resolution,
+      cross_section_file_path, 
+      wavenumber_file_path = None) :
+    
+    self.bear_config = pybear.GlobalConfig()
+    
+    self.bear_config.use_gpu = np.bool_(use_gpu)
+    self.bear_config.forward_model_type = "transmission"
+    self.bear_config.cross_section_file_path = cross_section_file_path
+
+    self.bear_config.retrieval_folder_path = retrieval_folder
+
+    self.bear_config.multinest_print_iter_values = False
+
+    if wavenumber_file_path is not None:
+      self.bear_config.wavenumber_file_path = wavenumber_file_path
+    else :
+      self.bear_config.wavenumber_file_path = ""
+    
+    if spectral_discretisation == 'const_wavenumber':
+      self.bear_config.spectral_disecretisation = 0
+      self.bear_config.const_wavenumber_step = resolution
+
+    if spectral_discretisation == 'const_wavelength':
+      self.bear_config.spectral_disecretisation = 1
+      self.bear_config.const_wavelength_step = resolution
+
+    if spectral_discretisation == 'const_resolution':
+      self.bear_config.spectral_disecretisation = 2
+      self.bear_config.const_spectral_resolution = resolution
+   
+    self.retrieval = pybear.Retrieval(self.bear_config)
+
+  def postProcess(self):
+     self.post_process = pybear.PostProcess(self.bear_config)
+     self.post_process.run()
+
+
 class BeARTransmissionModel:
 
   def __init__(
