@@ -11,6 +11,7 @@
 #include "../src/spectral_grid/spectral_grid.h"
 #include "../src/retrieval/retrieval.h"
 #include "../src/retrieval/post_process.h"
+#include "../src/forward_model/forward_model.h"
 #include "../src/forward_model/transmission/transmission.h"
 #include "../src/forward_model/secondary_eclipse/secondary_eclipse.h"
 
@@ -32,11 +33,18 @@ PYBIND11_MODULE(pybear, m) {
         .def_readwrite("multinest_print_iter_values", &bear::GlobalConfig::multinest_print_iter_values)
         .def_readwrite("use_gpu", &bear::GlobalConfig::use_gpu);
 
+    py::class_<bear::ForwardModelOutput>(m, "ForwardModelOutput")
+        .def(py::init<>())
+        .def_readwrite("neglect_model", &bear::ForwardModelOutput::neglect_model)
+        .def_readwrite("spectrum", &bear::ForwardModelOutput::spectrum)
+        .def_readwrite("spectrum_obs", &bear::ForwardModelOutput::spectrum_obs);
+
     py::class_<bear::Retrieval>(m, "Retrieval")
         .def(py::init<bear::GlobalConfig*>())
         .def("nbParameters", &bear::Retrieval::nbParameters)
         .def("convertCubeParameters", &bear::Retrieval::convertCubeParameters)
-        .def("computeLikelihood", &bear::Retrieval::computeLikelihood);
+        .def("computeLikelihood", &bear::Retrieval::computeLikelihood)
+        .def("computeModel", &bear::Retrieval::computeModel);
 
     py::class_<bear::PostProcess>(m, "PostProcess")
         .def(py::init<bear::GlobalConfig*>())

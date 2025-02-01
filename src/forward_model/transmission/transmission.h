@@ -104,6 +104,7 @@ class TransmissionPostProcessConfig : public GenericConfig{
 };
 
 
+
 class TransmissionModel : public ForwardModel{
   public:
     TransmissionModel (
@@ -130,6 +131,10 @@ class TransmissionModel : public ForwardModel{
       const std::vector<double>& parameter, 
       double* spectrum, 
       std::vector<double*>& spectrum_obs);
+
+    virtual ForwardModelOutput calcModel(
+      const std::vector<double>& physical_parameter,
+      const bool return_atmosphere_structure);
     
     virtual void postProcess(
       const std::vector< std::vector<double> >& model_parameter,
@@ -171,8 +176,7 @@ class TransmissionModel : public ForwardModel{
           + nb_temperature_param 
           + nb_total_cloud_param
           + nb_total_modules_param
-          + nb_spectrum_modifier_param;
-      }
+          + nb_spectrum_modifier_param;};
     
     size_t nb_grid_points = 0;
 

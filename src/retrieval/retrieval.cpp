@@ -60,9 +60,7 @@ void signalHandler(int sig)
 Retrieval::Retrieval(GlobalConfig* global_config) 
   : Retrieval(global_config, std::string(""))
 {
-  config = global_config;
-
-  std::signal(SIGCONT, signalHandler);
+  
 }
 
 
@@ -71,7 +69,7 @@ Retrieval::Retrieval(
   GlobalConfig* global_config,
   const std::string additional_observation_file) 
   : spectral_grid(global_config)
-{ std::cout << "test1\n";
+{ 
   config = global_config;
 
   std::signal(SIGCONT, signalHandler);
@@ -378,6 +376,13 @@ double Retrieval::logLikelihoodGPU(
   return log_like;
 }
 
+
+
+ForwardModelOutput Retrieval::computeModel(
+  std::vector<double>& physical_parameters)
+{
+  return forward_model->calcModel(physical_parameters, false);
+}
 
 
 

@@ -40,7 +40,7 @@ void signalHandler(int sig);
 
 //forward declaration
 class ForwardModel;
-
+struct ForwardModelOutput;
 
 
 //the main class that does the retrieval
@@ -66,6 +66,9 @@ class Retrieval{
     
     double computeLikelihood(
       std::vector<double>& parameters);
+
+    ForwardModelOutput computeModel(
+      std::vector<double>& physical_parameters);
     
     size_t nbParameters() {
       return priors.number();}

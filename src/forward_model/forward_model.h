@@ -38,6 +38,14 @@
 namespace bear {
 
 
+
+struct ForwardModelOutput{
+  bool neglect_model = false;
+  std::vector<double> spectrum;
+  std::vector<std::vector<double>> spectrum_obs;
+};
+
+
 //abstract class for the forward model
 //a derived class *has to* implement all the various, virtual methods
 class ForwardModel{
@@ -50,18 +58,21 @@ class ForwardModel{
     //calculate a model on the CPU
     //the return value signals the retrieval to neglect this model
     virtual bool calcModel(
-      const std::vector<double>& parameter, 
+      const std::vector<double>& physical_parameters, 
       std::vector<double>& spectrum, 
       std::vector<std::vector<double>>& spectrum_obs) = 0;
     //calculate a model on the GPU
     //the return value signals the retrieval to neglect this model
     virtual bool calcModelGPU(
-      const std::vector<double>& parameter, 
+      const std::vector<double>& physical_parameters, 
       double* spectrum, 
       std::vector<double*>& spectrum_obs) = 0;
+    virtual ForwardModelOutput calcModel(
+      const std::vector<double>& physical_parameter,
+      const bool return_atmosphere_structure) {};
     //model-specific post process
     virtual void postProcess(
-      const std::vector< std::vector<double> >& model_parameter,
+      const std::vector< std::vector<double> >& posterior_parameters,
       const size_t best_fit_model,
       bool& delete_unused_files) = 0;
     //model-specific tests

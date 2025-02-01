@@ -61,6 +61,22 @@ __host__ void moveToHost(T*& device_data, std::vector<T>& host_data)
 
 
 template <typename T> 
+__host__ void moveToHostAndDelete(T*& device_data, std::vector<T>& host_data)
+{
+  const int bytes = host_data.size()*sizeof(T);
+
+  cudaMemcpy(host_data.data(), device_data, bytes, cudaMemcpyDeviceToHost);
+
+  cudaDeviceSynchronize();
+  gpuErrchk( cudaPeekAtLastError() );
+  gpuErrchk( cudaDeviceSynchronize() );
+
+  deleteFromDevice(device_data);
+}
+
+
+
+template <typename T> 
 __host__ void allocateOnDevice(T*& device_data, const size_t nb_values)
 {
   const int bytes = nb_values*sizeof(T);
@@ -124,6 +140,9 @@ __host__ void initializeOnDevice(T*& device_data, const size_t nb_points)
 
 template void moveToHost<double>(double*&, std::vector<double>&);
 template void moveToHost<int>(int*&, std::vector<int>&);
+
+template void moveToHostAndDelete<double>(double*&, std::vector<double>&);
+template void moveToHostAndDelete<int>(int*&, std::vector<int>&);
 
 template void deleteFromDevice<double>(double*&);
 template void deleteFromDevice<int>(int*&);

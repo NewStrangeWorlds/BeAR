@@ -14,6 +14,12 @@ cross_section_file_path = "/media/data/opacity_data/helios-k/"
 use_gpu = True
 retrieval_folder = "../test_trans/"
 
+
+observation = np.loadtxt("../test_trans/WASP-12b_kreidberg.dat", skiprows=11)
+obs_data = observation[:,2]
+obs_error = observation[:,3]
+
+
 #create the BeAR forward model
 bear_transmission = BeARTransmissionRetrieval(
   use_gpu,
@@ -58,16 +64,23 @@ def loglike2(cube, ndim, nparams):
 
   output = bear_transmission.retrieval.computeModel(physical_parameters)
   
-  new_log_like = 0
+  model_spectrum_obs = np.array(output.spectrum_obs[0])
 
-  
+  obs_delta = obs_data - model_spectrum_obs
 
-  return new_log_like
+  log_like = 0
+
+  for i in range(obs_data.size):
+    error_square = obs_error[i]**2
+    log_like += (- 0.5 * np.log(error_square* 2.0 * np.pi)
+                 - 0.5 * obs_delta[i]**2 / error_square)
+
+  return log_like
 
 
 print("Starting retrieval")
 pymultinest.run(
-  loglike, 
+  loglike2, 
   priors, 
   bear_transmission.retrieval.nbParameters(), 
 	resume = False, 

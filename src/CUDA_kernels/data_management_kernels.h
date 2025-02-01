@@ -31,6 +31,7 @@ template <typename T> void allocateOnDevice(T*& device_data, size_t nb_double_va
 template <typename T> void moveToDevice(T*& device_data, std::vector<T>& host_data, const bool alloc_memory);
 template <typename T> void moveToDevice(T*& device_data, std::vector<T>& host_data);
 template <typename T> void moveToHost(T*& device_data, std::vector<T>& host_data);
+template <typename T> void moveToHostAndDelete(T*& device_data, std::vector<T>& host_data);
 template <typename T> void deleteFromDevice(T*& device_data);
 template <typename T> void initializeOnDevice(T*& device_data, const size_t nb_points);
 

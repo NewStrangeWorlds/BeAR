@@ -48,7 +48,7 @@ class PostProcess : public Retrieval{
     
     virtual bool run();
   private:
-    std::vector< std::vector<double> > model_parameter;      //the values of the posteriors
+    std::vector<std::vector<double>> model_parameter;      //the values of the posteriors
     std::vector<double> log_like;                            //and their likelihood values
  
     size_t best_fit_model = 0;                               //best-fit model
