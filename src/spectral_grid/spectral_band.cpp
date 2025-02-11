@@ -39,7 +39,7 @@ void SpectralBands::init(
   const std::vector<double>& obs_wavelength_range_, 
   const std::vector< std::vector<double> >& obs_band_edges, 
   const std::vector<double>& obs_band_centres, 
-  const BandType type)
+  const band_type::id type)
 {
   band_type = type;
   center_wavelengths = obs_band_centres;

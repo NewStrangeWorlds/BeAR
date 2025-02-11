@@ -34,8 +34,36 @@
 namespace bear{
 
 
-//load the observational data
-//input value is the location of the retrieval folder
+
+void Retrieval::setObservations(
+  const std::vector<ObservationInput>& observation_input)
+{
+  nb_observations = observation_input.size();
+
+  observations.assign(nb_observations, Observation(config, &spectral_grid));
+
+  for (size_t i=0; i<nb_observations; ++i)
+    observations[i].init(observation_input[i]);
+
+  spectral_grid.sampleSpectralGrid(observations);
+
+  for (auto & i : observations)
+  {
+    i.spectral_bands.setInstrumentProfileFWHW(i.instrument_profile_fwhm);
+    i.setFilterResponseFunction();
+    i.printObservationDetails();
+    i.spectral_bands.initDeviceMemory();
+    i.initDeviceMemory();
+  }
+
+  std::cout << "loaded observations: \n";
+
+  for (size_t i=0; i<nb_observations; ++i)
+    std::cout << "name " << observations[i].observationName() << "\n";
+}
+
+
+
 void Retrieval::loadObservations(
   const std::string file_folder, 
   const std::vector<std::string>& file_list,

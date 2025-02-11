@@ -30,7 +30,6 @@
 
 #include "../../config/global_config.h"
 #include "../../spectral_grid/spectral_grid.h"
-#include "../../retrieval/priors.h"
 #include "../../observations/observations.h"
 #include "../../additional/physical_const.h"
 #include "../../additional/exceptions.h"
@@ -43,7 +42,6 @@ namespace bear{
 
 EmissionModel::EmissionModel (
   const EmissionModelConfig model_config,
-  Priors* priors_,
   GlobalConfig* config_,
   SpectralGrid* spectral_grid_,
   std::vector<Observation>& observations_)
@@ -69,8 +67,6 @@ EmissionModel::EmissionModel (
   nb_general_param = 3;
 
   initModules(model_config);
-
-  setPriors(priors_);
 }
 
 
@@ -160,7 +156,7 @@ bool EmissionModel::calcAtmosphereStructure(const std::vector<double>& parameter
 
 
 //Runs the forward model on the CPU and calculates a high-resolution spectrum
-bool EmissionModel::calcModel(
+bool EmissionModel::calcModelCPU(
   const std::vector<double>& parameters, 
   std::vector<double>& spectrum, 
   std::vector<std::vector<double>>& spectrum_obs)

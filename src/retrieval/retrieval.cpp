@@ -35,11 +35,13 @@
 #include "priors.h"
 #include "../observations/observations.h"
 #include "../forward_model/forward_model.h"
+#include "../forward_model/generic_config.h"
 
 #include "../../_deps/multinest-src/MultiNest_v3.12_CMake/multinest/include/multinest.h"
 #include "../CUDA_kernels/data_management_kernels.h"
 #include "../additional/exceptions.h"
 
+#include "../forward_model/transmission/transmission.h"
 
 
 namespace bear{
@@ -61,6 +63,39 @@ Retrieval::Retrieval(GlobalConfig* global_config)
   : Retrieval(global_config, std::string(""))
 {
   
+}
+
+
+
+Retrieval::Retrieval(
+  GlobalConfig* global_config,
+  GenericConfig* model_config,
+  const std::vector<ObservationInput>& observation_input,
+  const std::vector<PriorConfig>& prior_config)
+  : spectral_grid(global_config)
+{
+  config = global_config;
+
+  try
+  {
+    setObservations(observation_input);
+    
+    std::cout << "\nTotal number of wavelength points: " 
+              << spectral_grid.nbSpectralPoints() << "\n\n";
+
+    forward_model = selectForwardModel(config->forward_model_type, model_config);
+
+    priors.init(prior_config, forward_model->parametersNumber());
+  }
+  catch(std::runtime_error& e) 
+  {
+    std::cout << e.what() << std::endl;
+    exit(1);
+  }
+  
+  setAdditionalPriors();
+
+  priors.printInfo();
 }
 
 
@@ -109,9 +144,12 @@ Retrieval::Retrieval(
       file_list,
       modifier_list);
   
-    std::cout << "\nTotal number of wavelength points: " << spectral_grid.nbSpectralPoints() << "\n\n";
+    std::cout << "\nTotal number of wavelength points: " 
+              << spectral_grid.nbSpectralPoints() << "\n\n";
 
-    forward_model = selectForwardModel(config->forward_model_type);
+    forward_model = selectForwardModel(config->forward_model_type, nullptr);
+
+    priors.init(config->retrieval_folder_path, forward_model->parametersNumber());
   }
   catch(std::runtime_error& e) 
   {
@@ -239,9 +277,11 @@ void Retrieval::setAdditionalPriors()
     error_max = std::log10(100.0 * error_max * error_max);
 
     priors.add(
-      std::vector<std::string>{std::string("uniform")}, 
-      std::vector<std::string>{std::string("error exponent")}, 
-      std::vector<std::vector<std::string>>{std::vector<std::string> {std::to_string(error_min), std::to_string(error_max)}});
+      std::vector<PriorConfig> {
+        PriorConfig(
+          std::string("uniform"), 
+          std::string("error exponent"), 
+          std::vector<double>{error_min, error_max})});
   }
 }
 
@@ -278,7 +318,7 @@ double Retrieval::logLikelihood(
     std::vector<double>{});
 
 
-  bool neglect = forward_model->calcModel(
+  bool neglect = forward_model->calcModelCPU(
     physical_parameters, 
     model_spectrum, 
     model_spectrum_obs);
@@ -379,9 +419,10 @@ double Retrieval::logLikelihoodGPU(
 
 
 ForwardModelOutput Retrieval::computeModel(
-  std::vector<double>& physical_parameters)
+  std::vector<double>& physical_parameters,
+  const bool return_high_res_spectrum)
 {
-  return forward_model->calcModel(physical_parameters, false);
+  return forward_model->calcModel(physical_parameters, return_high_res_spectrum);
 }
 
 

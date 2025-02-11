@@ -41,6 +41,7 @@ void signalHandler(int sig);
 //forward declaration
 class ForwardModel;
 struct ForwardModelOutput;
+class GenericConfig;
 
 
 //the main class that does the retrieval
@@ -50,6 +51,11 @@ class Retrieval{
       GlobalConfig* global_config, 
       const std::string additional_observation_file);
     Retrieval(GlobalConfig* global_config);
+    Retrieval(
+      GlobalConfig* global_config,
+      GenericConfig* model_config,
+      const std::vector<ObservationInput>& observation_input,
+      const std::vector<PriorConfig>& prior_config);
     ~Retrieval();
     
     GlobalConfig* config = nullptr;
@@ -68,7 +74,8 @@ class Retrieval{
       std::vector<double>& parameters);
 
     ForwardModelOutput computeModel(
-      std::vector<double>& physical_parameters);
+      std::vector<double>& physical_parameters,
+      const bool return_high_res_spectrum);
     
     size_t nbParameters() {
       return priors.number();}
@@ -77,8 +84,12 @@ class Retrieval{
     ForwardModel* forward_model = nullptr;
     
     ForwardModel* selectForwardModel(
-       const std::string model_description);
+       const std::string model_description,
+       GenericConfig* model_config);
     void setAdditionalPriors();
+    
+    void setObservations(
+      const std::vector<ObservationInput>& observation_input);
     void loadObservations(
       const std::string file_folder, 
       const std::vector<std::string>& file_list,

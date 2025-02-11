@@ -44,7 +44,6 @@ namespace bear{
 
 TransmissionModel::TransmissionModel (
   const TransmissionModelConfig model_config,
-  Priors* priors_,
   GlobalConfig* config_,
   SpectralGrid* spectral_grid_,
   std::vector<Observation>& observations_)
@@ -78,9 +77,8 @@ TransmissionModel::TransmissionModel (
 
   //select and set up the modules
   initModules(model_config);
-
-  setPriors(priors_);
 }
+
 
 
 TransmissionModel::TransmissionModel (
@@ -198,14 +196,14 @@ bool TransmissionModel::calcAtmosphereStructure(const std::vector<double>& param
 
 
 //Runs the forward model on the CPU and calculates a high-resolution spectrum
-bool TransmissionModel::calcModel(
-  const std::vector<double>& parameter, 
+bool TransmissionModel::calcModelCPU(
+  const std::vector<double>& parameters, 
   std::vector<double>& spectrum, 
   std::vector<std::vector<double>>& spectrum_obs)
 {
-  extractParameters(parameter);
+  extractParameters(parameters);
 
-  bool neglect = calcAtmosphereStructure(parameter);
+  bool neglect = calcAtmosphereStructure(parameters);
 
 
   opacity_calc.calculate(cloud_models, cloud_parameters);
@@ -225,8 +223,8 @@ bool TransmissionModel::calcModel(
   }
   
 
-  const double bottom_radius = parameter[1];
-  const double star_radius = parameter[2];
+  const double bottom_radius = parameters[1];
+  const double star_radius = parameters[2];
   
   calcTransmissionSpectrum(bottom_radius, star_radius, spectrum);
 
@@ -465,72 +463,6 @@ std::vector<double> TransmissionModel::calcSpectrum(
   }
 
   return spectrum;
-}
-
-
-
-
-ForwardModelOutput TransmissionModel::calcModel(
-  const std::vector<double>& physical_parameters,
-  const bool return_atmosphere_structure)
-{
-  ForwardModelOutput output;
-
-  output.spectrum.assign(
-    spectral_grid->nbSpectralPoints(), 
-    0.0);
-
-  output.spectrum_obs.resize(observations.size());
-
-  for (size_t i=0; i<output.spectrum_obs.size(); ++i)
-    output.spectrum_obs[i].assign(
-      observations[i].nbPoints(), 
-      0.0);
-
-
-  if (config->use_gpu)
-  {
-    double* spectrum = nullptr;
-    
-    allocateOnDevice(
-      spectrum, 
-      spectral_grid->nbSpectralPoints());
-
-    std::vector<double*> spectrum_obs{
-      observations.size(), 
-      nullptr};
-
-    for (size_t i=0; i<observations.size(); ++i)
-      allocateOnDevice(
-        spectrum_obs[i], 
-        observations[i].nbPoints());
-
-    output.neglect_model = calcModelGPU(
-      physical_parameters, 
-      spectrum, 
-      spectrum_obs);
-
-    moveToHostAndDelete(spectrum, output.spectrum);
-
-    for (size_t i=0; i<observations.size(); ++i)
-      moveToHostAndDelete(spectrum_obs[i], output.spectrum_obs[i]);
-  }
-  else
-  {
-    output.neglect_model = calcModel(
-      physical_parameters, 
-      output.spectrum, 
-      output.spectrum_obs);
-  }
-
-  for (size_t i=0; i<observations.size(); ++i)
-  {
-    if (observations[i].ascending_wavelengths)
-      std::reverse(output.spectrum_obs[i].begin(), output.spectrum_obs[i].end());
-  }
-  
-  
-  return output;
 }
 
 

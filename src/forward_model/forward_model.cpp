@@ -57,41 +57,73 @@ ForwardModel::ForwardModel (
 
 
 
-void ForwardModel::readPriorConfigFile(
-  const std::string& file_path, 
-  std::vector<std::string>& prior_type, 
-  std::vector<std::string>& prior_description, 
-  std::vector<std::vector<std::string>>& prior_parameter)
+ForwardModelOutput ForwardModel::calcModel(
+  const std::vector<double>& physical_parameters,
+  const bool return_high_res_spectrum)
 {
-  std::fstream file;
-  file.open(file_path.c_str(), std::ios::in);
+  ForwardModelOutput output;
 
-  if (file.fail())  
-    throw FileNotFound(std::string ("ForwardModel::readPriorConfigFile"), file_path);
+  output.spectrum.assign(
+    spectral_grid->nbSpectralPoints(), 
+    0.0);
+
+  output.spectrum_obs.resize(observations.size());
+
+  for (size_t i=0; i<output.spectrum_obs.size(); ++i)
+    output.spectrum_obs[i].assign(
+      observations[i].nbPoints(), 
+      0.0);
 
 
-  std::string line;
-
-  while (std::getline(file, line))
+  if (config->use_gpu)
   {
-    std::istringstream input(line);
+    double* spectrum = nullptr;
+    
+    allocateOnDevice(
+      spectrum, 
+      spectral_grid->nbSpectralPoints());
 
-    std::string type, description;
-    std::vector<std::string> parameter;
+    std::vector<double*> spectrum_obs{
+      observations.size(), 
+      nullptr};
 
-    input >> type >> description;
+    for (size_t i=0; i<observations.size(); ++i)
+      allocateOnDevice(
+        spectrum_obs[i], 
+        observations[i].nbPoints());
 
-    std::string single_parameter;
+    output.neglect_model = calcModelGPU(
+      physical_parameters, 
+      spectrum, 
+      spectrum_obs);
+    
+    if (return_high_res_spectrum)
+      moveToHostAndDelete(spectrum, output.spectrum);
+    else
+      deleteFromDevice(spectrum);
 
-    while (input >> single_parameter)
-      parameter.push_back(single_parameter);
+    for (size_t i=0; i<observations.size(); ++i)
+      moveToHostAndDelete(spectrum_obs[i], output.spectrum_obs[i]);
+  }
+  else
+  {
+    output.neglect_model = calcModelCPU(
+      physical_parameters, 
+      output.spectrum, 
+      output.spectrum_obs);
 
-    prior_type.push_back(type);
-    prior_description.push_back(description);
-    prior_parameter.push_back(parameter);
+    if (return_high_res_spectrum == false)
+     output.spectrum.clear();
   }
 
-  file.close();
+  for (size_t i=0; i<observations.size(); ++i)
+  {
+    if (observations[i].ascending_wavelengths)
+      std::reverse(output.spectrum_obs[i].begin(), output.spectrum_obs[i].end());
+  }
+  
+  
+  return output;
 }
 
 
@@ -239,7 +271,7 @@ void ForwardModel::calcPostProcessSpectrum(
   }
   else
   {
-    calcModel(model_parameter, spectrum, spectrum_obs);
+    calcModelCPU(model_parameter, spectrum, spectrum_obs);
   }
 }
 
@@ -342,7 +374,7 @@ bool ForwardModel::testCPUvsGPU(const std::vector<double>& parameters)
     observations.size(), 
     std::vector<double>{});
 
-  calcModel(parameters, spectrum_cpu, spectrum_obs_cpu);
+  calcModelCPU(parameters, spectrum_cpu, spectrum_obs_cpu);
   
   std::cout << "done.\n\n";
   

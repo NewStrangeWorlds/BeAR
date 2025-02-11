@@ -35,13 +35,14 @@ namespace bear{
 
 //Selects and initialises the forward model based on the option found in retrieval.config
 //Exits with an error if the selected forward model is unkown
-ForwardModel* Retrieval::selectForwardModel(const std::string model_description)
+ForwardModel* Retrieval::selectForwardModel(
+  const std::string model_description,
+  GenericConfig* model_config)
 {
   if (model_description == "emission" || model_description == "Emission" || model_description == "em")
   {
     EmissionModel* model = new EmissionModel(
       EmissionModelConfig (config->retrieval_folder_path),
-      &priors,
       config,
       &spectral_grid,
       observations);
@@ -54,7 +55,6 @@ ForwardModel* Retrieval::selectForwardModel(const std::string model_description)
   {
     SecondaryEclipseModel* model = new SecondaryEclipseModel(
       SecondaryEclipseConfig (config->retrieval_folder_path),
-      &priors,
       config,
       &spectral_grid,
       observations);
@@ -65,21 +65,34 @@ ForwardModel* Retrieval::selectForwardModel(const std::string model_description)
 
   if (model_description == "transmission" || model_description == "Transmission" || model_description == "trans")
   {
-    TransmissionModel* model = new TransmissionModel(
-      TransmissionModelConfig (config->retrieval_folder_path),
-      &priors,
-      config,
-      &spectral_grid,
-      observations);
+    if (model_config == nullptr)
+    {
+      TransmissionModel* model = new TransmissionModel(
+        TransmissionModelConfig (config->retrieval_folder_path),
+        config,
+        &spectral_grid,
+        observations);
 
-    return model;
+      return model;
+    }
+    else
+    {
+      TransmissionModelConfig* c = dynamic_cast<TransmissionModelConfig*>(model_config);
+
+      TransmissionModel* model = new TransmissionModel(
+        *c,
+        config,
+        &spectral_grid,
+        observations);
+
+      return model;
+    }
   }
 
 
   if (model_description == "flat_line" || model_description == "Flat_line" || model_description == "fl")
   {
     FlatLine* model = new FlatLine(
-      &priors,
       config,
       &spectral_grid,
       observations);
@@ -92,7 +105,6 @@ ForwardModel* Retrieval::selectForwardModel(const std::string model_description)
   {
     SecondaryEclipseBlackBodyModel* model = new SecondaryEclipseBlackBodyModel(
       SecondaryEclipseBlackBodyConfig (config->retrieval_folder_path),
-      &priors,
       config,
       &spectral_grid,
       observations);

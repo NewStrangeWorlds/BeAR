@@ -30,7 +30,6 @@
 
 #include "../../config/global_config.h"
 #include "../../spectral_grid/spectral_grid.h"
-#include "../../retrieval/priors.h"
 #include "../../observations/observations.h"
 #include "../../additional/aux_functions.h"
 #include "../../additional/physical_const.h"
@@ -48,7 +47,6 @@ namespace bear{
 
 SecondaryEclipseModel::SecondaryEclipseModel (
   const SecondaryEclipseConfig model_config,
-  Priors* priors_,
   GlobalConfig* config_,
   SpectralGrid* spectral_grid_,
   std::vector<Observation>& observations_) 
@@ -74,8 +72,6 @@ SecondaryEclipseModel::SecondaryEclipseModel (
   nb_general_param = 2;
 
   initModules(model_config);
-
-  setPriors(priors_);
 }
 
 
@@ -182,7 +178,7 @@ bool SecondaryEclipseModel::calcAtmosphereStructure(const std::vector<double>& p
 
 
 //Runs the forward model on the CPU and calculates a high-resolution spectrum
-bool SecondaryEclipseModel::calcModel(
+bool SecondaryEclipseModel::calcModelCPU(
   const std::vector<double>& parameters, 
   std::vector<double>& spectrum, 
   std::vector<std::vector<double>>& spectrum_obs)

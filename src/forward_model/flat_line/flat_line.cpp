@@ -30,7 +30,6 @@
 
 #include "../../config/global_config.h"
 #include "../../spectral_grid/spectral_grid.h"
-#include "../../retrieval/priors.h"
 #include "../../observations/observations.h"
 #include "../../additional/physical_const.h"
 #include "../../additional/exceptions.h"
@@ -41,7 +40,6 @@ namespace bear{
 
 
 FlatLine::FlatLine (
-  Priors* priors_,
   GlobalConfig* config_,
   SpectralGrid* spectral_grid_,
   std::vector<Observation>& observations_)
@@ -51,13 +49,11 @@ FlatLine::FlatLine (
 
   //this forward model has three free general parameters
   nb_general_param = 1;
-
-  setPriors(priors_);
 }
 
 
 //Runs the forward model on the CPU and calculates a high-resolution spectrum
-bool FlatLine::calcModel(
+bool FlatLine::calcModelCPU(
   const std::vector<double>& parameter, 
   std::vector<double>& spectrum, 
   std::vector<std::vector<double>>& spectrum_obs)

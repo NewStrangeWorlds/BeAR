@@ -45,12 +45,12 @@ class SpectralBands{
         spectral_grid(spectral_grid_)
       {}
     ~SpectralBands();
-    BandType bandType() const {return band_type;}
+    band_type::id bandType() const {return band_type;}
     void init(
       const std::vector<double>& obs_wavelength_range,
       const std::vector< std::vector<double> >& band_edges,
       const std::vector<double>& band_centres,
-      const BandType type);
+      const band_type::id type);
     void init();
 
     void initDeviceMemory();
@@ -95,7 +95,7 @@ class SpectralBands{
   private:
     GlobalConfig* config = nullptr;
     SpectralGrid* spectral_grid = nullptr;
-    BandType band_type;
+    band_type::id band_type;
     size_t nb_bands = 0;                                                   //number of sub-bands/bins 
 
     double bandIntegrateSpectrumFlux(

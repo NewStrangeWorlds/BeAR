@@ -32,7 +32,6 @@
 
 #include "../../config/global_config.h"
 #include "../../spectral_grid/spectral_grid.h"
-#include "../../retrieval/priors.h"
 #include "../../observations/observations.h"
 
 #include "../stellar_spectrum/stellar_spectrum.h"
@@ -69,12 +68,15 @@ class SecondaryEclipseBlackBodyModel : public ForwardModel{
   public:
     SecondaryEclipseBlackBodyModel (
       const SecondaryEclipseBlackBodyConfig model_config,
-      Priors* priors_,
       GlobalConfig* config_,
       SpectralGrid* spectral_grid_,
       std::vector<Observation>& observations_);
     virtual ~SecondaryEclipseBlackBodyModel();
-    virtual bool calcModel(
+    
+    virtual size_t parametersNumber() {
+      return nb_total_param();};
+
+    virtual bool calcModelCPU(
       const std::vector<double>& parameter,
       std::vector<double>& spectrum,
       std::vector<std::vector<double>>& spectrum_obs);
@@ -102,7 +104,6 @@ class SecondaryEclipseBlackBodyModel : public ForwardModel{
              + nb_spectrum_modifier_param;
     }
 
-    virtual void setPriors(Priors* priors);
     void initModules(const SecondaryEclipseBlackBodyConfig& model_config);
 
     std::vector<double> model_parameters;

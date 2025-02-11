@@ -32,7 +32,6 @@
 
 #include "../../config/global_config.h"
 #include "../../spectral_grid/spectral_grid.h"
-#include "../../retrieval/priors.h"
 #include "../../observations/observations.h"
 #include "../atmosphere/atmosphere.h"
 #include "../../cloud_model/cloud_model.h"
@@ -99,13 +98,15 @@ class EmissionModel : public ForwardModel{
   public:
     EmissionModel (
       const EmissionModelConfig model_config,
-      Priors* priors_,
       GlobalConfig* config_, 
       SpectralGrid* spectral_grid_,
       std::vector<Observation>& observations_);
     virtual ~EmissionModel();
+
+    virtual size_t parametersNumber() {
+      return nb_total_param();};
     
-    virtual bool calcModel(
+    virtual bool calcModelCPU(
       const std::vector<double>& parameter, 
       std::vector<double>& spectrum, 
       std::vector<std::vector<double>>& spectrum_obs);
@@ -145,7 +146,6 @@ class EmissionModel : public ForwardModel{
     
     size_t nb_grid_points = 0;
 
-    virtual void setPriors(Priors* priors);
     void initModules(const EmissionModelConfig& model_config);
 
     std::vector<double> model_parameters;

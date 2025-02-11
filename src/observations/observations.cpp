@@ -38,10 +38,193 @@
 namespace bear{
 
 
-void Observation::init(const std::string& file_name, const std::string spectrum_modifier_id)
+
+void Observation::init(const ObservationInput& input)
+{
+  setSpectrumModifier(input.spectrum_modifier_id);
+
+  observation_name = input.name;
+
+  band_type::id band_type = selectBandType(input.type, observation_name);
+
+  instrument_profile_fwhm = input.instrument_profile_fwhm;
+  data = input.data;
+  data_error = input.data_error;
+
+  if (input.likelihood_weight.size() == 0)
+    likelihood_weight = std::vector<double>(data.size(), 1.0);
+  else
+    likelihood_weight = input.likelihood_weight;
+
+  filter_response = input.filter_response;
+
+  std::vector<std::vector<double>> bin_edges;
+  std::vector<double> bin_centers;
+
+  if (band_type == band_type::id::spectroscopy)
+  {
+    bin_centers = input.wavelengths;
+    
+    ascending_wavelengths = areWavelengthsAscending(bin_centers);
+
+    bin_edges = calcBinEdges(bin_centers);
+  }
+  else
+  { 
+    bin_edges = input.bin_wavelength_edges;
+    
+    ascending_wavelengths = areWavelengthsAscending(bin_edges);
+
+    bin_centers = calcBinCenters(bin_edges);
+  }
+ 
+  setObservationEdges(bin_edges);
+
+  spectral_bands.init(
+    wavelength_edges, 
+    bin_edges, 
+    bin_centers, 
+    band_type);
+}
+
+
+
+void Observation::init(
+  const std::string& file_name, 
+  const std::string spectrum_modifier_id)
 {
   setSpectrumModifier(spectrum_modifier_id);
   loadFile(file_name);
+}
+
+
+
+//wavelengths should be ordered in descending order because the 
+//opacity data is organized in ascending wavenumbers
+bool Observation::areWavelengthsAscending(
+  std::vector<double>& wavelengths)
+{
+  bool ascending = true;
+
+  if (wavelengths.size() > 1)
+  {
+    if (wavelengths[0] < wavelengths[1])
+    {
+      ascending = true;
+
+      std::reverse(wavelengths.begin(), wavelengths.end());
+      std::reverse(data.begin(), data.end());
+      std::reverse(data_error.begin(), data_error.end());
+      std::reverse(instrument_profile_fwhm.begin(), instrument_profile_fwhm.end());
+      std::reverse(likelihood_weight.begin(), likelihood_weight.end());
+    }
+    else
+      ascending = false;
+  }
+  else
+    return false;
+
+  return ascending;
+}
+
+
+//wavelengths should be ordered in descending order because the 
+//opacity data is organized in ascending wavenumbers
+bool Observation::areWavelengthsAscending(
+  std::vector<std::vector<double>>& bin_edges)
+{
+  bool ascending = true;
+
+  if (bin_edges.size() > 1)
+  {
+    if (bin_edges.front()[0] < bin_edges.back()[0])
+    {
+      ascending = true;
+
+      std::reverse(bin_edges.begin(), bin_edges.end());
+      std::reverse(data.begin(), data.end());
+      std::reverse(data_error.begin(), data_error.end());
+      std::reverse(instrument_profile_fwhm.begin(), instrument_profile_fwhm.end());
+      std::reverse(likelihood_weight.begin(), likelihood_weight.end());
+    }
+    else
+      ascending = false;
+  }
+  else
+    ascending = false;
+
+  for (size_t i=0; i<bin_edges.size(); ++i)
+    if (bin_edges[i][0] < bin_edges[i][1]) 
+      std::reverse(bin_edges[i].begin(), bin_edges[i].end());
+
+  return ascending;
+}
+
+
+
+std::vector<std::vector<double>> Observation::calcBinEdges(
+  const std::vector<double>& wavelengths)
+{
+  std::vector< std::vector<double> > bin_edges(
+    wavelengths.size(), 
+    std::vector<double>(2, 0));
+
+
+  //set up the bin edges
+  for (size_t i=0; i<wavelengths.size(); ++i)
+  {
+    
+    if (i == 0)
+    {
+      //first bin
+      bin_edges.front()[1] = wavelengths[0] - (wavelengths[i] - wavelengths[i+1]) * 0.5;
+      bin_edges.front()[0] = wavelengths[0] + (wavelengths[i] - wavelengths[i+1]) * 0.5;
+    }
+    else if (i == wavelengths.size()-1)
+    {
+      //last bin
+      bin_edges.back()[1] = wavelengths[i] - (wavelengths[i-1] - wavelengths[i]) * 0.5;
+      bin_edges.back()[0] = wavelengths[i] + (wavelengths[i-1] - wavelengths[i]) * 0.5;
+    }
+    else
+    {
+      bin_edges[i][0] = wavelengths[i-1] - (wavelengths[i-1] - wavelengths[i]) * 0.5;
+      bin_edges[i][1] = wavelengths[i] - (wavelengths[i] - wavelengths[i+1]) * 0.5;
+    }
+
+  }
+
+  return bin_edges;
+}
+
+
+std::vector<double> Observation::calcBinCenters(
+  const std::vector<std::vector<double>>& bin_edges)
+{
+  std::vector<double> bin_centers(bin_edges.size(), 0.0);
+
+  for (size_t i=0; i<bin_centers.size(); ++i)
+    bin_centers[i] = bin_edges[i][0] - (bin_edges[i][0] - bin_edges[i][1]) * 0.5; 
+  
+  return bin_centers;
+}
+
+
+
+void Observation::setObservationEdges(
+  const std::vector<std::vector<double>>& bin_edges)
+{
+  //if we have an instrument profile, we extend the wavelength edges by 5 sigma
+  if (instrument_profile_fwhm.size() != 0)
+  {
+    wavelength_edges[0] = bin_edges.front()[0] + 5.0 * instrument_profile_fwhm.front()/ 2.355;
+    wavelength_edges[1] = bin_edges.back()[1] - 5.0 * instrument_profile_fwhm.back()/ 2.355;
+  }
+  else
+  {
+    wavelength_edges[0] = bin_edges.front()[0];
+    wavelength_edges[1] = bin_edges.back()[1];
+  }
 }
 
 

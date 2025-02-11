@@ -32,7 +32,6 @@
 
 #include "../../config/global_config.h"
 #include "../../spectral_grid/spectral_grid.h"
-#include "../../retrieval/priors.h"
 #include "../../observations/observations.h"
 #include "../atmosphere/atmosphere.h"
 #include "../../chemistry/chemistry.h"
@@ -105,7 +104,6 @@ class SecondaryEclipseModel : public ForwardModel{
   public:
     SecondaryEclipseModel (
       const SecondaryEclipseConfig model_config,
-      Priors* priors_,
       GlobalConfig* config_,
       SpectralGrid* spectral_grid_,
       std::vector<Observation>& observations_);
@@ -119,7 +117,11 @@ class SecondaryEclipseModel : public ForwardModel{
       const std::vector<std::string>& opacity_species_folder);
 
     virtual ~SecondaryEclipseModel();
-    virtual bool calcModel(
+    
+    virtual size_t parametersNumber() {
+      return nb_total_param();};
+
+    virtual bool calcModelCPU(
       const std::vector<double>& parameter,
       std::vector<double>& spectrum,
       std::vector<std::vector<double>>& spectrum_obs);
@@ -170,8 +172,6 @@ class SecondaryEclipseModel : public ForwardModel{
              + nb_spectrum_modifier_param;
     }
 
-
-    virtual void setPriors(Priors* priors);
     void initModules(const SecondaryEclipseConfig& model_config);
 
     std::vector<double> model_parameters;

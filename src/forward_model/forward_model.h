@@ -28,7 +28,6 @@
 #include <sstream>
 
 #include "../additional/exceptions.h"
-#include "../retrieval/priors.h"
 #include "../config/global_config.h"
 #include "../spectral_grid/spectral_grid.h"
 #include "../CUDA_kernels/data_management_kernels.h"
@@ -57,7 +56,7 @@ class ForwardModel{
     virtual ~ForwardModel() {}
     //calculate a model on the CPU
     //the return value signals the retrieval to neglect this model
-    virtual bool calcModel(
+    virtual bool calcModelCPU(
       const std::vector<double>& physical_parameters, 
       std::vector<double>& spectrum, 
       std::vector<std::vector<double>>& spectrum_obs) = 0;
@@ -69,12 +68,13 @@ class ForwardModel{
       std::vector<double*>& spectrum_obs) = 0;
     virtual ForwardModelOutput calcModel(
       const std::vector<double>& physical_parameter,
-      const bool return_atmosphere_structure) {};
+      const bool return_high_res_spectrum);
     //model-specific post process
     virtual void postProcess(
       const std::vector< std::vector<double> >& posterior_parameters,
       const size_t best_fit_model,
       bool& delete_unused_files) = 0;
+    virtual size_t parametersNumber() = 0;
     //model-specific tests
     virtual bool testModel(
       const std::vector<double>& parameters) = 0;
@@ -86,13 +86,6 @@ class ForwardModel{
     size_t nb_observation_points = 0;
     size_t nb_spectrum_modifier_param = 0;
     size_t nb_spectral_points = 0;
-    
-    virtual void setPriors(Priors* priors) = 0;
-    virtual void readPriorConfigFile(
-      const std::string& file_name, 
-      std::vector<std::string>& prior_type, 
-      std::vector<std::string>& prior_description, 
-      std::vector<std::vector<std::string>>& prior_parameter);
 
     virtual void convertSpectrumToObservation(
       const std::vector<double>& spectrum, 

@@ -33,7 +33,6 @@
 
 #include "../../config/global_config.h"
 #include "../../spectral_grid/spectral_grid.h"
-#include "../../retrieval/priors.h"
 #include "../../observations/observations.h"
 #include "../atmosphere/atmosphere.h"
 #include "../../cloud_model/cloud_model.h"
@@ -60,8 +59,8 @@ class TransmissionModelConfig : public GenericConfig{
     size_t nb_grid_points = 0;
 
     std::vector<double> atmos_boundaries = {0, 0};
-    double atmos_top_pressure = 0;
-    double atmos_bottom_pressure = 0;
+    //double atmos_top_pressure = 0;
+    //double atmos_bottom_pressure = 0;
 
     bool fit_mean_molecular_weight = false;
     bool fit_scale_height = false;
@@ -86,6 +85,23 @@ class TransmissionModelConfig : public GenericConfig{
     std::vector<std::string> opacity_species_folder;
 
     TransmissionModelConfig (const std::string& folder_path);
+    TransmissionModelConfig (
+      const bool fit_mean_molecular_weight_, 
+      const bool fit_scale_height_, 
+      const bool use_variable_gravity_,
+      const int nb_grid_points_,
+      const double atmos_bottom_pressure_,
+      const double atmos_top_pressure_,
+      const std::string& temperature_profile_model_,
+      const std::vector<std::string>& temperature_profile_parameters_,
+      const std::vector<std::string>& chemistry_model_,
+      const std::vector<std::vector<std::string>>& chemistry_parameters_,
+      const std::vector<std::string>& cloud_model_,
+      const std::vector<std::vector<std::string>>& cloud_model_parameters_,
+      const std::vector<std::string>& modules_,
+      const std::vector<std::vector<std::string>>& modules_parameters_,
+      const std::vector<std::string>& opacity_species_symbol_,
+      const std::vector<std::string>& opacity_species_folder_);
     virtual void readConfigFile(const std::string& file_name);
 };
 
@@ -109,7 +125,6 @@ class TransmissionModel : public ForwardModel{
   public:
     TransmissionModel (
       const TransmissionModelConfig model_config,
-      Priors* priors_,
       GlobalConfig* config_, 
       SpectralGrid* spectral_grid_,
       std::vector<Observation>& observations_);
@@ -121,9 +136,12 @@ class TransmissionModel : public ForwardModel{
       const std::vector<std::string>& opacity_species_folder);
     
     virtual ~TransmissionModel();
-    
-    virtual bool calcModel(
-      const std::vector<double>& parameter, 
+
+    virtual size_t parametersNumber() {
+      return nb_total_param();};
+
+    virtual bool calcModelCPU(
+      const std::vector<double>& parameters, 
       std::vector<double>& spectrum, 
       std::vector<std::vector<double>>& spectrum_obs);
     
@@ -131,10 +149,6 @@ class TransmissionModel : public ForwardModel{
       const std::vector<double>& parameter, 
       double* spectrum, 
       std::vector<double*>& spectrum_obs);
-
-    virtual ForwardModelOutput calcModel(
-      const std::vector<double>& physical_parameter,
-      const bool return_atmosphere_structure);
     
     virtual void postProcess(
       const std::vector< std::vector<double> >& model_parameter,
@@ -186,8 +200,6 @@ class TransmissionModel : public ForwardModel{
     bool fit_mean_molecular_weight = false;
     bool fit_scale_height = false;
     bool use_variable_gravity = false;
-    
-    virtual void setPriors(Priors* priors);
     
     void initModules(
       const TransmissionModelConfig& model_config);

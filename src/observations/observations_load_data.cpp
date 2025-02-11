@@ -50,48 +50,27 @@ void Observation::loadFile(const std::string& file_name)
   
   std::cout << "Reading observation file " << file_name << "\n";
   
-
   std::string line;
   std::getline(file, line);
   std::getline(file, line);
-
   
   std::getline(file, line);
   observation_name = line;
   
-
   std::getline(file, line);
   std::getline(file, line);
 
-  BandType band_type = PHOTOMETRY;
   std::string band_type_input;
-
-
   file >> band_type_input;
+  
+  band_type::id band_type = selectBandType(band_type_input, observation_name);
 
 
-  if (band_type_input.at(0) == 'P' || band_type_input.at(0) == 'p')
-    band_type = PHOTOMETRY;
-  else if (band_type_input.at(0) == 'S' || band_type_input.at(0) == 's') 
-    band_type = SPECTROSCOPY;
-  else if (band_type_input.at(0) == 'B' || band_type_input.at(0) == 'b') 
-    band_type = BAND_SPECTROSCOPY;
-  else
-  {
-    std::string error_message = 
-      "Unsupported observation type *" 
-      + band_type_input 
-      + "* in file: " 
-      + file_name + "\n";
-    throw InvalidInput(std::string ("Observation::loadFile"), error_message);
-  }
-    
+  if (band_type == band_type::id::photometry) readPhotometryData(file);
 
-  if (band_type == PHOTOMETRY) readPhotometryData(file);
+  if (band_type == band_type::id::spectroscopy) readSpectroscopyData(file);
 
-  if (band_type == SPECTROSCOPY) readSpectroscopyData(file);
-
-  if (band_type == BAND_SPECTROSCOPY) readBandSpectroscopyData(file);
+  if (band_type == band_type::id::band_spectroscopy) readBandSpectroscopyData(file);
 
 
   file.close();
@@ -164,21 +143,17 @@ bool Observation::readPhotometryData(std::fstream& file)
   else
     likelihood_weight.push_back(1.0);
 
-
-  //wavelengths should be ordered in descending order because the 
-  //opacity data is organized in ascending wavenumbers
-  if (wavelengths[0][0] < wavelengths[0][1])
-    std::reverse(wavelengths[0].begin(), wavelengths[0].end());
-
+  ascending_wavelengths = areWavelengthsAscending(wavelengths);
   
-  std::vector<double> band_centre(1, 0);
-  band_centre[0] = wavelengths[0][0] - (wavelengths[0][0] - wavelengths[0][1]) * 0.5; 
+  std::vector<double> band_centre = calcBinCenters(wavelengths);
 
-  wavelength_edges[0] = wavelengths[0][0];
-  wavelength_edges[1] = wavelengths[0][1];
+  setObservationEdges(wavelengths);
 
-
-  spectral_bands.init(wavelength_edges, wavelengths, band_centre, PHOTOMETRY);
+  spectral_bands.init(
+    wavelength_edges, 
+    wavelengths, 
+    band_centre, 
+    band_type::id::photometry);
 
   if (filter_response_file_path != "")
     filter_response_file = readFilterResponseFunction(filter_response_file_path);
@@ -268,42 +243,17 @@ bool Observation::readBandSpectroscopyData(std::fstream& file)
       likelihood_weight.push_back(1.0);
   }
 
+  ascending_wavelengths = areWavelengthsAscending(bin_edges);
 
-  //wavelengths should be ordered in descending order because the 
-  //opacity data is organized in ascending wavenumbers
-  if (bin_edges.size() > 1)
-  {
-    if (bin_edges.front()[0] < bin_edges.back()[0])
-    {
-      ascending_wavelengths = true;
+  std::vector<double> band_centres = calcBinCenters(bin_edges);
 
-      std::reverse(bin_edges.begin(), bin_edges.end());
-      std::reverse(data.begin(), data.end());
-      std::reverse(data_error.begin(), data_error.end());
-      std::reverse(instrument_profile_fwhm.begin(), instrument_profile_fwhm.end());
-      std::reverse(likelihood_weight.begin(), likelihood_weight.end());
-    }
-    else
-      ascending_wavelengths = false;
-  }
+  setObservationEdges(bin_edges);
 
-
-  for (size_t i=0; i<bin_edges.size(); ++i)
-    if (bin_edges[i][0] < bin_edges[i][1]) 
-      std::reverse(bin_edges[i].begin(), bin_edges[i].end());
-
-
-  std::vector<double> band_centres(bin_edges.size(), 0.0);
-
-  for (size_t i=0; i<band_centres.size(); ++i)
-    band_centres[i] = bin_edges[i][0] - (bin_edges[i][0] - bin_edges[i][1]) * 0.5; 
-
-
-  wavelength_edges[0] = bin_edges.front()[0];
-  wavelength_edges[1] = bin_edges.back()[1];
-
-
-  spectral_bands.init(wavelength_edges, bin_edges, band_centres, BAND_SPECTROSCOPY);
+  spectral_bands.init(
+    wavelength_edges, 
+    bin_edges, 
+    band_centres, 
+    band_type::id::band_spectroscopy);
 
   if (filter_response_file_path != "")
     filter_response_file = readFilterResponseFunction(filter_response_file_path);
@@ -391,73 +341,23 @@ bool Observation::readSpectroscopyData(std::fstream& file)
     else
       likelihood_weight.push_back(1.0);
   }
-
-
-  //wavelengths should be ordered in descending order because the 
-  //opacity data is organized in ascending wavenumbers
-  if (wavelengths.size() > 1)
-  {
-    if (wavelengths[0] < wavelengths[1])
-    {
-      ascending_wavelengths = true;
-
-      std::reverse(wavelengths.begin(), wavelengths.end());
-      std::reverse(data.begin(), data.end());
-      std::reverse(data_error.begin(), data_error.end());
-      std::reverse(instrument_profile_fwhm.begin(), instrument_profile_fwhm.end());
-      std::reverse(likelihood_weight.begin(), likelihood_weight.end());
-    }
-    else
-      ascending_wavelengths = false;
-  }
-
-
-  std::vector< std::vector<double> > bin_edges(
-    wavelengths.size(), 
-    std::vector<double>(2, 0));
-
-
-  //set up the bin edges
-  for (size_t i=0; i<wavelengths.size(); ++i)
-  {
-    
-    if (i == 0)
-    {
-      //first bin
-      bin_edges.front()[1] = wavelengths[0] - (wavelengths[i] - wavelengths[i+1]) * 0.5;
-      bin_edges.front()[0] = wavelengths[0] + (wavelengths[i] - wavelengths[i+1]) * 0.5;
-    }
-    else if (i == wavelengths.size()-1)
-    {
-      //last bin
-      bin_edges.back()[1] = wavelengths[i] - (wavelengths[i-1] - wavelengths[i]) * 0.5;
-      bin_edges.back()[0] = wavelengths[i] + (wavelengths[i-1] - wavelengths[i]) * 0.5;
-    }
-    else
-    {
-      bin_edges[i][0] = wavelengths[i-1] - (wavelengths[i-1] - wavelengths[i]) * 0.5;
-      bin_edges[i][1] = wavelengths[i] - (wavelengths[i] - wavelengths[i+1]) * 0.5;
-    }
-
-  }
-
-  //if we have an instrument profile, we extend the wavelength edges by 5 sigma
-  if (instrument_profile_fwhm.size() != 0)
-  {
-    wavelength_edges[0] = bin_edges.front()[0] + 5.0 * instrument_profile_fwhm.front()/ 2.355;
-    wavelength_edges[1] = bin_edges.back()[1] - 5.0 * instrument_profile_fwhm.back()/ 2.355;
-  }
-  else
-  {
-    wavelength_edges[0] = bin_edges.front()[0];
-    wavelength_edges[1] = bin_edges.back()[1];
-  }
-
-  spectral_bands.init(wavelength_edges, bin_edges, wavelengths, SPECTROSCOPY);
+  
+  ascending_wavelengths = areWavelengthsAscending(wavelengths);
+  
+  std::vector<std::vector<double>> bin_edges = calcBinEdges(wavelengths);
+  
+  setObservationEdges(bin_edges);
+  
+  spectral_bands.init(
+    wavelength_edges, 
+    bin_edges, 
+    wavelengths, 
+    band_type::id::spectroscopy);
+  
 
   if (filter_response_file_path != "")
     filter_response_file = readFilterResponseFunction(filter_response_file_path);
-
+  
   return true;
 }
 
@@ -468,7 +368,7 @@ void Observation::printObservationDetails()
   std::cout << "\n";
   std::cout << "observation: " << observation_name << "\n";
 
-  if (spectral_bands.bandType() == PHOTOMETRY)
+  if (spectral_bands.bandType() == band_type::id::photometry)
   {
     std::cout << std::setprecision(5) << std::scientific << "observation type: photometry\n";
     std::cout << "Filter response function: " << filter_response_file_path << "\n";
@@ -483,9 +383,10 @@ void Observation::printObservationDetails()
   }
 
 
-  if (spectral_bands.bandType() == SPECTROSCOPY || spectral_bands.bandType() == BAND_SPECTROSCOPY)
+  if (spectral_bands.bandType() == band_type::id::spectroscopy 
+   || spectral_bands.bandType() == band_type::id::band_spectroscopy)
   {
-    if (spectral_bands.bandType() == BAND_SPECTROSCOPY)
+    if (spectral_bands.bandType() == band_type::id::band_spectroscopy)
       std::cout << "observation type: band-spectroscopy\n";
     else
      std::cout << "observation type: spectroscopy\n";

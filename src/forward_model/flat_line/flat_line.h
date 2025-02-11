@@ -32,7 +32,6 @@
 
 #include "../../config/global_config.h"
 #include "../../spectral_grid/spectral_grid.h"
-#include "../../retrieval/priors.h"
 #include "../../observations/observations.h"
 
 
@@ -53,13 +52,15 @@ class FlatLinePostProcessConfig : public GenericConfig{
 class FlatLine : public ForwardModel{
   public:
     FlatLine (
-      Priors* priors_,
       GlobalConfig* config_, 
       SpectralGrid* spectral_grid_,
       std::vector<Observation>& observations_);
     virtual ~FlatLine();
+
+    virtual size_t parametersNumber() {
+      return nb_total_param();};
     
-    virtual bool calcModel(
+    virtual bool calcModelCPU(
       const std::vector<double>& parameter, 
       std::vector<double>& spectrum, 
       std::vector<std::vector<double>>& spectrum_obs);
@@ -81,8 +82,6 @@ class FlatLine : public ForwardModel{
 
     size_t nb_total_param() 
       {return nb_general_param;}
-
-    virtual void setPriors(Priors* priors);
 
     void postProcessSpectrum(
       std::vector<double>& model_spectrum, std::vector<double>& model_spectrum_bands);
