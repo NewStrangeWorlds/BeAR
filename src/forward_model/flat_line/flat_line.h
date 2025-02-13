@@ -74,6 +74,11 @@ class FlatLine : public ForwardModel{
       const std::vector< std::vector<double> >& model_parameter,
       const size_t best_fit_model,
       bool& delete_unused_files);
+    virtual void postProcess(
+      GenericConfig* post_process_config_,
+      const std::vector< std::vector<double> >& model_parameter,
+      const size_t best_fit_model,
+      bool& delete_unused_files) {};
     
     virtual bool testModel(
       const std::vector<double>& parameters);

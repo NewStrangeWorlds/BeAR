@@ -41,6 +41,7 @@ void signalHandler(int sig);
 //forward declaration
 class ForwardModel;
 struct ForwardModelOutput;
+struct AtmosphereOutput;
 class GenericConfig;
 
 
@@ -69,6 +70,8 @@ class Retrieval{
 
     std::pair<std::vector<double>, std::vector<double>> convertCubeParameters(
       std::vector<double>& cube);
+    std::vector<double> convertToPhysicalParameters(
+      const std::vector<double>& parameters);
     
     double computeLikelihood(
       std::vector<double>& parameters);
@@ -76,6 +79,10 @@ class Retrieval{
     ForwardModelOutput computeModel(
       std::vector<double>& physical_parameters,
       const bool return_high_res_spectrum);
+    
+    AtmosphereOutput computeAtmosphereStructure(
+      std::vector<double>& physical_parameters,
+      const std::vector<std::string>& species_symbols);
     
     size_t nbParameters() {
       return priors.number();}

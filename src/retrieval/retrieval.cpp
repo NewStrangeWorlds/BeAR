@@ -422,7 +422,19 @@ ForwardModelOutput Retrieval::computeModel(
   std::vector<double>& physical_parameters,
   const bool return_high_res_spectrum)
 {
-  return forward_model->calcModel(physical_parameters, return_high_res_spectrum);
+  return forward_model->calcModel(
+    physical_parameters, 
+    return_high_res_spectrum);
+}
+
+
+AtmosphereOutput Retrieval::computeAtmosphereStructure(
+  std::vector<double>& physical_parameters,
+  const std::vector<std::string>& species_symbols)
+{
+  return forward_model->getAtmosphereStructure(
+    physical_parameters, 
+    species_symbols);
 }
 
 

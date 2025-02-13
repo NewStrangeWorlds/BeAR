@@ -20,11 +20,31 @@
 
 #include "aux_functions.h"
 #include "physical_const.h"
-
+#include "../chemistry/chem_species.h"
 #include <cmath>
 
 
 namespace bear{ namespace aux{
+
+std::vector<chemical_species_id> findChemicalSpecies(
+   const std::vector<std::string>& species)
+{
+  std::vector<chemical_species_id> species_to_save;
+
+  for (auto & species : species)
+  {
+    for (size_t j=0; j<constants::species_data.size(); ++j)
+    {
+      if (constants::species_data[j].symbol == species)
+      {
+        species_to_save.push_back(constants::species_data[j].id); 
+        break;
+      }
+    }
+  }
+
+  return species_to_save;
+}
 
 
 double voigt(double xx, double sigma, double lg, int r)

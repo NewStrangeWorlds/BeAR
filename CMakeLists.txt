@@ -174,7 +174,7 @@ set(SRC_CUDA
   
 
 set(SRC_PYTHON_WRAPPER
-  python/bear_python_wrapper.cpp)
+  python/src/bear_python_wrapper.cpp)
 
 
 #check for OpenMP
@@ -306,7 +306,7 @@ if (USE_PYTHON MATCHES ON)
   #compilation target for BeAR's Python wrapper
   pybind11_add_module(pybear ${SRC_PYTHON_WRAPPER})
   
-  set_target_properties(pybear PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python")
+  set_target_properties(pybear PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python/lib")
   
   target_link_libraries(pybear PUBLIC fastchem_lib_for_py bear_cuda_for_py bear_for_py multinest_shared OpenMP::OpenMP_CXX pybind11::module ${LAPACK_LIBRARIES})
 endif()

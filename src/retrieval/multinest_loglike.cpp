@@ -97,6 +97,25 @@ void Retrieval::convertHypercubeParameters(
 }
 
 
+std::vector<double> Retrieval::convertToPhysicalParameters(
+  const std::vector<double>& parameters)
+{
+  std::vector<double> physical_parameters(parameters.size(), 0.0);
+  
+  if (parameters.size() != priors.number())
+  {
+    std::string error_message = 
+      "Number of posterior parameters not equal to the number of free parameters of the forward model.\n";
+    throw InvalidInput(std::string ("Retrieval::convertToPhysicalParameters"), error_message);
+  }
+
+  for (size_t i=0; i<parameters.size(); ++i)
+    physical_parameters[i] = priors.distributions[i]->applyParameterUnit(parameters[i]);
+
+  return physical_parameters;
+}
+
+
 
 // Input arguments
 // ndim 						= dimensionality (total number of free parameters) of the problem

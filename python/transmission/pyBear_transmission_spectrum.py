@@ -1,4 +1,4 @@
-from src.setup_bear_model import BeARTransmissionModel
+from src.setup_transmission_model import BeARTransmissionModel
 import numpy as np
 from astropy import units as u
 from astropy import constants as const

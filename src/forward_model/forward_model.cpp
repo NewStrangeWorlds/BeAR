@@ -279,7 +279,7 @@ void ForwardModel::calcPostProcessSpectrum(
 
 void ForwardModel::saveBestFitSpectrum(const std::vector<double>& spectrum)
 { 
-  std::string file_name = config->retrieval_folder_path + "/spectrum_best_fit_hr.dat";
+  std::string file_name = config->post_output_path + "/spectrum_best_fit_hr.dat";
 
   std::fstream file(file_name.c_str(), std::ios::out);
 
@@ -302,7 +302,7 @@ void ForwardModel::savePostProcessSpectra(
     std::string observation_name = observations[j].observationName();
     std::replace(observation_name.begin(), observation_name.end(), ' ', '_'); 
     
-    std::string file_name = config->retrieval_folder_path + "/spectrum_post_" + observation_name + ".dat"; 
+    std::string file_name = config->post_output_path + "/spectrum_post_" + observation_name + ".dat"; 
     std::fstream file(file_name.c_str(), std::ios::out);
     
     

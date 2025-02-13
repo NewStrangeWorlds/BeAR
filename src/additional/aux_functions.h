@@ -22,7 +22,8 @@
 #define _aux_functions_h
 
 #include <vector>
-
+#include <string>
+#include "../chemistry/chem_species.h"
 
 namespace bear{ namespace aux{
 
@@ -45,6 +46,9 @@ std::vector<double> interpolateToWavenumberGrid(const std::vector<double>& waven
                                                 const std::vector<double>& wavenumber_grid,
                                                 const double outside_range_value,
                                                 const bool interpolate_log);
+
+std::vector<chemical_species_id> findChemicalSpecies(
+  const std::vector<std::string>& species);
 
 }}
 

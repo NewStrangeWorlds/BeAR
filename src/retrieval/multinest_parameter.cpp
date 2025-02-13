@@ -42,7 +42,7 @@ MultinestParameter::MultinestParameter(GlobalConfig* config)
   maxiter = config->multinest_nb_iterations;
   resume = config->multinest_resume;
   fb = config->multinest_feedback;
-  std::strcpy(root, config->retrieval_folder_path.c_str());
+  std::strcpy(root, config->multinest_output_path.c_str());
 }
 
 

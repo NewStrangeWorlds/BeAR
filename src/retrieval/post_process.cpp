@@ -50,18 +50,43 @@ PostProcess::PostProcess(GlobalConfig* global_config)
 }
 
 
+PostProcess::PostProcess(
+  GlobalConfig* global_config,
+  GenericConfig* model_config,
+  GenericConfig* model_postprocess_config_,
+  const std::vector<ObservationInput>& observation_input,
+  const std::vector<PriorConfig>& prior_config)
+  : Retrieval(global_config, model_config, observation_input, prior_config)
+{
+  config = global_config;
+  model_postprocess_config = model_postprocess_config_;
+}
+
+
 
 bool PostProcess::run()
 {
-  std::string folder = config->retrieval_folder_path;
-  std::string observation_folder = folder;
   bool delete_sampler_files = false;
 
   try
   {
-    readPosteriorData();
+    std::string file_path = config->multinest_output_path.c_str();
+    file_path += "post_equal_weights.dat";
     
-    forward_model->postProcess(model_parameter, best_fit_model, delete_sampler_files);
+    readPosteriorData(file_path);
+    processPosteriorData();
+    
+    if (model_postprocess_config == nullptr)
+      forward_model->postProcess(
+        model_parameter, 
+        best_fit_model, 
+        delete_sampler_files);
+    else
+      forward_model->postProcess(
+        model_postprocess_config, 
+        model_parameter, 
+        best_fit_model, 
+        delete_sampler_files);
   }
   catch(std::runtime_error& e) 
   {
@@ -81,12 +106,127 @@ bool PostProcess::run()
 
 
 
+bool PostProcess::run(const std::string posterior_file_path)
+{
+  bool delete_sampler_files = false;
+
+  try
+  {
+    readPosteriorData(posterior_file_path);
+    processPosteriorData();
+    
+    if (model_postprocess_config == nullptr)
+      forward_model->postProcess(
+        model_parameter, 
+        best_fit_model, 
+        delete_sampler_files);
+    else
+      forward_model->postProcess(
+        model_postprocess_config, 
+        model_parameter, 
+        best_fit_model, 
+        delete_sampler_files);
+  }
+  catch(std::runtime_error& e) 
+  {
+    std::cout << e.what() << std::endl;
+   
+    return false;
+  }
+  
+  if (delete_sampler_files)
+  {
+    MultinestParameter param(config);
+    deleteSamplerFiles(param.unused_posterior_files);
+  }
+
+  return true;
+}
+
+
+
+bool PostProcess::run(
+  std::vector<std::vector<double>>& posteriors, 
+  std::vector<double>& log_likelihoods)
+{
+  bool delete_sampler_files = false;
+
+  try
+  {
+    model_parameter = posteriors;
+    log_like = log_likelihoods;
+    processPosteriorData();
+    
+    if (model_postprocess_config == nullptr)
+      forward_model->postProcess(
+        model_parameter, 
+        best_fit_model, 
+        delete_sampler_files);
+    else
+      forward_model->postProcess(
+        model_postprocess_config, 
+        model_parameter, 
+        best_fit_model, 
+        delete_sampler_files);
+  }
+  catch(std::runtime_error& e) 
+  {
+    std::cout << e.what() << std::endl;
+   
+    return false;
+  }
+  
+  if (delete_sampler_files)
+  {
+    MultinestParameter param(config);
+    deleteSamplerFiles(param.unused_posterior_files);
+  }
+
+  return true;
+}
+
+
+
+void PostProcess::processPosteriorData()
+{
+  //check consistency
+  if (model_parameter.front().size() != nbParameters())
+  {
+    std::string error_message = 
+      "Number of posterior parameters not equal to the number of free parameters of the forward model.\n";
+    throw InvalidInput(std::string ("PostProcess::processPosteriorData"), error_message);
+  }
+
+  //scale the model parameters with their units
+  for (auto & m : model_parameter)
+    m = convertToPhysicalParameters(m);
+    // for (size_t i=0; i<priors.distributions.size(); ++i)
+    // {
+    //   m[i] = priors.distributions[i]->applyParameterUnit(m[i]);
+    // }
+
+  //find best-fit model
+  best_fit_model = 0;
+  best_log_like = log_like[0];
+
+  for (size_t i=1; i<log_like.size(); ++i)
+    if (log_like[i] > best_log_like)
+    {
+      best_fit_model = i;
+      best_log_like = log_like[i];
+    }
+
+  std::cout << "\nBest-fit model: " << best_fit_model << "\t ln(Z): " << best_log_like << "\n";
+}
+
+
+
 void PostProcess::deleteSamplerFiles(const std::vector<std::string>& file_list)
 { 
   
   for (auto & f : file_list)
   {
-    std::string file_name = config->retrieval_folder_path + f;
+    std::string file_name = config->multinest_output_path + f;
     std::remove(file_name.c_str());
   }
 
@@ -94,19 +234,16 @@ void PostProcess::deleteSamplerFiles(const std::vector<std::string>& file_list)
 
 
 
-void PostProcess::readPosteriorData()
+void PostProcess::readPosteriorData(const std::string file_path)
 { 
   //first, we load the results from the written file
   std::fstream file;
 
-  std::string file_name = config->retrieval_folder_path.c_str();
-  file_name += "post_equal_weights.dat";
-
-  file.open(file_name.c_str(),std::ios::in);
+  file.open(file_path.c_str(),std::ios::in);
 
 
   if (file.fail())
-    throw FileNotFound(std::string ("PostProcess::readPosteriorData"), file_name);
+    throw FileNotFound(std::string ("PostProcess::readPosteriorData"), file_path);
 
 
   std::string line;
@@ -149,26 +286,6 @@ void PostProcess::readPosteriorData()
   }
 
   file.close();
-
-  //scale the model parameters with their units
-  for (auto & m : model_parameter)
-    for (size_t i=0; i<priors.distributions.size(); ++i)
-    {
-      m[i] = priors.distributions[i]->applyParameterUnit(m[i]);
-    }
-
-  //find best-fit model
-  best_fit_model = 0;
-  best_log_like = log_like[0];
-
-  for (size_t i=1; i<log_like.size(); ++i)
-    if (log_like[i] > best_log_like)
-    {
-      best_fit_model = i;
-      best_log_like = log_like[i];
-    }
-
-  std::cout << "\nBest-fit model: " << best_fit_model << "\t ln(Z): " << best_log_like << "\n";
 }
 
 

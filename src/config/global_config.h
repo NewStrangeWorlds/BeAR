@@ -26,6 +26,19 @@
 namespace bear {
 
 struct GlobalConfig {
+  GlobalConfig() {};
+  GlobalConfig(const std::string retrieval_folder) {
+    loadConfigFile(retrieval_folder);};
+
+  GlobalConfig(
+    const bool use_gpu_,
+    const std::string forward_model_type_,
+    const std::string cross_section_file_path_,
+    const std::string spectral_disecretisation_,
+    const double resolution_,
+    const std::string multinest_output_path_,
+    const std::string post_output_path_);
+
   bool loadConfigFile(std::string retrieval_folder);
   
   std::string forward_model_type = "";
@@ -33,6 +46,8 @@ struct GlobalConfig {
   std::string cross_section_file_path = "";
   std::string wavenumber_file_path = "";
   std::string retrieval_folder_path = "";
+  std::string multinest_output_path = "";
+  std::string post_output_path = "";
   
   unsigned int spectral_disecretisation = 0;
   double const_wavenumber_step = 0;

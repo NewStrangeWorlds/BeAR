@@ -159,7 +159,7 @@ void SecondaryEclipseModel::savePostProcessChemistry(
   const unsigned int species)
 {
   std::fstream file;
-  std::string file_name = config->retrieval_folder_path + "/chem_";
+  std::string file_name = config->post_output_path + "/chem_";
   
   file_name += constants::species_data[species].symbol;
   file_name += ".dat";
@@ -188,7 +188,7 @@ void SecondaryEclipseModel::savePostProcessTemperatures(
 {
   //save the temperature profiles into a file
   std::fstream file;
-  std::string file_name = config->retrieval_folder_path + "/temperature_structures.dat";
+  std::string file_name = config->post_output_path + "/temperature_structures.dat";
   file.open(file_name.c_str(), std::ios::out);
 
   for (size_t i=0; i<nb_grid_points; ++i)
@@ -264,7 +264,7 @@ void SecondaryEclipseModel::saveContributionFunctions(
   std::string observation_name = observations[observation_index].observationName();
   std::replace(observation_name.begin(), observation_name.end(), ' ', '_'); 
     
-  std::string file_name = config->retrieval_folder_path + "/contribution_function_" + observation_name + ".dat"; 
+  std::string file_name = config->post_output_path + "/contribution_function_" + observation_name + ".dat"; 
   
 
   std::fstream file(file_name.c_str(), std::ios::out);

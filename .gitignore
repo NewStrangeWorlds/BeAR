@@ -20,6 +20,9 @@ TransmissionTest/*
 EmissionTest/*
 SecondaryEclipseTest/*
 
-python/pybear.cpython*
+python/lib/pybear.cpython*
+python/lib/__pycache__/*
 python/__pycache__/*
 python/src/__pycache__/*
+python/transmission/src/__pycache__/*
+python/secondary_eclipse/src/__pycache__/*

@@ -32,6 +32,7 @@
 #include "../spectral_grid/spectral_grid.h"
 #include "../CUDA_kernels/data_management_kernels.h"
 #include "../observations/observations.h"
+#include "generic_config.h"
 
 
 namespace bear {
@@ -42,6 +43,16 @@ struct ForwardModelOutput{
   bool neglect_model = false;
   std::vector<double> spectrum;
   std::vector<std::vector<double>> spectrum_obs;
+};
+
+
+struct AtmosphereOutput{
+  bool neglect_model = false;
+  std::vector<double> pressure;
+  std::vector<double> altitude;
+  std::vector<double> temperature;
+  std::vector<std::string> species_symbols;
+  std::vector<std::vector<double>> mixing_ratios;
 };
 
 
@@ -69,8 +80,17 @@ class ForwardModel{
     virtual ForwardModelOutput calcModel(
       const std::vector<double>& physical_parameter,
       const bool return_high_res_spectrum);
+    virtual AtmosphereOutput getAtmosphereStructure(
+      const std::vector<double>& physical_parameter,
+      const std::vector<std::string>& species_symbols){
+        return AtmosphereOutput();};
     //model-specific post process
     virtual void postProcess(
+      const std::vector< std::vector<double> >& posterior_parameters,
+      const size_t best_fit_model,
+      bool& delete_unused_files) = 0;
+    virtual void postProcess(
+      GenericConfig* post_process_config_,
       const std::vector< std::vector<double> >& posterior_parameters,
       const size_t best_fit_model,
       bool& delete_unused_files) = 0;

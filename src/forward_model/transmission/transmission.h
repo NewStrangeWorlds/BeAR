@@ -59,8 +59,6 @@ class TransmissionModelConfig : public GenericConfig{
     size_t nb_grid_points = 0;
 
     std::vector<double> atmos_boundaries = {0, 0};
-    //double atmos_top_pressure = 0;
-    //double atmos_bottom_pressure = 0;
 
     bool fit_mean_molecular_weight = false;
     bool fit_scale_height = false;
@@ -83,8 +81,18 @@ class TransmissionModelConfig : public GenericConfig{
 
     std::vector<std::string> opacity_species_symbol;
     std::vector<std::string> opacity_species_folder;
-
+    
     TransmissionModelConfig (const std::string& folder_path);
+    TransmissionModelConfig (
+      const int nb_grid_points_,
+      const double atmos_bottom_pressure_,
+      const double atmos_top_pressure_,
+      const std::string& temperature_profile_model_,
+      const std::vector<std::string>& temperature_profile_parameters_,
+      const std::vector<std::string>& chemistry_model_,
+      const std::vector<std::vector<std::string>>& chemistry_parameters_,
+      const std::vector<std::string>& opacity_species_symbol_,
+      const std::vector<std::string>& opacity_species_folder_);
     TransmissionModelConfig (
       const bool fit_mean_molecular_weight_, 
       const bool fit_scale_height_, 
@@ -96,26 +104,29 @@ class TransmissionModelConfig : public GenericConfig{
       const std::vector<std::string>& temperature_profile_parameters_,
       const std::vector<std::string>& chemistry_model_,
       const std::vector<std::vector<std::string>>& chemistry_parameters_,
+      const std::vector<std::string>& opacity_species_symbol_,
+      const std::vector<std::string>& opacity_species_folder_,
       const std::vector<std::string>& cloud_model_,
       const std::vector<std::vector<std::string>>& cloud_model_parameters_,
       const std::vector<std::string>& modules_,
-      const std::vector<std::vector<std::string>>& modules_parameters_,
-      const std::vector<std::string>& opacity_species_symbol_,
-      const std::vector<std::string>& opacity_species_folder_);
+      const std::vector<std::vector<std::string>>& modules_parameters_);
     virtual void readConfigFile(const std::string& file_name);
 };
 
 
 class TransmissionPostProcessConfig : public GenericConfig{
   public:
-    std::vector<chemical_species_id> species_to_save;
-
     bool save_temperatures = false;
     bool save_spectra = true;
-
     bool delete_sampler_files = false;
-
-    TransmissionPostProcessConfig (const std::string& folder_path);
+    std::vector<chemical_species_id> species_to_save;
+    
+    TransmissionPostProcessConfig (
+      const std::string& folder_path);
+    TransmissionPostProcessConfig (
+      const bool save_temperatures_, 
+      const bool save_spectra_, 
+      const std::vector<std::string>& species_to_save_);
     void readConfigFile(const std::string& file_name);
 };
 
@@ -154,6 +165,16 @@ class TransmissionModel : public ForwardModel{
       const std::vector< std::vector<double> >& model_parameter,
       const size_t best_fit_model,
       bool& delete_unused_files);
+
+    virtual void postProcess(
+      GenericConfig* post_process_config_,
+      const std::vector< std::vector<double> >& model_parameter,
+      const size_t best_fit_model,
+      bool& delete_unused_files);
+
+    virtual AtmosphereOutput getAtmosphereStructure(
+      const std::vector<double>& physical_parameter,
+      const std::vector<std::string>& species_symbols);
     
     virtual bool testModel(
       const std::vector<double>& parameters);
