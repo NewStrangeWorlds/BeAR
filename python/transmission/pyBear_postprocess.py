@@ -14,7 +14,7 @@ import pymultinest
 #the pyBear_retrieval_3.py example
 
 #setting the basic properties of the model
-retrieval_folder = "../../TransmissionExample/"
+retrieval_folder = "TransmissionExample/"
 
 #load the retrieval configuration file
 model_config = pybear.Config(retrieval_folder)
@@ -24,7 +24,7 @@ post_process = pybear.PostProcess(model_config)
 
 
 #we manually load the posteriors from the example
-posterior_data = np.loadtxt("../../TransmissionExample/post_equal_weights.dat")
+posterior_data = np.loadtxt("TransmissionExample/post_equal_weights.dat")
 posteriors = posterior_data[:, 0:-1]
 log_like = posterior_data[:, -1]
 
@@ -41,11 +41,15 @@ for i in range(nb_samples):
   temperature = output.temperature
   pressure = output.pressure
   altitude = output.altitude
+  species_symbols = output.species_symbols
   mixing_ratios = output.mixing_ratios
 
 
 #we can also obtain all spectra, including the high-resolution spectra
 return_high_res_spectrum = True
+
+#the corresponding wavelength grid:
+wavelengths_high_res = np.array(post_process.spectral_grid.wavelength_list)
 
 for i in range(nb_samples):
   physical_parameters = post_process.convertToPhysicalParameters(posteriors[i])
@@ -58,6 +62,4 @@ for i in range(nb_samples):
 
   #the high-resolution spectrum is
   spectrum_high_res = np.array(output.spectrum)
-  #together with the corresponding wavelength grid:
-  wavelengths_high_res = np.array(post_process.spectral_grid.wavelength_list)
   

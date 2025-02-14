@@ -9,16 +9,16 @@ from lib import pybear
 
 
 #setting the basic properties of the model
-retrieval_folder = "TransmissionExample/"
+retrieval_folder = "SecondaryEclipseExample/"
 
 #load the retrieval configuration file
 model_config = pybear.Config(retrieval_folder)
 
 #create a pyBeAR retrieval object
-model = pybear.Retrieval(model_config)
+# model = pybear.Retrieval(model_config)
 
-print("Starting retrieval\n")
-model.run()
+# print("Starting retrieval\n")
+# model.run()
 
 #create a pyBeAR retrieval post process object
 post_process = pybear.PostProcess(model_config)

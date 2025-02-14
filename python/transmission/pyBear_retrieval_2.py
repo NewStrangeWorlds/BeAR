@@ -11,7 +11,7 @@ import pymultinest
 
 
 #setting the basic properties of the model
-retrieval_folder = "../../TransmissionExample/"
+retrieval_folder = "TransmissionExample/"
 
 #load the retrieval configuration file
 model_config = pybear.Config(retrieval_folder)
@@ -79,7 +79,7 @@ pymultinest.run(
   loglike, 
   priors, 
   model.nbParameters(), 
-	resume = False, 
+  resume = False, 
   verbose = True, 
   importance_nested_sampling = True, 
   sampling_efficiency = model_config.multinest_efficiency, 

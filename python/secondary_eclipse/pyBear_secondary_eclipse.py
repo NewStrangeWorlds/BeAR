@@ -1,4 +1,4 @@
-from src.setup_bear_model import BeARSecondaryEclipseModel
+from src.setup_secondary_eclipse_model import BeARSecondaryEclipseModel
 import numpy as np
 from astropy import units as u
 from astropy import constants as const

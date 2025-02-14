@@ -1,3 +1,10 @@
+import os
+import sys
+
+current_directory = os.path.dirname(os.path.realpath(__file__))
+parent_directory = os.path.dirname(current_directory)
+sys.path.append(parent_directory)
+sys.path.append(os.path.dirname(parent_directory))
 
 from lib import pybear
 import numpy as np
@@ -27,7 +34,7 @@ class BeARSecondaryEclipseModel:
     
     self.nb_grid_points = grid_points_number
     
-    bear_config = pybear.GlobalConfig()
+    bear_config = pybear.Config()
     
     bear_config.use_gpu = np.bool_(use_gpu)
     bear_config.forward_model_type = "secondary_eclipse"

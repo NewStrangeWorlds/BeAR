@@ -1,4 +1,5 @@
-This folder contains several Python scripts that show how use the *transmission spectroscopy* model and retrieval with pyBeAR.
+This folder contains several Python scripts that show how use the *transmission spectroscopy* model and retrieval with pyBeAR. 
+The relative paths in these files are defined for the Python scripts to be run from the BeAR root directory rather than from the local Python from.
 
 The following examples are provided:
 

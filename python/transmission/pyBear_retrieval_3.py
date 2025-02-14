@@ -17,9 +17,9 @@ cross_section_file_path = "/media/data/opacity_data/helios-k/"
 spectral_discretisation = 'const_wavenumber'
 resolution = 1.0
 
-retrieval_folder = "../../TransmissionExample/"
-multinest_output_folder = "../../TransmissionExample/"
-post_output_folder = "../../TransmissionExample/"
+retrieval_folder = "TransmissionExample/"
+multinest_output_folder = "TransmissionExample/"
+post_output_folder = "TransmissionExample/"
 
 #create the general model config
 model_config = pybear.Config(
