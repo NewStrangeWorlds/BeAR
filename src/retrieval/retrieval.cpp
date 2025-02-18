@@ -368,7 +368,7 @@ double Retrieval::logLikelihood(
 
 double Retrieval::logLikelihoodGPU(
   std::vector<double>& physical_parameters)
-{
+{ 
   double* spectrum = nullptr;
   allocateOnDevice(
     spectrum, 

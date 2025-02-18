@@ -40,6 +40,51 @@ SecondaryEclipseConfig::SecondaryEclipseConfig (const std::string& folder_path)
 }
 
 
+SecondaryEclipseConfig::SecondaryEclipseConfig (
+  const int nb_grid_points_,
+  const double atmos_bottom_pressure_,
+  const double atmos_top_pressure_,
+  const std::string temperature_profile_model_,
+  const std::vector<std::string>& temperature_profile_parameters_,
+  const std::string radiative_transfer_model_,
+  const std::vector<std::string>& radiative_transfer_parameters_,
+  const std::vector<std::string>& chemistry_model_,
+  const std::vector<std::vector<std::string>>& chemistry_parameters_,
+  const std::vector<std::string>& opacity_species_symbol_,
+  const std::vector<std::string>& opacity_species_folder_,
+  const std::string stellar_spectrum_model_,
+  const std::vector<std::string>& stellar_model_parameters_,
+  const std::vector<std::string>& cloud_model_,
+  const std::vector<std::vector<std::string>>& cloud_model_parameters_)
+{
+  nb_grid_points = nb_grid_points_;
+  atmos_boundaries[0] = atmos_bottom_pressure_;
+  atmos_boundaries[1] = atmos_top_pressure_;
+  
+  radiative_transfer_model = radiative_transfer_model_;
+  radiative_transfer_parameters = radiative_transfer_parameters_;
+
+  temperature_profile_model = temperature_profile_model_;
+  temperature_profile_parameters = temperature_profile_parameters_;
+
+  chemistry_model = chemistry_model_;
+  chemistry_parameters = chemistry_parameters_;
+
+  stellar_spectrum_model = stellar_spectrum_model_;
+  stellar_model_parameters = stellar_model_parameters_;
+  
+  opacity_species_symbol = opacity_species_symbol_;
+  opacity_species_folder = opacity_species_folder_;
+
+  cloud_model = cloud_model_;
+  cloud_model_parameters = cloud_model_parameters_;
+
+  if (cloud_model.size() == 0) 
+    use_cloud_model = false;
+  else
+    use_cloud_model = true;
+}
+
 
 void SecondaryEclipseConfig::readConfigFile(const std::string& file_name)
 {

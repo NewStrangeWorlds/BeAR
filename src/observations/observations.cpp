@@ -56,8 +56,31 @@ void Observation::init(const ObservationInput& input)
   else
     likelihood_weight = input.likelihood_weight;
 
-  filter_response = input.filter_response;
+  filter_response_file = input.filter_response;
+  
+  if (filter_response_file.size() > 0)
+  {
+    filter_detector_type = input.filter_detector_type;
 
+    if (input.filter_detector_type == "Energy")
+      filter_detector_type = "energy";
+
+    if (filter_detector_type == "Photon")
+      filter_detector_type = "photon";
+
+    if (filter_detector_type != "energy" && filter_detector_type != "photon")
+    {
+      std::string error_message = "Unsupported detector type *" + filter_detector_type + "\n";
+      throw InvalidInput(std::string ("Observation::init"), error_message);
+    }
+
+    if (filter_response_file[0].front() < filter_response_file[0].back())
+    {
+      std::reverse(filter_response_file[0].begin(), filter_response_file[0].end());
+      std::reverse(filter_response_file[1].begin(), filter_response_file[1].end());
+    }
+  }
+  
   std::vector<std::vector<double>> bin_edges;
   std::vector<double> bin_centers;
 

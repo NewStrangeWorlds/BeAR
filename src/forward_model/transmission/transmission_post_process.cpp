@@ -43,17 +43,7 @@ TransmissionPostProcessConfig::TransmissionPostProcessConfig (
   save_temperatures = save_temperatures_;
   save_spectra = save_spectra_;
 
-  for (auto & species : species_to_save_)
-  {
-    for (size_t j=0; j<constants::species_data.size(); ++j)
-    {
-      if (constants::species_data[j].symbol == species)
-      {
-        species_to_save.push_back(constants::species_data[j].id); 
-        break;
-      }
-    }
-  }
+  species_to_save = aux::findChemicalSpecies(species_to_save_);
 }
 
 
@@ -98,48 +88,16 @@ void TransmissionModel::postProcess(
   const size_t best_fit_model,
   bool& delete_unused_files)
 { 
-  TransmissionPostProcessConfig post_process_config = *(dynamic_cast<TransmissionPostProcessConfig*>(post_process_config_));
+  TransmissionPostProcessConfig post_process_config = 
+    *(dynamic_cast<TransmissionPostProcessConfig*>(post_process_config_));
 
   if (post_process_config.delete_sampler_files)
     delete_unused_files = true;
 
-  const size_t nb_models = model_parameter.size();
-  
-  if (post_process_config.save_spectra)
-  {
-    std::vector<std::vector<std::vector<double>>> model_spectra_obs;
-    std::vector<double> model_spectrum_best_fit;
-  
-    calcPostProcessSpectra(
-      model_parameter, 
-      best_fit_model, 
-      model_spectra_obs,
-      model_spectrum_best_fit);
-    
-    saveBestFitSpectrum(model_spectrum_best_fit);
-    savePostProcessSpectra(model_spectra_obs);
-  }
-
-  std::vector<std::vector<double>> temperature_profiles(nb_models, std::vector<double>(nb_grid_points, 0));
-
-  std::vector<std::vector<std::vector<double>>> mixing_ratios(
-    nb_models, 
-    std::vector<std::vector<double>>(constants::species_data.size(), 
-    std::vector<double>(nb_grid_points,0)));
-
-
-  for (size_t i=0; i<nb_models; ++i)
-    postProcessModel(
-      model_parameter[i], 
-      temperature_profiles[i], 
-      mixing_ratios[i]);
-
-  if (post_process_config.species_to_save.size() > 0)
-    for (auto & i : post_process_config.species_to_save)
-      savePostProcessChemistry(mixing_ratios, i);
-
-  if (post_process_config.save_temperatures)
-    savePostProcessTemperatures(temperature_profiles);
+  postProcess(
+    post_process_config,
+    model_parameter,
+    best_fit_model);
 }
 
 
@@ -154,6 +112,19 @@ void TransmissionModel::postProcess(
   if (post_process_config.delete_sampler_files)
     delete_unused_files = true;
 
+  postProcess(
+    post_process_config,
+    model_parameter,
+    best_fit_model);
+}
+
+
+
+void TransmissionModel::postProcess(
+  const TransmissionPostProcessConfig& post_process_config,
+  const std::vector< std::vector<double> >& model_parameter,
+  const size_t best_fit_model)
+{
   const size_t nb_models = model_parameter.size();
   
   if (post_process_config.save_spectra)

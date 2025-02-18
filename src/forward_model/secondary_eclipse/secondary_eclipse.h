@@ -78,6 +78,22 @@ struct SecondaryEclipseConfig : public GenericConfig{
   std::vector<std::string> opacity_species_folder;
 
   SecondaryEclipseConfig (const std::string& folder_path);
+  SecondaryEclipseConfig (
+    const int nb_grid_points_,
+    const double atmos_bottom_pressure_,
+    const double atmos_top_pressure_,
+    const std::string temperature_profile_model_,
+    const std::vector<std::string>& temperature_profile_parameters_,
+    const std::string radiative_transfer_model_,
+    const std::vector<std::string>& radiative_transfer_parameters_,
+    const std::vector<std::string>& chemistry_model_,
+    const std::vector<std::vector<std::string>>& chemistry_parameters_,
+    const std::vector<std::string>& opacity_species_symbol_,
+    const std::vector<std::string>& opacity_species_folder_,
+    const std::string stellar_spectrum_model_,
+    const std::vector<std::string>& stellar_model_parameters_,
+    const std::vector<std::string>& cloud_model_,
+    const std::vector<std::vector<std::string>>& cloud_model_parameters_);
   void readConfigFile(const std::string& file_name);
 };
 
@@ -85,15 +101,19 @@ struct SecondaryEclipseConfig : public GenericConfig{
 
 class SecondaryEclipsePostProcessConfig : public GenericConfig{
   public:
-    std::vector<chemical_species_id> species_to_save;
-
     bool save_temperatures = true;
     bool save_spectra = true;
     bool save_contribution_functions = false;
-
     bool delete_sampler_files = false;
-
+    std::vector<chemical_species_id> species_to_save;
+    
     SecondaryEclipsePostProcessConfig (const std::string& folder_path);
+    SecondaryEclipsePostProcessConfig (
+      const bool save_temperatures_, 
+      const bool save_spectra_, 
+      const bool save_contribution_functions_,
+      const std::vector<std::string>& species_to_save_);
+    
     void readConfigFile(const std::string& file_name);
 };
 
@@ -138,7 +158,7 @@ class SecondaryEclipseModel : public ForwardModel{
       GenericConfig* post_process_config_,
       const std::vector< std::vector<double> >& model_parameter,
       const size_t best_fit_model,
-      bool& delete_unused_files) {};
+      bool& delete_unused_files);
 
     virtual bool testModel(
       const std::vector<double>& parameters);
@@ -205,7 +225,11 @@ class SecondaryEclipseModel : public ForwardModel{
     bool calcAtmosphereStructure(const std::vector<double>& parameter);
 
     void setCloudProperties(const std::vector<std::vector<double>>& cloud_optical_depth);
-
+    
+    void postProcess(
+      const SecondaryEclipsePostProcessConfig& post_process_config,
+      const std::vector< std::vector<double> >& model_parameter,
+      const size_t best_fit_model);
     void postProcessModel(
       const std::vector<double>& parameter,
       std::vector<double>& temperature_profile,

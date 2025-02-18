@@ -32,6 +32,7 @@
 #include "../../CUDA_kernels/data_management_kernels.h"
 #include "../../CUDA_kernels/contribution_function_kernels.h"
 #include "../atmosphere/atmosphere.h"
+#include "../../additional/aux_functions.h"
 
 
 namespace bear{
@@ -42,6 +43,21 @@ SecondaryEclipsePostProcessConfig::SecondaryEclipsePostProcessConfig (const std:
   const std::string config_file_name = folder_path + "post_process.config";
 
   readConfigFile(config_file_name);
+}
+
+
+
+SecondaryEclipsePostProcessConfig::SecondaryEclipsePostProcessConfig (
+  const bool save_temperatures_, 
+  const bool save_spectra_, 
+  const bool save_contribution_functions_,
+  const std::vector<std::string>& species_to_save_)
+{
+  save_temperatures = save_temperatures_;
+  save_spectra = save_spectra_;
+  save_contribution_functions = save_contribution_functions_;
+
+  species_to_save = aux::findChemicalSpecies(species_to_save_);
 }
 
 
@@ -74,6 +90,26 @@ void SecondaryEclipsePostProcessConfig::readConfigFile(const std::string& file_n
 }
 
 
+void SecondaryEclipseModel::postProcess(
+  GenericConfig* post_process_config_,
+  const std::vector< std::vector<double> >& model_parameter, 
+  const size_t best_fit_model,
+  bool& delete_unused_files)
+{ 
+  SecondaryEclipsePostProcessConfig post_process_config = 
+    *(dynamic_cast<SecondaryEclipsePostProcessConfig*>(post_process_config_));
+
+  if (post_process_config.delete_sampler_files)
+    delete_unused_files = true;
+  
+  postProcess(
+    post_process_config,
+    model_parameter,
+    best_fit_model);
+}
+
+
+
 //calls the model specific posterior calculations
 void SecondaryEclipseModel::postProcess(
   const std::vector< std::vector<double> >& model_parameter, 
@@ -85,6 +121,18 @@ void SecondaryEclipseModel::postProcess(
   if (post_process_config.delete_sampler_files)
     delete_unused_files = true;
   
+  postProcess(
+    post_process_config,
+    model_parameter,
+    best_fit_model);
+}
+
+
+void SecondaryEclipseModel::postProcess(
+  const SecondaryEclipsePostProcessConfig& post_process_config,
+  const std::vector< std::vector<double> >& model_parameter, 
+  const size_t best_fit_model)
+{ 
   const size_t nb_models = model_parameter.size();
   
   if (post_process_config.save_spectra)

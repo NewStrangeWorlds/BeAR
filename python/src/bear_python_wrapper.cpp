@@ -50,7 +50,8 @@ PYBIND11_MODULE(pybear, m) {
         .def_readwrite("multinest_nb_iterations", &bear::GlobalConfig::multinest_nb_iterations)
         .def_readwrite("multinest_feedback", &bear::GlobalConfig::multinest_feedback)
         .def_readwrite("use_error_inflation", &bear::GlobalConfig::use_error_inflation)
-        .def_readwrite("use_gpu", &bear::GlobalConfig::use_gpu);
+        .def_readwrite("use_gpu", &bear::GlobalConfig::use_gpu)
+        .def_readwrite("nb_omp_processes", &bear::GlobalConfig::nb_omp_processes);
 
     py::class_<bear::ObservationInput>(m, "Observation")
         .def(py::init<>())
@@ -76,6 +77,7 @@ PYBIND11_MODULE(pybear, m) {
         .def_readwrite("likelihood_weight", &bear::ObservationInput::likelihood_weight)
         .def_readwrite("instrument_profile_fwhm", &bear::ObservationInput::instrument_profile_fwhm)
         .def_readwrite("filter_response", &bear::ObservationInput::filter_response)
+        .def_readwrite("filter_detector_type", &bear::ObservationInput::filter_detector_type)
         .def_readwrite("spectrum_modifier_id", &bear::ObservationInput::spectrum_modifier_id);
 
     py::class_<bear::PriorConfig>(m, "Prior")
@@ -189,11 +191,45 @@ PYBIND11_MODULE(pybear, m) {
         .def_readwrite("temperature_profile_parameters", &bear::TransmissionModelConfig::temperature_profile_parameters)
         .def_readwrite("chemistry_model", &bear::TransmissionModelConfig::chemistry_model)
         .def_readwrite("chemistry_parameters", &bear::TransmissionModelConfig::chemistry_parameters)
+        .def_readwrite("cloud_model", &bear::TransmissionModelConfig::cloud_model)
+        .def_readwrite("cloud_model_parameters", &bear::TransmissionModelConfig::cloud_model_parameters)
         .def_readwrite("modules", &bear::TransmissionModelConfig::modules)
         .def_readwrite("modules_parameters", &bear::TransmissionModelConfig::modules_parameters)
         .def_readwrite("opacity_species_symbol", &bear::TransmissionModelConfig::modules)
         .def_readwrite("opacity_species_folder", &bear::TransmissionModelConfig::opacity_species_folder);
 
+    py::class_<bear::SecondaryEclipseConfig>(m, "SecondaryEclipseConfig", genericConfig)
+        .def(py::init<const std::string&>())
+        .def(py::init<
+          const int,
+          const double,
+          const double,
+          const std::string,
+          const std::vector<std::string>&,
+          const std::string,
+          const std::vector<std::string>&,
+          const std::vector<std::string>&,
+          const std::vector<std::vector<std::string>>&,
+          const std::vector<std::string>&,
+          const std::vector<std::string>&,
+          const std::string,
+          const std::vector<std::string>&,
+          const std::vector<std::string>&,
+          const std::vector<std::vector<std::string>>&>())
+        .def_readwrite("nb_grid_points", &bear::SecondaryEclipseConfig::nb_grid_points)
+        .def_readwrite("atmos_boundaries", &bear::SecondaryEclipseConfig::atmos_boundaries)
+        .def_readwrite("temperature_profile_model", &bear::SecondaryEclipseConfig::temperature_profile_model)
+        .def_readwrite("temperature_profile_parameters", &bear::SecondaryEclipseConfig::temperature_profile_parameters)
+        .def_readwrite("radiative_transfer_model", &bear::SecondaryEclipseConfig::radiative_transfer_model)
+        .def_readwrite("radiative_transfer_parameters", &bear::SecondaryEclipseConfig::radiative_transfer_parameters)
+        .def_readwrite("stellar_spectrum_model", &bear::SecondaryEclipseConfig::radiative_transfer_model)
+        .def_readwrite("stellar_model_parameters", &bear::SecondaryEclipseConfig::stellar_model_parameters)
+        .def_readwrite("chemistry_model", &bear::SecondaryEclipseConfig::chemistry_model)
+        .def_readwrite("chemistry_parameters", &bear::SecondaryEclipseConfig::chemistry_parameters)
+        .def_readwrite("cloud_model", &bear::SecondaryEclipseConfig::cloud_model)
+        .def_readwrite("cloud_model_parameters", &bear::SecondaryEclipseConfig::cloud_model_parameters)
+        .def_readwrite("opacity_species_symbol", &bear::SecondaryEclipseConfig::opacity_species_symbol)
+        .def_readwrite("opacity_species_folder", &bear::SecondaryEclipseConfig::opacity_species_folder);
 
     py::class_<bear::TransmissionPostProcessConfig>(m, "TransmissionPostProcessConfig", genericConfig)
         .def(py::init<const std::string&>())
@@ -204,6 +240,18 @@ PYBIND11_MODULE(pybear, m) {
         .def_readwrite("save_temperatures", &bear::TransmissionPostProcessConfig::save_temperatures)
         .def_readwrite("save_spectra", &bear::TransmissionPostProcessConfig::save_spectra)
         .def_readwrite("delete_sampler_files", &bear::TransmissionPostProcessConfig::delete_sampler_files);
+
+    py::class_<bear::SecondaryEclipsePostProcessConfig>(m, "SecondaryEclipsePostProcessConfig", genericConfig)
+        .def(py::init<const std::string&>())
+        .def(py::init<
+          const bool, 
+          const bool, 
+          const bool,
+          const std::vector<std::string>&>())
+        .def_readwrite("save_temperatures", &bear::SecondaryEclipsePostProcessConfig::save_temperatures)
+        .def_readwrite("save_spectra", &bear::SecondaryEclipsePostProcessConfig::save_spectra)
+        .def_readwrite("save_contribution_functions", &bear::SecondaryEclipsePostProcessConfig::save_contribution_functions)
+        .def_readwrite("delete_sampler_files", &bear::SecondaryEclipsePostProcessConfig::delete_sampler_files);
 
     py::class_<bear::TransmissionModel>(m, "TransmissionModel")
         .def(py::init<

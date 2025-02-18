@@ -240,6 +240,11 @@ class TransmissionModel : public ForwardModel{
     void setCloudProperties(
       const std::vector<std::vector<double>>& cloud_optical_depth);
 
+    void postProcess(
+      const TransmissionPostProcessConfig& post_process_config,
+      const std::vector< std::vector<double> >& model_parameter,
+      const size_t best_fit_model);
+
     void postProcessModel(
       const std::vector<double>& parameters, 
       std::vector<double>& temperature_profile, 

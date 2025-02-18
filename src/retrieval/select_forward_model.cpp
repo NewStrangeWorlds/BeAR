@@ -53,13 +53,27 @@ ForwardModel* Retrieval::selectForwardModel(
 
   if (model_description == "secondary_eclipse" || model_description == "Secondary_eclipse" || model_description == "se")
   {
-    SecondaryEclipseModel* model = new SecondaryEclipseModel(
-      SecondaryEclipseConfig (config->retrieval_folder_path),
-      config,
-      &spectral_grid,
-      observations);
+    if (model_config == nullptr)
+    {
+      SecondaryEclipseModel* model = new SecondaryEclipseModel(
+        SecondaryEclipseConfig (config->retrieval_folder_path),
+        config,
+        &spectral_grid,
+        observations);
 
-    return model;
+      return model;
+    }
+    {
+      SecondaryEclipseConfig* c = dynamic_cast<SecondaryEclipseConfig*>(model_config);
+
+      SecondaryEclipseModel* model = new SecondaryEclipseModel(
+        *c,
+        config,
+        &spectral_grid,
+        observations);
+
+      return model;
+    }
   }
 
 
@@ -103,6 +117,7 @@ ForwardModel* Retrieval::selectForwardModel(
 
   if (model_description == "secondary_eclipse_bb" || model_description == "Secondary_eclipse_bb" || model_description == "se_bb")
   {
+    
     SecondaryEclipseBlackBodyModel* model = new SecondaryEclipseBlackBodyModel(
       SecondaryEclipseBlackBodyConfig (config->retrieval_folder_path),
       config,

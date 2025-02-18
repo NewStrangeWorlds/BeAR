@@ -79,7 +79,8 @@ struct ObservationInput{
   std::vector<double> data_error;                                     //observational error
   std::vector<double> likelihood_weight;                              //weight for the likelihood computation
   std::vector<double> instrument_profile_fwhm;                        //instrument profile (if it doesn't exist, the vector will have a size of 0)
-  std::vector<double> filter_response;                                //filter response function
+  std::vector<std::vector<double>> filter_response;                   //filter response function
+  std::string filter_detector_type = "";
   std::string spectrum_modifier_id = "";
 };
 

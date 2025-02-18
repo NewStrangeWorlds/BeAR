@@ -31,6 +31,14 @@ model_config = pybear.Config(
   multinest_output_folder,
   post_output_folder)
 
+#configure additional parameters
+model_config.multinest_efficiency = 0.8 
+model_config.multinest_nb_living_points = 800
+model_config.multinest_nb_iterations = 0
+model_config.multinest_feedback = True
+model_config.nb_omp_processes = 0
+
+
 #read in the observation data
 observation = np.loadtxt(retrieval_folder + "WASP-12b_kreidberg.dat", skiprows=11)
 obs_wavelength_bins = observation[:,0:2]
