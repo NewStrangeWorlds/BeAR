@@ -53,10 +53,6 @@ class EmissionModelConfig : public GenericConfig {
     size_t nb_grid_points = 0;
 
     std::vector<double> atmos_boundaries = {0, 0};
-    double atmos_top_pressure = 0;
-    double atmos_bottom_pressure = 0;
-
-    bool use_cloud_model = false;
 
     std::string temperature_profile_model;
     std::vector<std::string> temperature_profile_parameters;
@@ -73,23 +69,57 @@ class EmissionModelConfig : public GenericConfig {
     std::vector<std::string> opacity_species_symbol;
     std::vector<std::string> opacity_species_folder;
 
-    EmissionModelConfig (const std::string& folder_path);
+    EmissionModelConfig (
+      const std::string& folder_path);
+    EmissionModelConfig (
+      const int nb_grid_points_,
+      const double atmos_bottom_pressure_,
+      const double atmos_top_pressure_,
+      const std::string& temperature_profile_model_,
+      const std::vector<std::string>& temperature_profile_parameters_,
+      const std::string radiative_transfer_model_,
+      const std::vector<std::string>& radiative_transfer_parameters_,
+      const std::vector<std::string>& chemistry_model_,
+      const std::vector<std::vector<std::string>>& chemistry_parameters_,
+      const std::vector<std::string>& opacity_species_symbol_,
+      const std::vector<std::string>& opacity_species_folder_);
+    EmissionModelConfig (
+      const int nb_grid_points_,
+      const double atmos_bottom_pressure_,
+      const double atmos_top_pressure_,
+      const std::string& temperature_profile_model_,
+      const std::vector<std::string>& temperature_profile_parameters_,
+      const std::string radiative_transfer_model_,
+      const std::vector<std::string>& radiative_transfer_parameters_,
+      const std::vector<std::string>& chemistry_model_,
+      const std::vector<std::vector<std::string>>& chemistry_parameters_,
+      const std::vector<std::string>& opacity_species_symbol_,
+      const std::vector<std::string>& opacity_species_folder_,
+      const std::vector<std::string>& cloud_model_,
+      const std::vector<std::vector<std::string>>& cloud_model_parameters_);
+    
     void readConfigFile(const std::string& file_name);
 };
 
 
 class EmissionPostProcessConfig : public GenericConfig{
   public:
-    std::vector<chemical_species_id> species_to_save;
-
     bool save_temperatures = true;
     bool save_effective_temperatures = true;
     bool save_spectra = true;
     bool save_contribution_functions = false;
-
     bool delete_sampler_files = false;
+    std::vector<chemical_species_id> species_to_save;
 
-    EmissionPostProcessConfig (const std::string& folder_path);
+    EmissionPostProcessConfig (
+      const std::string& folder_path);
+    EmissionPostProcessConfig (
+      const bool save_temperatures_, 
+      const bool save_effective_temperatures_, 
+      const bool save_spectra_, 
+      const bool save_contribution_functions_,
+      const std::vector<std::string>& species_to_save_);
+    
     void readConfigFile(const std::string& file_name);
 };
 
@@ -101,6 +131,14 @@ class EmissionModel : public ForwardModel{
       GlobalConfig* config_, 
       SpectralGrid* spectral_grid_,
       std::vector<Observation>& observations_);
+    EmissionModel (
+      GlobalConfig* config_, 
+      SpectralGrid* spectral_grid_,
+      const size_t nb_grid_points_,
+      const std::string radiative_transfer_desc,
+      const std::vector<std::string>& radiative_transfer_param,
+      const std::vector<std::string>& opacity_species_symbol,
+      const std::vector<std::string>& opacity_species_folder);
     virtual ~EmissionModel();
 
     virtual size_t parametersNumber() {
@@ -116,6 +154,17 @@ class EmissionModel : public ForwardModel{
       double* spectrum, 
       std::vector<double*>& spectrum_obs);
     
+    std::vector<double> calcSpectrum(
+      const double surface_gravity,
+      const double radius,
+      const double distance,
+      const std::vector<double>& pressure,
+      const std::vector<double>& temperature,
+      const std::vector<std::string>& species_symbol,
+      const std::vector<std::vector<double>>& mixing_ratios,
+      const std::vector<std::vector<double>>& cloud_optical_depth,
+      const bool use_variable_gravity);
+
     virtual void postProcess(
       const std::vector< std::vector<double> >& model_parameter,
       const size_t best_fit_model,
@@ -124,7 +173,7 @@ class EmissionModel : public ForwardModel{
       GenericConfig* post_process_config_,
       const std::vector< std::vector<double> >& model_parameter,
       const size_t best_fit_model,
-      bool& delete_unused_files) {};
+      bool& delete_unused_files);
     
     virtual bool testModel(
       const std::vector<double>& parameters);
@@ -164,7 +213,14 @@ class EmissionModel : public ForwardModel{
 
     bool calcAtmosphereStructure(const std::vector<double>& parameter);
     double radiusDistanceScaling(const std::vector<double>& parameter);
+    void changeSpectrumUnitsGPU(double* spectrum_gpu);
 
+    void setCloudProperties(const std::vector<std::vector<double>>& cloud_optical_depth);
+
+    void postProcess(
+      const EmissionPostProcessConfig& post_process_config_,
+      const std::vector< std::vector<double> >& model_parameter,
+      const size_t best_fit_model);
     void postProcessModel(
       const std::vector<double>& parameter, 
       const double integrated_flux, 
@@ -176,8 +232,6 @@ class EmissionModel : public ForwardModel{
       const size_t best_fit_model,
       const bool save_spectra,
       std::vector<double>& integrated_flux);
-    virtual void saveBestFitSpectrum(
-      const std::vector<double>& spectrum);
     double postProcessEffectiveTemperature(
       const double integrated_flux, 
       const double radius_distance_scaling);

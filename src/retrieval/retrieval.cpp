@@ -76,24 +76,29 @@ Retrieval::Retrieval(
 {
   config = global_config;
 
+  size_t nb_add_priors = 0;
+
+  if (config->use_error_inflation)
+    nb_add_priors += 1;
+
   try
   {
     setObservations(observation_input);
     
     std::cout << "\nTotal number of wavelength points: " 
               << spectral_grid.nbSpectralPoints() << "\n\n";
-
+    
     forward_model = selectForwardModel(config->forward_model_type, model_config);
-
-    priors.init(prior_config, forward_model->parametersNumber());
+    
+    priors.init(
+      prior_config, 
+      forward_model->parametersNumber() + nb_add_priors);
   }
   catch(std::runtime_error& e) 
   {
     std::cout << e.what() << std::endl;
     exit(1);
   }
-  
-  setAdditionalPriors();
 
   priors.printInfo();
 }

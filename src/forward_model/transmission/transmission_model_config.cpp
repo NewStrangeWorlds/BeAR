@@ -51,28 +51,26 @@ TransmissionModelConfig::TransmissionModelConfig(
   const std::vector<std::vector<std::string>>& chemistry_parameters_,
   const std::vector<std::string>& opacity_species_symbol_,
   const std::vector<std::string>& opacity_species_folder_)
+  : TransmissionModelConfig(
+      false,
+      false,
+      false,
+      nb_grid_points_,
+      atmos_bottom_pressure_,
+      atmos_top_pressure_,
+      temperature_profile_model_,
+      temperature_profile_parameters_,
+      chemistry_model_,
+      chemistry_parameters_,
+      opacity_species_symbol_,
+      opacity_species_folder_,
+      std::vector<std::string>(),
+      std::vector<std::vector<std::string>>(),
+      std::vector<std::string>(),
+      std::vector<std::vector<std::string>>())
 {
-  nb_grid_points = nb_grid_points_;
-  atmos_boundaries[0] = atmos_bottom_pressure_;
-  atmos_boundaries[1] = atmos_top_pressure_;
-  temperature_profile_model = temperature_profile_model_;
-  temperature_profile_parameters = temperature_profile_parameters_;
-  chemistry_model = chemistry_model_;
-  chemistry_parameters = chemistry_parameters_;
-  opacity_species_symbol = opacity_species_symbol_;
-  opacity_species_folder = opacity_species_folder_;
-
-  if (cloud_model.size() == 0) 
-    use_cloud_model = false;
-  else
-    use_cloud_model = true;
-
-  if (modules.size() == 0)
-    use_optional_modules = false;
-  else
-    use_optional_modules = true;
+  
 }
-
 
 
 TransmissionModelConfig::TransmissionModelConfig(
@@ -109,16 +107,6 @@ TransmissionModelConfig::TransmissionModelConfig(
   modules_parameters = modules_parameters_;
   opacity_species_symbol = opacity_species_symbol_;
   opacity_species_folder = opacity_species_folder_;
-
-  if (cloud_model.size() == 0) 
-    use_cloud_model = false;
-  else
-    use_cloud_model = true;
-
-  if (modules.size() == 0)
-    use_optional_modules = false;
-  else
-    use_optional_modules = true;
 }
 
 
@@ -177,17 +165,7 @@ void TransmissionModelConfig::readConfigFile(const std::string& file_name)
 
   readCloudConfig(file, cloud_model, cloud_model_parameters);
 
-  if (cloud_model.size() == 0) 
-    use_cloud_model = false;
-  else
-    use_cloud_model = true;
-
   readModuleConfig(file, modules, modules_parameters);
-
-  if (modules.size() == 0) 
-    use_optional_modules = false;
-  else
-    use_optional_modules = true;
   
   readChemistryConfig(file, chemistry_model, chemistry_parameters);
   
@@ -196,8 +174,6 @@ void TransmissionModelConfig::readConfigFile(const std::string& file_name)
 
   file.close();
 }
-
-
 
 
 }

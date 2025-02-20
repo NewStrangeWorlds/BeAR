@@ -9,7 +9,7 @@ from lib import pybear
 
 
 #setting the basic properties of the model
-retrieval_folder = "SecondaryEclipseExample/"
+retrieval_folder = "EmissionExample/"
 
 #load the retrieval configuration file
 model_config = pybear.Config(retrieval_folder)

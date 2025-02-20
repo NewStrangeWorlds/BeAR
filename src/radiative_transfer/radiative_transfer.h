@@ -24,6 +24,7 @@
 #include <vector>
 
 #include "../forward_model/atmosphere/atmosphere.h"
+#include "../spectral_grid/spectral_grid.h"
 
 
 namespace bear {
@@ -31,6 +32,8 @@ namespace bear {
 
 class RadiativeTransfer{
   public:
+    RadiativeTransfer(SpectralGrid* spectral_grid_) {
+      spectral_grid = spectral_grid_;};
     virtual ~RadiativeTransfer() {}
     virtual void calcSpectrum(
       const Atmosphere& atmosphere,
@@ -50,6 +53,15 @@ class RadiativeTransfer{
       double* cloud_asym_param,
       const double spectrum_scaling,
       double* model_spectrum_dev) = 0;
+    
+    //change units of high-res spectrum from cm to micron^-1
+    void changeSpectrumUnits(std::vector<double>& spectrum) {
+      for (size_t i=0; i<spectrum.size(); ++i)
+        spectrum[i] = spectrum[i]/spectral_grid->wavelength_list[i]/spectral_grid->wavelength_list[i]*10000.0;};
+    void changeSpectrumUnitsGPU(double* spectrum);
+  
+  protected:
+    SpectralGrid* spectral_grid = nullptr;
 };
 
 

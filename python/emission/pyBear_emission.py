@@ -1,18 +1,17 @@
-from src.setup_secondary_eclipse_model import BeARSecondaryEclipseModel
+from src.setup_emission_model import BeAREmissionModel
 import numpy as np
 from astropy import units as u
 from astropy import constants as const
 import matplotlib.pyplot as plt
 from scipy.interpolate import CubicSpline
-from astropy.modeling import models
 from astropy import units as u
 
 
 #setting the basic properties of the model
-spectral_discretisation = 'const_wavenumber'
+spectral_discretisation = 'const_resolution'
 wavelength_min = 1.0
 wavelength_max = 10.0
-resolution = 1.0
+resolution = 1000.0
 
 cross_section_file_path = "/media/data/opacity_data/helios-k/"
 
@@ -25,18 +24,11 @@ opacity_species_data = np.array([
   ])
 
 
-#define stellar spectrum, here we use a simple black body
-stellar_spectrum_wavelengths = np.linspace(wavelength_min, wavelength_max, 1000)
-
-bb_lam = models.BlackBody(temperature=4000*u.K, scale=1.0 * u.erg / (u.cm ** 2 * u.AA * u.s * u.sr))
-stellar_spectrum_flux = bb_lam(stellar_spectrum_wavelengths * u.micron).to('W m-2 micron-1 sr-1').value * np.pi
-
-
 use_gpu = True
 grid_points_number = 100
 
 #create the BeAR forward model
-seconary_eclipse_model = BeARSecondaryEclipseModel(
+emission_model = BeAREmissionModel(
   use_gpu,
   grid_points_number,
   spectral_discretisation,
@@ -44,15 +36,13 @@ seconary_eclipse_model = BeARSecondaryEclipseModel(
   wavelength_max,
   resolution,
   cross_section_file_path, 
-  opacity_species_data,
-  stellar_spectrum_wavelengths,
-  stellar_spectrum_flux)
+  opacity_species_data)
 
 
-#define the planet/atmosphere parameters
-surface_gravity = 2000.0  #in cm/s^2
-planet_radius = 1.0 * const.R_jup.cgs.value
-radius_ratio = planet_radius / const.R_sun.cgs.value
+#define the object/atmosphere parameters
+surface_gravity = 10**5.0  #in cm/s^2
+radius = 1.0 * const.R_jup.cgs.value
+distance = 5.0 * u.parsec.to(u.cm)
 
 
 #create a fake T-p profile using a spline
@@ -68,7 +58,7 @@ temperature = cs(np.log10(pressure))
 
 #chemical composition
 chem_species = np.array(['H2', 'He', 'H2O', 'CO', 'CO2'])
-chem_species_concentration = np.array([0.0, 0.145, 1e-5, 1e-5, 1e-7])
+chem_species_concentration = np.array([0.0, 0.145, 1e-3, 1e-3, 1e-7])
 
 chem_species_concentration[0] = 1.0 - np.sum(chem_species_concentration[1:])
 
@@ -80,11 +70,12 @@ for i in range(chem_species.size):
 
 #cloud properties
 #note: cloud optical depths are layer quantities, so the number of layers is grid_points_number-1
-cloud_optical_depth = np.zeros((grid_points_number-1, seconary_eclipse_model.wavelengths.size))
+cloud_optical_depth = np.zeros((grid_points_number-1, emission_model.wavelengths.size))
 
-spectrum = seconary_eclipse_model.calcSpectrum(
+spectrum = emission_model.calcSpectrum(
   surface_gravity, 
-  radius_ratio, 
+  radius,
+  distance, 
   pressure, 
   temperature, 
   chem_species, 
@@ -92,11 +83,12 @@ spectrum = seconary_eclipse_model.calcSpectrum(
   cloud_optical_depth)
 
 #adding a grey cloud layer with a constant optical depth at layer 30
-cloud_optical_depth[30,:] = 100.0
+cloud_optical_depth[30,:] = 1.0
 
-spectrum2 = seconary_eclipse_model.calcSpectrum(
+spectrum2 = emission_model.calcSpectrum(
   surface_gravity, 
-  radius_ratio, 
+  radius,
+  distance, 
   pressure, 
   temperature, 
   chem_species, 
@@ -105,8 +97,8 @@ spectrum2 = seconary_eclipse_model.calcSpectrum(
 
 
 fig, ax = plt.subplots()
-ax.plot(seconary_eclipse_model.wavelengths, spectrum)
-ax.plot(seconary_eclipse_model.wavelengths, spectrum2)
+ax.plot(emission_model.wavelengths, spectrum)
+ax.plot(emission_model.wavelengths, spectrum2)
 plt.xlabel("Wavelength ($\mu$m)")
-plt.ylabel("Occultation depth (ppm)")
+plt.ylabel("Flux (W m$^{-2}$ $\mu$m$^{-1}$)")
 plt.show()

@@ -41,13 +41,28 @@ ForwardModel* Retrieval::selectForwardModel(
 {
   if (model_description == "emission" || model_description == "Emission" || model_description == "em")
   {
-    EmissionModel* model = new EmissionModel(
-      EmissionModelConfig (config->retrieval_folder_path),
-      config,
-      &spectral_grid,
-      observations);
+    if (model_config == nullptr)
+    {
+      EmissionModel* model = new EmissionModel(
+        EmissionModelConfig (config->retrieval_folder_path),
+        config,
+        &spectral_grid,
+        observations);
 
-    return model;
+      return model;
+    }
+    else
+    {
+      EmissionModelConfig* c = dynamic_cast<EmissionModelConfig*>(model_config);
+
+      EmissionModel* model = new EmissionModel(
+        *c,
+        config,
+        &spectral_grid,
+        observations);
+
+      return model;
+    }
   }
 
 

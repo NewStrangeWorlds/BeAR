@@ -59,7 +59,7 @@ TransmissionModel::TransmissionModel (
         model_config.opacity_species_symbol,
         model_config.opacity_species_folder,
         config->use_gpu,
-        model_config.use_cloud_model)
+        model_config.cloud_model.size() > 0)
 {
   nb_grid_points = model_config.nb_grid_points;
   

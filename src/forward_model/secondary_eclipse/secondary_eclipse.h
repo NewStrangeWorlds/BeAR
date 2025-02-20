@@ -54,11 +54,7 @@ struct SecondaryEclipseConfig : public GenericConfig{
   size_t nb_grid_points = 0;
 
   std::vector<double> atmos_boundaries = {0, 0};
-  double atmos_top_pressure = 0;
-  double atmos_bottom_pressure = 0;
-
-  bool use_cloud_model = false;
-
+  
   std::string temperature_profile_model;
   std::vector<std::string> temperature_profile_parameters;
 
@@ -77,7 +73,22 @@ struct SecondaryEclipseConfig : public GenericConfig{
   std::vector<std::string> opacity_species_symbol;
   std::vector<std::string> opacity_species_folder;
 
-  SecondaryEclipseConfig (const std::string& folder_path);
+  SecondaryEclipseConfig (
+    const std::string& folder_path);
+  SecondaryEclipseConfig (
+    const int nb_grid_points_,
+    const double atmos_bottom_pressure_,
+    const double atmos_top_pressure_,
+    const std::string temperature_profile_model_,
+    const std::vector<std::string>& temperature_profile_parameters_,
+    const std::string radiative_transfer_model_,
+    const std::vector<std::string>& radiative_transfer_parameters_,
+    const std::vector<std::string>& chemistry_model_,
+    const std::vector<std::vector<std::string>>& chemistry_parameters_,
+    const std::vector<std::string>& opacity_species_symbol_,
+    const std::vector<std::string>& opacity_species_folder_,
+    const std::string stellar_spectrum_model_,
+    const std::vector<std::string>& stellar_model_parameters_);
   SecondaryEclipseConfig (
     const int nb_grid_points_,
     const double atmos_bottom_pressure_,
@@ -94,6 +105,7 @@ struct SecondaryEclipseConfig : public GenericConfig{
     const std::vector<std::string>& stellar_model_parameters_,
     const std::vector<std::string>& cloud_model_,
     const std::vector<std::vector<std::string>>& cloud_model_parameters_);
+  
   void readConfigFile(const std::string& file_name);
 };
 
@@ -107,7 +119,8 @@ class SecondaryEclipsePostProcessConfig : public GenericConfig{
     bool delete_sampler_files = false;
     std::vector<chemical_species_id> species_to_save;
     
-    SecondaryEclipsePostProcessConfig (const std::string& folder_path);
+    SecondaryEclipsePostProcessConfig (
+      const std::string& folder_path);
     SecondaryEclipsePostProcessConfig (
       const bool save_temperatures_, 
       const bool save_spectra_, 

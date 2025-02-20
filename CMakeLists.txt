@@ -170,8 +170,9 @@ set(SRC_CUDA
   src/CUDA_kernels/star_file_spectrum.cu
   src/CUDA_kernels/stellar_contamination.cu
   src/CUDA_kernels/stellar_spectrum_grid.cu
-  src/CUDA_kernels/observation_kernels.cu)
-  
+  src/CUDA_kernels/observation_kernels.cu
+  src/CUDA_kernels/radiative_transfer_kernels.cu)
+
 
 set(SRC_PYTHON_WRAPPER
   python/src/bear_python_wrapper.cpp)

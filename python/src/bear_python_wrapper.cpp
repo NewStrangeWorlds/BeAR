@@ -17,6 +17,7 @@
 #include "../../../src/forward_model/generic_config.h"
 #include "../../src/forward_model/transmission/transmission.h"
 #include "../../src/forward_model/secondary_eclipse/secondary_eclipse.h"
+#include "../../src/forward_model/emission/emission.h"
 
 
 namespace py = pybind11;
@@ -199,7 +200,8 @@ PYBIND11_MODULE(pybear, m) {
         .def_readwrite("opacity_species_folder", &bear::TransmissionModelConfig::opacity_species_folder);
 
     py::class_<bear::SecondaryEclipseConfig>(m, "SecondaryEclipseConfig", genericConfig)
-        .def(py::init<const std::string&>())
+        .def(py::init<
+          const std::string&>())
         .def(py::init<
           const int,
           const double,
@@ -231,8 +233,51 @@ PYBIND11_MODULE(pybear, m) {
         .def_readwrite("opacity_species_symbol", &bear::SecondaryEclipseConfig::opacity_species_symbol)
         .def_readwrite("opacity_species_folder", &bear::SecondaryEclipseConfig::opacity_species_folder);
 
+    py::class_<bear::EmissionModelConfig>(m, "EmissionModelConfig", genericConfig)
+        .def(py::init<
+          const std::string&>())
+        .def(py::init<
+          const int,
+          const double,
+          const double,
+          const std::string,
+          const std::vector<std::string>&,
+          const std::string,
+          const std::vector<std::string>&,
+          const std::vector<std::string>&,
+          const std::vector<std::vector<std::string>>&,
+          const std::vector<std::string>&,
+          const std::vector<std::string>&>())
+        .def(py::init<
+          const int,
+          const double,
+          const double,
+          const std::string,
+          const std::vector<std::string>&,
+          const std::string,
+          const std::vector<std::string>&,
+          const std::vector<std::string>&,
+          const std::vector<std::vector<std::string>>&,
+          const std::vector<std::string>&,
+          const std::vector<std::string>&,
+          const std::vector<std::string>&,
+          const std::vector<std::vector<std::string>>&>())
+        .def_readwrite("nb_grid_points", &bear::EmissionModelConfig::nb_grid_points)
+        .def_readwrite("atmos_boundaries", &bear::EmissionModelConfig::atmos_boundaries)
+        .def_readwrite("temperature_profile_model", &bear::EmissionModelConfig::temperature_profile_model)
+        .def_readwrite("temperature_profile_parameters", &bear::EmissionModelConfig::temperature_profile_parameters)
+        .def_readwrite("radiative_transfer_model", &bear::EmissionModelConfig::radiative_transfer_model)
+        .def_readwrite("radiative_transfer_parameters", &bear::EmissionModelConfig::radiative_transfer_parameters)
+        .def_readwrite("chemistry_model", &bear::EmissionModelConfig::chemistry_model)
+        .def_readwrite("chemistry_parameters", &bear::EmissionModelConfig::chemistry_parameters)
+        .def_readwrite("cloud_model", &bear::EmissionModelConfig::cloud_model)
+        .def_readwrite("cloud_model_parameters", &bear::EmissionModelConfig::cloud_model_parameters)
+        .def_readwrite("opacity_species_symbol", &bear::EmissionModelConfig::opacity_species_symbol)
+        .def_readwrite("opacity_species_folder", &bear::EmissionModelConfig::opacity_species_folder);
+
     py::class_<bear::TransmissionPostProcessConfig>(m, "TransmissionPostProcessConfig", genericConfig)
-        .def(py::init<const std::string&>())
+        .def(py::init<
+          const std::string&>())
         .def(py::init<
           const bool, 
           const bool, 
@@ -242,7 +287,8 @@ PYBIND11_MODULE(pybear, m) {
         .def_readwrite("delete_sampler_files", &bear::TransmissionPostProcessConfig::delete_sampler_files);
 
     py::class_<bear::SecondaryEclipsePostProcessConfig>(m, "SecondaryEclipsePostProcessConfig", genericConfig)
-        .def(py::init<const std::string&>())
+        .def(py::init<
+          const std::string&>())
         .def(py::init<
           const bool, 
           const bool, 
@@ -253,13 +299,28 @@ PYBIND11_MODULE(pybear, m) {
         .def_readwrite("save_contribution_functions", &bear::SecondaryEclipsePostProcessConfig::save_contribution_functions)
         .def_readwrite("delete_sampler_files", &bear::SecondaryEclipsePostProcessConfig::delete_sampler_files);
 
+    py::class_<bear::EmissionPostProcessConfig>(m, "EmissionPostProcessConfig", genericConfig)
+        .def(py::init<
+          const std::string&>())
+        .def(py::init<
+          const bool, 
+          const bool,
+          const bool, 
+          const bool,
+          const std::vector<std::string>&>())
+        .def_readwrite("save_temperatures", &bear::EmissionPostProcessConfig::save_temperatures)
+        .def_readwrite("save_effective_temperatures", &bear::EmissionPostProcessConfig::save_temperatures)
+        .def_readwrite("save_spectra", &bear::EmissionPostProcessConfig::save_spectra)
+        .def_readwrite("save_contribution_functions", &bear::EmissionPostProcessConfig::save_contribution_functions)
+        .def_readwrite("delete_sampler_files", &bear::EmissionPostProcessConfig::delete_sampler_files);
+
     py::class_<bear::TransmissionModel>(m, "TransmissionModel")
         .def(py::init<
           bear::GlobalConfig*, 
           bear::SpectralGrid*, 
           const size_t, 
-          const std::vector<std::string>, 
-          const std::vector<std::string>>())
+          const std::vector<std::string>&, 
+          const std::vector<std::string>&>())
         .def("calcSpectrum", &bear::TransmissionModel::calcSpectrum);
 
     py::class_<bear::SecondaryEclipseModel>(m, "SecondaryEclipseModel")
@@ -267,9 +328,20 @@ PYBIND11_MODULE(pybear, m) {
           bear::GlobalConfig*, 
           bear::SpectralGrid*, 
           const size_t, 
-          const std::vector<double>, 
-          const std::vector<double>, 
-          const std::vector<std::string>, 
-          const std::vector<std::string>>())
+          const std::vector<double>&, 
+          const std::vector<double>&, 
+          const std::vector<std::string>&, 
+          const std::vector<std::string>&>())
         .def("calcSpectrum", &bear::SecondaryEclipseModel::calcSpectrum);
+
+    py::class_<bear::EmissionModel>(m, "EmissionModel")
+        .def(py::init<
+          bear::GlobalConfig*, 
+          bear::SpectralGrid*, 
+          const size_t, 
+          const std::string,
+          const std::vector<std::string>&,
+          const std::vector<std::string>&, 
+          const std::vector<std::string>&>())
+        .def("calcSpectrum", &bear::EmissionModel::calcSpectrum);
 }

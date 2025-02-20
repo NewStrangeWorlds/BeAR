@@ -35,6 +35,8 @@
 #include "../../additional/exceptions.h"
 #include "../atmosphere/atmosphere.h"
 #include "../../transport_coeff/opacity_calc.h"
+#include "../../radiative_transfer/select_radiative_transfer.h"
+#include "../../cloud_model/fixed_cloud_model.h"
 
 
 namespace bear{
@@ -57,7 +59,7 @@ EmissionModel::EmissionModel (
         model_config.opacity_species_symbol,
         model_config.opacity_species_folder,
         config->use_gpu,
-        model_config.use_cloud_model)
+        model_config.cloud_model.size() > 0)
 {
   nb_grid_points = model_config.nb_grid_points;
   
@@ -67,6 +69,39 @@ EmissionModel::EmissionModel (
   nb_general_param = 3;
 
   initModules(model_config);
+}
+
+
+EmissionModel::EmissionModel (
+  GlobalConfig* config_, 
+  SpectralGrid* spectral_grid_,
+  const size_t nb_grid_points_,
+  const std::string radiative_transfer_desc,
+  const std::vector<std::string>& radiative_transfer_param,
+  const std::vector<std::string>& opacity_species_symbol,
+  const std::vector<std::string>& opacity_species_folder)
+    : ForwardModel(config_, spectral_grid_, std::vector<Observation>() = {})
+    , atmosphere(
+        nb_grid_points_,
+        std::vector<double>(2) = {300, 1e-3},
+        config->use_gpu)
+    , opacity_calc(
+        config,
+        spectral_grid,
+        &atmosphere,
+        opacity_species_symbol,
+        opacity_species_folder,
+        config->use_gpu,
+        true)
+{
+  nb_grid_points = nb_grid_points_;
+
+  radiative_transfer = selectRadiativeTransfer(
+    radiative_transfer_desc, 
+    radiative_transfer_param, 
+    nb_grid_points, 
+    config, 
+    spectral_grid);
 }
 
 
@@ -187,6 +222,8 @@ bool EmissionModel::calcModelCPU(
   
   applyObservationModifier(spectrum_modifier_parameters, spectrum_obs);
 
+  radiative_transfer->changeSpectrumUnits(spectrum);
+
   return neglect;
 }
 
@@ -222,10 +259,121 @@ bool EmissionModel::calcModelGPU(
 
   applyObservationModifierGPU(spectrum_modifier_parameters, spectrum_obs);
 
+  radiative_transfer->changeSpectrumUnitsGPU(spectrum);
+
   return neglect;
 }
 
 
+std::vector<double> EmissionModel::calcSpectrum(
+  const double surface_gravity,
+  const double radius,
+  const double distance,
+  const std::vector<double>& pressure,
+  const std::vector<double>& temperature,
+  const std::vector<std::string>& species_symbol,
+  const std::vector<std::vector<double>>& mixing_ratios,
+  const std::vector<std::vector<double>>& cloud_optical_depth,
+  const bool use_variable_gravity)
+{
+
+  atmosphere.setAtmosphericStructure(
+    surface_gravity, 
+    radius,
+    use_variable_gravity,
+    pressure, 
+    temperature, 
+    species_symbol, 
+    mixing_ratios);
+  
+
+  setCloudProperties(cloud_optical_depth);
+
+  std::vector<double> spectrum(spectral_grid->nbSpectralPoints(), 0.0);
+  
+  if (config->use_gpu)
+  {
+    opacity_calc.calculateGPU(cloud_models, std::vector<double> {});
+
+    double* model_spectrum_gpu = nullptr;
+
+    allocateOnDevice(model_spectrum_gpu, spectral_grid->nbSpectralPoints());
+
+    radiative_transfer->calcSpectrumGPU(
+      atmosphere,
+      opacity_calc.absorption_coeff_gpu, 
+      opacity_calc.scattering_coeff_dev, 
+      opacity_calc.cloud_optical_depths_dev,
+      opacity_calc.cloud_single_scattering_dev,
+      opacity_calc.cloud_asym_param_dev,
+      1.0,
+      model_spectrum_gpu);
+     
+    moveToHostAndDelete(model_spectrum_gpu, spectrum);
+  }
+  else
+  {
+    opacity_calc.calculate(cloud_models, std::vector<double> {});
+    
+    radiative_transfer->calcSpectrum(
+      atmosphere,
+      opacity_calc.absorption_coeff, 
+      opacity_calc.absorption_coeff, 
+      opacity_calc.cloud_optical_depths, 
+      opacity_calc.cloud_single_scattering, 
+      opacity_calc.cloud_asym_param,
+      1.0, 
+      spectrum);
+  }
+
+  if (cloud_models.size() > 0)
+  {
+    delete cloud_models[0];
+    cloud_models.clear();
+  }
+
+
+  for (size_t i=0; i<spectrum.size(); ++i)
+    spectrum[i] *= radius*radius/distance/distance;
+
+  return spectrum;
+}
+
+
+
+void EmissionModel::setCloudProperties(
+  const std::vector<std::vector<double>>& cloud_optical_depth)
+{
+  bool use_cloud = false;
+
+  for (auto & i : cloud_optical_depth)
+  {
+    double max = *std::max_element(i.begin(), i.end());
+    if (max > 0)
+    {
+      use_cloud = true;
+      break;
+    }
+  }
+  
+  if (!use_cloud)
+    return;
+
+  std::vector<std::vector<double>> single_scattering_albedo(
+    nb_grid_points-1, 
+    std::vector<double>(spectral_grid->nbSpectralPoints(), 0.0));
+
+  std::vector<std::vector<double>> asymmetry_parameter(
+    nb_grid_points-1, 
+    std::vector<double>(spectral_grid->nbSpectralPoints(), 0.0));
+
+  FixedCloudModel* model = new FixedCloudModel(
+    cloud_optical_depth,
+    single_scattering_albedo,
+    asymmetry_parameter);
+
+  cloud_models.push_back(model);
+}
 
 
 EmissionModel::~EmissionModel()

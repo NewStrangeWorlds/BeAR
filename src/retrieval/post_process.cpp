@@ -188,7 +188,7 @@ bool PostProcess::run(
 
 
 void PostProcess::processPosteriorData()
-{
+{ 
   //check consistency
   if (model_parameter.front().size() != nbParameters())
   {
@@ -200,10 +200,6 @@ void PostProcess::processPosteriorData()
   //scale the model parameters with their units
   for (auto & m : model_parameter)
     m = convertToPhysicalParameters(m);
-    // for (size_t i=0; i<priors.distributions.size(); ++i)
-    // {
-    //   m[i] = priors.distributions[i]->applyParameterUnit(m[i]);
-    // }
 
   //find best-fit model
   best_fit_model = 0;

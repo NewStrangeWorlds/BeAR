@@ -158,7 +158,6 @@ opacity_species_data = np.array([
   
 #configuration of the temperature profile
 temperature_profile = "poly"
-#a constant temperature profile does not need any config parameters
 temperature_profile_parameters = ["6", "1"] 
 
 #radiative transfer model
@@ -169,7 +168,7 @@ rt_model_parameters = [""]
 #here, we use the equilibrium chemistry
 chemistry_models = ["eq"]
 
-#the chemical species for each of the two models
+#the path for the FastChem parameter file
 chemistry_parameters = [[retrieval_folder + "fastchem_parameters.dat"]]
 
 #stellar spectrum model

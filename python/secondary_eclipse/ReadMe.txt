@@ -3,7 +3,7 @@ The relative paths in these files are defined for the Python scripts to be run f
 
 The following examples are provided:
 
-- pyBear_transmission_spectrum.py
+- pyBear_secondary_eclipse_spectrum.py
 This Python script shows how to call the secondary eclipse spectroscopy forward model directly for a given p-T structure, chemical composition, and cloud layer.
 
 - pyBear_retrieval_0.py

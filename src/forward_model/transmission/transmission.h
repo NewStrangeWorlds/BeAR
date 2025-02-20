@@ -64,8 +64,7 @@ class TransmissionModelConfig : public GenericConfig{
     bool fit_scale_height = false;
     bool use_variable_gravity = false;
 
-    bool use_cloud_model = false;
-    bool use_optional_modules = false;
+    //bool use_optional_modules = false;
 
     std::string temperature_profile_model;
     std::vector<std::string> temperature_profile_parameters;

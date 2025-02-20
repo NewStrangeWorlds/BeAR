@@ -68,6 +68,7 @@ DiscreteOrdinates::DiscreteOrdinates(
   const size_t nb_streams,
   const size_t nb_grid_points,
   const bool use_gpu)
+   : RadiativeTransfer(spectral_grid_ptr)
 { 
   if (use_gpu)
   {
@@ -75,7 +76,6 @@ DiscreteOrdinates::DiscreteOrdinates(
     throw InvalidInput(std::string ("DiscreteOrdinates::DiscreteOrdinates"), error_message);
   }
 
-  spectral_grid = spectral_grid_ptr;
   initDISORT(nb_streams, nb_grid_points-1);
 }
 

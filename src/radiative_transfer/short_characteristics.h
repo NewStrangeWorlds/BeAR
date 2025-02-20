@@ -37,7 +37,8 @@ namespace bear {
 
 class ShortCharacteristics : public RadiativeTransfer{
   public:
-    ShortCharacteristics(SpectralGrid* spectral_grid_ptr) {spectral_grid = spectral_grid_ptr;}
+    ShortCharacteristics(SpectralGrid* spectral_grid_ptr)
+    : RadiativeTransfer(spectral_grid_ptr) {};
     virtual ~ShortCharacteristics() {}
     
     virtual void calcSpectrum(
@@ -60,8 +61,6 @@ class ShortCharacteristics : public RadiativeTransfer{
       const double spectrum_scaling,
       double* model_spectrum_dev);
   private:
-    SpectralGrid* spectral_grid;
-
     const std::vector<double> gauss_nodes{0.211324865405187, 0.788675134594813};
     const std::vector<double> gauss_weights{0.5, 0.5};
     const size_t nb_angles = gauss_nodes.size();

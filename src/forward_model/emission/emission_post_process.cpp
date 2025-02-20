@@ -33,6 +33,7 @@
 #include "../../CUDA_kernels/data_management_kernels.h"
 #include "../../CUDA_kernels/contribution_function_kernels.h"
 #include "../../additional/quadrature.h"
+#include "../../additional/aux_functions.h"
 
 
 namespace bear{
@@ -45,6 +46,21 @@ EmissionPostProcessConfig::EmissionPostProcessConfig (const std::string& folder_
   readConfigFile(config_file_name);
 }
 
+
+EmissionPostProcessConfig::EmissionPostProcessConfig (
+  const bool save_temperatures_, 
+  const bool save_effective_temperatures_, 
+  const bool save_spectra_, 
+  const bool save_contribution_functions_,
+  const std::vector<std::string>& species_to_save_)
+{
+  save_temperatures = save_temperatures_;
+  save_effective_temperatures = save_effective_temperatures_;
+  save_spectra = save_spectra_;
+  save_contribution_functions = save_contribution_functions_;
+
+  species_to_save = aux::findChemicalSpecies(species_to_save_);
+}
 
 
 void EmissionPostProcessConfig::readConfigFile(const std::string& file_name)
@@ -77,6 +93,24 @@ void EmissionPostProcessConfig::readConfigFile(const std::string& file_name)
 }
 
 
+void EmissionModel::postProcess(
+  GenericConfig* post_process_config_,
+  const std::vector< std::vector<double> >& model_parameter,
+  const size_t best_fit_model,
+  bool& delete_unused_files)
+{
+  EmissionPostProcessConfig post_process_config = 
+    *(dynamic_cast<EmissionPostProcessConfig*>(post_process_config_));
+
+  if (post_process_config.delete_sampler_files)
+    delete_unused_files = true;
+  
+  postProcess(
+    post_process_config,
+    model_parameter,
+    best_fit_model);
+}
+
 
 //calls the model specific posterior calculations
 void EmissionModel::postProcess(
@@ -89,6 +123,18 @@ void EmissionModel::postProcess(
   if (post_process_config.delete_sampler_files)
     delete_unused_files = true;
 
+  postProcess(
+    post_process_config, 
+    model_parameter, 
+    best_fit_model);
+}
+
+
+void EmissionModel::postProcess(
+  const EmissionPostProcessConfig& post_process_config,
+  const std::vector< std::vector<double> >& model_parameter, 
+  const size_t best_fit_model)
+{
   const size_t nb_models = model_parameter.size();
   std::vector<double> integrated_flux(nb_models, 0);
   
@@ -132,6 +178,7 @@ void EmissionModel::postProcess(
 }
 
 
+
 void EmissionModel::calcPostProcessSpectra(
   const std::vector< std::vector<double> >& model_parameter,
   const size_t best_fit_model,
@@ -158,9 +205,9 @@ void EmissionModel::calcPostProcessSpectra(
       model_spectrum_high_res,
       model_spectrum_obs[i]);
 
-    integrated_flux[i] = aux::quadratureTrapezoidal(
-      spectral_grid->wavenumber_list, 
-      model_spectrum_high_res);
+    integrated_flux[i] = std::abs(aux::quadratureTrapezoidal(
+      spectral_grid->wavelength_list, 
+      model_spectrum_high_res));
 
     if (i == best_fit_model && save_spectra)
       saveBestFitSpectrum(model_spectrum_high_res);
@@ -352,24 +399,6 @@ void EmissionModel::saveContributionFunctions(
 
   file.close();
 }
-
-
-//overload of the generic forward model function
-//changes units of the computed spectrum from W m-2 cm to W m-2 micron-1
-void EmissionModel::saveBestFitSpectrum(const std::vector<double>& spectrum)
-{ 
-  std::string file_name = config->post_output_path + "/spectrum_best_fit_hr.dat";
-
-  std::fstream file(file_name.c_str(), std::ios::out);
-
-  for (size_t i=0; i<spectrum.size(); ++i)
-    file << std::setprecision(10) << std::scientific
-         << spectral_grid->wavelength_list[i] << "\t"
-         << spectrum[i]/spectral_grid->wavelength_list[i]/spectral_grid->wavelength_list[i]*10000.0 << "\n";
-
-  file.close();
-}
-
 
 }
 

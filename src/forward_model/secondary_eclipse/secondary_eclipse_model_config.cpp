@@ -53,6 +53,42 @@ SecondaryEclipseConfig::SecondaryEclipseConfig (
   const std::vector<std::string>& opacity_species_symbol_,
   const std::vector<std::string>& opacity_species_folder_,
   const std::string stellar_spectrum_model_,
+  const std::vector<std::string>& stellar_model_parameters_)
+  : SecondaryEclipseConfig(
+      nb_grid_points_,
+      atmos_bottom_pressure_,
+      atmos_top_pressure_,
+      temperature_profile_model_,
+      temperature_profile_parameters_,
+      radiative_transfer_model_,
+      radiative_transfer_parameters_,
+      chemistry_model_,
+      chemistry_parameters_,
+      opacity_species_symbol_,
+      opacity_species_folder_,
+      stellar_spectrum_model_,
+      stellar_model_parameters_,
+      std::vector<std::string>(),
+      std::vector<std::vector<std::string>>())
+{
+
+}
+
+
+
+SecondaryEclipseConfig::SecondaryEclipseConfig (
+  const int nb_grid_points_,
+  const double atmos_bottom_pressure_,
+  const double atmos_top_pressure_,
+  const std::string temperature_profile_model_,
+  const std::vector<std::string>& temperature_profile_parameters_,
+  const std::string radiative_transfer_model_,
+  const std::vector<std::string>& radiative_transfer_parameters_,
+  const std::vector<std::string>& chemistry_model_,
+  const std::vector<std::vector<std::string>>& chemistry_parameters_,
+  const std::vector<std::string>& opacity_species_symbol_,
+  const std::vector<std::string>& opacity_species_folder_,
+  const std::string stellar_spectrum_model_,
   const std::vector<std::string>& stellar_model_parameters_,
   const std::vector<std::string>& cloud_model_,
   const std::vector<std::vector<std::string>>& cloud_model_parameters_)
@@ -78,11 +114,6 @@ SecondaryEclipseConfig::SecondaryEclipseConfig (
 
   cloud_model = cloud_model_;
   cloud_model_parameters = cloud_model_parameters_;
-
-  if (cloud_model.size() == 0) 
-    use_cloud_model = false;
-  else
-    use_cloud_model = true;
 }
 
 
@@ -124,11 +155,6 @@ void SecondaryEclipseConfig::readConfigFile(const std::string& file_name)
 
 
   readCloudConfig(file, cloud_model, cloud_model_parameters);
-
-  if (cloud_model.size() == 0) 
-    use_cloud_model = false;
-  else
-    use_cloud_model = true;
 
   //the radiative transfer input
   std::getline(file, line);
