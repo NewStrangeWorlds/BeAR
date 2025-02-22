@@ -39,7 +39,7 @@ namespace bear{
 
 
 //initialises the varous modules of the forward model
-void SecondaryEclipseModel::initModules(const SecondaryEclipseConfig& model_config)
+void OccultationModel::initModules(const OccultationConfig& model_config)
 {
   radiative_transfer = selectRadiativeTransfer(
     model_config.radiative_transfer_model, 

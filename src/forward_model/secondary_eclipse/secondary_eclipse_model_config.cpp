@@ -32,7 +32,7 @@
 namespace bear{
 
 
-SecondaryEclipseConfig::SecondaryEclipseConfig (const std::string& folder_path)
+OccultationConfig::OccultationConfig (const std::string& folder_path)
 {
   const std::string config_file_name = folder_path + "forward_model.config";
 
@@ -40,7 +40,7 @@ SecondaryEclipseConfig::SecondaryEclipseConfig (const std::string& folder_path)
 }
 
 
-SecondaryEclipseConfig::SecondaryEclipseConfig (
+OccultationConfig::OccultationConfig (
   const int nb_grid_points_,
   const double atmos_bottom_pressure_,
   const double atmos_top_pressure_,
@@ -54,7 +54,7 @@ SecondaryEclipseConfig::SecondaryEclipseConfig (
   const std::vector<std::string>& opacity_species_folder_,
   const std::string stellar_spectrum_model_,
   const std::vector<std::string>& stellar_model_parameters_)
-  : SecondaryEclipseConfig(
+  : OccultationConfig(
       nb_grid_points_,
       atmos_bottom_pressure_,
       atmos_top_pressure_,
@@ -76,7 +76,7 @@ SecondaryEclipseConfig::SecondaryEclipseConfig (
 
 
 
-SecondaryEclipseConfig::SecondaryEclipseConfig (
+OccultationConfig::OccultationConfig (
   const int nb_grid_points_,
   const double atmos_bottom_pressure_,
   const double atmos_top_pressure_,
@@ -117,13 +117,13 @@ SecondaryEclipseConfig::SecondaryEclipseConfig (
 }
 
 
-void SecondaryEclipseConfig::readConfigFile(const std::string& file_name)
+void OccultationConfig::readConfigFile(const std::string& file_name)
 {
   std::fstream file;
   file.open(file_name.c_str(), std::ios::in);
 
   if (file.fail())
-    throw FileNotFound(std::string ("SecondaryEclipseConfig::readConfigFile"), file_name);
+    throw FileNotFound(std::string ("OccultationConfig::readConfigFile"), file_name);
 
   std::string line;
   std::string input;

@@ -48,7 +48,7 @@ __global__ void planetBlackBodyFlux(
 
 
 
-__global__ void secondaryEclipseBBDevice(
+__global__ void OccultationBBDevice(
   double* secondary_eclipse,
   double* planet_spectrum,
   const double* stellar_spectrum,
@@ -67,7 +67,7 @@ __global__ void secondaryEclipseBBDevice(
 }
 
 
-__host__ void SecondaryEclipseBlackBodyModel::calcPlanetSpectrumGPU(
+__host__ void OccultationBlackBodyModel::calcPlanetSpectrumGPU(
   const double planet_temperature,
   double* spectrum_dev)
 {
@@ -89,7 +89,7 @@ __host__ void SecondaryEclipseBlackBodyModel::calcPlanetSpectrumGPU(
 }
 
 
-__host__ void SecondaryEclipseBlackBodyModel::calcSecondaryEclipseGPU(
+__host__ void OccultationBlackBodyModel::calcOccultationGPU(
   double* secondary_eclipse,
   double* planet_spectrum,
   const double* stellar_spectrum,
@@ -103,7 +103,7 @@ __host__ void SecondaryEclipseBlackBodyModel::calcSecondaryEclipseGPU(
   if (nb_points % threads) blocks++;
 
 
-  secondaryEclipseBBDevice<<<blocks,threads>>>(
+  OccultationBBDevice<<<blocks,threads>>>(
     secondary_eclipse,
     planet_spectrum,
     stellar_spectrum,

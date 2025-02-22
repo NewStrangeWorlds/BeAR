@@ -36,8 +36,8 @@ namespace bear{
 
 
 //initialises the varous modules of the forward model
-void SecondaryEclipseBlackBodyModel::initModules(
-  const SecondaryEclipseBlackBodyConfig& model_config)
+void OccultationBlackBodyModel::initModules(
+  const OccultationBlackBodyConfig& model_config)
 {
   stellar_model = selectStellarModel(
     model_config.stellar_spectrum_model,

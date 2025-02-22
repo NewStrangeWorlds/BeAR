@@ -183,7 +183,7 @@ opacity_species_symbols = opacity_species_data[:, 0]
 opacity_species_folders = opacity_species_data[:, 1]
 
 #Create the configuration of the forward model
-forward_model_config = pybear.SecondaryEclipseConfig(
+forward_model_config = pybear.OccultationConfig(
   nb_grid_points,
   bottom_pressure,
   top_pressure,
@@ -264,7 +264,7 @@ save_post_spectra = True
 save_contribution_functions = True
 save_post_chemistry = ['H2O', 'CO', 'CO2', 'CH4', 'NH3']
 
-postprocess_config = pybear.SecondaryEclipsePostProcessConfig(
+postprocess_config = pybear.OccultationPostProcessConfig(
   save_post_temperatures,
   save_post_spectra,
   save_contribution_functions,

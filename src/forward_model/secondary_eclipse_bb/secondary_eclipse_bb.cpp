@@ -40,8 +40,8 @@
 namespace bear{
 
 
-SecondaryEclipseBlackBodyModel::SecondaryEclipseBlackBodyModel (
-  const SecondaryEclipseBlackBodyConfig model_config,
+OccultationBlackBodyModel::OccultationBlackBodyModel (
+  const OccultationBlackBodyConfig model_config,
   GlobalConfig* config_,
   SpectralGrid* spectral_grid_,
   std::vector<Observation>& observations_) 
@@ -56,7 +56,7 @@ SecondaryEclipseBlackBodyModel::SecondaryEclipseBlackBodyModel (
 }
 
 
-void SecondaryEclipseBlackBodyModel::extractParameters(
+void OccultationBlackBodyModel::extractParameters(
   const std::vector<double>& parameters)
 {
   model_parameters = std::vector<double>(
@@ -79,7 +79,7 @@ void SecondaryEclipseBlackBodyModel::extractParameters(
 
 
 //Runs the forward model on the CPU and calculates a high-resolution spectrum
-bool SecondaryEclipseBlackBodyModel::calcModelCPU(
+bool OccultationBlackBodyModel::calcModelCPU(
   const std::vector<double>& parameters, 
   std::vector<double>& spectrum, 
   std::vector<std::vector<double>>& spectrum_obs)
@@ -148,7 +148,7 @@ bool SecondaryEclipseBlackBodyModel::calcModelCPU(
 
 //run the forward model with the help of the GPU
 //the atmospheric structure itself is still done on the CPU
-bool SecondaryEclipseBlackBodyModel::calcModelGPU(
+bool OccultationBlackBodyModel::calcModelGPU(
   const std::vector<double>& parameters, 
   double* spectrum, 
   std::vector<double*>& spectrum_obs)
@@ -194,7 +194,7 @@ bool SecondaryEclipseBlackBodyModel::calcModelGPU(
   
   for (size_t i=0; i<observations.size(); ++i)
   {
-    calcSecondaryEclipseGPU(
+    calcOccultationGPU(
     spectrum_obs[i], 
     planet_spectrum_obs[i], 
     stellar_spectrum_obs[i], 
@@ -217,7 +217,7 @@ bool SecondaryEclipseBlackBodyModel::calcModelGPU(
 
 
   //convert the original high-res spectrum also to a secondary eclipse
-  calcSecondaryEclipseGPU(
+  calcOccultationGPU(
     spectrum, 
     spectrum, 
     stellar_spectrum, 
@@ -233,7 +233,7 @@ bool SecondaryEclipseBlackBodyModel::calcModelGPU(
 
 
 
-SecondaryEclipseBlackBodyModel::~SecondaryEclipseBlackBodyModel()
+OccultationBlackBodyModel::~OccultationBlackBodyModel()
 {
   delete stellar_model;
 

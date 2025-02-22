@@ -31,7 +31,7 @@
 namespace bear{
 
 
-bool SecondaryEclipseBlackBodyModel::testModel(
+bool OccultationBlackBodyModel::testModel(
   const std::vector<double>& parameters)
 {
   bool test_ok = false;

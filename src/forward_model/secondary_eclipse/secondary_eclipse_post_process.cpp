@@ -38,7 +38,7 @@
 namespace bear{
 
 
-SecondaryEclipsePostProcessConfig::SecondaryEclipsePostProcessConfig (const std::string& folder_path)
+OccultationPostProcessConfig::OccultationPostProcessConfig (const std::string& folder_path)
 {
   const std::string config_file_name = folder_path + "post_process.config";
 
@@ -47,7 +47,7 @@ SecondaryEclipsePostProcessConfig::SecondaryEclipsePostProcessConfig (const std:
 
 
 
-SecondaryEclipsePostProcessConfig::SecondaryEclipsePostProcessConfig (
+OccultationPostProcessConfig::OccultationPostProcessConfig (
   const bool save_temperatures_, 
   const bool save_spectra_, 
   const bool save_contribution_functions_,
@@ -62,7 +62,7 @@ SecondaryEclipsePostProcessConfig::SecondaryEclipsePostProcessConfig (
 
 
 
-void SecondaryEclipsePostProcessConfig::readConfigFile(const std::string& file_name)
+void OccultationPostProcessConfig::readConfigFile(const std::string& file_name)
 {
   std::fstream file;
   file.open(file_name.c_str(), std::ios::in);
@@ -90,14 +90,14 @@ void SecondaryEclipsePostProcessConfig::readConfigFile(const std::string& file_n
 }
 
 
-void SecondaryEclipseModel::postProcess(
+void OccultationModel::postProcess(
   GenericConfig* post_process_config_,
   const std::vector< std::vector<double> >& model_parameter, 
   const size_t best_fit_model,
   bool& delete_unused_files)
 { 
-  SecondaryEclipsePostProcessConfig post_process_config = 
-    *(dynamic_cast<SecondaryEclipsePostProcessConfig*>(post_process_config_));
+  OccultationPostProcessConfig post_process_config = 
+    *(dynamic_cast<OccultationPostProcessConfig*>(post_process_config_));
 
   if (post_process_config.delete_sampler_files)
     delete_unused_files = true;
@@ -111,12 +111,12 @@ void SecondaryEclipseModel::postProcess(
 
 
 //calls the model specific posterior calculations
-void SecondaryEclipseModel::postProcess(
+void OccultationModel::postProcess(
   const std::vector< std::vector<double> >& model_parameter, 
   const size_t best_fit_model,
   bool& delete_unused_files)
 { 
-  SecondaryEclipsePostProcessConfig post_process_config(config->retrieval_folder_path);
+  OccultationPostProcessConfig post_process_config(config->retrieval_folder_path);
   
   if (post_process_config.delete_sampler_files)
     delete_unused_files = true;
@@ -128,8 +128,8 @@ void SecondaryEclipseModel::postProcess(
 }
 
 
-void SecondaryEclipseModel::postProcess(
-  const SecondaryEclipsePostProcessConfig& post_process_config,
+void OccultationModel::postProcess(
+  const OccultationPostProcessConfig& post_process_config,
   const std::vector< std::vector<double> >& model_parameter, 
   const size_t best_fit_model)
 { 
@@ -182,7 +182,7 @@ void SecondaryEclipseModel::postProcess(
 
 
 
-void SecondaryEclipseModel::postProcessModel(
+void OccultationModel::postProcessModel(
   const std::vector<double>& parameters, 
   std::vector<double>& temperature_profile, 
   std::vector<std::vector<double>>& mixing_ratios)
@@ -202,7 +202,7 @@ void SecondaryEclipseModel::postProcessModel(
 
 
 
-void SecondaryEclipseModel::savePostProcessChemistry(
+void OccultationModel::savePostProcessChemistry(
   const std::vector<std::vector<std::vector<double>>>& mixing_ratios, 
   const unsigned int species)
 {
@@ -231,7 +231,7 @@ void SecondaryEclipseModel::savePostProcessChemistry(
 
 
 
-void SecondaryEclipseModel::savePostProcessTemperatures(
+void OccultationModel::savePostProcessTemperatures(
   const std::vector<std::vector<double>>& temperature_profiles)
 {
   //save the temperature profiles into a file
@@ -252,7 +252,7 @@ void SecondaryEclipseModel::savePostProcessTemperatures(
 }
 
 
-void SecondaryEclipseModel::postProcessContributionFunctions(
+void OccultationModel::postProcessContributionFunctions(
   const std::vector<double>& parameter)
 { 
   std::vector<double> cloud_parameters(
@@ -306,7 +306,7 @@ void SecondaryEclipseModel::postProcessContributionFunctions(
 
 
 
-void SecondaryEclipseModel::saveContributionFunctions(
+void OccultationModel::saveContributionFunctions(
   std::vector< std::vector<double>>& contribution_function, const size_t observation_index)
 {
   std::string observation_name = observations[observation_index].observationName();

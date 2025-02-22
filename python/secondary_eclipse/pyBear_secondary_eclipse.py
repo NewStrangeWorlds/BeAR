@@ -1,4 +1,4 @@
-from src.setup_secondary_eclipse_model import BeARSecondaryEclipseModel
+from src.setup_secondary_eclipse_model import BeAROccultationModel
 import numpy as np
 from astropy import units as u
 from astropy import constants as const
@@ -36,7 +36,7 @@ use_gpu = True
 grid_points_number = 100
 
 #create the BeAR forward model
-seconary_eclipse_model = BeARSecondaryEclipseModel(
+seconary_eclipse_model = BeAROccultationModel(
   use_gpu,
   grid_points_number,
   spectral_discretisation,

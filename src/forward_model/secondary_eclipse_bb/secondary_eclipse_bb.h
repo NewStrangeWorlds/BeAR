@@ -43,35 +43,35 @@ namespace bear {
 //this struct handles config
 //it will read in the corresponding parameter file
 //and will then be used to create a model object
-struct SecondaryEclipseBlackBodyConfig{
+struct OccultationBlackBodyConfig{
   std::string stellar_spectrum_model;
   std::vector<std::string> stellar_model_parameters;
 
-  SecondaryEclipseBlackBodyConfig (const std::string& folder_path);
+  OccultationBlackBodyConfig (const std::string& folder_path);
   void readConfigFile(const std::string& file_name);
 };
 
 
 
-class SecondaryEclipseBlackBodyPostConfig : public GenericConfig{
+class OccultationBlackBodyPostConfig : public GenericConfig{
   public:
     bool save_spectra = true;
     bool delete_sampler_files = false;
 
-    SecondaryEclipseBlackBodyPostConfig (const std::string& folder_path);
+    OccultationBlackBodyPostConfig (const std::string& folder_path);
     void readConfigFile(const std::string& file_name);
 };
 
 
 
-class SecondaryEclipseBlackBodyModel : public ForwardModel{
+class OccultationBlackBodyModel : public ForwardModel{
   public:
-    SecondaryEclipseBlackBodyModel (
-      const SecondaryEclipseBlackBodyConfig model_config,
+    OccultationBlackBodyModel (
+      const OccultationBlackBodyConfig model_config,
       GlobalConfig* config_,
       SpectralGrid* spectral_grid_,
       std::vector<Observation>& observations_);
-    virtual ~SecondaryEclipseBlackBodyModel();
+    virtual ~OccultationBlackBodyModel();
     
     virtual size_t parametersNumber() {
       return nb_total_param();};
@@ -109,7 +109,7 @@ class SecondaryEclipseBlackBodyModel : public ForwardModel{
              + nb_spectrum_modifier_param;
     }
 
-    void initModules(const SecondaryEclipseBlackBodyConfig& model_config);
+    void initModules(const OccultationBlackBodyConfig& model_config);
 
     std::vector<double> model_parameters;
     std::vector<double> stellar_parameters;
@@ -118,7 +118,7 @@ class SecondaryEclipseBlackBodyModel : public ForwardModel{
     void extractParameters(
       const std::vector<double>& parameters);
 
-    void calcSecondaryEclipseGPU(
+    void calcOccultationGPU(
       double* secondary_eclipse,
       double* planet_spectrum,
       const double* stellar_spectrum,

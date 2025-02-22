@@ -36,7 +36,7 @@
 
 namespace bear{
 
-SecondaryEclipseBlackBodyPostConfig::SecondaryEclipseBlackBodyPostConfig (const std::string& folder_path)
+OccultationBlackBodyPostConfig::OccultationBlackBodyPostConfig (const std::string& folder_path)
 {
   const std::string config_file_name = folder_path + "post_process.config";
 
@@ -44,7 +44,7 @@ SecondaryEclipseBlackBodyPostConfig::SecondaryEclipseBlackBodyPostConfig (const 
 }
 
 
-void SecondaryEclipseBlackBodyPostConfig::readConfigFile(const std::string& file_name)
+void OccultationBlackBodyPostConfig::readConfigFile(const std::string& file_name)
 {
   std::fstream file;
   file.open(file_name.c_str(), std::ios::in);
@@ -67,12 +67,12 @@ void SecondaryEclipseBlackBodyPostConfig::readConfigFile(const std::string& file
 
 
 //calls the model specific posterior calculations
-void SecondaryEclipseBlackBodyModel::postProcess(
+void OccultationBlackBodyModel::postProcess(
   const std::vector< std::vector<double> >& model_parameter,
   const size_t best_fit_model,
   bool& delete_unused_files)
 {
-  SecondaryEclipseBlackBodyPostConfig post_process_config(config->retrieval_folder_path);
+  OccultationBlackBodyPostConfig post_process_config(config->retrieval_folder_path);
 
   if (post_process_config.delete_sampler_files)
     delete_unused_files = true;

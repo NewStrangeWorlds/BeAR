@@ -32,7 +32,7 @@
 namespace bear{
 
 
-__global__ void secondaryEclipseDevice(
+__global__ void OccultationDevice(
   double* secondary_eclipse,
   double* planet_spectrum,
   const double* stellar_spectrum,
@@ -52,7 +52,7 @@ __global__ void secondaryEclipseDevice(
 
 
 
-__host__ void SecondaryEclipseModel::calcSecondaryEclipseGPU(
+__host__ void OccultationModel::calcOccultationGPU(
   double* secondary_eclipse,
   double* planet_spectrum,
   const double* stellar_spectrum,
@@ -66,7 +66,7 @@ __host__ void SecondaryEclipseModel::calcSecondaryEclipseGPU(
   if (nb_points % threads) blocks++;
 
 
-  secondaryEclipseDevice<<<blocks,threads>>>(
+  OccultationDevice<<<blocks,threads>>>(
     secondary_eclipse,
     planet_spectrum,
     stellar_spectrum,

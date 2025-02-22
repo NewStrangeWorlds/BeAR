@@ -31,7 +31,7 @@
 namespace bear{
 
 
-bool SecondaryEclipseModel::testModel(
+bool OccultationModel::testModel(
   const std::vector<double>& parameters)
 {
   bool test_ok = false;

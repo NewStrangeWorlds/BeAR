@@ -13,7 +13,7 @@ import numpy as np
 valid_spectral_discretisations = {'const_wavenumber', 'const_wavelength', 'const_resolution'}
 
 
-class BeARSecondaryEclipseModel:
+class BeAROccultationModel:
 
   def __init__(
       self,
@@ -70,7 +70,7 @@ class BeARSecondaryEclipseModel:
     opacity_species = opacity_species_data[:, 0]
     opacity_folders = opacity_species_data[:, 1]
 
-    self.forward_model = pybear.SecondaryEclipseModel(
+    self.forward_model = pybear.OccultationModel(
       bear_config, 
       self.spectral_grid, 
       self.nb_grid_points, 

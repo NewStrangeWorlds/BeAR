@@ -45,8 +45,8 @@
 namespace bear{
 
 
-SecondaryEclipseModel::SecondaryEclipseModel (
-  const SecondaryEclipseConfig model_config,
+OccultationModel::OccultationModel (
+  const OccultationConfig model_config,
   GlobalConfig* config_,
   SpectralGrid* spectral_grid_,
   std::vector<Observation>& observations_) 
@@ -76,7 +76,7 @@ SecondaryEclipseModel::SecondaryEclipseModel (
 
 
 
-SecondaryEclipseModel::SecondaryEclipseModel (
+OccultationModel::OccultationModel (
   GlobalConfig* config_, 
   SpectralGrid* spectral_grid_,
   const size_t nb_grid_points_,
@@ -114,7 +114,7 @@ SecondaryEclipseModel::SecondaryEclipseModel (
 }
 
 
-void SecondaryEclipseModel::extractParameters(
+void OccultationModel::extractParameters(
   const std::vector<double>& parameters)
 {
   model_parameters = std::vector<double>(
@@ -155,7 +155,7 @@ void SecondaryEclipseModel::extractParameters(
 
 
 //determines the basic atmospheric structure (temperature profile, chemistry...) from the free parameters supplied by MultiNest
-bool SecondaryEclipseModel::calcAtmosphereStructure(const std::vector<double>& parameter)
+bool OccultationModel::calcAtmosphereStructure(const std::vector<double>& parameter)
 {
   const double surface_gravity = std::pow(10,parameter[0]);
  
@@ -178,7 +178,7 @@ bool SecondaryEclipseModel::calcAtmosphereStructure(const std::vector<double>& p
 
 
 //Runs the forward model on the CPU and calculates a high-resolution spectrum
-bool SecondaryEclipseModel::calcModelCPU(
+bool OccultationModel::calcModelCPU(
   const std::vector<double>& parameters, 
   std::vector<double>& spectrum, 
   std::vector<std::vector<double>>& spectrum_obs)
@@ -259,7 +259,7 @@ bool SecondaryEclipseModel::calcModelCPU(
 
 //run the forward model with the help of the GPU
 //the atmospheric structure itself is still done on the CPU
-bool SecondaryEclipseModel::calcModelGPU(
+bool OccultationModel::calcModelGPU(
   const std::vector<double>& parameters, 
   double* spectrum, 
   std::vector<double*>& spectrum_obs)
@@ -317,7 +317,7 @@ bool SecondaryEclipseModel::calcModelGPU(
   
   for (size_t i=0; i<observations.size(); ++i)
   {
-    calcSecondaryEclipseGPU(
+    calcOccultationGPU(
     spectrum_obs[i], 
     planet_spectrum_obs[i], 
     stellar_spectrum_obs[i], 
@@ -340,7 +340,7 @@ bool SecondaryEclipseModel::calcModelGPU(
 
 
   //convert the original high-res planet spectrum also to a secondary eclipse
-  calcSecondaryEclipseGPU(
+  calcOccultationGPU(
     spectrum, 
     spectrum, 
     stellar_spectrum, 
@@ -356,7 +356,7 @@ bool SecondaryEclipseModel::calcModelGPU(
 
 
 
-void SecondaryEclipseModel::setCloudProperties(
+void OccultationModel::setCloudProperties(
   const std::vector<std::vector<double>>& cloud_optical_depth)
 {
   bool use_cloud = false;
@@ -392,7 +392,7 @@ void SecondaryEclipseModel::setCloudProperties(
 
 
 
-std::vector<double> SecondaryEclipseModel::calcSpectrum(
+std::vector<double> OccultationModel::calcSpectrum(
       const double surface_gravity,
       const double radius_ratio,
       const std::vector<double>& pressure,
@@ -438,7 +438,7 @@ std::vector<double> SecondaryEclipseModel::calcSpectrum(
 
     double* albedo_contribution_gpu = nullptr;
 
-    calcSecondaryEclipseGPU(
+    calcOccultationGPU(
       model_spectrum_gpu, 
       model_spectrum_gpu, 
       stellar_spectrum, 
@@ -483,7 +483,7 @@ std::vector<double> SecondaryEclipseModel::calcSpectrum(
 
 
 
-SecondaryEclipseModel::~SecondaryEclipseModel()
+OccultationModel::~OccultationModel()
 {
   delete radiative_transfer;
   delete temperature_profile;

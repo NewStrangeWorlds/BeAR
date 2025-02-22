@@ -50,7 +50,7 @@ namespace bear {
 //this struct handles the Brown Dwarf config
 //it will read in the corresponding parameter file
 //and will then be used to create a model object
-struct SecondaryEclipseConfig : public GenericConfig{
+struct OccultationConfig : public GenericConfig{
   size_t nb_grid_points = 0;
 
   std::vector<double> atmos_boundaries = {0, 0};
@@ -73,9 +73,9 @@ struct SecondaryEclipseConfig : public GenericConfig{
   std::vector<std::string> opacity_species_symbol;
   std::vector<std::string> opacity_species_folder;
 
-  SecondaryEclipseConfig (
+  OccultationConfig (
     const std::string& folder_path);
-  SecondaryEclipseConfig (
+  OccultationConfig (
     const int nb_grid_points_,
     const double atmos_bottom_pressure_,
     const double atmos_top_pressure_,
@@ -89,7 +89,7 @@ struct SecondaryEclipseConfig : public GenericConfig{
     const std::vector<std::string>& opacity_species_folder_,
     const std::string stellar_spectrum_model_,
     const std::vector<std::string>& stellar_model_parameters_);
-  SecondaryEclipseConfig (
+  OccultationConfig (
     const int nb_grid_points_,
     const double atmos_bottom_pressure_,
     const double atmos_top_pressure_,
@@ -111,7 +111,7 @@ struct SecondaryEclipseConfig : public GenericConfig{
 
 
 
-class SecondaryEclipsePostProcessConfig : public GenericConfig{
+class OccultationPostProcessConfig : public GenericConfig{
   public:
     bool save_temperatures = true;
     bool save_spectra = true;
@@ -119,9 +119,9 @@ class SecondaryEclipsePostProcessConfig : public GenericConfig{
     bool delete_sampler_files = false;
     std::vector<chemical_species_id> species_to_save;
     
-    SecondaryEclipsePostProcessConfig (
+    OccultationPostProcessConfig (
       const std::string& folder_path);
-    SecondaryEclipsePostProcessConfig (
+    OccultationPostProcessConfig (
       const bool save_temperatures_, 
       const bool save_spectra_, 
       const bool save_contribution_functions_,
@@ -133,14 +133,14 @@ class SecondaryEclipsePostProcessConfig : public GenericConfig{
 
 
 
-class SecondaryEclipseModel : public ForwardModel{
+class OccultationModel : public ForwardModel{
   public:
-    SecondaryEclipseModel (
-      const SecondaryEclipseConfig model_config,
+    OccultationModel (
+      const OccultationConfig model_config,
       GlobalConfig* config_,
       SpectralGrid* spectral_grid_,
       std::vector<Observation>& observations_);
-    SecondaryEclipseModel (
+    OccultationModel (
       GlobalConfig* config_, 
       SpectralGrid* spectral_grid_,
       const size_t nb_grid_points_,
@@ -149,7 +149,7 @@ class SecondaryEclipseModel : public ForwardModel{
       const std::vector<std::string>& opacity_species_symbol,
       const std::vector<std::string>& opacity_species_folder);
 
-    virtual ~SecondaryEclipseModel();
+    virtual ~OccultationModel();
     
     virtual size_t parametersNumber() {
       return nb_total_param();};
@@ -210,7 +210,7 @@ class SecondaryEclipseModel : public ForwardModel{
              + nb_spectrum_modifier_param;
     }
 
-    void initModules(const SecondaryEclipseConfig& model_config);
+    void initModules(const OccultationConfig& model_config);
 
     std::vector<double> model_parameters;
     std::vector<double> chemistry_parameters;
@@ -222,12 +222,12 @@ class SecondaryEclipseModel : public ForwardModel{
     void extractParameters(
       const std::vector<double>& parameters);
 
-    std::vector<double> calcSecondaryEclipse(
+    std::vector<double> calcOccultation(
       std::vector<double>& planet_spectrum_bands,
       const double radius_ratio,
       const double geometric_albedo,
       const double radius_distance_ratio);
-    void calcSecondaryEclipseGPU(
+    void calcOccultationGPU(
       double* secondary_eclipse,
       double* planet_spectrum,
       const double* stellar_spectrum,
@@ -240,7 +240,7 @@ class SecondaryEclipseModel : public ForwardModel{
     void setCloudProperties(const std::vector<std::vector<double>>& cloud_optical_depth);
     
     void postProcess(
-      const SecondaryEclipsePostProcessConfig& post_process_config,
+      const OccultationPostProcessConfig& post_process_config,
       const std::vector< std::vector<double> >& model_parameter,
       const size_t best_fit_model);
     void postProcessModel(
