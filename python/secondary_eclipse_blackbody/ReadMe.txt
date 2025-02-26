@@ -16,4 +16,4 @@ This script runs the SecondaryEclipseExampleBB retrieval case by using again pyM
 This script shows how to use pyBeAR without any of the normal configuration files. The entire retrieval and model configuration is done in Python. The parameters are equivalent to those found in the configuration files of the SecondaryEclipseExampleBB folder.
 
 - pyBear_postprocess.py
-This example shows how to obtain spectra and atmospheric structures to perform a custom post-process.
+This example shows how to obtain posterior spectra to perform a custom post-process.

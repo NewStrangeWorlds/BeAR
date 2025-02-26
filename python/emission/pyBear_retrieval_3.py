@@ -115,7 +115,7 @@ temperature_profile_parameters = ["6", "1"]
 
 #radiative transfer model
 rt_model = "scm"
-rt_model_parameters = [""]
+rt_model_parameters = []
 
 #configuration of the chemistry
 #here, we use the isoprofile and background models
@@ -218,7 +218,7 @@ postprocess_config = pybear.EmissionPostProcessConfig(
 
 
 #in order to compute effective temperatures, we need an
-#additional "observations" that provides the retrieval with
+#additional "observation" that provides the retrieval with
 #a wider wavelength range than the orginal observation
 obs_add = pybear.Observation(
   "Postprocess_Spectrum", "band-spectroscopy", [[0.5, 20.0]], [1.0], [1.0])
