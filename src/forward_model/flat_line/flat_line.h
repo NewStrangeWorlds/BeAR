@@ -43,7 +43,12 @@ class FlatLinePostProcessConfig : public GenericConfig{
     bool save_spectra = false;
     bool delete_sampler_files = false;
 
-    FlatLinePostProcessConfig (const std::string& folder_path);
+    FlatLinePostProcessConfig (
+      const std::string& folder_path);
+    FlatLinePostProcessConfig (
+      const bool save_spectra_)
+      : save_spectra(save_spectra_) {};
+    
     void readConfigFile(const std::string& file_name);
 };
 
@@ -78,7 +83,7 @@ class FlatLine : public ForwardModel{
       GenericConfig* post_process_config_,
       const std::vector< std::vector<double> >& model_parameter,
       const size_t best_fit_model,
-      bool& delete_unused_files) {};
+      bool& delete_unused_files);
     
     virtual bool testModel(
       const std::vector<double>& parameters);
@@ -87,6 +92,11 @@ class FlatLine : public ForwardModel{
 
     size_t nb_total_param() 
       {return nb_general_param;}
+
+    void postProcess(
+      const FlatLinePostProcessConfig& post_process_config,
+      const std::vector< std::vector<double> >& model_parameter,
+      const size_t best_fit_model);
 
     void postProcessSpectrum(
       std::vector<double>& model_spectrum, std::vector<double>& model_spectrum_bands);

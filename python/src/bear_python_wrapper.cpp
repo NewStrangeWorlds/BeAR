@@ -17,6 +17,8 @@
 #include "../../../src/forward_model/generic_config.h"
 #include "../../src/forward_model/transmission/transmission.h"
 #include "../../src/forward_model/secondary_eclipse/secondary_eclipse.h"
+#include "../../src/forward_model/secondary_eclipse_bb/secondary_eclipse_bb.h"
+#include "../../src/forward_model/flat_line/flat_line.h"
 #include "../../src/forward_model/emission/emission.h"
 
 
@@ -224,7 +226,7 @@ PYBIND11_MODULE(pybear, m) {
         .def_readwrite("temperature_profile_parameters", &bear::OccultationConfig::temperature_profile_parameters)
         .def_readwrite("radiative_transfer_model", &bear::OccultationConfig::radiative_transfer_model)
         .def_readwrite("radiative_transfer_parameters", &bear::OccultationConfig::radiative_transfer_parameters)
-        .def_readwrite("stellar_spectrum_model", &bear::OccultationConfig::radiative_transfer_model)
+        .def_readwrite("stellar_spectrum_model", &bear::OccultationConfig::stellar_spectrum_model)
         .def_readwrite("stellar_model_parameters", &bear::OccultationConfig::stellar_model_parameters)
         .def_readwrite("chemistry_model", &bear::OccultationConfig::chemistry_model)
         .def_readwrite("chemistry_parameters", &bear::OccultationConfig::chemistry_parameters)
@@ -232,6 +234,15 @@ PYBIND11_MODULE(pybear, m) {
         .def_readwrite("cloud_model_parameters", &bear::OccultationConfig::cloud_model_parameters)
         .def_readwrite("opacity_species_symbol", &bear::OccultationConfig::opacity_species_symbol)
         .def_readwrite("opacity_species_folder", &bear::OccultationConfig::opacity_species_folder);
+
+    py::class_<bear::OccultationBlackBodyConfig>(m, "OccultationBlackBodyConfig", genericConfig)
+        .def(py::init<
+          const std::string&>())
+        .def(py::init<
+          const std::string,
+          const std::vector<std::string>&>())
+        .def_readwrite("stellar_spectrum_model", &bear::OccultationBlackBodyConfig::stellar_spectrum_model)
+        .def_readwrite("stellar_model_parameters", &bear::OccultationBlackBodyConfig::stellar_model_parameters);
 
     py::class_<bear::EmissionModelConfig>(m, "EmissionModelConfig", genericConfig)
         .def(py::init<
@@ -313,6 +324,22 @@ PYBIND11_MODULE(pybear, m) {
         .def_readwrite("save_spectra", &bear::EmissionPostProcessConfig::save_spectra)
         .def_readwrite("save_contribution_functions", &bear::EmissionPostProcessConfig::save_contribution_functions)
         .def_readwrite("delete_sampler_files", &bear::EmissionPostProcessConfig::delete_sampler_files);
+
+    py::class_<bear::OccultationBlackBodyPostConfig>(m, "OccultationBlackBodyPostConfig", genericConfig)
+        .def(py::init<
+          const std::string&>())
+        .def(py::init<
+          const bool>())
+        .def_readwrite("save_spectra", &bear::OccultationBlackBodyPostConfig::save_spectra)
+        .def_readwrite("delete_sampler_files", &bear::OccultationBlackBodyPostConfig::delete_sampler_files);
+
+    py::class_<bear::FlatLinePostProcessConfig>(m, "FlatLinePostProcessConfig", genericConfig)
+        .def(py::init<
+          const std::string&>())
+        .def(py::init<
+          const bool>())
+        .def_readwrite("save_spectra", &bear::FlatLinePostProcessConfig::save_spectra)
+        .def_readwrite("delete_sampler_files", &bear::FlatLinePostProcessConfig::delete_sampler_files);
 
     py::class_<bear::TransmissionModel>(m, "TransmissionModel")
         .def(py::init<

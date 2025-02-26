@@ -45,7 +45,7 @@ ForwardModel::ForwardModel (
     : config(config_)
     , spectral_grid(spectral_grid_)
     , observations(observations_) 
-{
+{ 
   for (auto & i : observations)
   {
     nb_observation_points += i.nbPoints();

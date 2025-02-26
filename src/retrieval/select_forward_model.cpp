@@ -129,17 +129,31 @@ ForwardModel* Retrieval::selectForwardModel(
     return model;
   }
 
-
+  
   if (model_description == "secondary_eclipse_bb" || model_description == "Secondary_eclipse_bb" || model_description == "se_bb")
   {
-    
-    OccultationBlackBodyModel* model = new OccultationBlackBodyModel(
-      OccultationBlackBodyConfig (config->retrieval_folder_path),
-      config,
-      &spectral_grid,
-      observations);
+    if (model_config == nullptr)
+    {
+      OccultationBlackBodyModel* model = new OccultationBlackBodyModel(
+        OccultationBlackBodyConfig (config->retrieval_folder_path),
+        config,
+        &spectral_grid,
+        observations);
 
-    return model;
+      return model;
+    }
+    else
+    { 
+      OccultationBlackBodyConfig* c = dynamic_cast<OccultationBlackBodyConfig*>(model_config);
+      
+      OccultationBlackBodyModel* model = new OccultationBlackBodyModel(
+        *c,
+        config,
+        &spectral_grid,
+        observations);
+      
+      return model;
+    }
   }
 
 

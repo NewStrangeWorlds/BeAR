@@ -51,7 +51,7 @@ OccultationBlackBodyModel::OccultationBlackBodyModel (
 
   //this forward model has two free general parameters
   nb_general_param = 2;
-
+  
   initModules(model_config);
 }
 

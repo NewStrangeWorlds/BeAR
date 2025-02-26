@@ -77,7 +77,38 @@ void OccultationBlackBodyModel::postProcess(
   if (post_process_config.delete_sampler_files)
     delete_unused_files = true;
 
+   postProcess(
+    post_process_config,
+    model_parameter,
+    best_fit_model);
+}
 
+
+
+void OccultationBlackBodyModel::postProcess(
+  GenericConfig* post_process_config_,
+  const std::vector< std::vector<double> >& model_parameter,
+  const size_t best_fit_model,
+  bool& delete_unused_files)
+{
+  OccultationBlackBodyPostConfig* post_process_config = dynamic_cast<OccultationBlackBodyPostConfig*>(post_process_config_);
+
+  if (post_process_config->delete_sampler_files)
+    delete_unused_files = true;
+
+  postProcess(
+    post_process_config,
+    model_parameter,
+    best_fit_model);
+}
+
+
+
+void OccultationBlackBodyModel::postProcess(
+  const OccultationBlackBodyPostConfig& post_process_config,
+  const std::vector< std::vector<double> >& model_parameter,
+  const size_t best_fit_model)
+{
   if (post_process_config.save_spectra)
   {
     std::vector<std::vector<std::vector<double>>> model_spectra_obs;
@@ -92,9 +123,7 @@ void OccultationBlackBodyModel::postProcess(
     saveBestFitSpectrum(model_spectrum_best_fit);
     savePostProcessSpectra(model_spectra_obs);
   }
-
 }
-
 
 
 }

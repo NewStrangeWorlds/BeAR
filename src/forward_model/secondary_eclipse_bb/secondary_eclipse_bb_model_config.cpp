@@ -40,6 +40,15 @@ OccultationBlackBodyConfig::OccultationBlackBodyConfig (const std::string& folde
 }
 
 
+OccultationBlackBodyConfig::OccultationBlackBodyConfig (
+  const std::string stellar_spectrum_model_,
+  const std::vector<std::string>& stellar_model_parameters_)
+{
+  stellar_spectrum_model = stellar_spectrum_model_;
+  stellar_model_parameters = stellar_model_parameters_;
+}
+
+
 
 void OccultationBlackBodyConfig::readConfigFile(const std::string& file_name)
 {

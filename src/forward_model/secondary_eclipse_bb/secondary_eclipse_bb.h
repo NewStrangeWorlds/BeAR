@@ -43,12 +43,18 @@ namespace bear {
 //this struct handles config
 //it will read in the corresponding parameter file
 //and will then be used to create a model object
-struct OccultationBlackBodyConfig{
-  std::string stellar_spectrum_model;
-  std::vector<std::string> stellar_model_parameters;
+class OccultationBlackBodyConfig : public GenericConfig{
+  public:
+    std::string stellar_spectrum_model;
+    std::vector<std::string> stellar_model_parameters;
 
-  OccultationBlackBodyConfig (const std::string& folder_path);
-  void readConfigFile(const std::string& file_name);
+    OccultationBlackBodyConfig (
+      const std::string& folder_path);
+    OccultationBlackBodyConfig (
+      const std::string stellar_spectrum_model_,
+      const std::vector<std::string>& stellar_model_parameters_);
+
+    virtual void readConfigFile(const std::string& file_name);
 };
 
 
@@ -58,7 +64,12 @@ class OccultationBlackBodyPostConfig : public GenericConfig{
     bool save_spectra = true;
     bool delete_sampler_files = false;
 
-    OccultationBlackBodyPostConfig (const std::string& folder_path);
+    OccultationBlackBodyPostConfig (
+      const std::string& folder_path);
+    OccultationBlackBodyPostConfig (
+      const bool save_spectra_)
+      : save_spectra(save_spectra_) {};
+    
     void readConfigFile(const std::string& file_name);
 };
 
@@ -93,7 +104,7 @@ class OccultationBlackBodyModel : public ForwardModel{
       GenericConfig* post_process_config_,
       const std::vector< std::vector<double> >& model_parameter,
       const size_t best_fit_model,
-      bool& delete_unused_files) {};
+      bool& delete_unused_files);
 
     virtual bool testModel(
       const std::vector<double>& parameters);
@@ -129,6 +140,11 @@ class OccultationBlackBodyModel : public ForwardModel{
     void calcPlanetSpectrumGPU(
       const double planet_temperature,
       double* spectrum_dev);
+
+    void postProcess(
+      const OccultationBlackBodyPostConfig& post_process_config,
+      const std::vector< std::vector<double> >& model_parameter,
+      const size_t best_fit_model);
 
     void postProcessModel(
       const std::vector<double>& parameter,

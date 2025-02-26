@@ -70,6 +70,25 @@ void FlatLinePostProcessConfig::readConfigFile(const std::string& file_name)
 
 
 
+void FlatLine::postProcess(
+  GenericConfig* post_process_config_,
+  const std::vector< std::vector<double> >& model_parameter,
+  const size_t best_fit_model,
+  bool& delete_unused_files)
+{
+  FlatLinePostProcessConfig post_process_config = 
+    dynamic_cast<FlatLinePostProcessConfig&>(*post_process_config_);
+
+  if (post_process_config.delete_sampler_files)
+    delete_unused_files = true;
+
+  postProcess(
+    post_process_config,
+    model_parameter,
+    best_fit_model);
+}
+
+
 
 void FlatLine::postProcess(
   const std::vector< std::vector<double> >& model_parameter,
@@ -81,6 +100,29 @@ void FlatLine::postProcess(
   if (post_process_config.delete_sampler_files)
     delete_unused_files = true;
 
+  if (post_process_config.save_spectra)
+  {
+    std::vector<std::vector<std::vector<double>>> model_spectra_obs;
+    std::vector<double> model_spectrum_best_fit;
+  
+    calcPostProcessSpectra(
+      model_parameter, 
+      best_fit_model, 
+      model_spectra_obs,
+      model_spectrum_best_fit);
+    
+    saveBestFitSpectrum(model_spectrum_best_fit);
+    savePostProcessSpectra(model_spectra_obs);
+  }
+}
+
+
+
+void FlatLine::postProcess(
+  const FlatLinePostProcessConfig& post_process_config,
+  const std::vector< std::vector<double> >& model_parameter,
+  const size_t best_fit_model)
+{
   if (post_process_config.save_spectra)
   {
     std::vector<std::vector<std::vector<double>>> model_spectra_obs;
