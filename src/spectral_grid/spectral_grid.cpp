@@ -170,7 +170,7 @@ void SpectralGrid::createHighResGridConstWavenumber(
 
     for (size_t j=edge_indices[i][0]; j<edge_indices[i][1]; ++j)
     { 
-      const double next_wavenumber = wavenumber_list_full[last_index] + config->const_wavenumber_step;
+      const double next_wavenumber = wavenumber_list_full[last_index] + config->spectral_resolution;
       
       if (next_wavenumber == wavenumber_list_full[j] || wavenumber_list_full[j+1] > next_wavenumber)
       { 
@@ -196,7 +196,7 @@ void SpectralGrid::createHighResGridConstWavelength(
 
     for (size_t j=edge_indices[i][0]; j<edge_indices[i][1]; ++j)
     {
-      const double next_wavelength = wavelength_list_full[last_index] - config->const_wavelength_step;
+      const double next_wavelength = wavelength_list_full[last_index] - config->spectral_resolution;
 
       if (next_wavelength == wavelength_list_full[j] || wavelength_list_full[j+1] < next_wavelength)
       { 
@@ -222,7 +222,7 @@ void SpectralGrid::createHighResGridConstResolution(
 
     for (size_t j=edge_indices[i][0]; j<edge_indices[i][1]; ++j)
     { 
-      const double next_wavelength = wavelength_list_full[last_index] * (1 - 1./config->const_spectral_resolution);
+      const double next_wavelength = wavelength_list_full[last_index] * (1 - 1./config->spectral_resolution);
 
       if (next_wavelength == wavelength_list_full[j] || wavelength_list_full[j+1] < next_wavelength)
       { 

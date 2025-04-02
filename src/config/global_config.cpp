@@ -60,18 +60,17 @@ GlobalConfig::GlobalConfig(
   if (spectral_disecretisation_ == "const_wavenumber")
   {
     spectral_disecretisation = 0;
-    const_wavenumber_step = resolution_;
   }
   else if (spectral_disecretisation_ == "const_wavelength")
   {
     spectral_disecretisation = 1;
-    const_wavelength_step = resolution_;
   }
   else if (spectral_disecretisation_ == "const_resolution")
   {
     spectral_disecretisation = 2;
-    const_spectral_resolution = resolution_;
   }
+
+  spectral_resolution = resolution_;
 }
 
 
@@ -156,18 +155,17 @@ bool GlobalConfig::loadConfigFile(std::string retrieval_folder)
   if (input == "const_wavenumber")
   {
     spectral_disecretisation = 0;
-    const_wavenumber_step = spectral_param;
   }
   else if (input == "const_wavelength")
   {
     spectral_disecretisation = 1;
-    const_wavelength_step = spectral_param;
   }
   else if (input == "const_resolution")
   {
     spectral_disecretisation = 2;
-    const_spectral_resolution = spectral_param;
   }
+
+  spectral_resolution = spectral_param;
 
   std::cout << "- Spectral grid disretisation: " << input << "  " << spectral_param << "\n";
 

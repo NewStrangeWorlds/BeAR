@@ -47,16 +47,14 @@ class BeAROccultationModel:
     
     if spectral_discretisation == 'const_wavenumber':
       bear_config.spectral_disecretisation = 0
-      bear_config.const_wavenumber_step = resolution
 
     if spectral_discretisation == 'const_wavelength':
       bear_config.spectral_disecretisation = 1
-      bear_config.const_wavelength_step = resolution
 
     if spectral_discretisation == 'const_resolution':
       bear_config.spectral_disecretisation = 2
-      bear_config.const_spectral_resolution = resolution
-      
+    
+    bear_config.spectral_resolution = resolution
     
    
     self.spectral_grid = pybear.SpectralGrid(
