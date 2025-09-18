@@ -93,7 +93,7 @@ __host__ void contributionFunctionGPU(double* contribution_function_dev,
   cudaMemcpy(vertical_grid_dev, &vertical_grid[0], bytes, cudaMemcpyHostToDevice);
 
 
-  cudaThreadSynchronize();
+  cudaDeviceSynchronize();
 
 
   int threads = 256;
@@ -109,7 +109,7 @@ __host__ void contributionFunctionGPU(double* contribution_function_dev,
                                                  nb_spectral_points, nb_grid_points);
 
 
-  cudaThreadSynchronize();
+  cudaDeviceSynchronize();
 
   cudaFree(temperature_dev);
   cudaFree(vertical_grid_dev);

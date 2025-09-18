@@ -52,7 +52,9 @@ class AdiabateSplineTemperature : public Temperature{
       const std::vector<double>& parameters,
       const unsigned int rcb_idx,
       const std::vector<double>& pressure,
-      std::vector<double>& temperature);
+      std::vector<double>& temperature,
+      const double pressure_rcb,
+      const double temperature_rcb);
 
      const size_t nb_control_points;
 };

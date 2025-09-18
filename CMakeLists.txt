@@ -40,7 +40,7 @@ set(CMAKE_BUILD_TYPE Release)
 
 
 if(SM MATCHES "0")
-  set(CUDA_ARCH_FLAGS "-arch=sm_61")
+  set(CUDA_ARCH_FLAGS "-arch=sm_75")
 else()
   message(STATUS "CUDA Architecture manually set to: -arch=sm_${SM}")
   set(CUDA_ARCH_FLAGS "-arch=sm_${SM}")
@@ -179,7 +179,7 @@ set(SRC_PYTHON_WRAPPER
 
 
 #check for OpenMP
-find_package(OpenMP REQUIRED)
+find_package(OpenMP REQUIRED C CXX)
 
 
 

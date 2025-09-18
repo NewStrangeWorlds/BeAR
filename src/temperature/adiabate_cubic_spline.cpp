@@ -60,18 +60,38 @@ bool AdiabateSplineTemperature::calcProfile(
   
   temperature.assign(pressure.size(), 0);
   
-  double rcb_pressure = parameters[0];
+  double pressure_rcb = parameters[0];
   
-  int rcb_idx = findRadiavativeConvectiveBoundary(rcb_pressure, pressure);
+  size_t rcb_idx = findRadiavativeConvectiveBoundary(pressure_rcb, pressure);
   
   const double gamma = parameters[1];
   const double temperature_bottom = parameters[2];
-
-  addAdiabate(temperature_bottom, rcb_idx, gamma, pressure, temperature);
   
-  const std::vector<double> spline_parameters(parameters.begin() + 3, parameters.end());
+  double temperature_rcb = temperature_bottom;
 
-  addCubicSpline(spline_parameters, rcb_idx, pressure, temperature);
+  if (rcb_idx > 0)
+  { 
+    std::vector<double> pressure_adiabate(pressure.begin(), pressure.begin() + rcb_idx + 1);
+
+    pressure_adiabate.back() = pressure_rcb;
+    
+    addAdiabate(temperature_bottom, rcb_idx, gamma, pressure_adiabate, temperature);
+
+    temperature_rcb = temperature[rcb_idx];
+  }
+
+
+  if (rcb_idx < pressure.size() - 1)
+  { 
+    const std::vector<double> spline_parameters(parameters.begin() + 3, parameters.end());
+
+    addCubicSpline(
+      spline_parameters, 
+      rcb_idx, pressure, 
+      temperature, 
+      pressure_rcb, 
+      temperature_rcb);
+  }
   
   return checkProfile(temperature);
 }
@@ -107,7 +127,7 @@ void AdiabateSplineTemperature::addAdiabate(
   temperature[0] = temperature_bottom;
   const double kappa = 1.0 - 1.0/gamma;
 
-  for (size_t i=1; i<=rcb_idx; ++i)
+  for (size_t i=1; i<pressure.size(); ++i)
   {
     // const double delta_ln_p = std::log(pressure[i]*1e6) - std::log(pressure[i-1]*1e6);
     // const double delta_ln_t = gamma * delta_ln_p;
@@ -123,13 +143,15 @@ void AdiabateSplineTemperature::addCubicSpline(
   const std::vector<double>& parameters,
   const unsigned int rcb_idx,
   const std::vector<double>& pressure,
-  std::vector<double>& temperature)
+  std::vector<double>& temperature,
+  const double pressure_rcb,
+  const double temperature_rcb)
 {
-  double control_points_step = (std::log10(pressure[rcb_idx]) - std::log10(pressure.back())) / (nb_control_points - 1.0);
+  double control_points_step = (std::log10(pressure_rcb) - std::log10(pressure.back())) / (nb_control_points - 1.0);
 
   std::vector<double> temperature_control_point(nb_control_points, 0.0);
 
-  temperature_control_point[0] = temperature[rcb_idx];
+  temperature_control_point[0] = temperature_rcb;
 
   for (size_t i=1; i<nb_control_points; ++i)
     temperature_control_point[i] = temperature_control_point[i-1] * parameters[i-1];
