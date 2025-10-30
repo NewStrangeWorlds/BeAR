@@ -87,14 +87,19 @@ class GasGeneric : public OpacitySpecies {
 class GasHm : public OpacitySpecies {
   public:
     GasHm(GlobalConfig* config_ptr, SpectralGrid* spectral_grid_ptr) 
-        : OpacitySpecies(_Hm, "H-", "")
-        {
+        : OpacitySpecies(_Hm, "H-", "Continuum")
+        { 
           config = config_ptr; 
           spectral_grid = spectral_grid_ptr; 
+          continuum_available = true;
           init();
         }
     virtual ~GasHm() {}
   protected:
+    virtual bool calcContinuumAbsorption(
+      const double temperature,
+      const std::vector<double>& number_densities,
+      std::vector<double>& absorption_coeff);
     virtual void calcContinuumAbsorptionGPU(
       const double temperature, 
       const std::vector<double>& number_densities,
@@ -112,6 +117,9 @@ class GasHm : public OpacitySpecies {
           spectral_grid->wavelength_list_gpu,
           absorption_coeff_device);
       };
+    private:
+      std::vector<double> boundFreeAbsorption(const double temperature);
+      std::vector<double> freeFreeAbsorption(const double temperature);
 };
 
 

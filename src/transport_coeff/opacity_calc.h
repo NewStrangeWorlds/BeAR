@@ -124,10 +124,10 @@ inline void OpacityCalculation::calculateGPU(
   if (use_cloud)
   { 
     const size_t nb_layers = nb_grid_points - 1;
-
-    intializeOnDevice(cloud_optical_depths_dev, nb_layers*nb_spectral_points);
-    intializeOnDevice(cloud_single_scattering_dev, nb_layers*nb_spectral_points);
-    intializeOnDevice(cloud_asym_param_dev, nb_layers*nb_spectral_points);
+    
+    initializeOnDevice(cloud_optical_depths_dev, nb_layers*nb_spectral_points);
+    initializeOnDevice(cloud_single_scattering_dev, nb_layers*nb_spectral_points);
+    initializeOnDevice(cloud_asym_param_dev, nb_layers*nb_spectral_points);
 
     size_t nb_param = 0;
 
@@ -138,7 +138,7 @@ inline void OpacityCalculation::calculateGPU(
         cloud_parameter.begin() + nb_param + cm->nbParameters());
 
       nb_param += cm->nbParameters();
-
+      
       cm->opticalPropertiesGPU(
         parameter, 
         *atmosphere, 
@@ -146,6 +146,7 @@ inline void OpacityCalculation::calculateGPU(
         cloud_optical_depths_dev, 
         cloud_single_scattering_dev, 
         cloud_asym_param_dev);
+      
     }
   }
 
@@ -243,6 +244,8 @@ inline void OpacityCalculation::calculate(
 
 inline void OpacityCalculation::initDeviceMemory()
 { 
+  if (!use_gpu) return;
+  
   const size_t nb_grid_points = atmosphere->nb_grid_points;
   const size_t nb_spectral_points = spectral_grid->nbSpectralPoints();
 
@@ -257,9 +260,9 @@ inline void OpacityCalculation::initDeviceMemory()
     allocateOnDevice(cloud_single_scattering_dev, nb_layers*nb_spectral_points);
     allocateOnDevice(cloud_asym_param_dev, nb_layers*nb_spectral_points);
 
-    intializeOnDevice(cloud_optical_depths_dev, nb_layers*nb_spectral_points);
-    intializeOnDevice(cloud_single_scattering_dev, nb_layers*nb_spectral_points);
-    intializeOnDevice(cloud_asym_param_dev, nb_layers*nb_spectral_points);
+    initializeOnDevice(cloud_optical_depths_dev, nb_layers*nb_spectral_points);
+    initializeOnDevice(cloud_single_scattering_dev, nb_layers*nb_spectral_points);
+    initializeOnDevice(cloud_asym_param_dev, nb_layers*nb_spectral_points);
   }
 }
 
@@ -278,7 +281,7 @@ inline OpacityCalculation::~OpacityCalculation()
       deleteFromDevice(cloud_single_scattering_dev);
       deleteFromDevice(cloud_asym_param_dev);
     }
-  }     
+  }
 }
 
 

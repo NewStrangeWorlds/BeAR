@@ -14,11 +14,17 @@
 
 cmake_minimum_required (VERSION 3.10 FATAL_ERROR)
 
+OPTION(USE_PYTHON "Compile BeAR's Python Wrapper" OFF)
+
 # check command line args, user can specify SM to override manual setting
 set(SM "0" CACHE STRING "GPU SM value")
 
 
 project(bear C CXX CUDA Fortran)
+
+# if (USE_PYBEAR MATCHES ON)
+#   set(USE_PYTHON ON)
+# endif()
 
 
 #some C++/C flags
@@ -34,7 +40,7 @@ set(CMAKE_BUILD_TYPE Release)
 
 
 if(SM MATCHES "0")
-  set(CUDA_ARCH_FLAGS "-arch=sm_61")
+  set(CUDA_ARCH_FLAGS "-arch=sm_75")
 else()
   message(STATUS "CUDA Architecture manually set to: -arch=sm_${SM}")
   set(CUDA_ARCH_FLAGS "-arch=sm_${SM}")
@@ -100,6 +106,7 @@ set(SRC
   src/forward_model/stellar_spectrum/stellar_spectrum_grid.cpp
   src/forward_model/modules/stellar_contamination.cpp
   src/cloud_model/grey_cloud_model.cpp
+  src/cloud_model/fixed_cloud_model.cpp
   src/cloud_model/kh_cloud_model.cpp
   src/cloud_model/power_law_cloud_model.cpp
   src/model_main/model_main.cpp
@@ -127,16 +134,20 @@ set(SRC
   src/transport_coeff/sampled_data.cpp
   src/transport_coeff/species_rayleigh_cross_sections.cpp
   src/transport_coeff/transport_coeff.cpp
+  src/transport_coeff/h_m.cpp
   src/chemistry/isoprofile_chemistry.cpp
   src/chemistry/background_chemistry.cpp
   src/chemistry/isoprofile_clr_chemistry.cpp
   src/chemistry/fastchem_chemistry.cpp
   src/chemistry/free_chemistry.cpp
   src/chemistry/free_cbspline_chemistry.cpp
+  src/chemistry/fixed_chemistry.cpp
+  src/chemistry/step_function_chemistry.cpp
   src/temperature/piecewise_poly_temperature.cpp
   src/temperature/cubic_b_spline_temperature.cpp
   src/temperature/milne_solution_temperature.cpp
   src/temperature/guillot_temperature.cpp
+  src/temperature/adiabate_cubic_spline.cpp
   src/radiative_transfer/cdisort_src/cdisort.c
   src/radiative_transfer/cdisort_src/locate.c)
   
@@ -159,11 +170,16 @@ set(SRC_CUDA
   src/CUDA_kernels/star_file_spectrum.cu
   src/CUDA_kernels/stellar_contamination.cu
   src/CUDA_kernels/stellar_spectrum_grid.cu
-  src/CUDA_kernels/observation_kernels.cu)
+  src/CUDA_kernels/observation_kernels.cu
+  src/CUDA_kernels/radiative_transfer_kernels.cu)
+
+
+set(SRC_PYTHON_WRAPPER
+  python/src/bear_python_wrapper.cpp)
 
 
 #check for OpenMP
-find_package(OpenMP REQUIRED)
+find_package(OpenMP REQUIRED C CXX)
 
 
 
@@ -185,11 +201,11 @@ endif()
 
 
 
-#download the FastChem 2.1 if necessary
+#download FastChem 3, if necessary
 FetchContent_Declare(
   fastchem
   GIT_REPOSITORY https://github.com/newstrangeworlds/fastchem
-  GIT_TAG        e8dbeb7ec7719dbd0021d672a0b5d330e924a764
+  GIT_TAG        0979ebe637de51241c77e73071b0a3da5a16c8f2
 )
 
 FetchContent_GetProperties(fastchem)
@@ -199,7 +215,6 @@ if (NOT fastchem_POPULATED)
   FetchContent_Populate(fastchem)
   add_subdirectory(${fastchem_SOURCE_DIR} ${fastchem_BINARY_DIR})
 endif()
-
 
 
 
@@ -249,10 +264,57 @@ SET_TARGET_PROPERTIES(multinest_shared PROPERTIES LINKER_LANGUAGE Fortran)
 find_package(LAPACK REQUIRED)
 
 
+
 #compilation target for the CUDA files
 #CUDA requires different compiler options, so it's compiled separately
 add_library(bear_cuda ${SRC_CUDA})
 target_include_directories(bear_cuda PUBLIC ${boost_math_SOURCE_DIR}/include/)
+
+
+if (USE_PYTHON MATCHES ON)
+    #find the python version
+    find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
+    
+    set(PYBIND11_FINDPYTHON ON)
+
+    include(FetchContent)
+    FetchContent_Declare(
+        pybind11
+        GIT_REPOSITORY https://github.com/pybind/pybind11
+        GIT_TAG        7c33cdc2d39c7b99a122579f53bc94c8eb3332ff
+    )
+
+    FetchContent_GetProperties(pybind11)
+    if(NOT pybind11_POPULATED)
+        FetchContent_Populate(pybind11)
+        add_subdirectory(${pybind11_SOURCE_DIR} ${pybind11_BINARY_DIR})
+    endif()
+    
+  
+
+  #compilation target for BeAR's Python library
+  add_library(bear_for_py ${SRC})
+  target_include_directories(bear_for_py PUBLIC ${boost_math_SOURCE_DIR}/include/)
+  
+  add_library(bear_cuda_for_py ${SRC_CUDA})
+  target_include_directories(bear_cuda_for_py PUBLIC ${boost_math_SOURCE_DIR}/include/)
+  
+  
+  target_compile_options(bear_for_py PRIVATE "${OpenMP_CXX_FLAGS}" PRIVATE "-O3" PRIVATE "-fPIC")
+  target_compile_options(bear_cuda_for_py PRIVATE "-fPIC")
+
+  
+  #compilation target for BeAR's Python wrapper
+  pybind11_add_module(pybear ${SRC_PYTHON_WRAPPER})
+  
+  set_target_properties(pybear PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python/lib")
+  
+  target_link_libraries(pybear PUBLIC fastchem_lib_for_py bear_cuda_for_py bear_for_py multinest_shared OpenMP::OpenMP_CXX pybind11::module ${LAPACK_LIBRARIES})
+endif()
+
+
+
+
 
 
 # build application for BeAR

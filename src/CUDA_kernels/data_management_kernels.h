@@ -27,24 +27,14 @@
 namespace bear{
 
 
-void allocateOnDevice(double*& device_data, size_t nb_double_values);
-void deleteFromDevice(double*& device_data);
-void moveToDevice(double*& device_data, std::vector<double>& host_data, const bool alloc_memory);
-void moveToDevice(double*& device_data, std::vector<double>& host_data);
-void moveToHost(double*& device_data, std::vector<double>& host_data);
+template <typename T> void allocateOnDevice(T*& device_data, size_t nb_double_values);
+template <typename T> void moveToDevice(T*& device_data, std::vector<T>& host_data, const bool alloc_memory);
+template <typename T> void moveToDevice(T*& device_data, std::vector<T>& host_data);
+template <typename T> void moveToHost(T*& device_data, std::vector<T>& host_data);
+template <typename T> void moveToHostAndDelete(T*& device_data, std::vector<T>& host_data);
+template <typename T> void deleteFromDevice(T*& device_data);
+template <typename T> void initializeOnDevice(T*& device_data, const size_t nb_points);
 
-
-
-void moveToDevice(double**& device_data, std::vector<double*>& host_data);
-void deleteFromDevice(double**& device_data);
-
-
-void deleteFromDevice(int*& device_data);
-void moveToDevice(int*& device_data, std::vector<int>& host_data);
-
-
-void intializeOnDevice(double* device_data, const size_t nb_points);
-void intializeOnDevice2D(std::vector< double* >& device_data, const size_t nb_rows);
 
 
 }

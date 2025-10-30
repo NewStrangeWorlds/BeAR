@@ -32,11 +32,81 @@
 namespace bear{
 
 
-TransmissionModelConfig::TransmissionModelConfig (const std::string& folder_path)
+TransmissionModelConfig::TransmissionModelConfig(const std::string& folder_path)
 {
   const std::string config_file_name = folder_path + "forward_model.config";
 
   readConfigFile(config_file_name);
+}
+
+
+
+TransmissionModelConfig::TransmissionModelConfig(
+  const int nb_grid_points_,
+  const double atmos_bottom_pressure_,
+  const double atmos_top_pressure_,
+  const std::string& temperature_profile_model_,
+  const std::vector<std::string>& temperature_profile_parameters_,
+  const std::vector<std::string>& chemistry_model_,
+  const std::vector<std::vector<std::string>>& chemistry_parameters_,
+  const std::vector<std::string>& opacity_species_symbol_,
+  const std::vector<std::string>& opacity_species_folder_)
+  : TransmissionModelConfig(
+      false,
+      false,
+      false,
+      nb_grid_points_,
+      atmos_bottom_pressure_,
+      atmos_top_pressure_,
+      temperature_profile_model_,
+      temperature_profile_parameters_,
+      chemistry_model_,
+      chemistry_parameters_,
+      opacity_species_symbol_,
+      opacity_species_folder_,
+      std::vector<std::string>(),
+      std::vector<std::vector<std::string>>(),
+      std::vector<std::string>(),
+      std::vector<std::vector<std::string>>())
+{
+  
+}
+
+
+TransmissionModelConfig::TransmissionModelConfig(
+  const bool fit_mean_molecular_weight_, 
+  const bool fit_scale_height_, 
+  const bool use_variable_gravity_,
+  const int nb_grid_points_,
+  const double atmos_bottom_pressure_,
+  const double atmos_top_pressure_,
+  const std::string& temperature_profile_model_,
+  const std::vector<std::string>& temperature_profile_parameters_,
+  const std::vector<std::string>& chemistry_model_,
+  const std::vector<std::vector<std::string>>& chemistry_parameters_,
+  const std::vector<std::string>& opacity_species_symbol_,
+  const std::vector<std::string>& opacity_species_folder_,
+  const std::vector<std::string>& cloud_model_,
+  const std::vector<std::vector<std::string>>& cloud_model_parameters_,
+  const std::vector<std::string>& modules_,
+  const std::vector<std::vector<std::string>>& modules_parameters_)
+{
+  fit_mean_molecular_weight = fit_mean_molecular_weight_;
+  fit_scale_height = fit_scale_height_;
+  use_variable_gravity = use_variable_gravity_;
+  nb_grid_points = nb_grid_points_;
+  atmos_boundaries[0] = atmos_bottom_pressure_;
+  atmos_boundaries[1] = atmos_top_pressure_;
+  temperature_profile_model = temperature_profile_model_;
+  temperature_profile_parameters = temperature_profile_parameters_;
+  chemistry_model = chemistry_model_;
+  chemistry_parameters = chemistry_parameters_;
+  cloud_model = cloud_model_;
+  cloud_model_parameters = cloud_model_parameters_;
+  modules = modules_;
+  modules_parameters = modules_parameters_;
+  opacity_species_symbol = opacity_species_symbol_;
+  opacity_species_folder = opacity_species_folder_;
 }
 
 
@@ -75,19 +145,27 @@ void TransmissionModelConfig::readConfigFile(const std::string& file_name)
     std::cout << "- Fit for scale height: yes\n";
   }
   
+  std::string var_gravity = readParameter(
+    file,
+    std::string("Use variable gravity"),
+    std::vector<std::string>({"Yes", "yes", "no", "No"}));
+  
+  if (var_gravity == "Yes" || var_gravity == "yes")
+  {
+    use_variable_gravity = true;
+    std::cout << "- Use variable gravity: yes\n";
+  }
+  else
+  {
+    use_variable_gravity = false;
+    std::cout << "- Use variable gravity: no\n";
+  }
+
   readTemperatureConfig(file, temperature_profile_model, temperature_profile_parameters);
 
   readCloudConfig(file, cloud_model, cloud_model_parameters);
 
-  if (cloud_model.size() == 0) 
-    use_cloud_model = false;
-  else
-    use_cloud_model = true;
-
   readModuleConfig(file, modules, modules_parameters);
-
-  if (modules.size() == 0) 
-    use_optional_modules = false;
   
   readChemistryConfig(file, chemistry_model, chemistry_parameters);
   
@@ -96,8 +174,6 @@ void TransmissionModelConfig::readConfigFile(const std::string& file_name)
 
   file.close();
 }
-
-
 
 
 }

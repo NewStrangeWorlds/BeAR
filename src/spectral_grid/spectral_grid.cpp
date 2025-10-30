@@ -49,6 +49,29 @@ SpectralGrid::SpectralGrid(GlobalConfig* global_config)
 }
 
 
+SpectralGrid::SpectralGrid(
+  GlobalConfig* global_config,
+  const double wavelength_min,
+  const double wavlength_max)
+{
+  config = global_config;
+
+  loadWavenumberList();
+
+  wavelength_list_full = wavenumberToWavelength(wavenumber_list_full);
+  
+  std::vector<std::vector<double>> wavenumber_edges = 
+    {{wavelengthToWavenumber(wavlength_max), wavelengthToWavenumber(wavelength_min)}};
+
+  std::vector<std::vector<size_t>> edge_indices;
+  findBinEdges(wavenumber_edges, edge_indices);
+
+  std::vector<Observation> observations = {};
+
+  createHighResGrid(edge_indices, observations);
+}
+
+
 void SpectralGrid::createHeliosWavenumberList()
 {
   const double wavenumber_step = 0.01;
@@ -138,7 +161,7 @@ void SpectralGrid::sampleSpectralGrid(std::vector<Observation>& observations)
 void SpectralGrid::createHighResGridConstWavenumber(
   const std::vector<std::vector<size_t>>& edge_indices,
   std::vector<int>& included_points)
-{
+{ 
   for (size_t i=0; i<edge_indices.size(); ++i)
   {
     included_points[edge_indices[i][0]] = 1;
@@ -146,10 +169,10 @@ void SpectralGrid::createHighResGridConstWavenumber(
     size_t last_index = edge_indices[i][0];
 
     for (size_t j=edge_indices[i][0]; j<edge_indices[i][1]; ++j)
-    {
-      if (wavenumber_list_full[last_index] + config->const_wavenumber_step == wavenumber_list_full[j] 
-        || (wavenumber_list_full[j] < wavenumber_list_full[last_index] + config->const_wavenumber_step 
-         && wavenumber_list_full[j+1] > wavenumber_list_full[last_index] + config->const_wavenumber_step))
+    { 
+      const double next_wavenumber = wavenumber_list_full[last_index] + config->spectral_resolution;
+      
+      if (next_wavenumber == wavenumber_list_full[j] || wavenumber_list_full[j+1] > next_wavenumber)
       { 
         included_points[j] = 1;
         last_index = j;
@@ -173,9 +196,9 @@ void SpectralGrid::createHighResGridConstWavelength(
 
     for (size_t j=edge_indices[i][0]; j<edge_indices[i][1]; ++j)
     {
-      if (wavelength_list_full[last_index] - config->const_wavelength_step == wavelength_list_full[j] 
-        || (wavelength_list_full[j] > wavelength_list_full[last_index] - config->const_wavelength_step 
-         && wavelength_list_full[j+1] < wavelength_list_full[last_index] - config->const_wavelength_step))
+      const double next_wavelength = wavelength_list_full[last_index] - config->spectral_resolution;
+
+      if (next_wavelength == wavelength_list_full[j] || wavelength_list_full[j+1] < next_wavelength)
       { 
         included_points[j] = 1;
         last_index = j;
@@ -199,11 +222,9 @@ void SpectralGrid::createHighResGridConstResolution(
 
     for (size_t j=edge_indices[i][0]; j<edge_indices[i][1]; ++j)
     { 
-      const double new_lambda = wavelength_list_full[last_index] * (1 - 1./config->const_spectral_resolution);
+      const double next_wavelength = wavelength_list_full[last_index] * (1 - 1./config->spectral_resolution);
 
-      if (new_lambda == wavelength_list_full[j] 
-        || (wavelength_list_full[j] > new_lambda 
-         && wavelength_list_full[j+1] < new_lambda))
+      if (next_wavelength == wavelength_list_full[j] || wavelength_list_full[j+1] < next_wavelength)
       { 
         included_points[j] = 1;
         last_index = j;
@@ -235,15 +256,21 @@ void SpectralGrid::createHighResGrid(
   for (auto & o : observations)
   {
     auto it_start = wavenumber_list_full.begin();
+    double last_wavenumber = 0;
 
     for (auto & b : o.spectral_bands.edge_wavenumbers)
     {
+      //in case of overlapping bands, we need to start the search at the beginning
+      if (last_wavenumber > b[0])
+        it_start = wavenumber_list_full.begin();
+      
       const size_t idx_1 = findClosestIndex(b[0], wavenumber_list_full, it_start);
       const size_t idx_2 = findClosestIndex(b[1], wavenumber_list_full, it_start);
 
       included_points[idx_1] = 1;
       included_points[idx_2] = 1;
       
+      last_wavenumber = b[1];
       it_start = wavenumber_list_full.begin() + idx_2;
     }
   }
@@ -415,13 +442,12 @@ std::vector<double> SpectralGrid::wavelengthList(const std::vector<size_t>& indi
 
 
 SpectralGrid::~SpectralGrid()
-{
+{ 
   if (config->use_gpu)
   {
     deleteFromDevice(wavelength_list_gpu);
     deleteFromDevice(wavenumber_list_gpu);
   }
-
 }
 
 

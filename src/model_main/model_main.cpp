@@ -37,7 +37,7 @@ bool doRetrieval(bear::GlobalConfig& config)
   std::cout << "Starting retrieval\n\n";
   
   bear::Retrieval retrieval(&config);
-  return retrieval.doRetrieval();
+  return retrieval.run();
 }
 
 
@@ -47,7 +47,7 @@ bool doPostProcess(bear::GlobalConfig& config)
   std::cout << "Starting post processing\n\n";
   
   bear::PostProcess post_process(&config);
-  return post_process.doRetrieval();
+  return post_process.run();
 }
 
 

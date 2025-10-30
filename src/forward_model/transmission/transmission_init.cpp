@@ -76,7 +76,7 @@ void TransmissionModel::initModules(const TransmissionModelConfig& model_config)
   for (auto & i : cloud_models)
     nb_total_cloud_param += i->nbParameters();
 
-  if (model_config.use_optional_modules)
+  if (model_config.modules.size() > 0)
   {
     for (size_t i=0; i<model_config.modules.size(); ++i)
     {
@@ -94,8 +94,6 @@ void TransmissionModel::initModules(const TransmissionModelConfig& model_config)
     for (auto & i : modules)
       nb_total_modules_param += i->nbParameters();
     }
-
-  //if (cloud_model != nullptr) nb_cloud_param = cloud_model->nbParameters();
 }
 
 

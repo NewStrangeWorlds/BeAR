@@ -38,6 +38,10 @@ class Observation;
 class SpectralGrid{
   public:
     SpectralGrid (GlobalConfig* global_config);
+    SpectralGrid (
+      GlobalConfig* global_config,
+      const double wavelength_min,
+      const double wavlength_max);
     ~SpectralGrid();
 
     std::vector<double> wavenumber_list;      //wavenumber list used to calculate the high-res spectra

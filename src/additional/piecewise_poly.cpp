@@ -49,7 +49,7 @@ const std::vector< std::vector<double> > quadrature_nodes{gl_0, gl_1, gl_2, gl_3
 PiecewisePolynomial::PiecewisePolynomial(
   const size_t element_number, 
   const size_t polynomial_order, 
-  const double domain_boundaries [2])
+  const std::vector<double>& domain_boundaries)
 {
   if (polynomial_order > 6 )
   {

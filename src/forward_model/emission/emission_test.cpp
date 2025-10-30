@@ -32,64 +32,14 @@
 namespace bear{
 
 
-bool EmissionModel::testModel(const std::vector<double>& parameter, double* model_spectrum_gpu)
+bool EmissionModel::testModel(const std::vector<double>& parameters)
 {
   bool test_ok = false;
   
-  test_ok = testCPUvsGPU(parameter, model_spectrum_gpu);
+  test_ok = testCPUvsGPU(parameters);
 
   return test_ok;
 }
-
-
-
-bool EmissionModel::testCPUvsGPU(const std::vector<double>& parameter, double* model_spectrum_gpu)
-{ 
-  //first we calculate the model on the GPU
-  std::cout << "Start test on GPU\n";
-  //pointer to the spectrum on the GPU
-  double* spectrum_bands_dev = nullptr;
-  allocateOnDevice(spectrum_bands_dev, nb_observation_points);
-
-  //intialise the high-res spectrum on the GPU (set it to 0)
-  intializeOnDevice(model_spectrum_gpu, spectral_grid->nbSpectralPoints());
-
-  calcModelGPU(parameter, model_spectrum_gpu, spectrum_bands_dev);
-  
-  std::vector<double> spectrum_bands_gpu(nb_observation_points, 0);
-  moveToHost(spectrum_bands_dev, spectrum_bands_gpu);
-
-
-  //now we run it on the CPU
-  std::cout << "Start test on CPU\n";
-  std::vector<double> spectrum_cpu, spectrum_bands_cpu;
-
-  calcModel(parameter, spectrum_cpu, spectrum_bands_cpu);
-  
-  std::cout << "done.\n";
-  std::vector<double> difference(nb_observation_points, 0);
-
-  for (size_t i=0; i<difference.size(); ++i)
-    difference[i] = std::abs(spectrum_bands_cpu[i] - spectrum_bands_gpu[i])/spectrum_bands_cpu[i];
-
-  size_t max_diff_index = std::max_element(difference.begin(),difference.end()) - difference.begin();
-  double max_diff = *std::max_element(difference.begin(), difference.end());
-  
-
-  std::cout << "Maximum difference of CPU vs GPU: " << max_diff << " at index " << max_diff_index << "\n";
-  
-  bool test_ok = true;
-   if (max_diff*100 > 0.1) test_ok = false;
-
-  std::cout << "Test ok: " << test_ok << "\n\n";
-
-  //for (size_t i=0; i<spectrum_bands_cpu.size(); ++i)
-    //std::cout << i << "\t" << spectrum_bands_cpu[i] << "\t" << spectrum_bands_gpu[i] << "\n";
-  
-  return test_ok;
-}
-
-
 
 
 

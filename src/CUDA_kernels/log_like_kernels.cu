@@ -66,42 +66,50 @@ __global__ void logLikeDevice(
 
 
 __host__ double Retrieval::logLikeDev(
-  double* model_spectrum,
+  std::vector<double*> model_spectrum,
   const double error_inflation_coefficient)
 {
-  double* d_log_like = nullptr;
+  double log_like = 0;
 
-  cudaMalloc(&d_log_like, sizeof(double));
-  cudaMemset(d_log_like, 0, sizeof(double));
+  for (size_t i=0; i<nb_observations; ++i)
+  {
+    double* d_log_like = nullptr;
 
-  int threads = 256;
+    cudaMalloc(&d_log_like, sizeof(double));
+    cudaMemset(d_log_like, 0, sizeof(double));
 
-  int blocks = nb_observation_points / threads;
-  if (nb_observation_points % threads) blocks++;
+    const int threads = 128;
+    const int nb_points = observations[i].nbPoints();
 
-
-  logLikeDevice<<<blocks,threads>>>(
-    observation_data_gpu,
-    observation_error_gpu,
-    observation_likelihood_weight_gpu,
-    model_spectrum,
-    nb_observation_points,
-    error_inflation_coefficient,
-    d_log_like);
+    int blocks = nb_points / threads;
+    if (nb_points % threads) blocks++;
 
 
-  cudaDeviceSynchronize();
-  gpuErrchk( cudaPeekAtLastError() );
-  gpuErrchk( cudaDeviceSynchronize() );
+    logLikeDevice<<<blocks,threads>>>(
+      observations[i].data_gpu,
+      observations[i].data_error_gpu,
+      observations[i].likelihood_weight_gpu,
+      model_spectrum[i],
+      nb_points,
+      error_inflation_coefficient,
+      d_log_like);
 
-  double h_log_like = 0;
-  cudaMemcpy(&h_log_like, d_log_like, sizeof(double), cudaMemcpyDeviceToHost);
 
-  cudaDeviceSynchronize();
-  cudaFree(d_log_like);
-  cudaDeviceSynchronize();
+    cudaDeviceSynchronize();
+    gpuErrchk( cudaPeekAtLastError() );
+    gpuErrchk( cudaDeviceSynchronize() );
 
-  return h_log_like;
+    double h_log_like = 0;
+    cudaMemcpy(&h_log_like, d_log_like, sizeof(double), cudaMemcpyDeviceToHost);
+
+    cudaDeviceSynchronize();
+    cudaFree(d_log_like);
+    cudaDeviceSynchronize();
+
+    log_like += h_log_like;
+  }
+
+  return log_like;
 }
 
 

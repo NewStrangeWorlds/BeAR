@@ -38,6 +38,24 @@ namespace bear{
 
 //convert the normalised cube values into the real parameter values
 //write back the parameter values into the cube for MultiNest output
+std::pair<std::vector<double>, std::vector<double>> Retrieval::convertCubeParameters(
+  std::vector<double>& cube)
+{
+  std::vector<double> parameter;
+  std::vector<double> physical_parameter;
+
+  convertHypercubeParameters(
+    cube.data(),
+    cube.size(),
+    parameter,
+    physical_parameter);
+  
+  return std::make_pair(parameter, physical_parameter);
+}
+
+
+//convert the normalised cube values into the real parameter values
+//write back the parameter values into the cube for MultiNest output
 void Retrieval::convertHypercubeParameters(
   double *cube,
   const size_t nb_param,
@@ -51,8 +69,10 @@ void Retrieval::convertHypercubeParameters(
   {
     if (priors.distributions[i]->distributionType() == "Linked prior")
     {
-      parameter[i] = priors.distributions[i]->parameterValue(cube[priors.prior_links[i]]);
-      physical_parameter[i] = priors.distributions[i]->parameterPhysicalValue(cube[priors.prior_links[i]]);
+      parameter[i] = priors.distributions[i]->parameterValue(
+        cube[priors.prior_links[i]]);
+      physical_parameter[i] = priors.distributions[i]->parameterPhysicalValue(
+        cube[priors.prior_links[i]]);
     }
     else
     {
@@ -77,6 +97,26 @@ void Retrieval::convertHypercubeParameters(
 }
 
 
+std::vector<double> Retrieval::convertToPhysicalParameters(
+  const std::vector<double>& parameters)
+{
+  std::vector<double> physical_parameters(parameters.size(), 0.0);
+  
+  if (parameters.size() != priors.number())
+  {
+    std::string error_message = 
+      "Number of posterior parameters not equal to the number of free parameters of the forward model.\n";
+    throw InvalidInput(std::string ("Retrieval::convertToPhysicalParameters"), error_message);
+  }
+
+  for (size_t i=0; i<parameters.size(); ++i)
+    physical_parameters[i] = priors.distributions[i]->applyParameterUnit(parameters[i]);
+
+  return physical_parameters;
+}
+
+
+
 // Input arguments
 // ndim 						= dimensionality (total number of free parameters) of the problem
 // npars 						= total number of free plus derived parameters
@@ -88,64 +128,29 @@ void Retrieval::convertHypercubeParameters(
 //
 // Output arguments
 // lnew 						= loglikelihood
-void Retrieval::multinestLogLike(double *cube, int &ndim, int &nb_param, double &lnew, void *context)
+void Retrieval::multinestLogLike(
+  double *cube, int &ndim, int &nb_param, double &lnew, void *context)
 {
   //context contains a pointer to the retrieval object
   //we now recast it accordingly to use the retrieval object here
   Retrieval *retrieval_ptr = static_cast<Retrieval*>(context);
   
-  std::vector<double> parameter {};
-  std::vector<double> physical_parameter {};
+  std::vector<double> parameters {};
+  std::vector<double> physical_parameters {};
 
-  retrieval_ptr->convertHypercubeParameters(cube, nb_param, parameter, physical_parameter);
+  retrieval_ptr->convertHypercubeParameters(
+    cube, 
+    nb_param, 
+    parameters, 
+    physical_parameters);
 
-  //run the forward model with the parameter set to obtain a high-res model spectrum
-  std::vector<double> model_spectrum(retrieval_ptr->spectral_grid.nbSpectralPoints(), 0.0);
-  std::vector<double> model_spectrum_bands(retrieval_ptr->nb_observation_points, 0.0);
-
-  bool neglect = retrieval_ptr->forward_model->calcModel(physical_parameter, model_spectrum, model_spectrum_bands);
-
-
-  double error_inflation = 0;
-
-  if (retrieval_ptr->config->use_error_inflation)
-    error_inflation = std::pow(10, parameter.back());
-
-
-  double log_like = 0;
-
-  for (size_t i=0; i<retrieval_ptr->nb_observation_points; ++i)
-  {
-    //Eq. 22 from Paper I
-    const double error_square = 
-      retrieval_ptr->observation_error[i]*retrieval_ptr->observation_error[i] + error_inflation;
-    
-    //Eq. 23 from Paper I
-    log_like += 
-      (- 0.5 * std::log(error_square* 2.0 * constants::pi)
-       - 0.5 * (retrieval_ptr->observation_data[i] - model_spectrum_bands[i])
-             *(retrieval_ptr->observation_data[i] - model_spectrum_bands[i]) / error_square)
-       * retrieval_ptr->observation_likelihood_weight[i];
-  }
-
-  
-  //if the forward model tells us to neglect the current set of parameters,
-  //set the likelihood to a low value
-  if (neglect == true) log_like = -1e30;
-
-
-  if (retrieval_ptr->config->multinest_print_iter_values)
-    std::cout << log_like << "\n";
-
-
-  lnew = log_like;
+  lnew = retrieval_ptr->logLikelihood(physical_parameters);
 }
 
 
 
-
-
-void Retrieval::multinestLogLikeGPU(double *cube, int &nb_dim, int &nb_param, double &lnew, void *context)
+void Retrieval::multinestLogLikeGPU(
+  double *cube, int &nb_dim, int &nb_param, double &lnew, void *context)
 {
   //context contains a pointer to the retrieval object
   //we now recast it accordingly to use the retrieval object here
@@ -154,7 +159,9 @@ void Retrieval::multinestLogLikeGPU(double *cube, int &nb_dim, int &nb_param, do
 
   if (stop_model)
   {
-    std::string restart_script = "sbatch " + retrieval_ptr->config->retrieval_folder_path + "job_script_re.sh";
+    std::string restart_script = "sbatch " 
+      + retrieval_ptr->config->retrieval_folder_path 
+      + "job_script_re.sh";
     std::cout << "Starting restart batch script: " << restart_script << "\n";
     std::system(restart_script.c_str());
     
@@ -165,42 +172,14 @@ void Retrieval::multinestLogLikeGPU(double *cube, int &nb_dim, int &nb_param, do
   std::vector<double> parameter {};
   std::vector<double> physical_parameter {};
 
-  retrieval_ptr->convertHypercubeParameters(cube, nb_param, parameter, physical_parameter);
+  retrieval_ptr->convertHypercubeParameters(
+    cube, 
+    nb_param, 
+    parameter, 
+    physical_parameter);
   
-  //pointer to the spectrum on the GPU
-  double* model_spectrum_bands = nullptr;
-  
-  size_t nb_points = retrieval_ptr->spectral_grid.nbSpectralPoints();
-  allocateOnDevice(model_spectrum_bands, retrieval_ptr->nb_observation_points);
-  intializeOnDevice(retrieval_ptr->model_spectrum_gpu, nb_points);
-
-  //call the forward model
-  bool neglect = retrieval_ptr->forward_model->calcModelGPU(physical_parameter, retrieval_ptr->model_spectrum_gpu, model_spectrum_bands);
-
-
-  double error_inflation = 0;
-
-  if (retrieval_ptr->config->use_error_inflation)
-    error_inflation = std::pow(10, parameter.back());
-
-
-  double new_log_like = retrieval_ptr->logLikeDev(model_spectrum_bands, error_inflation);
-
-  //if the forward model tells us to neglect the current set of parameters,
-  //set the likelihood to a low value
-  if (neglect == true) new_log_like = -1e30;
-
-
-  deleteFromDevice(model_spectrum_bands);
-
-
-  if (retrieval_ptr->config->multinest_print_iter_values)
-    std::cout << new_log_like << "\n";
-
-
-  lnew = new_log_like;
+  lnew = retrieval_ptr->logLikelihoodGPU(physical_parameter);
 }
-
 
 
 

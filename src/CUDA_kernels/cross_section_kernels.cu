@@ -95,7 +95,6 @@ __global__ void calcHmContinuumDevice(const double hm_number_density, const int 
   { 
     if (wavelengths_d[tid] <= lambda_0 && wavelengths_d[tid] >= 0.125)
     {
-
       const double lambda = wavelengths_d[tid];
       double f = 0;
 
@@ -104,12 +103,9 @@ __global__ void calcHmContinuumDevice(const double hm_number_density, const int 
       for (unsigned int i=1; i<7; ++i)
         f += C_n[i] * pow(x, (i-1)/2.0);
 
-    
       const double sigma = 1e-18 * wavelengths_d[tid] * wavelengths_d[tid] * wavelengths_d[tid] * std::pow(x, 1.5) * f; 
       
       absorption_coeff_device[grid_point*nb_spectral_points + tid] += sigma * hm_number_density;
-
-      if (absorption_coeff_device[grid_point*nb_spectral_points + tid] < 0) printf("%d\t%f\t%f\t%f\n", tid, sigma, hm_number_density);
     }
 
   }

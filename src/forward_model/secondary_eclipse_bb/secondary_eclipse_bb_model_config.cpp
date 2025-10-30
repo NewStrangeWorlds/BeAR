@@ -32,7 +32,7 @@
 namespace bear{
 
 
-SecondaryEclipseBlackBodyConfig::SecondaryEclipseBlackBodyConfig (const std::string& folder_path)
+OccultationBlackBodyConfig::OccultationBlackBodyConfig (const std::string& folder_path)
 {
   const std::string config_file_name = folder_path + "forward_model.config";
 
@@ -40,15 +40,24 @@ SecondaryEclipseBlackBodyConfig::SecondaryEclipseBlackBodyConfig (const std::str
 }
 
 
+OccultationBlackBodyConfig::OccultationBlackBodyConfig (
+  const std::string stellar_spectrum_model_,
+  const std::vector<std::string>& stellar_model_parameters_)
+{
+  stellar_spectrum_model = stellar_spectrum_model_;
+  stellar_model_parameters = stellar_model_parameters_;
+}
 
-void SecondaryEclipseBlackBodyConfig::readConfigFile(const std::string& file_name)
+
+
+void OccultationBlackBodyConfig::readConfigFile(const std::string& file_name)
 {
   std::fstream file;
   file.open(file_name.c_str(), std::ios::in);
 
   
   if (file.fail())  
-    throw FileNotFound(std::string ("SecondaryEclipseBlackBodyConfig::readConfigFile"), file_name);
+    throw FileNotFound(std::string ("OccultationBlackBodyConfig::readConfigFile"), file_name);
 
   
   std::string line;

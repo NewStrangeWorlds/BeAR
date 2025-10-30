@@ -32,7 +32,6 @@
 
 #include "../../config/global_config.h"
 #include "../../spectral_grid/spectral_grid.h"
-#include "../../retrieval/priors.h"
 #include "../../observations/observations.h"
 
 #include "../stellar_spectrum/stellar_spectrum.h"
@@ -44,53 +43,71 @@ namespace bear {
 //this struct handles config
 //it will read in the corresponding parameter file
 //and will then be used to create a model object
-struct SecondaryEclipseBlackBodyConfig{
-  std::string stellar_spectrum_model;
-  std::vector<std::string> stellar_model_parameters;
+class OccultationBlackBodyConfig : public GenericConfig{
+  public:
+    std::string stellar_spectrum_model;
+    std::vector<std::string> stellar_model_parameters;
 
-  SecondaryEclipseBlackBodyConfig (const std::string& folder_path);
-  void readConfigFile(const std::string& file_name);
+    OccultationBlackBodyConfig (
+      const std::string& folder_path);
+    OccultationBlackBodyConfig (
+      const std::string stellar_spectrum_model_,
+      const std::vector<std::string>& stellar_model_parameters_);
+
+    virtual void readConfigFile(const std::string& file_name);
 };
 
 
 
-class SecondaryEclipseBlackBodyPostConfig : public GenericConfig{
+class OccultationBlackBodyPostConfig : public GenericConfig{
   public:
     bool save_spectra = true;
     bool delete_sampler_files = false;
 
-    SecondaryEclipseBlackBodyPostConfig (const std::string& folder_path);
+    OccultationBlackBodyPostConfig (
+      const std::string& folder_path);
+    OccultationBlackBodyPostConfig (
+      const bool save_spectra_)
+      : save_spectra(save_spectra_) {};
+    
     void readConfigFile(const std::string& file_name);
 };
 
 
 
-class SecondaryEclipseBlackBodyModel : public ForwardModel{
+class OccultationBlackBodyModel : public ForwardModel{
   public:
-    SecondaryEclipseBlackBodyModel (
-      const SecondaryEclipseBlackBodyConfig model_config,
-      Priors* priors_,
+    OccultationBlackBodyModel (
+      const OccultationBlackBodyConfig model_config,
       GlobalConfig* config_,
       SpectralGrid* spectral_grid_,
       std::vector<Observation>& observations_);
-    virtual ~SecondaryEclipseBlackBodyModel();
-    virtual bool calcModel(
+    virtual ~OccultationBlackBodyModel();
+    
+    virtual size_t parametersNumber() {
+      return nb_total_param();};
+
+    virtual bool calcModelCPU(
       const std::vector<double>& parameter,
       std::vector<double>& spectrum,
-      std::vector<double>& model_spectrum_bands);
+      std::vector<std::vector<double>>& spectrum_obs);
     virtual bool calcModelGPU(
-      const std::vector<double>& parameter,
-      double* model_spectrum,
-      double* model_spectrum_bands);
+      const std::vector<double>& parameters,
+      double* spectrum,
+      std::vector<double*>& spectrum_obs);
     
     virtual void postProcess(
       const std::vector< std::vector<double> >& model_parameter,
       const size_t best_fit_model,
       bool& delete_unused_files);
+    virtual void postProcess(
+      GenericConfig* post_process_config_,
+      const std::vector< std::vector<double> >& model_parameter,
+      const size_t best_fit_model,
+      bool& delete_unused_files);
 
     virtual bool testModel(
-      const std::vector<double>& parameter,
-      double* model_spectrum_gpu);
+      const std::vector<double>& parameters);
   protected:
     StellarSpectrumModel* stellar_model;
 
@@ -103,10 +120,16 @@ class SecondaryEclipseBlackBodyModel : public ForwardModel{
              + nb_spectrum_modifier_param;
     }
 
-    virtual void setPriors(Priors* priors);
-    void initModules(const SecondaryEclipseBlackBodyConfig& model_config);
+    void initModules(const OccultationBlackBodyConfig& model_config);
 
-    void calcSecondaryEclipseGPU(
+    std::vector<double> model_parameters;
+    std::vector<double> stellar_parameters;
+    std::vector<double> spectrum_modifier_parameters;
+
+    void extractParameters(
+      const std::vector<double>& parameters);
+
+    void calcOccultationGPU(
       double* secondary_eclipse,
       double* planet_spectrum,
       const double* stellar_spectrum,
@@ -118,12 +141,10 @@ class SecondaryEclipseBlackBodyModel : public ForwardModel{
       const double planet_temperature,
       double* spectrum_dev);
 
-    void postProcessSpectrum(
-      std::vector<double>& model_spectrum, 
-      std::vector<double>& model_spectrum_bands);
-    void postProcessSpectrumGPU(
-      double* model_spectrum, 
-      double* model_spectrum_bands);
+    void postProcess(
+      const OccultationBlackBodyPostConfig& post_process_config,
+      const std::vector< std::vector<double> >& model_parameter,
+      const size_t best_fit_model);
 
     void postProcessModel(
       const std::vector<double>& parameter,
@@ -131,8 +152,6 @@ class SecondaryEclipseBlackBodyModel : public ForwardModel{
       std::vector<double>& temperature_profile,
       double& effective_temperature,
       std::vector<std::vector<double>>& mixing_ratios);
-
-    bool testCPUvsGPU(const std::vector<double>& parameter, double* model_spectrum_gpu);
 };
 
 

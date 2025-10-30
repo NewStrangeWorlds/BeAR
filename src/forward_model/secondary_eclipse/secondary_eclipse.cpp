@@ -30,21 +30,23 @@
 
 #include "../../config/global_config.h"
 #include "../../spectral_grid/spectral_grid.h"
-#include "../../retrieval/priors.h"
 #include "../../observations/observations.h"
 #include "../../additional/aux_functions.h"
 #include "../../additional/physical_const.h"
 #include "../../additional/exceptions.h"
 #include "../atmosphere/atmosphere.h"
+#include "../../radiative_transfer/select_radiative_transfer.h"
 
 #include "../stellar_spectrum/stellar_spectrum.h"
+#include "../stellar_spectrum/star_file_spectrum.h"
+#include "../../cloud_model/fixed_cloud_model.h"
+
 
 namespace bear{
 
 
-SecondaryEclipseModel::SecondaryEclipseModel (
-  const SecondaryEclipseConfig model_config,
-  Priors* priors_,
+OccultationModel::OccultationModel (
+  const OccultationConfig model_config,
   GlobalConfig* config_,
   SpectralGrid* spectral_grid_,
   std::vector<Observation>& observations_) 
@@ -60,7 +62,7 @@ SecondaryEclipseModel::SecondaryEclipseModel (
         model_config.opacity_species_symbol,
         model_config.opacity_species_folder,
         config->use_gpu,
-        model_config.use_cloud_model)
+        model_config.cloud_model.size() > 0)
 {
   nb_grid_points = model_config.nb_grid_points;
 
@@ -70,32 +72,104 @@ SecondaryEclipseModel::SecondaryEclipseModel (
   nb_general_param = 2;
 
   initModules(model_config);
+}
 
-  setPriors(priors_);
+
+
+OccultationModel::OccultationModel (
+  GlobalConfig* config_, 
+  SpectralGrid* spectral_grid_,
+  const size_t nb_grid_points_,
+  const std::vector<double>& stellar_spectrum_wavelengths,
+  const std::vector<double>& stellar_spectrum_flux,
+  const std::vector<std::string>& opacity_species_symbol,
+  const std::vector<std::string>& opacity_species_folder)
+    : ForwardModel(config_, spectral_grid_, std::vector<Observation>() = {})
+    , atmosphere(
+        nb_grid_points_,
+        std::vector<double>(2) = {10, 1e-5},
+        config->use_gpu)
+    , opacity_calc(
+        config,
+        spectral_grid,
+        &atmosphere,
+        opacity_species_symbol,
+        opacity_species_folder,
+        config->use_gpu,
+        true)
+{
+  nb_grid_points = nb_grid_points_;
+
+  stellar_model =  new StarSpectrumFile(
+    stellar_spectrum_wavelengths,
+    stellar_spectrum_flux,
+    spectral_grid);
+
+  radiative_transfer = selectRadiativeTransfer(
+    std::string("scm"), 
+    std::vector<std::string> {}, 
+    nb_grid_points, 
+    config, 
+    spectral_grid);
+}
+
+
+void OccultationModel::extractParameters(
+  const std::vector<double>& parameters)
+{
+  model_parameters = std::vector<double>(
+    parameters.begin(), 
+    parameters.begin() + nb_general_param);
+
+  size_t nb_previous_param = nb_general_param;
+
+  stellar_parameters = std::vector<double>(
+      parameters.begin() + nb_previous_param,
+      parameters.begin() + nb_previous_param + nb_stellar_param);
+  
+  nb_previous_param += nb_stellar_param;
+  
+  chemistry_parameters = std::vector<double>(
+    parameters.begin() + nb_previous_param, 
+    parameters.begin() + nb_previous_param + nb_total_chemistry_param);
+
+  nb_previous_param += nb_total_chemistry_param;
+  
+  temperature_parameters = std::vector<double>(
+    parameters.begin() + nb_previous_param, 
+    parameters.begin() + nb_previous_param + nb_temperature_param);
+
+  nb_previous_param += nb_temperature_param;
+
+  cloud_parameters = std::vector<double>(
+      parameters.begin() + nb_previous_param,
+      parameters.begin() + nb_previous_param + nb_total_cloud_param);
+
+  nb_previous_param += nb_total_cloud_param;
+
+  spectrum_modifier_parameters = std::vector<double>(
+    parameters.begin() + nb_previous_param, 
+    parameters.begin() + nb_previous_param + nb_spectrum_modifier_param);
 }
 
 
 
 //determines the basic atmospheric structure (temperature profile, chemistry...) from the free parameters supplied by MultiNest
-bool SecondaryEclipseModel::calcAtmosphereStructure(const std::vector<double>& parameter)
+bool OccultationModel::calcAtmosphereStructure(const std::vector<double>& parameter)
 {
   const double surface_gravity = std::pow(10,parameter[0]);
  
   bool neglect_model = false;
-
-  size_t nb_previous_param = nb_general_param + nb_stellar_param + nb_total_chemistry_param;
-  
-  //parameters for temperature profile and chemistry
-  std::vector<double> temp_parameters(parameter.begin() + nb_previous_param, 
-                                      parameter.begin() + nb_previous_param + temperature_profile->nbParameters());
-
-  nb_previous_param = nb_general_param + nb_stellar_param;
-
-  std::vector<double> chem_parameters (parameter.begin() + nb_previous_param, 
-                                       parameter.begin() + nb_previous_param + nb_total_chemistry_param);
   
   //determine atmosphere structure
-  neglect_model = atmosphere.calcAtmosphereStructure(surface_gravity, temperature_profile, temp_parameters, chemistry, chem_parameters);
+  neglect_model = atmosphere.calcAtmosphereStructure(
+    surface_gravity, 
+    1.0,
+    false,
+    temperature_profile, 
+    temperature_parameters, 
+    chemistry, 
+    chemistry_parameters);
 
 
   return neglect_model;
@@ -104,19 +178,15 @@ bool SecondaryEclipseModel::calcAtmosphereStructure(const std::vector<double>& p
 
 
 //Runs the forward model on the CPU and calculates a high-resolution spectrum
-bool SecondaryEclipseModel::calcModel(
-  const std::vector<double>& parameter, 
+bool OccultationModel::calcModelCPU(
+  const std::vector<double>& parameters, 
   std::vector<double>& spectrum, 
-  std::vector<double>& model_spectrum_bands)
+  std::vector<std::vector<double>>& spectrum_obs)
 {
-  bool neglect = calcAtmosphereStructure(parameter);
+  extractParameters(parameters);
 
+  bool neglect = calcAtmosphereStructure(parameters);
 
-  size_t nb_previous_param = nb_general_param + nb_stellar_param + nb_total_chemistry_param + nb_temperature_param;
-
-  std::vector<double> cloud_parameters(
-      parameter.begin() + nb_previous_param,
-      parameter.begin() + nb_previous_param + nb_total_cloud_param);
 
   opacity_calc.calculate(cloud_models, cloud_parameters);
 
@@ -135,75 +205,52 @@ bool SecondaryEclipseModel::calcModel(
 
 
   //post-process the planet's high-res emission spectrum and bin it to the observational bands
-  std::vector<double> planet_spectrum_bands(nb_observation_points, 0);
-  postProcessSpectrum(
+  std::vector<std::vector<double>> planet_spectrum_obs(
+    observations.size(), 
+    std::vector<double>{});
+  
+  convertSpectrumToObservation(
     spectrum, 
-    planet_spectrum_bands);
-
-
-  //now we compute the stellar spectrum
-  nb_previous_param = nb_general_param;
-
-  std::vector<double> stellar_parameters(
-      parameter.begin() + nb_general_param,
-      parameter.begin() + nb_general_param + nb_stellar_param);
+    true,
+    planet_spectrum_obs);
+  
 
   std::vector<double> stellar_spectrum = stellar_model->calcFlux(stellar_parameters);
 
   //post-process the star's high-res emission spectrum and bin it to the observational bands
-  std::vector<double> stellar_spectrum_bands(nb_observation_points, 0);
-  postProcessSpectrum(
-    stellar_spectrum, 
-    stellar_spectrum_bands);
-
-
-  model_spectrum_bands.assign(nb_observation_points, 0);
+  std::vector<std::vector<double>> stellar_spectrum_obs(
+    observations.size(), 
+    std::vector<double>{});
   
-  double radius_distance_ratio = 0;
-  std::vector<double> albedo_contribution_bands(nb_observation_points, 0.0);
-  std::vector<double> albedo_contribution(spectral_grid->nbSpectralPoints(), 0.0);
-
-  const double radius_ratio = parameter[1];
-
-  //calculate the secondary-eclipse depth with an optional geometric albedo contribution
-  for (size_t i=0; i<model_spectrum_bands.size(); ++i)
-    model_spectrum_bands[i] = 
-      planet_spectrum_bands[i]/stellar_spectrum_bands[i] 
-      * radius_ratio*radius_ratio * 1e6 + albedo_contribution_bands[i]*1e6;
+  convertSpectrumToObservation(
+    stellar_spectrum, 
+    true,
+    stellar_spectrum_obs);
 
 
-  nb_previous_param = nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_total_cloud_param + nb_stellar_param;
+  const double radius_ratio = model_parameters[1];
 
-  std::vector<double> modifier_parameters(
-      parameter.begin() + nb_previous_param,
-      parameter.begin() + nb_previous_param + nb_spectrum_modifier_param);
+  //model_spectrum_bands.assign(nb_observation_points, 0);
 
-  auto param_it = modifier_parameters.begin();
-
-  //apply spectrum modifier if necessary
-  size_t start_index = 0;
-
+  //convert the spectra into an occulation depth
   for (size_t i=0; i<observations.size(); ++i)
   {
-    if (observations[i].nb_modifier_param != 0)
+    spectrum_obs[i].assign(observations[i].nbPoints(), 0.0);
+    
+    for (size_t j=0; j<spectrum_obs[i].size(); ++j)
     {
-      const double spectrum_modifier = *param_it;
-
-      if (spectrum_modifier != 0)
-        for (size_t j=start_index; j<start_index+observations[i].nbPoints(); ++j)
-          model_spectrum_bands[j] += spectrum_modifier;
-
-      param_it += observations[i].nb_modifier_param;
+      spectrum_obs[i][j] = planet_spectrum_obs[i][j]/stellar_spectrum_obs[i][j] 
+        * radius_ratio*radius_ratio * 1e6;
     }
-
-    start_index += observations[i].spectral_bands.nbBands();
   }
+  
+
+  applyObservationModifier(spectrum_modifier_parameters, spectrum_obs);
 
 
-  //convert the high-res spectrum to an eclipse depth as well
+  //convert the high-res planet spectrum to an occulation depth as well
   for (size_t i=0; i<spectral_grid->nbSpectralPoints(); ++i)
-    spectrum[i] = spectrum[i]/stellar_spectrum[i] * radius_ratio*radius_ratio * 1e6
-                  + radius_distance_ratio * albedo_contribution[i] * 1e6;
+    spectrum[i] = spectrum[i]/stellar_spectrum[i] * radius_ratio*radius_ratio * 1e6;
 
   return neglect;
 }
@@ -212,21 +259,17 @@ bool SecondaryEclipseModel::calcModel(
 
 //run the forward model with the help of the GPU
 //the atmospheric structure itself is still done on the CPU
-bool SecondaryEclipseModel::calcModelGPU(
-  const std::vector<double>& parameter, 
-  double* model_spectrum_gpu, 
-  double* model_spectrum_bands)
+bool OccultationModel::calcModelGPU(
+  const std::vector<double>& parameters, 
+  double* spectrum, 
+  std::vector<double*>& spectrum_obs)
 {
-  const double radius_ratio = parameter[1];
+  extractParameters(parameters);
 
-  bool neglect = calcAtmosphereStructure(parameter);
+  const double radius_ratio = model_parameters[1];
 
+  bool neglect = calcAtmosphereStructure(parameters);
 
-  size_t nb_previous_param = nb_general_param + nb_stellar_param + nb_total_chemistry_param + nb_temperature_param;
-
-  std::vector<double> cloud_parameters(
-      parameter.begin() + nb_previous_param,
-      parameter.begin() + nb_previous_param + nb_total_cloud_param);
 
   opacity_calc.calculateGPU(cloud_models, cloud_parameters);
 
@@ -238,92 +281,68 @@ bool SecondaryEclipseModel::calcModelGPU(
     opacity_calc.cloud_single_scattering_dev,
     opacity_calc.cloud_asym_param_dev,
     1.0,
-    model_spectrum_gpu);
+    spectrum);
 
 
-  //post-process the planet's high-res emission spectrum and bin it to the observational bands
-  double* planet_spectrum_bands = nullptr;
-  allocateOnDevice(planet_spectrum_bands, nb_observation_points);
+  std::vector<double*> planet_spectrum_obs(observations.size(), nullptr);
+  std::vector<double*> stellar_spectrum_obs(observations.size(), nullptr);
 
-  postProcessSpectrumGPU(
-    model_spectrum_gpu, 
-    planet_spectrum_bands);
+  for (size_t i=0; i<observations.size(); ++i)
+  {
+    allocateOnDevice(planet_spectrum_obs[i], observations[i].nbPoints());
+    allocateOnDevice(stellar_spectrum_obs[i], observations[i].nbPoints());
+  }
+
+  convertSpectrumToObservationGPU(
+    spectrum, 
+    true,
+    planet_spectrum_obs);
 
 
-  //now we compute the stellar spectrum
-  nb_previous_param = nb_general_param;
-
-  std::vector<double> stellar_parameters(
-      parameter.begin() + nb_general_param,
-      parameter.begin() + nb_general_param + nb_stellar_param);
-  
   double* stellar_spectrum = nullptr;
   allocateOnDevice(stellar_spectrum, spectral_grid->nbSpectralPoints());
+  
   stellar_model->calcFluxGPU(stellar_parameters, stellar_spectrum);
   
-  //post-process the planet's high-res emission spectrum and bin it to the observational bands
-  double* stellar_spectrum_bands = nullptr;
-  allocateOnDevice(stellar_spectrum_bands, nb_observation_points);
 
-  postProcessSpectrumGPU(
+  convertSpectrumToObservationGPU(
     stellar_spectrum, 
-    stellar_spectrum_bands);
+    true,
+    stellar_spectrum_obs);
 
-
-  //std::vector<double> albedo_contribution(retrieval->nb_total_bands, geometric_albedo*radius_distance_ratio*radius_distance_ratio);
-  std::vector<double> albedo_contribution(nb_observation_points, 0.0);
 
   double* albedo_contribution_gpu = nullptr;
   double* albedo_contribution_bands_gpu = nullptr;
   //moveToDevice(albedo_contribution_gpu, albedo_contribution);
-
-  calcSecondaryEclipseGPU(
-    model_spectrum_bands, 
-    planet_spectrum_bands, 
-    stellar_spectrum_bands, 
-    nb_observation_points,
-    radius_ratio, 
-    albedo_contribution_bands_gpu);
-  
-  deleteFromDevice(albedo_contribution_bands_gpu);
-  deleteFromDevice(planet_spectrum_bands);
-  deleteFromDevice(stellar_spectrum_bands);
-
-
- nb_previous_param = nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_total_cloud_param + nb_stellar_param;
-
-  std::vector<double> modifier_parameters(
-      parameter.begin() + nb_previous_param,
-      parameter.begin() + nb_previous_param + nb_spectrum_modifier_param);
-
-  auto param_it = modifier_parameters.begin();
-
-  //apply spectrum modifier if necessary
-  unsigned int start_index = 0;
   
   for (size_t i=0; i<observations.size(); ++i)
   {
-    if (observations[i].nb_modifier_param != 0)
-    {
-      const double spectrum_modifier = *param_it;
+    calcOccultationGPU(
+    spectrum_obs[i], 
+    planet_spectrum_obs[i], 
+    stellar_spectrum_obs[i], 
+    observations[i].nbPoints(),
+    radius_ratio, 
+    albedo_contribution_bands_gpu);
+  }
+  
+  
+  deleteFromDevice(albedo_contribution_bands_gpu);
 
-      if (spectrum_modifier != 0)
-        observations[i].addShiftToSpectrumGPU(
-          model_spectrum_bands, 
-          start_index, 
-          spectrum_modifier);
-
-      param_it += observations[i].nb_modifier_param;
-    }
-
-    start_index += observations[i].spectral_bands.nbBands();
+  for (size_t i=0; i<observations.size(); ++i)
+  {
+    deleteFromDevice(planet_spectrum_obs[i]);
+    deleteFromDevice(stellar_spectrum_obs[i]);
   }
 
+ 
+  applyObservationModifierGPU(spectrum_modifier_parameters, spectrum_obs);
 
-  //convert the original high-res spectrum also to a secondary eclipse
-  calcSecondaryEclipseGPU(
-    model_spectrum_gpu, 
-    model_spectrum_gpu, 
+
+  //convert the original high-res planet spectrum also to a secondary eclipse
+  calcOccultationGPU(
+    spectrum, 
+    spectrum, 
     stellar_spectrum, 
     spectral_grid->nbSpectralPoints(),
     radius_ratio, 
@@ -337,57 +356,134 @@ bool SecondaryEclipseModel::calcModelGPU(
 
 
 
-
-//integrate the high-res spectrum to observational bands
-//and convolve if necessary 
-void SecondaryEclipseModel::postProcessSpectrum(
-  std::vector<double>& model_spectrum, 
-  std::vector<double>& model_spectrum_bands)
+void OccultationModel::setCloudProperties(
+  const std::vector<std::vector<double>>& cloud_optical_depth)
 {
-  model_spectrum_bands.assign(nb_observation_points, 0.0);
+  bool use_cloud = false;
 
-  std::vector<double>::iterator it = model_spectrum_bands.begin();
-
-  for (size_t i=0; i<observations.size(); ++i)
-  { 
-    const bool is_flux = true;
-
-    std::vector<double> observation_bands = observations[i].processModelSpectrum(
-      model_spectrum, 
-      is_flux);
-
-    //copy the band-integrated values for this observation into the global
-    //vector of all band-integrated points, model_spectrum_bands
-    std::copy(observation_bands.begin(), observation_bands.end(), it);
-    it += observation_bands.size();
-  }
-}
-
-
-//integrate the high-res spectrum to observational bands
-//and convolve if necessary 
-void SecondaryEclipseModel::postProcessSpectrumGPU(
-  double* model_spectrum_gpu, 
-  double* model_spectrum_bands)
-{
-  unsigned int start_index = 0;
-  for (size_t i=0; i<observations.size(); ++i)
+  for (auto & i : cloud_optical_depth)
   {
-    const bool is_flux = true;
-
-    observations[i].processModelSpectrumGPU(
-      model_spectrum_gpu, 
-      model_spectrum_bands, 
-      start_index, 
-      is_flux);
-
-    start_index += observations[i].spectral_bands.nbBands();
+    double max = *std::max_element(i.begin(), i.end());
+    if (max > 0)
+    {
+      use_cloud = true;
+      break;
+    }
   }
+  
+  if (!use_cloud)
+    return;
 
+  std::vector<std::vector<double>> single_scattering_albedo(
+    nb_grid_points-1, 
+    std::vector<double>(spectral_grid->nbSpectralPoints(), 0.0));
+
+  std::vector<std::vector<double>> asymmetry_parameter(
+    nb_grid_points-1, 
+    std::vector<double>(spectral_grid->nbSpectralPoints(), 0.0));
+
+  FixedCloudModel* model = new FixedCloudModel(
+    cloud_optical_depth,
+    single_scattering_albedo,
+    asymmetry_parameter);
+
+  cloud_models.push_back(model);
 }
 
 
-SecondaryEclipseModel::~SecondaryEclipseModel()
+
+std::vector<double> OccultationModel::calcSpectrum(
+      const double surface_gravity,
+      const double radius_ratio,
+      const std::vector<double>& pressure,
+      const std::vector<double>& temperature,
+      const std::vector<std::string>& species_symbol,
+      const std::vector<std::vector<double>>& mixing_ratios,
+      const std::vector<std::vector<double>>& cloud_optical_depth)
+{
+  atmosphere.setAtmosphericStructure(
+    surface_gravity, 
+    1.0,
+    false,
+    pressure, 
+    temperature, 
+    species_symbol, 
+    mixing_ratios);
+  
+  setCloudProperties(cloud_optical_depth);
+
+  std::vector<double> spectrum(spectral_grid->nbSpectralPoints(), 0.0);
+
+  if (config->use_gpu)
+  {
+    opacity_calc.calculateGPU(cloud_models, std::vector<double> {});
+
+    double* model_spectrum_gpu = nullptr;
+
+    allocateOnDevice(model_spectrum_gpu, spectral_grid->nbSpectralPoints());
+
+    radiative_transfer->calcSpectrumGPU(
+      atmosphere,
+      opacity_calc.absorption_coeff_gpu, 
+      opacity_calc.scattering_coeff_dev, 
+      opacity_calc.cloud_optical_depths_dev,
+      opacity_calc.cloud_single_scattering_dev,
+      opacity_calc.cloud_asym_param_dev,
+      1.0,
+      model_spectrum_gpu);
+
+    double* stellar_spectrum = nullptr;
+    allocateOnDevice(stellar_spectrum, spectral_grid->nbSpectralPoints());
+    stellar_model->calcFluxGPU(std::vector<double> {}, stellar_spectrum);
+
+    double* albedo_contribution_gpu = nullptr;
+
+    calcOccultationGPU(
+      model_spectrum_gpu, 
+      model_spectrum_gpu, 
+      stellar_spectrum, 
+      spectral_grid->nbSpectralPoints(),
+      radius_ratio, 
+      albedo_contribution_gpu);
+
+    deleteFromDevice(albedo_contribution_gpu);
+    deleteFromDevice(stellar_spectrum);
+
+    moveToHost(model_spectrum_gpu, spectrum);
+    deleteFromDevice(model_spectrum_gpu);
+  }
+  else
+  {
+    opacity_calc.calculate(cloud_models, std::vector<double> {});
+    
+    radiative_transfer->calcSpectrum(
+      atmosphere,
+      opacity_calc.absorption_coeff, 
+      opacity_calc.absorption_coeff, 
+      opacity_calc.cloud_optical_depths, 
+      opacity_calc.cloud_single_scattering, 
+      opacity_calc.cloud_asym_param,
+      1.0, 
+      spectrum);
+    
+    std::vector<double> stellar_spectrum = stellar_model->calcFlux(std::vector<double> {});
+
+    for (size_t i=0; i<spectral_grid->nbSpectralPoints(); ++i)
+      spectrum[i] = spectrum[i] / stellar_spectrum[i] * radius_ratio*radius_ratio * 1e6;
+  }
+
+  if (cloud_models.size() > 0)
+  {
+    delete cloud_models[0];
+    cloud_models.clear();
+  }
+
+  return spectrum;
+}
+
+
+
+OccultationModel::~OccultationModel()
 {
   delete radiative_transfer;
   delete temperature_profile;

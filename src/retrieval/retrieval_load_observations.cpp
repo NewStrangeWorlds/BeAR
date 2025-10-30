@@ -34,8 +34,36 @@
 namespace bear{
 
 
-//load the observational data
-//input value is the location of the retrieval folder
+
+void Retrieval::setObservations(
+  const std::vector<ObservationInput>& observation_input)
+{
+  nb_observations = observation_input.size();
+
+  observations.assign(nb_observations, Observation(config, &spectral_grid));
+
+  for (size_t i=0; i<nb_observations; ++i)
+    observations[i].init(observation_input[i]);
+
+  spectral_grid.sampleSpectralGrid(observations);
+
+  for (auto & i : observations)
+  {
+    i.spectral_bands.setInstrumentProfileFWHW(i.instrument_profile_fwhm);
+    i.setFilterResponseFunction();
+    i.printObservationDetails();
+    i.spectral_bands.initDeviceMemory();
+    i.initDeviceMemory();
+  }
+
+  std::cout << "loaded observations: \n";
+
+  for (size_t i=0; i<nb_observations; ++i)
+    std::cout << "name " << observations[i].observationName() << "\n";
+}
+
+
+
 void Retrieval::loadObservations(
   const std::string file_folder, 
   const std::vector<std::string>& file_list,
@@ -46,34 +74,8 @@ void Retrieval::loadObservations(
   observations.assign(nb_observations, Observation(config, &spectral_grid));
 
   for (size_t i=0; i<nb_observations; ++i)
-  {
     observations[i].init(file_folder + file_list[i], modifier_list[i]);
     
-    //save all the observations and their errors in a single vector
-    observation_data.insert(
-      std::end(observation_data),
-      std::begin(observations[i].flux),
-      std::end(observations[i].flux));
-    observation_error.insert(
-      std::end(observation_error),
-      std::begin(observations[i].flux_error),
-      std::end(observations[i].flux_error));
-    observation_likelihood_weight.insert(
-      std::end(observation_likelihood_weight),
-      std::begin(observations[i].likelihood_weight),
-      std::end(observations[i].likelihood_weight));
-  }
-
-  nb_observation_points = observation_data.size();
-
-  //move the lists to the GPU, if necessary
-  if (config->use_gpu)
-  {
-    moveToDevice(observation_data_gpu, observation_data);
-    moveToDevice(observation_error_gpu, observation_error);
-    moveToDevice(observation_likelihood_weight_gpu, observation_likelihood_weight);
-  }
-
 
   spectral_grid.sampleSpectralGrid(observations);
 
@@ -86,11 +88,6 @@ void Retrieval::loadObservations(
     i.spectral_bands.initDeviceMemory();
     i.initDeviceMemory();
   }
-
-
-  //create the vector for the high-res spectrum on the GPU
-  if (config->use_gpu)
-    allocateOnDevice(model_spectrum_gpu, spectral_grid.nbSpectralPoints());
 
   std::cout << "loaded observations: \n";
 

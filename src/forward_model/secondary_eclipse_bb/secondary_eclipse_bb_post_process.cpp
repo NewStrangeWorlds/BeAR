@@ -36,7 +36,7 @@
 
 namespace bear{
 
-SecondaryEclipseBlackBodyPostConfig::SecondaryEclipseBlackBodyPostConfig (const std::string& folder_path)
+OccultationBlackBodyPostConfig::OccultationBlackBodyPostConfig (const std::string& folder_path)
 {
   const std::string config_file_name = folder_path + "post_process.config";
 
@@ -44,7 +44,7 @@ SecondaryEclipseBlackBodyPostConfig::SecondaryEclipseBlackBodyPostConfig (const 
 }
 
 
-void SecondaryEclipseBlackBodyPostConfig::readConfigFile(const std::string& file_name)
+void OccultationBlackBodyPostConfig::readConfigFile(const std::string& file_name)
 {
   std::fstream file;
   file.open(file_name.c_str(), std::ios::in);
@@ -67,22 +67,63 @@ void SecondaryEclipseBlackBodyPostConfig::readConfigFile(const std::string& file
 
 
 //calls the model specific posterior calculations
-void SecondaryEclipseBlackBodyModel::postProcess(
+void OccultationBlackBodyModel::postProcess(
   const std::vector< std::vector<double> >& model_parameter,
   const size_t best_fit_model,
   bool& delete_unused_files)
 {
-  SecondaryEclipseBlackBodyPostConfig post_process_config(config->retrieval_folder_path);
+  OccultationBlackBodyPostConfig post_process_config(config->retrieval_folder_path);
 
   if (post_process_config.delete_sampler_files)
     delete_unused_files = true;
 
-  std::vector< std::vector<double> > model_spectrum_bands;
-  
-  if (post_process_config.save_spectra)
-    calcPostProcessSpectra(model_parameter, best_fit_model, model_spectrum_bands);
+   postProcess(
+    post_process_config,
+    model_parameter,
+    best_fit_model);
 }
 
+
+
+void OccultationBlackBodyModel::postProcess(
+  GenericConfig* post_process_config_,
+  const std::vector< std::vector<double> >& model_parameter,
+  const size_t best_fit_model,
+  bool& delete_unused_files)
+{
+  OccultationBlackBodyPostConfig* post_process_config = dynamic_cast<OccultationBlackBodyPostConfig*>(post_process_config_);
+
+  if (post_process_config->delete_sampler_files)
+    delete_unused_files = true;
+
+  postProcess(
+    post_process_config,
+    model_parameter,
+    best_fit_model);
+}
+
+
+
+void OccultationBlackBodyModel::postProcess(
+  const OccultationBlackBodyPostConfig& post_process_config,
+  const std::vector< std::vector<double> >& model_parameter,
+  const size_t best_fit_model)
+{
+  if (post_process_config.save_spectra)
+  {
+    std::vector<std::vector<std::vector<double>>> model_spectra_obs;
+    std::vector<double> model_spectrum_best_fit;
+  
+    calcPostProcessSpectra(
+      model_parameter, 
+      best_fit_model, 
+      model_spectra_obs,
+      model_spectrum_best_fit);
+    
+    saveBestFitSpectrum(model_spectrum_best_fit);
+    savePostProcessSpectra(model_spectra_obs);
+  }
+}
 
 
 }

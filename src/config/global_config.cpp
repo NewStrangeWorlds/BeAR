@@ -34,6 +34,47 @@
 namespace bear {
 
 
+GlobalConfig::GlobalConfig(
+  const bool use_gpu_,
+  const std::string forward_model_type_,
+  const std::string cross_section_file_path_,
+  const std::string spectral_disecretisation_,
+  const double resolution_,
+  const std::string multinest_output_path_,
+  const std::string post_output_path_)
+  : use_gpu(use_gpu_),
+    forward_model_type(forward_model_type_),
+    cross_section_file_path(cross_section_file_path_),
+    multinest_output_path(multinest_output_path_),
+    post_output_path(post_output_path_)
+{
+  if (spectral_disecretisation_ != "const_wavenumber" 
+   && spectral_disecretisation_ != "const_wavelength" 
+   && spectral_disecretisation_ != "const_resolution")
+  {
+    std::string error_message = "Spectral discretisation parameter: " 
+      + spectral_disecretisation_ + " in retrieval.config unknown!\n";
+    throw InvalidInput(std::string ("GlobalConfig::GlobalConfig"), error_message);
+  }
+
+  if (spectral_disecretisation_ == "const_wavenumber")
+  {
+    spectral_disecretisation = 0;
+  }
+  else if (spectral_disecretisation_ == "const_wavelength")
+  {
+    spectral_disecretisation = 1;
+  }
+  else if (spectral_disecretisation_ == "const_resolution")
+  {
+    spectral_disecretisation = 2;
+  }
+
+  spectral_resolution = resolution_;
+}
+
+
+
 bool GlobalConfig::loadConfigFile(std::string retrieval_folder)
 {
   if (retrieval_folder.back() != '/')
@@ -114,18 +155,17 @@ bool GlobalConfig::loadConfigFile(std::string retrieval_folder)
   if (input == "const_wavenumber")
   {
     spectral_disecretisation = 0;
-    const_wavenumber_step = spectral_param;
   }
   else if (input == "const_wavelength")
   {
     spectral_disecretisation = 1;
-    const_wavelength_step = spectral_param;
   }
   else if (input == "const_resolution")
   {
     spectral_disecretisation = 2;
-    const_spectral_resolution = spectral_param;
   }
+
+  spectral_resolution = spectral_param;
 
   std::cout << "- Spectral grid disretisation: " << input << "  " << spectral_param << "\n";
 
@@ -209,7 +249,9 @@ bool GlobalConfig::loadConfigFile(std::string retrieval_folder)
   
   
   std::cout << "\n";
-
+  
+  multinest_output_path = retrieval_folder;
+  post_output_path = retrieval_folder;
 
   return true;
 }

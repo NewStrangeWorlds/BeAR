@@ -41,6 +41,51 @@ namespace observation_modifiers{
 }
 
 
+
+struct ObservationInput{
+  ObservationInput() {};
+  ObservationInput(
+    const std::string name_,
+    const std::string type_)
+    : name(name_)
+    , type(type_) {};
+  ObservationInput(
+    const std::string name_,
+    const std::string type_,
+    const std::vector<double>& wavelengths_,
+    const std::vector<double>& data_,
+    const std::vector<double>& data_error_)
+    : name(name_)
+    , type(type_)
+    , wavelengths(wavelengths_)
+    , data(data_)
+    , data_error(data_error_) {};
+  ObservationInput(
+    const std::string name_,
+    const std::string type_,
+    const std::vector<std::vector<double>>& bin_wavelength_edges_,
+    const std::vector<double>& data_,
+    const std::vector<double>& data_error_)
+    : name(name_)
+    , type(type_)
+    , bin_wavelength_edges(bin_wavelength_edges_)
+    , data(data_)
+    , data_error(data_error_) {};
+  std::string name = "";
+  std::string type = "";
+  std::vector<double> wavelengths;
+  std::vector<std::vector<double>> bin_wavelength_edges;
+  std::vector<double> data;                                           //observational data
+  std::vector<double> data_error;                                     //observational error
+  std::vector<double> likelihood_weight;                              //weight for the likelihood computation
+  std::vector<double> instrument_profile_fwhm;                        //instrument profile (if it doesn't exist, the vector will have a size of 0)
+  std::vector<std::vector<double>> filter_response;                   //filter response function
+  std::string filter_detector_type = "";
+  std::string spectrum_modifier_id = "";
+};
+
+
+
 //the class that describes an observation and its representation in form of a theoretical spectrum
 //the class SpectralBand contains the computed represenation of the observation in the observational bands
 //it also contains the required data and methods to convert a computed high-res spectrum into a simulated observation
@@ -50,23 +95,34 @@ class Observation{
       : spectral_bands(config_, spectral_grid_)
       , config(config_)
       , spectral_grid(spectral_grid_)
-      {}
+      {};
     ~Observation();
+
+    void init (
+      const ObservationInput& input);
     void init (
       const std::string& file_name,
       const std::string spectrum_modifier_id);
+    
     std::string observationName() {return observation_name;}
-    size_t nbPoints() {return flux.size();}
+    size_t nbPoints() {return data.size();}
 
     SpectralBands spectral_bands;                                       //representation of the theoretical spectrum in the observational bands
     std::vector<double> wavelength_edges = {0, 0};                      //the wavelength boundaries this observation needs from the high-res spectrum
 
-    std::vector<double> flux;                                           //observational data
-    std::vector<double> flux_error;                                     //observational error
+    bool ascending_wavelengths = true;                                  //if the wavelength points of the orginal spectrum are in ascending order
+
+    std::vector<double> data;                                           //observational data
+    std::vector<double> data_error;                                     //observational error
+    std::vector<double> likelihood_weight;                              //weight for the likelihood computation
+
+    double* data_gpu = nullptr;                                         //pointer to the corresponding data on the GPU
+    double* data_error_gpu = nullptr;                                   //pointer to the corresponding error on the GPU
+    double* likelihood_weight_gpu = nullptr;                            //pointer to the corresponding likelihood weight on the GPU
+    
     std::vector<double> instrument_profile_fwhm;                        //instrument profile (if it doesn't exist, the vector will have a size of 0)
     std::vector<double> filter_response;                                //filter response function
     std::vector<double> filter_response_weight;
-    std::vector<double> likelihood_weight;                              //weight for the likelihood computation
     std::string filter_detector_type = "";
     double filter_response_normalisation = 0.0;
 
@@ -81,7 +137,8 @@ class Observation{
 
     void initDeviceMemory();
 
-    std::vector<double> applyFilterResponseFunction(const std::vector<double>& spectrum);
+    std::vector<double> applyFilterResponseFunction(
+      const std::vector<double>& spectrum);
     void applyFilterResponseGPU(double* spectrum);
 
     std::vector<double> processModelSpectrum(
@@ -89,13 +146,11 @@ class Observation{
       const bool is_flux);
     void processModelSpectrumGPU(
       double* spectrum,
-      double* spectrum_bands,
-      const unsigned int start_index,
+      double* spectrum_obs,
       const bool is_flux);
 
     void addShiftToSpectrumGPU(
-      double* spectrum_bands,
-      const unsigned int start_index,
+      double* spectrum_obs,
       const double spectrum_shift);
     void addShiftToSpectrum(
       std::vector<double>& spectrum_bands,
@@ -112,9 +167,11 @@ class Observation{
 
     void loadFile(const std::string& file_name);
 
-    std::vector<std::vector<double>> readFilterResponseFunction(const std::string& file_path);
+    std::vector<std::vector<double>> readFilterResponseFunction(
+      const std::string& file_path);
     double filterResponseNormalisation(
-      const std::vector<double>& filter_wavelength, const std::vector<double>& filter_response);
+      const std::vector<double>& filter_wavelength, 
+      const std::vector<double>& filter_response);
 
     bool readPhotometryData(std::fstream& file);
     bool readSpectroscopyData(std::fstream& file);
@@ -123,6 +180,18 @@ class Observation{
     observation_modifiers::id spectrum_modifier = observation_modifiers::id::none;
 
     void setSpectrumModifier(const std::string modifier_id);
+
+    bool areWavelengthsAscending(
+      std::vector<double>& wavelengths);
+    bool areWavelengthsAscending(
+      std::vector<std::vector<double>>& bin_edges);
+
+    std::vector<std::vector<double>> calcBinEdges(
+      const std::vector<double>& wavelengths);
+    std::vector<double> calcBinCenters(
+      const std::vector<std::vector<double>>& bin_edges);
+    void setObservationEdges(
+      const std::vector<std::vector<double>>& bin_edges);
 };
 
 

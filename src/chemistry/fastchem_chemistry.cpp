@@ -51,7 +51,7 @@ FastChemChemistry::FastChemChemistry(
   fastchem_species_indices.assign(constants::species_data.size(), fastchem::FASTCHEM_UNKNOWN_SPECIES);
 
   for (size_t i=0; i<constants::species_data.size(); ++i)
-    fastchem_species_indices[i] = fastchem.getSpeciesIndex(constants::species_data[i].fastchem_symbol);
+    fastchem_species_indices[i] = fastchem.getGasSpeciesIndex(constants::species_data[i].fastchem_symbol);
     
   
   //check if C, O, and H are present in FastChem

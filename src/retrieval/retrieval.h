@@ -26,7 +26,6 @@
 #include <iostream>
 
 
-//#include "../forward_model/forward_model.h"
 #include "../spectral_grid/spectral_grid.h"
 #include "../observations/observations.h"
 #include "../config/global_config.h"
@@ -41,41 +40,63 @@ void signalHandler(int sig);
 
 //forward declaration
 class ForwardModel;
-
+struct ForwardModelOutput;
+struct AtmosphereOutput;
+class GenericConfig;
 
 
 //the main class that does the retrieval
-//it contains the spectral grid, observations, priors, the forward model, and runs MulitNest
 class Retrieval{
   public:
+    Retrieval(
+      GlobalConfig* global_config, 
+      const std::string additional_observation_file);
     Retrieval(GlobalConfig* global_config);
+    Retrieval(
+      GlobalConfig* global_config,
+      GenericConfig* model_config,
+      const std::vector<ObservationInput>& observation_input,
+      const std::vector<PriorConfig>& prior_config);
     ~Retrieval();
-    Priors priors;
     
-    GlobalConfig* config;
+    GlobalConfig* config = nullptr;
     SpectralGrid spectral_grid;
     std::vector<Observation> observations;
-
-    virtual bool doRetrieval();
-
-    size_t nbObservations() {return observations.size();}
-
-    std::vector<double> observation_data;               //combined vector of all observational data
-    std::vector<double> observation_error;              //combined array of the corresponding observational errors
-    std::vector<double> observation_likelihood_weight; //combined vector of likelihood weights
-
-    double* observation_data_gpu = nullptr;             //pointer to the corresponding data on the GPU
-    double* observation_error_gpu = nullptr;
-    double* observation_likelihood_weight_gpu = nullptr;
-
+    Priors priors;
+    
     size_t nb_observations = 0;
-    size_t nb_observation_points = 0;
 
-    double* model_spectrum_gpu = nullptr;            //pointer to the high-res spectrum on the GPU
+    virtual bool run();
+
+    std::pair<std::vector<double>, std::vector<double>> convertCubeParameters(
+      std::vector<double>& cube);
+    std::vector<double> convertToPhysicalParameters(
+      const std::vector<double>& parameters);
+    
+    double computeLikelihood(
+      std::vector<double>& parameters);
+
+    ForwardModelOutput computeModel(
+      std::vector<double>& physical_parameters,
+      const bool return_high_res_spectrum);
+    
+    AtmosphereOutput computeAtmosphereStructure(
+      std::vector<double>& physical_parameters,
+      const std::vector<std::string>& species_symbols);
+    
+    size_t nbParameters() {
+      return priors.number();}
+
   protected:
-   
     ForwardModel* forward_model = nullptr;
+    
+    ForwardModel* selectForwardModel(
+       const std::string model_description,
+       GenericConfig* model_config);
     void setAdditionalPriors();
+    
+    void setObservations(
+      const std::vector<ObservationInput>& observation_input);
     void loadObservations(
       const std::string file_folder, 
       const std::vector<std::string>& file_list,
@@ -84,9 +105,11 @@ class Retrieval{
       const std::string file_folder, 
       std::vector<std::string>& file_list,
       std::vector<std::string>& modifier_list);
-    
-    ForwardModel* selectForwardModel(const std::string model_description);
   private:
+    double logLikelihood(
+      std::vector<double>& parameters);
+    double logLikelihoodGPU(
+      std::vector<double>& parameters);
     void convertHypercubeParameters(
       double *cube,
       const size_t nb_param,
@@ -105,9 +128,8 @@ class Retrieval{
       double &new_log_like, 
       void *context);
     double logLikeDev(
-      double* model_spectrum,
+      std::vector<double*> model_spectrum,
       const double error_inflation_coefficient);
-
     static void multinestDumper(
       int &nSamples, 
       int &nlive, 

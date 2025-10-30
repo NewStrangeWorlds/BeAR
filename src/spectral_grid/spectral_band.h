@@ -45,12 +45,12 @@ class SpectralBands{
         spectral_grid(spectral_grid_)
       {}
     ~SpectralBands();
-    BandType bandType() const {return band_type;}
+    band_type::id bandType() const {return band_type;}
     void init(
       const std::vector<double>& obs_wavelength_range,
       const std::vector< std::vector<double> >& band_edges,
       const std::vector<double>& band_centres,
-      const BandType type);
+      const band_type::id type);
     void init();
 
     void initDeviceMemory();
@@ -65,7 +65,6 @@ class SpectralBands{
     void bandIntegrateSpectrumGPU(
       double* spectrum, 
       double* spectrum_bands, 
-      const unsigned int start_index, 
       const bool is_flux,
       const bool use_filter_transmission);
 
@@ -75,13 +74,13 @@ class SpectralBands{
     size_t nbBands() {return nb_bands;}
 
     std::pair<double, double> obs_wavelength_range = {0.0, 0.0};          //the wavelength range required for the observation
-    std::pair<double, double> obs_wavenumber_range = {0.0, 0.0};          //the wavelength range required for the observation
+    std::pair<double, double> obs_wavenumber_range = {0.0, 0.0};          //the wavenumber range required for the observation
     std::pair<size_t , size_t> obs_index_range = {0, 0};                  //the spectral indices of the observational range
     
     std::vector<double> center_wavelengths;                               //center wavelengths for each spectral bin
     std::vector< std::vector<double> > edge_wavelengths;                  //wavelengths of the spectral bin edges
     std::vector< std::vector<double> > edge_wavenumbers;                  //wavelengths of the spectral bin edges
-    std::vector<std::vector<size_t>> edge_indices;                       //spectral indices corresponding to the edges of the spectral bins
+    std::vector<std::vector<size_t>> edge_indices;                        //spectral indices corresponding to the edges of the spectral bins
 
     std::vector<double> instrument_profile_sigma;                         //standard deviation of the instruments profile
     std::vector< std::vector<size_t> > convolution_quadrature_intervals;  //pre-determined limits (indices) for the convolution integration
@@ -96,7 +95,7 @@ class SpectralBands{
   private:
     GlobalConfig* config = nullptr;
     SpectralGrid* spectral_grid = nullptr;
-    BandType band_type;
+    band_type::id band_type;
     size_t nb_bands = 0;                                                   //number of sub-bands/bins 
 
     double bandIntegrateSpectrumFlux(

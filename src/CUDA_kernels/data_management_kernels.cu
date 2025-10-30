@@ -32,26 +32,8 @@
 
 namespace bear{
 
-//a lot of the functions here can be merged using template programming
-//might be added in a future version
-
-
-//allocates a one-dimensional array of size nb_double_values on the GPU
-__host__ void allocateOnDevice(double*& device_data, size_t nb_double_values)
-{
-  const int bytes = nb_double_values*sizeof(double);
-
-  cudaMalloc((void**)&device_data, bytes);
-
-
-  cudaDeviceSynchronize();
-  gpuErrchk( cudaPeekAtLastError() );
-  gpuErrchk( cudaDeviceSynchronize() );
-}
-
-
-//deletes a 1D array of type double on the GPU and sets the pointer back to a null pointer
-__host__ void deleteFromDevice(double*& device_data)
+template <typename T> 
+__host__ void deleteFromDevice(T*& device_data)
 {
   if (device_data != nullptr)
     cudaFree(device_data);
@@ -64,123 +46,13 @@ __host__ void deleteFromDevice(double*& device_data)
 }
 
 
-
-//deletes a 1D array of type int on the GPU and sets the pointer back to a null pointer
-__host__ void deleteFromDevice(int*& device_data)
+template <typename T> 
+__host__ void moveToHost(T*& device_data, std::vector<T>& host_data)
 {
-  if (device_data != nullptr)
-    cudaFree(device_data);
+  const int bytes = host_data.size()*sizeof(T);
 
-  device_data = nullptr;
-
-  cudaDeviceSynchronize();
-  gpuErrchk( cudaPeekAtLastError() );
-  gpuErrchk( cudaDeviceSynchronize() );
-}
-
-
-
-
-//deletes an array of pointers on the GPU and sets the pointer back to a null pointer
-__host__ void deleteFromDevice(double**& device_data)
-{
-  if (device_data != nullptr)
-    cudaFree(device_data);
-
-  device_data = nullptr;
-
-  cudaDeviceSynchronize();
-  gpuErrchk( cudaPeekAtLastError() );
-  gpuErrchk( cudaDeviceSynchronize() );
-}
-
-
-
-
-//moves data array host_data of type double to the GPU
-//returns the pointer *device_data to the data on the GPU
-//if device_data already exists on the GPU it will be freed first
-//if device_data has not been previously allocated, *device_data must be a null pointer!
-__host__ void moveToDevice(double*& device_data, std::vector<double>& host_data)
-{
-  //delete the array if it has been previously allocated on the GPU
-  //if (*device_data != nullptr)
-    //cudaFree(*device_data);
-
-  const int bytes = host_data.size()*sizeof(double);
-
-
-  cudaMalloc((void**)&device_data, bytes);
-
-  cudaMemcpy(device_data, &host_data[0], bytes, cudaMemcpyHostToDevice);
-
-
-  cudaDeviceSynchronize();
-  gpuErrchk( cudaPeekAtLastError() );
-  gpuErrchk( cudaDeviceSynchronize() );
-}
-
-
-
-//moves data array host_data of type double to the GPU
-//returns the pointer *device_data to the data on the GPU
-//if device_data already exists on the GPU it will be freed first
-//if device_data has not been previously allocated, *device_data must be a null pointer!
-__host__ void moveToDevice(double*& device_data, std::vector<double>& host_data, const bool alloc_memory)
-{
-  //delete the array if it has been previously allocated on the GPU
-  //if (*device_data != nullptr)
-    //cudaFree(*device_data);
-
-  const int bytes = host_data.size()*sizeof(double);
-
-  //alloc memory if required
-  if (alloc_memory) cudaMalloc((void**)&device_data, bytes);
-
-  cudaMemcpy(device_data, &host_data[0], bytes, cudaMemcpyHostToDevice);
-
-
-  cudaDeviceSynchronize();
-  gpuErrchk( cudaPeekAtLastError() );
-  gpuErrchk( cudaDeviceSynchronize() );
-}
-
-
-
-//moves data array host_data of pointers to double arrays to the GPU
-//returns the pointer **device_data to the data on the GPU
-//if device_data already exists on the GPU it will be freed first
-//if device_data has not been previously allocated, *device_data must be a null pointer!
-__host__ void moveToDevice(double**& device_data, std::vector<double*>& host_data)
-{
-  //delete the array if it has been previously allocated on the GPU
-  //if (*device_data != nullptr)
-    //cudaFree(*device_data);
-
-  const int bytes = host_data.size()*sizeof(double*);
-
-
-  cudaMalloc((void***)&device_data, bytes);
-
-  cudaMemcpy(device_data, &host_data[0], bytes, cudaMemcpyHostToDevice);
-
-
-  cudaDeviceSynchronize();
-  gpuErrchk( cudaPeekAtLastError() );
-  gpuErrchk( cudaDeviceSynchronize() );
-}
-
-
-
-//moves data array device_data to the host
-__host__ void moveToHost(double*& device_data, std::vector<double>& host_data)
-{
-  const int bytes = host_data.size()*sizeof(double);
-
- 
   cudaMemcpy(host_data.data(), device_data, bytes, cudaMemcpyDeviceToHost);
 
-  
   cudaDeviceSynchronize();
   gpuErrchk( cudaPeekAtLastError() );
   gpuErrchk( cudaDeviceSynchronize() ); 
@@ -188,59 +60,77 @@ __host__ void moveToHost(double*& device_data, std::vector<double>& host_data)
 
 
 
-//moves data array host_data of type int to the GPU
-//returns the pointer *device_data to the data on the GPU
-//if device_data already exists on the GPU it will be freed first
-//if device_data has not been previously allocated, *device_data must be a null pointer!
-__host__ void moveToDevice(int*& device_data, std::vector<int>& host_data)
+template <typename T> 
+__host__ void moveToHostAndDelete(T*& device_data, std::vector<T>& host_data)
 {
-  //delete the array if it has been previously allocated on the GPU
-  //if (*device_data != nullptr)
-    //cudaFree(*device_data);
+  const int bytes = host_data.size()*sizeof(T);
 
-  const int bytes = host_data.size()*sizeof(int);
+  cudaMemcpy(host_data.data(), device_data, bytes, cudaMemcpyDeviceToHost);
 
-  cudaMalloc((void**)&device_data, bytes);
+  cudaDeviceSynchronize();
+  gpuErrchk( cudaPeekAtLastError() );
+  gpuErrchk( cudaDeviceSynchronize() );
+
+  deleteFromDevice(device_data);
+}
+
+
+
+template <typename T> 
+__host__ void allocateOnDevice(T*& device_data, const size_t nb_values)
+{
+  const int bytes = nb_values*sizeof(T);
+
+  auto ret = cudaMalloc((void**)&device_data, bytes);
+
+  if (ret == cudaErrorMemoryAllocation)
+  {
+    std::cerr << "Error: Could not allocate memory on device\n";
+    throw std::bad_alloc();
+  }
+
+  cudaDeviceSynchronize();
+  gpuErrchk( cudaPeekAtLastError() );
+  gpuErrchk( cudaDeviceSynchronize() );
+}
+
+
+
+template <typename T> 
+__host__ void moveToDevice(T*& device_data, std::vector<T>& host_data, const bool alloc_memory)
+{
+  if (alloc_memory)
+    allocateOnDevice(device_data, host_data.size());
+
+  moveToDevice(device_data, host_data);
+}
+
+
+
+template <typename T> 
+__host__ void moveToDevice(T*& device_data, std::vector<T>& host_data)
+{
+  const int bytes = host_data.size()*sizeof(T);
+  
+  if (device_data == nullptr)
+    allocateOnDevice(device_data, host_data.size());
 
   cudaMemcpy(device_data, &host_data[0], bytes, cudaMemcpyHostToDevice);
 
-
   cudaDeviceSynchronize();
   gpuErrchk( cudaPeekAtLastError() );
   gpuErrchk( cudaDeviceSynchronize() );
 }
-
-
-//sets all entries of a 2D double array on the GPU to 0
-//device_data holds the pointers to each 1D array
-//nb_rows is length of each 1D array
-__host__ void intializeOnDevice2D(std::vector< double* >& device_data, const size_t nb_rows)
-{
-  //initialize each row
-  for (size_t i=0; i<device_data.size(); ++i)
-  {
-
-    if (device_data[i] != nullptr)
-      cudaMemset(device_data[i], 0, nb_rows*sizeof(double));
-
-  }
-
-
-  cudaDeviceSynchronize();
-  gpuErrchk( cudaPeekAtLastError() );
-  gpuErrchk( cudaDeviceSynchronize() );
-}
-
 
 
 //sets all entries of a 1D double array on the GPU to 0
 //device_data holds the pointer to the GPU array
-//nb_rows is length of the array
-__host__ void intializeOnDevice(double* device_data, const size_t nb_points)
+//nb_points is length of the array
+template <typename T> 
+__host__ void initializeOnDevice(T*& device_data, const size_t nb_points)
 {
   if (device_data != nullptr)
-    cudaMemset(device_data, 0, nb_points*sizeof(double));
-
+    cudaMemset(device_data, 0, nb_points*sizeof(T));
 
   cudaDeviceSynchronize();
   gpuErrchk( cudaPeekAtLastError() );
@@ -248,7 +138,24 @@ __host__ void intializeOnDevice(double* device_data, const size_t nb_points)
 }
 
 
+template void moveToHost<double>(double*&, std::vector<double>&);
+template void moveToHost<int>(int*&, std::vector<int>&);
 
+template void moveToHostAndDelete<double>(double*&, std::vector<double>&);
+template void moveToHostAndDelete<int>(int*&, std::vector<int>&);
 
+template void deleteFromDevice<double>(double*&);
+template void deleteFromDevice<int>(int*&);
+
+template void initializeOnDevice<double>(double*&, const size_t);
+template void initializeOnDevice<int>(int*&, const size_t);
+
+template void moveToDevice<double>(double*&, std::vector<double>&);
+template void moveToDevice<int>(int*&, std::vector<int>&);
+
+template void moveToDevice<double>(double*&, std::vector<double>&, const bool);
+template void moveToDevice<int>(int*&, std::vector<int>&, const bool);
+
+template void allocateOnDevice<double>(double*&, size_t);
+template void allocateOnDevice<int>(int*&, size_t);
 }
-

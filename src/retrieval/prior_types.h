@@ -113,10 +113,10 @@ class UniformPrior : public BasicPrior {
       std::cout << std::setw(15) << std::left << parameter_name << "  "
                 << std::setw(20) << std::left << distribution_type
                 << "lower boundary: " << lower_bound 
-                << ", upper boundary: " << upper_bound 
-                << ", unit: " << unit_description
-                << "\n";
-    }
+                << ", upper boundary: " << upper_bound;
+      if (unit_description != "")
+        std::cout << ", unit: " << unit_description;
+      std::cout << "\n";};
   private:
     double lower_bound = 0;
     double upper_bound = 0;
@@ -153,10 +153,10 @@ class LogUniformPrior : public BasicPrior {
       std::cout << std::setw(15) << std::left << parameter_name << "  "
                 << std::setw(20) << std::left << distribution_type
                 << "lower boundary: " << log_lower_bound 
-                << ", upper boundary: " << log_upper_bound 
-                << ", unit: " << unit_description
-                << "\n";
-    }
+                << ", upper boundary: " << log_upper_bound;
+      if (unit_description != "")
+        std::cout << ", unit: " << unit_description;
+      std::cout << "\n";};
   private:
     double log_lower_bound = 0;
     double log_upper_bound = 0;
@@ -188,10 +188,10 @@ class GaussianPrior : public BasicPrior {
       std::cout << std::setw(15) << std::left << parameter_name << "  "
                 << std::setw(20) << std::left << distribution_type
                 << "mean: " << mu 
-                << ", standard deviation: " << sigma 
-                << ", unit: " << unit_description
-                << "\n";
-    }
+                << ", standard deviation: " << sigma;
+       if (unit_description != "")
+        std::cout << ", unit: " << unit_description;
+      std::cout << "\n";};
   private:
     double mu = 0;
     double sigma = 0;
@@ -220,10 +220,10 @@ class DeltaPrior : public BasicPrior {
     virtual void printInfo() {
       std::cout << std::setw(15) << std::left << parameter_name << "  "
                 << std::setw(20) << std::left << distribution_type
-                << "constant value: " << const_value 
-                << ", unit: " << unit_description
-                << "\n";
-    }
+                << "constant value: " << const_value;
+      if (unit_description != "")
+        std::cout << ", unit: " << unit_description;
+      std::cout << "\n";};
   private:
     double const_value = 0;
 };

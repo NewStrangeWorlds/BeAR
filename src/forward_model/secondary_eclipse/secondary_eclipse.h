@@ -32,7 +32,6 @@
 
 #include "../../config/global_config.h"
 #include "../../spectral_grid/spectral_grid.h"
-#include "../../retrieval/priors.h"
 #include "../../observations/observations.h"
 #include "../atmosphere/atmosphere.h"
 #include "../../chemistry/chemistry.h"
@@ -51,15 +50,11 @@ namespace bear {
 //this struct handles the Brown Dwarf config
 //it will read in the corresponding parameter file
 //and will then be used to create a model object
-struct SecondaryEclipseConfig : public GenericConfig{
+struct OccultationConfig : public GenericConfig{
   size_t nb_grid_points = 0;
 
-  double atmos_boundaries[2] {0, 0};
-  double atmos_top_pressure = 0;
-  double atmos_bottom_pressure = 0;
-
-  bool use_cloud_model = false;
-
+  std::vector<double> atmos_boundaries = {0, 0};
+  
   std::string temperature_profile_model;
   std::vector<std::string> temperature_profile_parameters;
 
@@ -78,55 +73,117 @@ struct SecondaryEclipseConfig : public GenericConfig{
   std::vector<std::string> opacity_species_symbol;
   std::vector<std::string> opacity_species_folder;
 
-  SecondaryEclipseConfig (const std::string& folder_path);
+  OccultationConfig (
+    const std::string& folder_path);
+  OccultationConfig (
+    const int nb_grid_points_,
+    const double atmos_bottom_pressure_,
+    const double atmos_top_pressure_,
+    const std::string temperature_profile_model_,
+    const std::vector<std::string>& temperature_profile_parameters_,
+    const std::string radiative_transfer_model_,
+    const std::vector<std::string>& radiative_transfer_parameters_,
+    const std::vector<std::string>& chemistry_model_,
+    const std::vector<std::vector<std::string>>& chemistry_parameters_,
+    const std::vector<std::string>& opacity_species_symbol_,
+    const std::vector<std::string>& opacity_species_folder_,
+    const std::string stellar_spectrum_model_,
+    const std::vector<std::string>& stellar_model_parameters_);
+  OccultationConfig (
+    const int nb_grid_points_,
+    const double atmos_bottom_pressure_,
+    const double atmos_top_pressure_,
+    const std::string temperature_profile_model_,
+    const std::vector<std::string>& temperature_profile_parameters_,
+    const std::string radiative_transfer_model_,
+    const std::vector<std::string>& radiative_transfer_parameters_,
+    const std::vector<std::string>& chemistry_model_,
+    const std::vector<std::vector<std::string>>& chemistry_parameters_,
+    const std::vector<std::string>& opacity_species_symbol_,
+    const std::vector<std::string>& opacity_species_folder_,
+    const std::string stellar_spectrum_model_,
+    const std::vector<std::string>& stellar_model_parameters_,
+    const std::vector<std::string>& cloud_model_,
+    const std::vector<std::vector<std::string>>& cloud_model_parameters_);
+  
   void readConfigFile(const std::string& file_name);
 };
 
 
 
-class SecondaryEclipsePostProcessConfig : public GenericConfig{
+class OccultationPostProcessConfig : public GenericConfig{
   public:
-    std::vector<chemical_species_id> species_to_save;
-
     bool save_temperatures = true;
     bool save_spectra = true;
     bool save_contribution_functions = false;
-
     bool delete_sampler_files = false;
-
-    SecondaryEclipsePostProcessConfig (const std::string& folder_path);
+    std::vector<chemical_species_id> species_to_save;
+    
+    OccultationPostProcessConfig (
+      const std::string& folder_path);
+    OccultationPostProcessConfig (
+      const bool save_temperatures_, 
+      const bool save_spectra_, 
+      const bool save_contribution_functions_,
+      const std::vector<std::string>& species_to_save_);
+    
     void readConfigFile(const std::string& file_name);
 };
 
 
 
 
-class SecondaryEclipseModel : public ForwardModel{
+class OccultationModel : public ForwardModel{
   public:
-    SecondaryEclipseModel (
-      const SecondaryEclipseConfig model_config,
-      Priors* priors_,
+    OccultationModel (
+      const OccultationConfig model_config,
       GlobalConfig* config_,
       SpectralGrid* spectral_grid_,
       std::vector<Observation>& observations_);
-    virtual ~SecondaryEclipseModel();
-    virtual bool calcModel(
+    OccultationModel (
+      GlobalConfig* config_, 
+      SpectralGrid* spectral_grid_,
+      const size_t nb_grid_points_,
+      const std::vector<double>& stellar_spectrum_wavelengths,
+      const std::vector<double>& stellar_spectrum_flux,
+      const std::vector<std::string>& opacity_species_symbol,
+      const std::vector<std::string>& opacity_species_folder);
+
+    virtual ~OccultationModel();
+    
+    virtual size_t parametersNumber() {
+      return nb_total_param();};
+
+    virtual bool calcModelCPU(
       const std::vector<double>& parameter,
       std::vector<double>& spectrum,
-      std::vector<double>& model_spectrum_bands);
+      std::vector<std::vector<double>>& spectrum_obs);
     virtual bool calcModelGPU(
-      const std::vector<double>& parameter,
-      double* model_spectrum,
-      double* model_spectrum_bands);
+      const std::vector<double>& parameters,
+      double* spectrum,
+      std::vector<double*>& spectrum_obs);
     
     virtual void postProcess(
       const std::vector< std::vector<double> >& model_parameter,
       const size_t best_fit_model,
       bool& delete_unused_files);
+    virtual void postProcess(
+      GenericConfig* post_process_config_,
+      const std::vector< std::vector<double> >& model_parameter,
+      const size_t best_fit_model,
+      bool& delete_unused_files);
 
     virtual bool testModel(
-      const std::vector<double>& parameter,
-      double* model_spectrum_gpu);
+      const std::vector<double>& parameters);
+
+    std::vector<double> calcSpectrum(
+      const double surface_gravity,
+      const double radius_ratio,
+      const std::vector<double>& pressure,
+      const std::vector<double>& temperature,
+      const std::vector<std::string>& species_symbol,
+      const std::vector<std::vector<double>>& mixing_ratios,
+      const std::vector<std::vector<double>>& cloud_optical_depth);
   protected:
     Atmosphere atmosphere;
     OpacityCalculation opacity_calc;
@@ -153,16 +210,24 @@ class SecondaryEclipseModel : public ForwardModel{
              + nb_spectrum_modifier_param;
     }
 
+    void initModules(const OccultationConfig& model_config);
 
-    virtual void setPriors(Priors* priors);
-    void initModules(const SecondaryEclipseConfig& model_config);
+    std::vector<double> model_parameters;
+    std::vector<double> chemistry_parameters;
+    std::vector<double> cloud_parameters;
+    std::vector<double> temperature_parameters;
+    std::vector<double> stellar_parameters;
+    std::vector<double> spectrum_modifier_parameters;
 
-    std::vector<double> calcSecondaryEclipse(
+    void extractParameters(
+      const std::vector<double>& parameters);
+
+    std::vector<double> calcOccultation(
       std::vector<double>& planet_spectrum_bands,
       const double radius_ratio,
       const double geometric_albedo,
       const double radius_distance_ratio);
-    void calcSecondaryEclipseGPU(
+    void calcOccultationGPU(
       double* secondary_eclipse,
       double* planet_spectrum,
       const double* stellar_spectrum,
@@ -172,13 +237,12 @@ class SecondaryEclipseModel : public ForwardModel{
 
     bool calcAtmosphereStructure(const std::vector<double>& parameter);
 
-    void postProcessSpectrum(
-      std::vector<double>& model_spectrum, 
-      std::vector<double>& model_spectrum_bands);
-    void postProcessSpectrumGPU(
-      double* model_spectrum, 
-      double* model_spectrum_bands);
-
+    void setCloudProperties(const std::vector<std::vector<double>>& cloud_optical_depth);
+    
+    void postProcess(
+      const OccultationPostProcessConfig& post_process_config,
+      const std::vector< std::vector<double> >& model_parameter,
+      const size_t best_fit_model);
     void postProcessModel(
       const std::vector<double>& parameter,
       std::vector<double>& temperature_profile,
@@ -193,8 +257,6 @@ class SecondaryEclipseModel : public ForwardModel{
       const unsigned int species);
     void savePostProcessTemperatures(
       const std::vector<std::vector<double>>& temperature_profiles);
-
-    bool testCPUvsGPU(const std::vector<double>& parameter, double* model_spectrum_gpu);
 };
 
 

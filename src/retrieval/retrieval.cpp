@@ -35,11 +35,13 @@
 #include "priors.h"
 #include "../observations/observations.h"
 #include "../forward_model/forward_model.h"
+#include "../forward_model/generic_config.h"
 
 #include "../../_deps/multinest-src/MultiNest_v3.12_CMake/multinest/include/multinest.h"
 #include "../CUDA_kernels/data_management_kernels.h"
 #include "../additional/exceptions.h"
 
+#include "../forward_model/transmission/transmission.h"
 
 
 namespace bear{
@@ -58,23 +60,62 @@ void signalHandler(int sig)
 
 
 Retrieval::Retrieval(GlobalConfig* global_config) 
-  : spectral_grid(global_config)
+  : Retrieval(global_config, std::string(""))
 {
-
-  config = global_config;
-
-  std::signal(SIGCONT, signalHandler);
-
+  
 }
 
 
 
-
-bool Retrieval::doRetrieval()
+Retrieval::Retrieval(
+  GlobalConfig* global_config,
+  GenericConfig* model_config,
+  const std::vector<ObservationInput>& observation_input,
+  const std::vector<PriorConfig>& prior_config)
+  : spectral_grid(global_config)
 {
+  config = global_config;
+
+  size_t nb_add_priors = 0;
+
+  if (config->use_error_inflation)
+    nb_add_priors += 1;
+
+  try
+  {
+    setObservations(observation_input);
+    
+    std::cout << "\nTotal number of wavelength points: " 
+              << spectral_grid.nbSpectralPoints() << "\n\n";
+    
+    forward_model = selectForwardModel(config->forward_model_type, model_config);
+    
+    priors.init(
+      prior_config, 
+      forward_model->parametersNumber() + nb_add_priors);
+  }
+  catch(std::runtime_error& e) 
+  {
+    std::cout << e.what() << std::endl;
+    exit(1);
+  }
+
+  priors.printInfo();
+}
+
+
+
+Retrieval::Retrieval(
+  GlobalConfig* global_config,
+  const std::string additional_observation_file) 
+  : spectral_grid(global_config)
+{ 
+  config = global_config;
+
+  std::signal(SIGCONT, signalHandler);
+
   std::string folder = config->retrieval_folder_path;
   std::string observation_folder = folder;
-
 
   //try to initialise the model
   //if there is an error, we exit the retrieval
@@ -86,28 +127,51 @@ bool Retrieval::doRetrieval()
       observation_folder, 
       file_list,
       modifier_list);
+
+    //if we do postprocessing, we may need to read in the file that describes the maximum wavelength range
+    //spectra will be generated for
+    //this is necessary to obtain an estimate for the effective temperature
+    if (additional_observation_file.size() > 0)
+    {
+      std::string postprocess_spectrum_data = config->retrieval_folder_path + additional_observation_file;
+      std::fstream file(postprocess_spectrum_data.c_str(), std::ios::in);
+
+      if (!file.fail())
+      {
+        file_list.push_back(additional_observation_file);
+        modifier_list.push_back("none");
+        file.close(); 
+      }
+    }
+
     loadObservations(
-      observation_folder, 
+      observation_folder,
       file_list,
       modifier_list);
+  
+    std::cout << "\nTotal number of wavelength points: " 
+              << spectral_grid.nbSpectralPoints() << "\n\n";
 
-    //spectral_grid.sampleSpectralGrid(observations);
+    forward_model = selectForwardModel(config->forward_model_type, nullptr);
 
-    std::cout << "\nTotal number of wavelength points: " << spectral_grid.nbSpectralPoints() << "\n\n";
-
-    forward_model = selectForwardModel(config->forward_model_type);
+    priors.init(config->retrieval_folder_path, forward_model->parametersNumber());
   }
   catch(std::runtime_error& e) 
   {
     std::cout << e.what() << std::endl;
-    return false;
+    exit(1);
   }
 
   setAdditionalPriors();
 
   priors.printInfo();
+}
 
 
+
+
+bool Retrieval::run()
+{
   //Configure Multinest
   MultinestParameter param(config);
 
@@ -121,13 +185,13 @@ bool Retrieval::doRetrieval()
     param.pWrap[i] = 0;
 
   //We give the MultiNest function a pointer to the retrieval class
-  //That way, we can access the current retrieval object in its static member routines
+  //That way, we can access the current retrieval object and its static member routines
   param.context = this;
 
 
-	//Call MultiNest
+  //Call MultiNest
   if (config->use_gpu == false)
-	  nested::run(
+    nested::run(
       param.is,
       param.mmodal,
       param.ceff,
@@ -179,10 +243,6 @@ bool Retrieval::doRetrieval()
       Retrieval::multinestDumper,
       param.context);
 
-
-  delete forward_model;
-
-
   return true;
 }
 
@@ -191,34 +251,202 @@ bool Retrieval::doRetrieval()
 void Retrieval::setAdditionalPriors()
 {
   if (config->use_error_inflation)
-  {
+  { 
     //this creates the prior distribution for the error exponent
     //first, we need to find the minimum and maximum values of the observational data errors
-    std::vector<double>::iterator it = std::min_element(std::begin(observation_error), std::end(observation_error));
-    const double error_min = std::log10(0.1 * *it * *it);
+    double error_max = 0;
 
-    it = std::max_element(std::begin(observation_error), std::end(observation_error));
-    const double error_max = std::log10(100.0 * *it * *it);
+    for (auto & obs : observations)
+    {
+      double obs_error_max = *std::max_element(
+        std::begin(obs.data_error), 
+        std::end(obs.data_error));
+
+      if (obs_error_max > error_max)
+        error_max = obs_error_max;
+    }
+ 
+    double error_min = error_max;
+    
+    for (auto & obs : observations)
+    {
+      double obs_error_min = *std::min_element(
+        std::begin(obs.data_error), 
+        std::end(obs.data_error));
+      
+      if (obs_error_min < error_min)
+        error_min = obs_error_min;
+    }
+
+    error_min = std::log10(0.1 * error_min * error_min);
+    error_max = std::log10(100.0 * error_max * error_max);
 
     priors.add(
-      std::vector<std::string>{std::string("uniform")}, 
-      std::vector<std::string>{std::string("error exponent")}, 
-      std::vector<std::vector<std::string>>{std::vector<std::string> {std::to_string(error_min), std::to_string(error_max)}});
+      std::vector<PriorConfig> {
+        PriorConfig(
+          std::string("uniform"), 
+          std::string("error exponent"), 
+          std::vector<double>{error_min, error_max})});
   }
+}
+
+
+
+double Retrieval::computeLikelihood(
+  std::vector<double>& physical_parameter)
+{
+  double log_like = 0;
+
+  if (!config->use_gpu)
+  {
+    log_like =  logLikelihood(physical_parameter);
+  }
+  else
+  {
+    log_like =  logLikelihoodGPU(physical_parameter);
+  }
+
+  return log_like;
+}
+
+
+
+double Retrieval::logLikelihood(
+  std::vector<double>& physical_parameters)
+{
+  std::vector<double> model_spectrum(
+    spectral_grid.nbSpectralPoints(), 
+    0.0);
+  
+  std::vector<std::vector<double>> model_spectrum_obs(
+    nb_observations, 
+    std::vector<double>{});
+
+
+  bool neglect = forward_model->calcModelCPU(
+    physical_parameters, 
+    model_spectrum, 
+    model_spectrum_obs);
+
+
+  double error_inflation = 0;
+
+  if (config->use_error_inflation)
+    error_inflation = std::pow(10, physical_parameters.back());
+
+
+  double log_like = 0;
+
+  for (size_t i=0; i<observations.size(); ++i)
+  {
+    for (size_t j=0; j<observations[i].nbPoints(); ++j)
+    {
+      //Eq. 22 from Paper I
+      const double error_square = 
+        observations[i].data_error[j] 
+        * observations[i].data_error[j] 
+        + error_inflation;
+
+      const double obs_delta = observations[i].data[j] - model_spectrum_obs[i][j];
+      
+      //Eq. 23 from Paper I
+      log_like += 
+        (- 0.5 * std::log(error_square* 2.0 * constants::pi)
+         - 0.5 * obs_delta*obs_delta / error_square)
+         * observations[i].likelihood_weight[j];
+    }
+  }
+  
+  //if the forward model tells us to neglect the current set of parameters,
+  //set the likelihood to a low value
+  if (neglect == true) log_like = -1e30;
+
+
+  if (config->multinest_print_iter_values)
+    std::cout << log_like << "\n";
+
+  return log_like;
+}
+
+
+
+
+double Retrieval::logLikelihoodGPU(
+  std::vector<double>& physical_parameters)
+{ 
+  double* spectrum = nullptr;
+  allocateOnDevice(
+    spectrum, 
+    spectral_grid.nbSpectralPoints());
+
+
+  std::vector<double*> spectrum_obs{
+    observations.size(), 
+    nullptr};
+
+  for (size_t i=0; i<observations.size(); ++i)
+    allocateOnDevice(
+      spectrum_obs[i], 
+      observations[i].nbPoints());
+
+
+  bool neglect = forward_model->calcModelGPU(
+    physical_parameters, 
+    spectrum, 
+    spectrum_obs);
+
+
+  double error_inflation = 0;
+
+  if (config->use_error_inflation)
+    error_inflation = std::pow(10, physical_parameters.back());
+
+
+  double log_like = logLikeDev(spectrum_obs, error_inflation);
+
+  //if the forward model tells us to neglect the current set of parameters,
+  //set the likelihood to a low value
+  if (neglect == true) log_like = -1e30;
+
+
+  deleteFromDevice(spectrum);
+
+  for (size_t i=0; i<observations.size(); ++i)
+    deleteFromDevice(spectrum_obs[i]);
+
+
+  if (config->multinest_print_iter_values)
+    std::cout << log_like << "\n";
+
+  return log_like;
+}
+
+
+
+ForwardModelOutput Retrieval::computeModel(
+  std::vector<double>& physical_parameters,
+  const bool return_high_res_spectrum)
+{
+  return forward_model->calcModel(
+    physical_parameters, 
+    return_high_res_spectrum);
+}
+
+
+AtmosphereOutput Retrieval::computeAtmosphereStructure(
+  std::vector<double>& physical_parameters,
+  const std::vector<std::string>& species_symbols)
+{
+  return forward_model->getAtmosphereStructure(
+    physical_parameters, 
+    species_symbols);
 }
 
 
 
 Retrieval::~Retrieval()
 {
-  if (config->use_gpu)
-  {
-    deleteFromDevice(model_spectrum_gpu);
-
-    deleteFromDevice(observation_data_gpu);
-    deleteFromDevice(observation_error_gpu);
-    deleteFromDevice(observation_likelihood_weight_gpu);
-  }
+  delete forward_model;
 }
 
 

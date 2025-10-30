@@ -32,7 +32,6 @@
 
 #include "../../config/global_config.h"
 #include "../../spectral_grid/spectral_grid.h"
-#include "../../retrieval/priors.h"
 #include "../../observations/observations.h"
 
 
@@ -44,7 +43,12 @@ class FlatLinePostProcessConfig : public GenericConfig{
     bool save_spectra = false;
     bool delete_sampler_files = false;
 
-    FlatLinePostProcessConfig (const std::string& folder_path);
+    FlatLinePostProcessConfig (
+      const std::string& folder_path);
+    FlatLinePostProcessConfig (
+      const bool save_spectra_)
+      : save_spectra(save_spectra_) {};
+    
     void readConfigFile(const std::string& file_name);
 };
 
@@ -53,43 +57,51 @@ class FlatLinePostProcessConfig : public GenericConfig{
 class FlatLine : public ForwardModel{
   public:
     FlatLine (
-      Priors* priors_,
       GlobalConfig* config_, 
       SpectralGrid* spectral_grid_,
       std::vector<Observation>& observations_);
     virtual ~FlatLine();
+
+    virtual size_t parametersNumber() {
+      return nb_total_param();};
     
-    virtual bool calcModel(
+    virtual bool calcModelCPU(
       const std::vector<double>& parameter, 
       std::vector<double>& spectrum, 
-      std::vector<double>& model_spectrum_bands);
+      std::vector<std::vector<double>>& spectrum_obs);
     
     virtual bool calcModelGPU(
-      const std::vector<double>& parameter, 
-      double* model_spectrum, 
-      double* model_spectrum_bands);
+      const std::vector<double>& parameters, 
+      double* spectrum, 
+      std::vector<double*>& spectrum_obs);
     
     virtual void postProcess(
       const std::vector< std::vector<double> >& model_parameter,
       const size_t best_fit_model,
       bool& delete_unused_files);
+    virtual void postProcess(
+      GenericConfig* post_process_config_,
+      const std::vector< std::vector<double> >& model_parameter,
+      const size_t best_fit_model,
+      bool& delete_unused_files);
     
     virtual bool testModel(
-      const std::vector<double>& parameter, double* model_spectrum_gpu);
+      const std::vector<double>& parameters);
   protected:
     size_t nb_general_param = 1;
 
     size_t nb_total_param() 
       {return nb_general_param;}
 
-    virtual void setPriors(Priors* priors);
+    void postProcess(
+      const FlatLinePostProcessConfig& post_process_config,
+      const std::vector< std::vector<double> >& model_parameter,
+      const size_t best_fit_model);
 
     void postProcessSpectrum(
       std::vector<double>& model_spectrum, std::vector<double>& model_spectrum_bands);
     void postProcessSpectrumGPU(
       double* model_spectrum, double* model_spectrum_bands);
-    bool testCPUvsGPU(
-      const std::vector<double>& parameter, double* model_spectrum_gpu);
 };
 
 

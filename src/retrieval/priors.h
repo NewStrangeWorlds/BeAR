@@ -29,29 +29,62 @@
 namespace bear {
 
 
+struct PriorConfig{
+  PriorConfig(
+    const std::string& type_, 
+    const std::string& description_, 
+    const std::vector<double>& parameter_,
+    const std::string& unit_)
+    : type(type_), description(description_), parameter(parameter_), unit(unit_) {}
+  PriorConfig(
+    const std::string& type_, 
+    const std::string& description_, 
+    const std::vector<double>& parameter_)
+    : type(type_), description(description_), parameter(parameter_) {}
+  
+  std::string type = "";
+  std::string description = "";
+  std::vector<double> parameter;
+  std::string unit = "";
+};
+
+
+
 class Priors{
   public:
     virtual ~Priors();
+
+    void init(
+      const std::string& folder_path, 
+      const size_t nb_total_param);
+    void init(
+      const std::vector<PriorConfig>& priors_config,
+      const size_t nb_total_param);
+
     void add(
-      const std::vector<std::string>& type, 
-      const std::vector<std::string>& description, 
-      const std::vector<std::vector<std::string>>& parameter);
+      const std::vector<PriorConfig>& priors_config);
+    
     size_t number() {return distributions.size();}
     void printInfo();
 
     std::vector<BasicPrior*> distributions;
     std::vector<size_t> prior_links;
   protected:
+    void readConfigFile(
+      const std::string& file_path, 
+      std::vector<std::string>& prior_type, 
+      std::vector<std::string>& prior_description, 
+      std::vector<std::vector<double>>& prior_parameter,
+      std::vector<std::string>& prior_unit);
     void addSingle(
       const std::string& type, 
       const std::string& description, 
-      const std::vector<std::string>& parameter);
+      const std::vector<double>& parameter,
+      const std::string& unit);
     void setupLinkedPriors(
       const std::vector<std::string>& type,
       const std::vector<std::string>& description,
-      const std::vector<std::vector<std::string>>& parameter);
-
-  private:
+      const std::vector<std::vector<double>>& parameter);
 };
 
 

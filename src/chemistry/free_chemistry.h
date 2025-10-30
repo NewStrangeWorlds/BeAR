@@ -40,7 +40,7 @@ class FreeChemistry : public Chemistry{
       const std::string& chemical_species,
       const size_t nb_elements_in,
       const size_t polynomial_degree_in,
-      const double atmos_boundaries [2]);
+      const std::vector<double>& atmos_boundaries);
     virtual ~FreeChemistry() {}
 
     virtual bool calcChemicalComposition(

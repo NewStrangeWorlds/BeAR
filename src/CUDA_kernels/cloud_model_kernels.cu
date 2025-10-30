@@ -39,8 +39,8 @@ namespace bear{
   __global__ void  convertOpticalDepthDev(
   double* optical_depth,
   double* altitude,
-  const size_t nb_grid_points,
-  const size_t nb_spectral_points,
+  const int nb_grid_points,
+  const int nb_spectral_points,
   double* extinction_coeff)
 {
   //the thread index tid is the wavelength
@@ -51,7 +51,7 @@ namespace bear{
       const int j = i*nb_spectral_points + tid;
       const int jm = (i-1)*nb_spectral_points + tid;
       const double delta_z = altitude[i] - altitude[i-1];
-
+      
       //convert optical depth to extinction coefficient
       //uses a finite difference to approximate the derivative
       extinction_coeff[j] = optical_depth[jm] / delta_z;
@@ -148,7 +148,7 @@ __global__ void powerLawCloudModel(
 
       single_scattering_albedo[j] = optical_depth[j] * single_scattering_albedo[j] / optical_depth_mix;
       
-      optical_depth[j] = optical_depth_layer; //optical_depth_mix;
+      optical_depth[j] = optical_depth_mix;
     }
   }
 

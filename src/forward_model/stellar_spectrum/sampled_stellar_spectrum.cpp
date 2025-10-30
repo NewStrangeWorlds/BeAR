@@ -82,7 +82,8 @@ void SampledStellarSpectrum::sampleSpectrum(
 
 SampledStellarSpectrum::~SampledStellarSpectrum()
 {
-  deleteFromDevice(spectrum_gpu);
+  if (spectrum_gpu != nullptr)
+    deleteFromDevice(spectrum_gpu);
 }
 
 } 

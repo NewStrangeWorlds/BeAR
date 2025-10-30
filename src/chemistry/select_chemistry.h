@@ -30,6 +30,7 @@
 #include "free_chemistry.h"
 #include "free_cbspline_chemistry.h"
 #include "background_chemistry.h"
+#include "step_function_chemistry.h"
 
 #include "../config/global_config.h"
 #include "../additional/exceptions.h"
@@ -44,18 +45,17 @@ namespace bear {
 //definition of the different chemistry modules with an
 //identifier, a keyword to be located in the config file and a short version of the keyword
 namespace chemistry_modules{
-  enum id {free, iso, eq, cspline, iso_clr, bg}; 
-  const std::vector<std::string> description {"free", "isoprofile", "equilibrium", "free_cspline", "isoprofile_clr", "background"};
-  const std::vector<std::string> description_short {"free", "iso", "eq", "free_cs", "iso_clr", "bg"};
+  enum id {free, iso, eq, cspline, iso_clr, bg, sf}; 
+  const std::vector<std::string> description {"free", "isoprofile", "equilibrium", "free_cspline", "isoprofile_clr", "background", "step_function"};
+  const std::vector<std::string> description_short {"free", "iso", "eq", "free_cs", "iso_clr", "bg", "sf"};
 }
-
 
 
 inline Chemistry* selectChemistryModule(
   const std::string chemistry_type, 
   const std::vector<std::string>& parameters, 
   GlobalConfig* config, 
-  const double atmos_boundaries [2])
+  const std::vector<double>& atmos_boundaries)
 {
   //find the corresponding chemistry module to the supplied "type" string
   auto it = std::find(
@@ -89,77 +89,81 @@ inline Chemistry* selectChemistryModule(
       it_short));
 
 
-  //create the chemistry object based on the chosen module
-  Chemistry* chemistry_module = nullptr;
-
-  switch (module_id)
+  if (module_id == chemistry_modules::eq)
   {
-    case chemistry_modules::eq :  
-      if (parameters.size() != 1) {
+    if (parameters.size() != 1) {
         std::string error_message = "Equilibrium chemistry requires exactly one parameter!\n";
-        throw InvalidInput(std::string ("forward_model.config"), error_message);
-      }
-    {
-      FastChemChemistry* model = new FastChemChemistry(
+        throw InvalidInput(std::string ("forward_model.config"), error_message);}
+    
+    FastChemChemistry* model = new FastChemChemistry(
         config->retrieval_folder_path + parameters[0], 
         config->nb_omp_processes);
-      chemistry_module = model;
-    }
-      break;
 
-    case chemistry_modules::iso : {
-      IsoprofileChemistry* model = new IsoprofileChemistry(parameters);
-      chemistry_module = model;
-    } 
-      break;
-
-    case chemistry_modules::free : 
-      if (parameters.size() != 3) {
-        std::string error_message = "Free chemistry requires exactly three parameters!\n";
-        throw InvalidInput(std::string ("forward_model.config"), error_message);
-      }
-    {
-        FreeChemistry* model = new FreeChemistry(
-          parameters[0], 
-          std::stoi(parameters[1]),
-          std::stoi(parameters[2]),
-          atmos_boundaries);
-        chemistry_module = model;
-    }
-      break;
-
-    case chemistry_modules::cspline : 
-      if (parameters.size() != 2) {
-        std::string error_message = "Free cubic spline chemistry requires exactly two parameters!\n";
-        throw InvalidInput(std::string ("forward_model.config"), error_message);
-      }
-    {
-        FreeCBSplineChemistry* model = new FreeCBSplineChemistry(
-          parameters[0],
-          std::stoi(parameters[1]));
-        chemistry_module = model;
-    }
-      break;
-
-    case chemistry_modules::iso_clr : {
-      IsoprofileCLRChemistry* model = new IsoprofileCLRChemistry(parameters);
-      chemistry_module = model;
-    } 
-      break;
-
-    case chemistry_modules::bg : {
-      if (parameters.size() != 1) {
-        std::string error_message = "Background chemistry requires exactly one parameter!\n";
-        throw InvalidInput(std::string ("forward_model.config"), error_message);
-      }
-
-      BackgroundChemistry* model = new BackgroundChemistry(parameters[0]);
-      chemistry_module = model;
-    } 
-      break;
+    return model;
   }
 
-  return chemistry_module;
+  if (module_id == chemistry_modules::iso)
+  {
+    IsoprofileChemistry* model = new IsoprofileChemistry(parameters);
+    return model;
+  }
+
+  if (module_id == chemistry_modules::free)
+  {
+    if (parameters.size() != 3) {
+        std::string error_message = "Free chemistry requires exactly three parameters!\n";
+        throw InvalidInput(std::string ("forward_model.config"), error_message);}
+
+    FreeChemistry* model = new FreeChemistry(
+        parameters[0], 
+        std::stoi(parameters[1]),
+        std::stoi(parameters[2]),
+        atmos_boundaries);
+
+    return model;
+  }
+
+  if (module_id == chemistry_modules::cspline)
+  {
+    if (parameters.size() != 2) {
+        std::string error_message = "Free cubic spline chemistry requires exactly two parameters!\n";
+        throw InvalidInput(std::string ("forward_model.config"), error_message);}
+
+    FreeCBSplineChemistry* model = new FreeCBSplineChemistry(
+        parameters[0],
+        std::stoi(parameters[1]));
+
+    return model;
+  }
+
+  if (module_id == chemistry_modules::iso_clr)
+  {
+    IsoprofileCLRChemistry* model = new IsoprofileCLRChemistry(parameters);
+    return model;
+  }
+
+  if (module_id == chemistry_modules::bg)
+  {
+    if (parameters.size() != 1) {
+        std::string error_message = "Background chemistry requires exactly one parameter!\n";
+        throw InvalidInput(std::string ("forward_model.config"), error_message);}
+
+    BackgroundChemistry* model = new BackgroundChemistry(parameters[0]);
+    return model;
+  }
+
+  if (module_id == chemistry_modules::sf)
+  {
+    if (parameters.size() != 1) {
+        std::string error_message = "Step function chemistry requires exactly one parameter!\n";
+        throw InvalidInput(std::string ("forward_model.config"), error_message);}
+
+    StepFunctionChemistry* model = new StepFunctionChemistry(parameters[0]);
+    return model;
+  }
+  
+  //we should never reach this point
+  return nullptr;
 }
 
 

@@ -39,6 +39,17 @@ class Temperature{
     size_t nbParameters() {return nb_parameters;}
   protected:
     size_t nb_parameters {};
+    
+    bool checkProfile(std::vector<double>& temperature) {
+      for (auto & i : temperature)
+        if (i < 50)
+        {
+          i = 50;
+          return true;
+        }
+      
+      return false;
+    };
 };
 
 

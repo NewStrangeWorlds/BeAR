@@ -70,8 +70,6 @@ class DiscreteOrdinates : public RadiativeTransfer{
         std::cout << "Sorry, CDISORT has no GPU option :(\n";
       }
   private:
-    SpectralGrid* spectral_grid;
-
     std::vector<disort_state> ds;
     std::vector<disort_output> out;
 

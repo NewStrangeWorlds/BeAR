@@ -29,9 +29,22 @@
 
 #include "../../chemistry/chem_species.h"
 #include "../atmosphere/atmosphere.h"
+#include "../../additional/aux_functions.h"
 
 
 namespace bear{
+
+
+TransmissionPostProcessConfig::TransmissionPostProcessConfig (
+  const bool save_temperatures_, 
+  const bool save_spectra_, 
+  const std::vector<std::string>& species_to_save_)
+{
+  save_temperatures = save_temperatures_;
+  save_spectra = save_spectra_;
+
+  species_to_save = aux::findChemicalSpecies(species_to_save_);
+}
 
 
 TransmissionPostProcessConfig::TransmissionPostProcessConfig (const std::string& folder_path)
@@ -68,6 +81,25 @@ void TransmissionPostProcessConfig::readConfigFile(const std::string& file_name)
 }
 
 
+//calls the model specific posterior calculations
+void TransmissionModel::postProcess(
+  GenericConfig* post_process_config_,
+  const std::vector< std::vector<double> >& model_parameter, 
+  const size_t best_fit_model,
+  bool& delete_unused_files)
+{ 
+  TransmissionPostProcessConfig post_process_config = 
+    *(dynamic_cast<TransmissionPostProcessConfig*>(post_process_config_));
+
+  if (post_process_config.delete_sampler_files)
+    delete_unused_files = true;
+
+  postProcess(
+    post_process_config,
+    model_parameter,
+    best_fit_model);
+}
+
 
 //calls the model specific posterior calculations
 void TransmissionModel::postProcess(
@@ -80,12 +112,35 @@ void TransmissionModel::postProcess(
   if (post_process_config.delete_sampler_files)
     delete_unused_files = true;
 
+  postProcess(
+    post_process_config,
+    model_parameter,
+    best_fit_model);
+}
+
+
+
+void TransmissionModel::postProcess(
+  const TransmissionPostProcessConfig& post_process_config,
+  const std::vector< std::vector<double> >& model_parameter,
+  const size_t best_fit_model)
+{
   const size_t nb_models = model_parameter.size();
-  std::vector< std::vector<double> > model_spectrum_bands;
   
   if (post_process_config.save_spectra)
-    calcPostProcessSpectra(model_parameter, best_fit_model, model_spectrum_bands);
-
+  {
+    std::vector<std::vector<std::vector<double>>> model_spectra_obs;
+    std::vector<double> model_spectrum_best_fit;
+  
+    calcPostProcessSpectra(
+      model_parameter, 
+      best_fit_model, 
+      model_spectra_obs,
+      model_spectrum_best_fit);
+    
+    saveBestFitSpectrum(model_spectrum_best_fit);
+    savePostProcessSpectra(model_spectra_obs);
+  }
 
   std::vector<std::vector<double>> temperature_profiles(nb_models, std::vector<double>(nb_grid_points, 0));
 
@@ -98,7 +153,6 @@ void TransmissionModel::postProcess(
   for (size_t i=0; i<nb_models; ++i)
     postProcessModel(
       model_parameter[i], 
-      model_spectrum_bands[i], 
       temperature_profiles[i], 
       mixing_ratios[i]);
 
@@ -112,13 +166,54 @@ void TransmissionModel::postProcess(
 
 
 
+AtmosphereOutput TransmissionModel::getAtmosphereStructure(
+  const std::vector<double>& physical_parameters,
+  const std::vector<std::string>& species_symbols)
+{
+  extractParameters(physical_parameters);
+
+  AtmosphereOutput output;
+
+  output.neglect_model = calcAtmosphereStructure(physical_parameters);
+
+  std::vector<chemical_species_id> species_to_save = 
+    aux::findChemicalSpecies(species_symbols);
+
+  std::vector<std::vector<double>> mixing_ratios( 
+    constants::species_data.size(), 
+    std::vector<double>(nb_grid_points,0));
+
+  for (auto & i : constants::species_data)
+  { 
+    for (size_t j=0; j<nb_grid_points; ++j)
+      mixing_ratios[i.id][j] = atmosphere.number_densities[j][i.id]
+        /atmosphere.number_densities[j][_TOTAL];
+  }
+  
+  output.temperature = atmosphere.temperature;
+  output.pressure = atmosphere.pressure;
+  output.altitude = atmosphere.altitude;
+
+  if (species_to_save.size() > 0)
+    for (auto & i : species_to_save)
+    {
+      output.mixing_ratios.push_back(mixing_ratios[i]);
+      output.species_symbols.push_back(constants::species_data[i].symbol);
+    }
+
+  return output;
+}
+
+
+
 void TransmissionModel::postProcessModel(
-  const std::vector<double>& model_parameter, 
-  const std::vector<double>& model_spectrum_bands, 
+  const std::vector<double>& parameters, 
   std::vector<double>& temperature_profile,
   std::vector<std::vector<double>>& mixing_ratios)
 {
-  calcAtmosphereStructure(model_parameter);
+  extractParameters(parameters);
+
+  calcAtmosphereStructure(parameters);
 
   for (auto & i : constants::species_data)
   { 
@@ -136,7 +231,7 @@ void TransmissionModel::savePostProcessChemistry(
   const unsigned int species)
 {
   std::fstream file;
-  std::string file_name = config->retrieval_folder_path + "/chem_";
+  std::string file_name = config->post_output_path + "/chem_";
   
   file_name += constants::species_data[species].symbol;
   file_name += ".dat";
@@ -164,7 +259,7 @@ void TransmissionModel::savePostProcessTemperatures(const std::vector<std::vecto
 {
   //save the temperature profiles into a file
   std::fstream file;
-  std::string file_name = config->retrieval_folder_path + "/temperature_structures.dat";
+  std::string file_name = config->post_output_path + "/temperature_structures.dat";
   file.open(file_name.c_str(), std::ios::out);
 
   for (size_t i=0; i<nb_grid_points; ++i)

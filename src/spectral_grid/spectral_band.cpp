@@ -39,7 +39,7 @@ void SpectralBands::init(
   const std::vector<double>& obs_wavelength_range_, 
   const std::vector< std::vector<double> >& obs_band_edges, 
   const std::vector<double>& obs_band_centres, 
-  const BandType type)
+  const band_type::id type)
 {
   band_type = type;
   center_wavelengths = obs_band_centres;
@@ -73,8 +73,6 @@ void SpectralBands::init()
     obs_wavenumber_range.second,
     spectral_grid->wavenumber_list,
     spectral_grid->wavenumber_list.begin());
-
-  nb_bands = center_wavelengths.size();
 }
 
 
@@ -84,32 +82,39 @@ void SpectralBands::setBandEdgeIndices(std::vector<double>& wavenumber_grid)
   edge_indices.resize(0);
   edge_indices.reserve(nb_bands);
 
+  auto it_start = wavenumber_grid.begin();
+  double last_wavenumber = 0;
 
-  for (size_t i=0; i<nb_bands; ++i)
+  for (auto & b : edge_wavenumbers)
   {
-    auto it_start = wavenumber_grid.begin();
-
-     for (auto & b : edge_wavenumbers)
-    {
-      const size_t idx_1 = spectral_grid->findClosestIndex(b[0], wavenumber_grid, it_start);
-      const size_t idx_2 = spectral_grid->findClosestIndex(b[1], wavenumber_grid, it_start);
+    //in case of overlapping bands, we need to start the search at the beginning
+    if (last_wavenumber > b[0]) 
+      it_start = wavenumber_grid.begin();
+    
+    const size_t idx_1 = spectral_grid->findClosestIndex(b[0], wavenumber_grid, it_start);
+    const size_t idx_2 = spectral_grid->findClosestIndex(b[1], wavenumber_grid, it_start);
       
-      if (idx_1 > wavenumber_grid.size() -1 || idx_2 > wavenumber_grid.size() -1)
-      {
-        std::string error_message = "Edge wavenumber index not found!\t" 
-          + std::to_string(b[0]) + "  " + std::to_string(b[1]) + "\n";
+    if (idx_1 > wavenumber_grid.size() -1 || idx_2 > wavenumber_grid.size() -1)
+    {
+      std::string error_message = "Edge wavenumber index not found!\t" 
+        + std::to_string(b[0]) + "  " + std::to_string(b[1]) + "\n";
 
-        throw InvalidInput(std::string ("SpectralBand::setBandEdgeIndices"), error_message);
-      }
-
-      edge_indices.push_back(std::vector<size_t>{idx_1, idx_2});
-
-      it_start = wavenumber_grid.begin() + idx_2;
+      throw InvalidInput(std::string ("SpectralBand::setBandEdgeIndices"), error_message);
     }
-  }
+    
+    if (idx_1 == idx_2)
+    {
+      std::string error_message = "The spectral resolution of the opacity grid is too small!\nUnable to locate enough points to resolve the bin from " 
+        + std::to_string(1.0/b[0]*1e4) + " microns to " + std::to_string(1.0/b[1]*1e4) + " microns\n";
 
-  //for (size_t i=0; i<nb_bands; ++i)
-    //std::cout << edge_indices2[i][0] << "\t" << band_edges_wavenumbers[i][0] << "\t" << wavenumber_grid[edge_indices2[i][0]] << "\t" << edge_indices2[i][1] << "\t" << band_edges_wavenumbers[i][1] << "\t" << wavenumber_grid[edge_indices2[i][1]] << "\n";
+      throw InvalidInput(std::string ("SpectralBand::setBandEdgeIndices"), error_message);
+
+    }
+    edge_indices.push_back(std::vector<size_t>{idx_1, idx_2});
+
+    last_wavenumber = b[1];
+    it_start = wavenumber_grid.begin() + idx_2;
+  }
 
   init();
   //std::cout << "\n";

@@ -56,7 +56,10 @@ class Element{
 
 class PiecewisePolynomial{
   public:
-    PiecewisePolynomial(const size_t element_number, const size_t polynomial_order, const double domain_boundaries [2]);
+    PiecewisePolynomial(
+      const size_t element_number, 
+      const size_t polynomial_order, 
+      const std::vector<double>& domain_boundaries);
     
     void setDOFvalues(const std::vector<double>& values);
     std::vector<double> getDOFvalues() {return dof_values;}

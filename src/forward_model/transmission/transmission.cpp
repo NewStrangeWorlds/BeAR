@@ -36,6 +36,7 @@
 #include "../../additional/exceptions.h"
 #include "../atmosphere/atmosphere.h"
 #include "../../transport_coeff/opacity_calc.h"
+#include "../../cloud_model/fixed_cloud_model.h"
 
 
 namespace bear{
@@ -43,7 +44,6 @@ namespace bear{
 
 TransmissionModel::TransmissionModel (
   const TransmissionModelConfig model_config,
-  Priors* priors_,
   GlobalConfig* config_,
   SpectralGrid* spectral_grid_,
   std::vector<Observation>& observations_)
@@ -59,7 +59,7 @@ TransmissionModel::TransmissionModel (
         model_config.opacity_species_symbol,
         model_config.opacity_species_folder,
         config->use_gpu,
-        model_config.use_cloud_model)
+        model_config.cloud_model.size() > 0)
 {
   nb_grid_points = model_config.nb_grid_points;
   
@@ -73,11 +73,76 @@ TransmissionModel::TransmissionModel (
 
   fit_mean_molecular_weight = model_config.fit_mean_molecular_weight;
   fit_scale_height = model_config.fit_scale_height;
+  use_variable_gravity = model_config.use_variable_gravity;
 
   //select and set up the modules
   initModules(model_config);
+}
 
-  setPriors(priors_);
+
+
+TransmissionModel::TransmissionModel (
+  GlobalConfig* config_, 
+  SpectralGrid* spectral_grid_,
+  const size_t nb_grid_points_,
+  const std::vector<std::string>& opacity_species_symbol,
+  const std::vector<std::string>& opacity_species_folder)
+    : ForwardModel(config_, spectral_grid_, std::vector<Observation>() = {})
+    , atmosphere(
+        nb_grid_points_,
+        std::vector<double>(2) = {10, 1e-5},
+        config->use_gpu)
+    , opacity_calc(
+        config,
+        spectral_grid,
+        &atmosphere,
+        opacity_species_symbol,
+        opacity_species_folder,
+        config->use_gpu,
+        true)
+{
+  nb_grid_points = nb_grid_points_;
+
+}
+
+
+
+void TransmissionModel::extractParameters(
+  const std::vector<double>& parameters)
+{
+  model_parameters = std::vector<double>(
+    parameters.begin(), 
+    parameters.begin() + nb_general_param);
+  
+  size_t nb_previous_param = nb_general_param;
+  
+  chemistry_parameters = std::vector<double>(
+    parameters.begin() + nb_previous_param, 
+    parameters.begin() + nb_previous_param + nb_total_chemistry_param);
+
+  nb_previous_param += nb_total_chemistry_param;
+  
+  temperature_parameters = std::vector<double>(
+    parameters.begin() + nb_previous_param, 
+    parameters.begin() + nb_previous_param + nb_temperature_param);
+
+  nb_previous_param += nb_temperature_param;
+
+  cloud_parameters = std::vector<double>(
+      parameters.begin() + nb_previous_param,
+      parameters.begin() + nb_previous_param + nb_total_cloud_param);
+
+  nb_previous_param += nb_total_cloud_param;
+
+  module_parameters = std::vector<double>(
+    parameters.begin() + nb_previous_param, 
+    parameters.begin() + nb_previous_param + nb_total_modules_param);
+
+  nb_previous_param += nb_total_modules_param;
+
+  spectrum_modifier_parameters = std::vector<double>(
+    parameters.begin() + nb_previous_param, 
+    parameters.begin() + nb_previous_param + nb_spectrum_modifier_param);
 }
 
 
@@ -85,49 +150,45 @@ TransmissionModel::TransmissionModel (
 bool TransmissionModel::calcAtmosphereStructure(const std::vector<double>& parameter)
 {
   const double surface_gravity = std::pow(10,parameter[0]);
+  const double bottom_radius = parameter[1];
 
   bool neglect_model = false;
-
-  //parameters for temperature profile and chemistry
-  std::vector<double> temp_parameters(
-    parameter.begin() + nb_general_param + nb_total_chemistry_param, 
-    parameter.begin() + nb_general_param + nb_total_chemistry_param + temperature_profile->nbParameters());
-
-  std::vector<double> chem_parameters (
-    parameter.begin() + nb_general_param, 
-    parameter.begin() + nb_general_param + nb_total_chemistry_param);
-
 
   if (!fit_mean_molecular_weight && !fit_scale_height)
   {
     neglect_model = atmosphere.calcAtmosphereStructure(
       surface_gravity, 
+      bottom_radius,
+      use_variable_gravity,
       temperature_profile, 
-      temp_parameters, 
+      temperature_parameters, 
       chemistry, 
-      chem_parameters);
-  }
-  else
-  {
-    const double param = parameter[3];
+      chemistry_parameters);
 
-    if (fit_mean_molecular_weight)
-      neglect_model = atmosphere.calcAtmosphereStructure(
-        surface_gravity, 
-        temperature_profile, 
-        temp_parameters, 
-        chemistry, 
-        chem_parameters,
-        param);
-    else
-      neglect_model = atmosphere.calcAtmosphereStructure(
-        surface_gravity, 
-        param,
-        temperature_profile, 
-        temp_parameters, 
-        chemistry, 
-        chem_parameters);
+    return neglect_model;
   }
+  
+  //either mean molecular weight or scale height
+  const double param = parameter[3];
+
+  if (fit_mean_molecular_weight)
+    neglect_model = atmosphere.calcAtmosphereStructure(
+      surface_gravity, 
+      bottom_radius,
+      use_variable_gravity,
+      temperature_profile, 
+      temperature_parameters, 
+      chemistry, 
+      chemistry_parameters,
+      param);
+  else
+    neglect_model = atmosphere.calcAtmosphereStructure(
+      surface_gravity, 
+      param,
+      temperature_profile, 
+      temperature_parameters, 
+      chemistry, 
+      chemistry_parameters);
 
   return neglect_model;
 }
@@ -135,25 +196,19 @@ bool TransmissionModel::calcAtmosphereStructure(const std::vector<double>& param
 
 
 //Runs the forward model on the CPU and calculates a high-resolution spectrum
-bool TransmissionModel::calcModel(
-  const std::vector<double>& parameter, 
+bool TransmissionModel::calcModelCPU(
+  const std::vector<double>& parameters, 
   std::vector<double>& spectrum, 
-  std::vector<double>& model_spectrum_bands)
+  std::vector<std::vector<double>>& spectrum_obs)
 {
-  bool neglect = calcAtmosphereStructure(parameter);
+  extractParameters(parameters);
 
-  size_t nb_previous_param = nb_general_param + nb_total_chemistry_param + nb_temperature_param;
+  bool neglect = calcAtmosphereStructure(parameters);
 
-  std::vector<double> cloud_parameters(
-      parameter.begin() + nb_previous_param,
-      parameter.begin() + nb_previous_param + nb_total_cloud_param);
 
   opacity_calc.calculate(cloud_models, cloud_parameters);
 
   spectrum.assign(spectral_grid->nbSpectralPoints(), 0.0);
-
-  const double bottom_radius = parameter[1];
-  const double star_radius = parameter[2];
   
   cloud_extinction.assign(
       spectral_grid->nbSpectralPoints(), 
@@ -166,53 +221,31 @@ bool TransmissionModel::calcModel(
       cloud_extinction, 
       atmosphere.altitude);
   }
+  
 
+  const double bottom_radius = parameters[1];
+  const double star_radius = parameters[2];
+  
   calcTransmissionSpectrum(bottom_radius, star_radius, spectrum);
 
-
-  nb_previous_param = nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_total_cloud_param;
-
+  
+  auto param_it = module_parameters.begin();
+  
   for (auto & m : modules)
   {
-    std::vector<double> module_parameters(
-      parameter.begin() + nb_previous_param,
-      parameter.begin() + nb_previous_param + m->nbParameters());
+    std::vector<double> single_module_parameters(
+      param_it,
+      param_it + m->nbParameters());
   
-    m->modifySpectrum(module_parameters, &atmosphere, spectrum);
+    m->modifySpectrum(single_module_parameters, &atmosphere, spectrum);
     
-    nb_previous_param += m->nbParameters();
+    param_it += m->nbParameters();
   }
 
 
-  postProcessSpectrum(spectrum, model_spectrum_bands);
+  convertSpectrumToObservation(spectrum, false, spectrum_obs);
 
-
-  nb_previous_param = nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_total_modules_param + nb_total_cloud_param;
-
-  std::vector<double> modifier_parameters(
-      parameter.begin() + nb_previous_param,
-      parameter.begin() + nb_previous_param + nb_spectrum_modifier_param);
-
-  auto param_it = modifier_parameters.begin();
-
-  //apply spectrum modifier if necessary
-  size_t start_index = 0;
-
-  for (size_t i=0; i<observations.size(); ++i)
-  {
-    if (observations[i].nb_modifier_param != 0)
-    {
-      const double spectrum_modifier = *param_it;
-
-      if (spectrum_modifier != 0)
-        for (size_t j=start_index; j<start_index+observations[i].nbPoints(); ++j)
-          model_spectrum_bands[j] += spectrum_modifier;
-
-      param_it += observations[i].nb_modifier_param;
-    }
-
-    start_index += observations[i].spectral_bands.nbBands();
-  }
+  applyObservationModifier(spectrum_modifier_parameters, spectrum_obs);
 
   return neglect;
 }
@@ -223,27 +256,25 @@ bool TransmissionModel::calcModel(
 //the atmospheric structure itself is still done on the CPU
 bool TransmissionModel::calcModelGPU(
   const std::vector<double>& parameter, 
-  double* model_spectrum_gpu, 
-  double* model_spectrum_bands)
+  double* spectrum, 
+  std::vector<double*>& spectrum_obs)
 {
+  extractParameters(parameter);
+
   bool neglect = calcAtmosphereStructure(parameter);
-
-  size_t nb_previous_param = nb_general_param + nb_total_chemistry_param + nb_temperature_param;
-
-  std::vector<double> cloud_parameters(
-      parameter.begin() + nb_previous_param,
-      parameter.begin() + nb_previous_param + nb_total_cloud_param);
-
 
   opacity_calc.calculateGPU(cloud_models, cloud_parameters);
 
-
-  if (cloud_extinction_gpu == nullptr)
-    allocateOnDevice(cloud_extinction_gpu, nb_grid_points*spectral_grid->nbSpectralPoints());
-
   if (cloud_models.size() > 0)
   { 
-    intializeOnDevice(cloud_extinction_gpu, nb_grid_points*spectral_grid->nbSpectralPoints());
+    if (cloud_extinction_gpu == nullptr)
+      allocateOnDevice(
+        cloud_extinction_gpu, 
+        nb_grid_points*spectral_grid->nbSpectralPoints());
+
+    initializeOnDevice(
+      cloud_extinction_gpu, 
+      nb_grid_points*spectral_grid->nbSpectralPoints());
 
     cloud_models[0]->convertOpticalDepthGPU(
       opacity_calc.cloud_optical_depths_dev,
@@ -258,7 +289,7 @@ bool TransmissionModel::calcModelGPU(
   const double star_radius = parameter[2];
 
   calcTransitDepthGPU(
-    model_spectrum_gpu, 
+    spectrum, 
     opacity_calc.absorption_coeff_gpu, 
     opacity_calc.scattering_coeff_dev, 
     cloud_extinction_gpu,
@@ -268,105 +299,185 @@ bool TransmissionModel::calcModelGPU(
     star_radius);
 
 
-  nb_previous_param = nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_total_cloud_param;
-
+  auto param_it = module_parameters.begin();
+  
   for (auto & m : modules)
   {
-    std::vector<double> module_parameters(
-      parameter.begin() + nb_previous_param,
-      parameter.begin() + nb_previous_param + m->nbParameters());
+    std::vector<double> single_module_parameters(
+      param_it,
+      param_it + m->nbParameters());
   
-    m->modifySpectrumGPU(module_parameters, &atmosphere, model_spectrum_gpu);
+    m->modifySpectrumGPU(single_module_parameters, &atmosphere, spectrum);
     
-    nb_previous_param += m->nbParameters();
+    param_it += m->nbParameters();
   }
 
 
-  postProcessSpectrumGPU(model_spectrum_gpu, model_spectrum_bands);
+  convertSpectrumToObservationGPU(spectrum, false, spectrum_obs);
 
-
-  nb_previous_param = nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_total_modules_param + nb_total_cloud_param;
-
-  std::vector<double> modifier_parameters(
-      parameter.begin() + nb_previous_param,
-      parameter.begin() + nb_previous_param + nb_spectrum_modifier_param);
-
-  auto param_it = modifier_parameters.begin();
-
-  //apply spectrum modifier if necessary
-  unsigned int start_index = 0;
-  
-  for (size_t i=0; i<observations.size(); ++i)
-  {
-    if (observations[i].nb_modifier_param != 0)
-    {
-      const double spectrum_modifier = *param_it;
-
-      if (spectrum_modifier != 0)
-        observations[i].addShiftToSpectrumGPU(
-          model_spectrum_bands, 
-          start_index, 
-          spectrum_modifier);
-
-      param_it += observations[i].nb_modifier_param;
-    }
-
-    start_index += observations[i].spectral_bands.nbBands();
-  }
+  applyObservationModifierGPU(spectrum_modifier_parameters, spectrum_obs);
 
   return neglect;
 }
 
 
 
-void TransmissionModel::postProcessSpectrum(
-  std::vector<double>& model_spectrum, 
-  std::vector<double>& model_spectrum_bands)
+void TransmissionModel::setCloudProperties(
+  const std::vector<std::vector<double>>& cloud_optical_depth)
 {
-  model_spectrum_bands.assign(nb_observation_points, 0.0);
+  if (config->use_gpu && cloud_extinction_gpu == nullptr)
+    allocateOnDevice(
+      cloud_extinction_gpu, 
+      nb_grid_points*spectral_grid->nbSpectralPoints());
+  else
+    cloud_extinction.assign(
+      spectral_grid->nbSpectralPoints(), 
+      std::vector<double>(nb_grid_points, 0.0));
   
-  std::vector<double>::iterator it = model_spectrum_bands.begin();
+  bool use_cloud = false;
 
-  for (size_t i=0; i<observations.size(); ++i)
+  for (auto & i : cloud_optical_depth)
   {
-    const bool is_flux = false;
-    std::vector<double> observation_bands = observations[i].processModelSpectrum(model_spectrum, is_flux);
-
-    //copy the band-integrated values for this observation into the global
-    //vector of all band-integrated points, model_spectrum_bands
-    std::copy(observation_bands.begin(), observation_bands.end(), it);
-    it += observation_bands.size();
+    double max = *std::max_element(i.begin(), i.end());
+    if (max > 0)
+    {
+      use_cloud = true;
+      break;
+    }
   }
+  
+  if (!use_cloud)
+    return;
+
+  std::vector<std::vector<double>> single_scattering_albedo(
+    nb_grid_points-1, 
+    std::vector<double>(spectral_grid->nbSpectralPoints(), 0.0));
+
+  std::vector<std::vector<double>> asymmetry_parameter(
+    nb_grid_points-1, 
+    std::vector<double>(spectral_grid->nbSpectralPoints(), 0.0));
+
+  FixedCloudModel* model = new FixedCloudModel(
+    cloud_optical_depth,
+    single_scattering_albedo,
+    asymmetry_parameter);
+
+  cloud_models.push_back(model);
+
 }
 
 
-void TransmissionModel::postProcessSpectrumGPU(
-  double* model_spectrum_gpu, 
-  double* model_spectrum_bands)
+
+std::vector<double> TransmissionModel::calcSpectrum(
+  const double surface_gravity,
+  const double planet_radius,
+  const double radius_ratio,
+  const std::vector<double>& pressure,
+  const std::vector<double>& temperature,
+  const std::vector<std::string>& species_symbol,
+  const std::vector<std::vector<double>>& mixing_ratios,
+  const std::vector<std::vector<double>>& cloud_optical_depth,
+  const double use_variable_gravity)
 {
-  unsigned int start_index = 0;
-  for (size_t i=0; i<observations.size(); ++i)
-  {
-    const bool is_flux = false;
-    observations[i].processModelSpectrumGPU(
-      model_spectrum_gpu, 
-      model_spectrum_bands, 
-      start_index, 
-      is_flux);
+  atmosphere.setAtmosphericStructure(
+    surface_gravity, 
+    planet_radius,
+    use_variable_gravity,
+    pressure, 
+    temperature, 
+    species_symbol, 
+    mixing_ratios);
 
-    start_index += observations[i].spectral_bands.nbBands();
+  const double bottom_radius = planet_radius;
+  const double star_radius = planet_radius/radius_ratio;
+  
+  setCloudProperties(cloud_optical_depth);
+
+  std::vector<double> spectrum(spectral_grid->nbSpectralPoints(), 0.0);
+  
+  if (config->use_gpu)
+  {
+    opacity_calc.calculateGPU(cloud_models, std::vector<double> {});
+    
+    if (cloud_models.size() > 0)
+    { 
+      if (cloud_extinction_gpu == nullptr)
+        allocateOnDevice(
+          cloud_extinction_gpu, 
+          nb_grid_points*spectral_grid->nbSpectralPoints());
+
+      initializeOnDevice(
+        cloud_extinction_gpu, 
+        nb_grid_points*spectral_grid->nbSpectralPoints());
+
+      cloud_models[0]->convertOpticalDepthGPU(
+        opacity_calc.cloud_optical_depths_dev,
+        atmosphere.altitude_dev,
+        nb_grid_points,
+        spectral_grid->nbSpectralPoints(),
+        cloud_extinction_gpu);
+    }
+
+    double* model_spectrum_gpu = nullptr;
+
+    allocateOnDevice(model_spectrum_gpu, spectral_grid->nbSpectralPoints());
+
+    calcTransitDepthGPU(
+      model_spectrum_gpu, 
+      opacity_calc.absorption_coeff_gpu, 
+      opacity_calc.scattering_coeff_dev, 
+      cloud_extinction_gpu,
+      atmosphere,
+      spectral_grid->nbSpectralPoints(), 
+      bottom_radius,
+      star_radius);
+
+    moveToHost(model_spectrum_gpu, spectrum);
+
+    deleteFromDevice(model_spectrum_gpu);
+    deleteFromDevice(cloud_extinction_gpu);
   }
+  else
+  {
+    opacity_calc.calculate(cloud_models, std::vector<double> {});
+
+    cloud_extinction.assign(
+      spectral_grid->nbSpectralPoints(), 
+      std::vector<double>(nb_grid_points, 0.0));
+
+    if (cloud_models.size() > 0)
+    {
+      cloud_models[0]->convertOpticalDepth(
+        opacity_calc.cloud_optical_depths, 
+        cloud_extinction, 
+        atmosphere.altitude);
+    }
+
+    calcTransmissionSpectrum(bottom_radius, star_radius, spectrum);
+  }
+
+  if (cloud_models.size() > 0)
+  {
+    delete cloud_models[0];
+    cloud_models.clear();
+  }
+
+  return spectrum;
 }
+
 
 
 TransmissionModel::~TransmissionModel()
-{
+{ 
   delete temperature_profile;
 
   for (auto & i : cloud_models)
     delete i;
   
   for (auto & i : chemistry)
+    delete i;
+
+  for (auto & i : modules)
     delete i;
 
   if (cloud_extinction_gpu != nullptr)

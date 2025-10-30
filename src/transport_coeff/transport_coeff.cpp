@@ -31,6 +31,7 @@
 #include "../spectral_grid/spectral_grid.h"
 #include "../chemistry/chem_species.h"
 #include "../config/global_config.h"
+#include "../additional/exceptions.h"
 
 
 namespace bear{
@@ -72,10 +73,23 @@ TransportCoefficients::TransportCoefficients(
                << std::setw(40) << std::left << i->species_folder << "\t" 
                << std::setw(10) << std::left << data_available << "\n\n";
   }
-    
-    
-  if (!all_species_added) 
-    std::cout << "Warning, not all opacities species from the model config file could be added!\n\n";
+  
+  
+  for (auto & i : gas_species)
+  {
+    if (i->dataAvailable() == false)
+    {
+      std::string error_message = "Unable to locate all opacity data.\n";
+      throw InvalidInput(std::string ("TransportCoefficients::TransportCoefficients"), error_message);
+    }
+  }
+
+  if (!all_species_added)
+  {
+    std::string error_message = "Not all opacities species from the model config file could be added!\nThis could be caused by a species unknown to BeAR.\n";
+    throw InvalidInput(std::string ("TransportCoefficients::TransportCoefficients"), error_message);
+  }
+
 }
 
 

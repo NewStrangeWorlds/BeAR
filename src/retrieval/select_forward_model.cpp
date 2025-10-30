@@ -35,51 +35,93 @@ namespace bear{
 
 //Selects and initialises the forward model based on the option found in retrieval.config
 //Exits with an error if the selected forward model is unkown
-ForwardModel* Retrieval::selectForwardModel(const std::string model_description)
+ForwardModel* Retrieval::selectForwardModel(
+  const std::string model_description,
+  GenericConfig* model_config)
 {
   if (model_description == "emission" || model_description == "Emission" || model_description == "em")
   {
-    EmissionModel* model = new EmissionModel(
-      EmissionModelConfig (config->retrieval_folder_path),
-      &priors,
-      config,
-      &spectral_grid,
-      observations);
+    if (model_config == nullptr)
+    {
+      EmissionModel* model = new EmissionModel(
+        EmissionModelConfig (config->retrieval_folder_path),
+        config,
+        &spectral_grid,
+        observations);
 
-    return model;
+      return model;
+    }
+    else
+    {
+      EmissionModelConfig* c = dynamic_cast<EmissionModelConfig*>(model_config);
+
+      EmissionModel* model = new EmissionModel(
+        *c,
+        config,
+        &spectral_grid,
+        observations);
+
+      return model;
+    }
   }
 
 
   if (model_description == "secondary_eclipse" || model_description == "Secondary_eclipse" || model_description == "se")
   {
-    SecondaryEclipseModel* model = new SecondaryEclipseModel(
-      SecondaryEclipseConfig (config->retrieval_folder_path),
-      &priors,
-      config,
-      &spectral_grid,
-      observations);
+    if (model_config == nullptr)
+    {
+      OccultationModel* model = new OccultationModel(
+        OccultationConfig (config->retrieval_folder_path),
+        config,
+        &spectral_grid,
+        observations);
 
-    return model;
+      return model;
+    }
+    {
+      OccultationConfig* c = dynamic_cast<OccultationConfig*>(model_config);
+
+      OccultationModel* model = new OccultationModel(
+        *c,
+        config,
+        &spectral_grid,
+        observations);
+
+      return model;
+    }
   }
 
 
   if (model_description == "transmission" || model_description == "Transmission" || model_description == "trans")
   {
-    TransmissionModel* model = new TransmissionModel(
-      TransmissionModelConfig (config->retrieval_folder_path),
-      &priors,
-      config,
-      &spectral_grid,
-      observations);
+    if (model_config == nullptr)
+    {
+      TransmissionModel* model = new TransmissionModel(
+        TransmissionModelConfig (config->retrieval_folder_path),
+        config,
+        &spectral_grid,
+        observations);
 
-    return model;
+      return model;
+    }
+    else
+    {
+      TransmissionModelConfig* c = dynamic_cast<TransmissionModelConfig*>(model_config);
+
+      TransmissionModel* model = new TransmissionModel(
+        *c,
+        config,
+        &spectral_grid,
+        observations);
+
+      return model;
+    }
   }
 
 
   if (model_description == "flat_line" || model_description == "Flat_line" || model_description == "fl")
   {
     FlatLine* model = new FlatLine(
-      &priors,
       config,
       &spectral_grid,
       observations);
@@ -87,17 +129,31 @@ ForwardModel* Retrieval::selectForwardModel(const std::string model_description)
     return model;
   }
 
-
+  
   if (model_description == "secondary_eclipse_bb" || model_description == "Secondary_eclipse_bb" || model_description == "se_bb")
   {
-    SecondaryEclipseBlackBodyModel* model = new SecondaryEclipseBlackBodyModel(
-      SecondaryEclipseBlackBodyConfig (config->retrieval_folder_path),
-      &priors,
-      config,
-      &spectral_grid,
-      observations);
+    if (model_config == nullptr)
+    {
+      OccultationBlackBodyModel* model = new OccultationBlackBodyModel(
+        OccultationBlackBodyConfig (config->retrieval_folder_path),
+        config,
+        &spectral_grid,
+        observations);
 
-    return model;
+      return model;
+    }
+    else
+    { 
+      OccultationBlackBodyConfig* c = dynamic_cast<OccultationBlackBodyConfig*>(model_config);
+      
+      OccultationBlackBodyModel* model = new OccultationBlackBodyModel(
+        *c,
+        config,
+        &spectral_grid,
+        observations);
+      
+      return model;
+    }
   }
 
 

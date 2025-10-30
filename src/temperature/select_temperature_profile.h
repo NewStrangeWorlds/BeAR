@@ -35,6 +35,7 @@
 #include "constant_temperature.h"
 #include "cubic_b_spline_temperature.h"
 #include "guillot_temperature.h"
+#include "adiabate_cubic_spline.h"
 
 
 namespace bear {
@@ -42,8 +43,8 @@ namespace bear {
 //definition of the different chemistry modules with an
 //identifier, a keyword to be located in the config file and a short version of the keyword
 namespace temp_profile_modules{
-  enum id {poly, milne, constant, cubicbspline, guillot}; 
-  const std::vector<std::string> description {"poly", "milne", "const", "cubicbspline", "guillot"};
+  enum id {poly, milne, constant, cubicbspline, guillot, adspline}; 
+  const std::vector<std::string> description {"poly", "milne", "const", "cubicbspline", "guillot", "adiabate_spline"};
 }
 
 
@@ -51,7 +52,7 @@ namespace temp_profile_modules{
 inline Temperature* selectTemperatureProfile(
   const std::string profile_type,
   const std::vector<std::string>& parameters, 
-  const double atmos_boundaries [2])
+  const std::vector<double>& atmos_boundaries)
 {
   //find the corresponding radiative transfer module to the supplied type string
   auto it = std::find(
@@ -127,6 +128,21 @@ inline Temperature* selectTemperatureProfile(
         }
         {
           GuillotTemperature* temp = new GuillotTemperature(parameters[0]);
+          temperature_profile = temp;
+        }
+      }
+      break;
+
+    case temp_profile_modules::adspline :
+      {
+        if (parameters.size() != 1)
+        {
+          std::string error_message = 
+            "Adiabate Cubic B spline temperature profile requires exactly one parameter!\n";
+          throw InvalidInput(std::string ("forward_model.config"), error_message);
+        }
+        {
+          AdiabateSplineTemperature* temp = new AdiabateSplineTemperature(std::stoi(parameters[0]));
           temperature_profile = temp;
         }
       }
