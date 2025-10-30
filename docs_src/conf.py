@@ -7,9 +7,9 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'BeAR'
-copyright = '2020 - 2024, Daniel Kitzmann'
+copyright = '2020 - 2025, Daniel Kitzmann'
 author = 'Daniel Kitzmann'
-release = '1.0'
+release = '2.0'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -33,11 +33,13 @@ html_static_path = ['static']
 # documentation.
 #
 html_theme_options = {
-	'logo': 'bear.png',
+	'logo': 'bear_small.png',
 	'description': 'BeAR - The Bern Atmospheric Retrieval code',
 	'github_button': 'true',
 	'github_user': 'newstrangeworlds',
     'github_repo': 'bear',
 	'github_type': 'watch',
-	'page_width' : '1001px',
+	'page_width' : '1401px',
+  'sidebar_width': '300px',
+  'fixed_sidebar' : 'true',
 	}

@@ -11,7 +11,7 @@ If you find any new errors or inaccuracies, please send them
 to daniel.kitzmann@unibe.ch .
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
    sections/overview
    sections/licence
@@ -21,9 +21,11 @@ to daniel.kitzmann@unibe.ch .
    sections/forward_models
    sections/priors
    sections/retrieval_setup
+   sections/pybear
    sections/temperature_profiles
    sections/chemistry_models
    sections/cloud_models
    sections/stellar_spectra
    sections/profile_parametrisations
+   sections/pybear_details
 
