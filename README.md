@@ -10,7 +10,11 @@ BeAR uses a Bayesian statistics approach by employing a nested sampling method t
 Successful applications include retrieval of brown dwarf emission spectra (Kitzmann et al. 2020) and secondary eclipse measurements of exoplanets (Bourrier et al. 2020).
 
 
-# User guide #
+# User Guide #
 
 BeAR comes with a user guide that can be found here: https://newstrangeworlds.github.io/BeAR/ . It describes the installation and usage of BeAR, including a details on the different forward models and additional modules it contains. The documentation is currently under heavy revision and might not yet be fully complete.
 
+
+# Python Interface #
+
+Since its newest version, BeAR now includes a Python interface called pyBeAR that allows retrieval calculations to be done from within Python. Examples for the different forward models are provided in the python folder. In addition to performing retrievals, the Python interface can also call the forward models directly. That way, for example, transmission or emission spectra can be calculated for user-defined temperature profiles or chemical compositions. A detailed description of pyBeAR is provided in the user guide.
