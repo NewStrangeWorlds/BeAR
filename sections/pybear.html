@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>The pyBeAR package &#8212; BeAR 2.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=6625fa76" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=89da6986" />
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=a7e3f902"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Temperature profiles" href="temperature_profiles.html" />
+    <link rel="prev" title="Setting up and starting a retrieval" href="retrieval_setup.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../index.html">
+    <img class="logo" src="../_static/bear_small.png" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+<p class="blurb">BeAR - The Bern Atmospheric Retrieval code</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=newstrangeworlds&repo=bear&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="licence.html">Licence</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="opacity_data.html">Opacity data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="observations.html">Observations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="forward_models.html">Forward Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="priors.html">Prior distributions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="retrieval_setup.html">Setting up and starting a retrieval</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">The pyBeAR package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#starting-a-simple-pybear-retrieval">Starting a simple pyBeAR retrieval</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#advanced-pybear-retrieval-calculations">Advanced pyBeAR retrieval calculations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#calling-forward-models-directly">Calling forward models directly</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#transmission-spectrum-forward-model">Transmission Spectrum Forward Model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#secondary-eclipse-spectrum-forward-model">Secondary Eclipse Spectrum Forward Model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#emission-spectrum-forward-model">Emission Spectrum Forward Model</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="temperature_profiles.html">Temperature profiles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="chemistry_models.html">Chemistry Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cloud_models.html">Cloud Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="stellar_spectra.html">Stellar spectra</a></li>
+<li class="toctree-l1"><a class="reference internal" href="profile_parametrisations.html">Parametrisations of vertical profiles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pybear_details.html">Detailed Description of pyBeAR</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="retrieval_setup.html" title="previous chapter">Setting up and starting a retrieval</a></li>
+      <li>Next: <a href="temperature_profiles.html" title="next chapter">Temperature profiles</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="the-pybear-package">
+<span id="sec-pybear"></span><h1>The pyBeAR package<a class="headerlink" href="#the-pybear-package" title="Permalink to this heading">¶</a></h1>
+<p>The Python interface to BeAR is called <code class="docutils literal notranslate"><span class="pre">pyBeAR</span></code>. It allows the user to perform retrieval calculations
+from within Python or call forward models directly to calculate synthetic spectra for a given temperature
+structure and chemical composition. The interface is built on top of the <code class="docutils literal notranslate"><span class="pre">PyBind11</span></code>. The installation of
+the pyBeAR package is described in the <a class="reference internal" href="installation.html#sec-install-config"><span class="std std-ref">installation section</span></a>. The compiled Python
+package of pyBeAR is located in the <code class="docutils literal notranslate"><span class="pre">python/lib</span></code> directory of the BeAR root folder.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">python</span></code> directories also contains subdirectories with the examples that show how to use pyBeAR with
+the different forward models available in BeAR. The provided Python examples are designed to be run from the
+root directory of BeAR, rather than from their own directory. Thus, one of transmission spectroscopy examples
+is run via:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>python/transmission/pyBear_retrieval_0.py
+</pre></div>
+</div>
+<p>pyBeAR is able to use the standard configuration files of BeAR
+to set up the retrieval calculations. In addition, the entire configuration of the forward models and the
+retrieval setup can be done directly in Python.</p>
+<p>While the retrievals under Python can use the internal MultiNest sampler and the likelihood calculations of
+BeAR, the user can also write their own corresponding functions to do this and use alternative samplers that
+are written in Python.</p>
+<p>Below, a simple example of how to start a retrieval calculation with pyBeAR is given. A detailed
+description of the different classes and functions of pyBeAR is provided <a class="reference internal" href="pybear_details.html#sec-pybear-details"><span class="std std-ref">here</span></a>. The provided Python examples
+can be used as a reference for the usage of the different classes and functions.</p>
+<section id="starting-a-simple-pybear-retrieval">
+<h2>Starting a simple pyBeAR retrieval<a class="headerlink" href="#starting-a-simple-pybear-retrieval" title="Permalink to this heading">¶</a></h2>
+<div class="line-block">
+<div class="line">In the most simple case, a retrieval calculation can be started by loading the configuration files of BeAR directly.
+Examples of this can be found in the provided Python scripts name <code class="docutils literal notranslate"><span class="pre">pyBear_retrieval_0.py</span></code> that are available for all forward models.</div>
+</div>
+<p>First, the pyBeAR package has to be imported:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">lib</span><span class="w"> </span><span class="kn">import</span> <span class="n">pybear</span>
+</pre></div>
+</div>
+<p>The following command will then load the retrieval.config file from the folder <code class="docutils literal notranslate"><span class="pre">retrieval_folder</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model_config</span> <span class="o">=</span> <span class="n">pybear</span><span class="o">.</span><span class="n">Config</span><span class="p">(</span><span class="n">retrieval_folder</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The structure of this file is described in the <a class="reference internal" href="retrieval_setup.html#sec-config-files"><span class="std std-ref">configuration section</span></a>.</p>
+<p>With the retrieval configuration loaded, the retrieval object of pyBeAR can now be created:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">pybear</span><span class="o">.</span><span class="n">Retrieval</span><span class="p">(</span><span class="n">model_config</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>During the setup, the object class will read in the other configuration files for the chosen
+forward model, the observational data, and the prior information. If successful, the retrieval object
+is ready to be used for the retrieval calculations. The retrieval can be started by calling the
+<code class="docutils literal notranslate"><span class="pre">run()</span></code> method of the retrieval object:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>This will use the internal functions of BeAR and the MultiNest library to perform the retrieval calculations.
+The MultiNest output files will be put into the folder <code class="docutils literal notranslate"><span class="pre">retrieval_folder</span></code>.</p>
+<p>After a retrieval calculation is finished, the posterior samples can be used to perform the post process, including
+the calculation of spectra or effective temperatures. In pyBear, this can be done with the PostProcess object class.
+In the most simplest case, the object is created with the already existing model configuration:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">post_process</span> <span class="o">=</span> <span class="n">pybear</span><span class="o">.</span><span class="n">PostProcess</span><span class="p">(</span><span class="n">model_config</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>During its setup, the PostProcess object will read in the postprocess configuration file in the <code class="docutils literal notranslate"><span class="pre">retrieval_folder</span></code>.
+The structure of this file depends on the chosen forward model is discussed in the <a class="reference internal" href="forward_models.html#sec-forward-models"><span class="std std-ref">section</span></a>
+on forward models. Once the object has been created, the post process can be started by calling the <code class="docutils literal notranslate"><span class="pre">run()</span></code> method:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">post_process</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+<section id="advanced-pybear-retrieval-calculations">
+<h2>Advanced pyBeAR retrieval calculations<a class="headerlink" href="#advanced-pybear-retrieval-calculations" title="Permalink to this heading">¶</a></h2>
+<p>Additional examples of how to set up more advanced retrieval calculations with pyBeAR are provided in the Python scripts
+named <code class="docutils literal notranslate"><span class="pre">pyBear_retrieval_1.py</span></code>, <code class="docutils literal notranslate"><span class="pre">pyBear_retrieval_2.py</span></code>, and <code class="docutils literal notranslate"><span class="pre">pyBear_retrieval_3.py</span></code> in the respective forward model directories. These examples
+show how to set up the forward models, the observational data, and the prior information directly in Python without
+the need to use configuration files. This allows the user to have more flexibility in setting up the retrieval calculations.
+The provided examples also show how to write custom likelihood functions and use alternative samplers that are written in Python.</p>
+</section>
+<section id="calling-forward-models-directly">
+<h2>Calling forward models directly<a class="headerlink" href="#calling-forward-models-directly" title="Permalink to this heading">¶</a></h2>
+<p>Besides running retrievals, pyBeAR can also be used to call the forward models directly from Python. This allows the user to calculate synthetic spectra
+for a given set of temperature profiles and chemical compositions without the need to set up a full retrieval. Most forward models have their own example scripts located
+in the respective forward model directories.</p>
+<section id="transmission-spectrum-forward-model">
+<h3>Transmission Spectrum Forward Model<a class="headerlink" href="#transmission-spectrum-forward-model" title="Permalink to this heading">¶</a></h3>
+<p>This forward model calculates transmission spectra. An exampe of how to use this forward model
+is provided in the script <code class="docutils literal notranslate"><span class="pre">python/transmission/pyBear_transmission_spectrum.py</span></code>. The source code for the Phyton interface of this forward model is located in
+<code class="docutils literal notranslate"><span class="pre">python/transmission/src</span></code> folder.</p>
+</section>
+<section id="secondary-eclipse-spectrum-forward-model">
+<h3>Secondary Eclipse Spectrum Forward Model<a class="headerlink" href="#secondary-eclipse-spectrum-forward-model" title="Permalink to this heading">¶</a></h3>
+<p>This forward model calculates secondary eclipse spectra. An exampe of how to use this forward model
+is provided in the script <code class="docutils literal notranslate"><span class="pre">python/secondary_eclipse/pyBear_secondary_eclipse_spectrum.py</span></code>. The source code for the Phyton interface of this forward model is located in
+<code class="docutils literal notranslate"><span class="pre">python/secondary_eclipse/src</span></code> folder.</p>
+</section>
+<section id="emission-spectrum-forward-model">
+<h3>Emission Spectrum Forward Model<a class="headerlink" href="#emission-spectrum-forward-model" title="Permalink to this heading">¶</a></h3>
+<p>This forward model calculates emission spectra. An exampe of how to use this forward model
+is provided in the script <code class="docutils literal notranslate"><span class="pre">python/emission/pyBear_emission_spectrum.py</span></code>. The source code for the Phyton interface of this forward model is located in
+<code class="docutils literal notranslate"><span class="pre">python/emission/src</span></code> folder.</p>
+</section>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    <div class="footer">
+      &copy;2020 - 2025, Daniel Kitzmann.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      
+      |
+      <a href="../_sources/sections/pybear.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

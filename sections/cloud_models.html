@@ -5,10 +5,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Cloud Models &#8212; BeAR 1.0 documentation</title>
-    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=4f649999" />
-    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=5bc47236" />
-    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=359c27e9"></script>
+    <title>Cloud Models &#8212; BeAR 2.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=6625fa76" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=89da6986" />
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=a7e3f902"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
     <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
@@ -23,9 +23,87 @@
   <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
 
   </head><body>
-  
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../index.html">
+    <img class="logo" src="../_static/bear_small.png" alt="Logo"/>
+    
+  </a>
+</p>
 
-    <div class="document">
+
+
+<p class="blurb">BeAR - The Bern Atmospheric Retrieval code</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=newstrangeworlds&repo=bear&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="licence.html">Licence</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="opacity_data.html">Opacity data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="observations.html">Observations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="forward_models.html">Forward Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="priors.html">Prior distributions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="retrieval_setup.html">Setting up and starting a retrieval</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pybear.html">The pyBeAR package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="temperature_profiles.html">Temperature profiles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="chemistry_models.html">Chemistry Models</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Cloud Models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#grey-cloud-model">Grey Cloud Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#kitzmann-heng-non-grey-cloud-model">Kitzmann &amp; Heng Non-Grey Cloud Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#power-law-cloud-model">Power-Law Cloud Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#mixing-different-cloud-models">Mixing different cloud models</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="stellar_spectra.html">Stellar spectra</a></li>
+<li class="toctree-l1"><a class="reference internal" href="profile_parametrisations.html">Parametrisations of vertical profiles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pybear_details.html">Detailed Description of pyBeAR</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="chemistry_models.html" title="previous chapter">Chemistry Models</a></li>
+      <li>Next: <a href="stellar_spectra.html" title="next chapter">Stellar spectra</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
       <div class="documentwrapper">
         <div class="bodywrapper">
           
@@ -244,87 +322,10 @@ cloud models listed in <code class="docutils literal notranslate"><span class="p
           
         </div>
       </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper">
-<p class="logo">
-  <a href="../index.html">
-    <img class="logo" src="../_static/bear.png" alt="Logo"/>
-    
-  </a>
-</p>
-
-
-
-<p class="blurb">BeAR - The Bern Atmospheric Retrieval code</p>
-
-
-
-
-<p>
-<iframe src="https://ghbtns.com/github-btn.html?user=newstrangeworlds&repo=bear&type=watch&count=true&size=large&v=2"
-  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
-</p>
-
-
-
-
-
-<h3>Navigation</h3>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="licence.html">Licence</a></li>
-<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="opacity_data.html">Opacity data</a></li>
-<li class="toctree-l1"><a class="reference internal" href="observations.html">Observations</a></li>
-<li class="toctree-l1"><a class="reference internal" href="forward_models.html">Forward Models</a></li>
-<li class="toctree-l1"><a class="reference internal" href="priors.html">Prior distributions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="retrieval_setup.html">Setting up and starting a retrieval</a></li>
-<li class="toctree-l1"><a class="reference internal" href="temperature_profiles.html">Temperature profiles</a></li>
-<li class="toctree-l1"><a class="reference internal" href="chemistry_models.html">Chemistry Models</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Cloud Models</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#grey-cloud-model">Grey Cloud Model</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#kitzmann-heng-non-grey-cloud-model">Kitzmann &amp; Heng Non-Grey Cloud Model</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#power-law-cloud-model">Power-Law Cloud Model</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#mixing-different-cloud-models">Mixing different cloud models</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="stellar_spectra.html">Stellar spectra</a></li>
-<li class="toctree-l1"><a class="reference internal" href="profile_parametrisations.html">Parametrisations of vertical profiles</a></li>
-</ul>
-
-<div class="relations">
-<h3>Related Topics</h3>
-<ul>
-  <li><a href="../index.html">Documentation overview</a><ul>
-      <li>Previous: <a href="chemistry_models.html" title="previous chapter">Chemistry Models</a></li>
-      <li>Next: <a href="stellar_spectra.html" title="next chapter">Stellar spectra</a></li>
-  </ul></li>
-</ul>
-</div>
-<div id="searchbox" style="display: none" role="search">
-  <h3 id="searchlabel">Quick search</h3>
-    <div class="searchformwrapper">
-    <form class="search" action="../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
-      <input type="submit" value="Go" />
-    </form>
-    </div>
-</div>
-<script>document.getElementById('searchbox').style.display = "block"</script>
-
-
-
-
-
-
-
-
-        </div>
-      </div>
-      <div class="clearer"></div>
-    </div>
+    <div class="clearer"></div>
+  </div>
     <div class="footer">
-      &copy;2020 - 2024, Daniel Kitzmann.
+      &copy;2020 - 2025, Daniel Kitzmann.
       
       |
       Powered by <a href="http://sphinx-doc.org/">Sphinx 7.1.2</a>

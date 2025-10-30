@@ -5,10 +5,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>BeAR Documentation &#8212; BeAR 1.0 documentation</title>
-    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=4f649999" />
-    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=5bc47236" />
-    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=359c27e9"></script>
+    <title>BeAR Documentation &#8212; BeAR 2.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=6625fa76" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=89da6986" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=a7e3f902"></script>
     <script src="_static/doctools.js?v=888ff710"></script>
     <script src="_static/sphinx_highlight.js?v=4825356b"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -21,9 +21,80 @@
   <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
 
   </head><body>
-  
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="#">
+    <img class="logo" src="_static/bear_small.png" alt="Logo"/>
+    
+  </a>
+</p>
 
-    <div class="document">
+
+
+<p class="blurb">BeAR - The Bern Atmospheric Retrieval code</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=newstrangeworlds&repo=bear&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="sections/overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sections/licence.html">Licence</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sections/installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sections/opacity_data.html">Opacity data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sections/observations.html">Observations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sections/forward_models.html">Forward Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sections/priors.html">Prior distributions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sections/retrieval_setup.html">Setting up and starting a retrieval</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sections/pybear.html">The pyBeAR package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sections/temperature_profiles.html">Temperature profiles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sections/chemistry_models.html">Chemistry Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sections/cloud_models.html">Cloud Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sections/stellar_spectra.html">Stellar spectra</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sections/profile_parametrisations.html">Parametrisations of vertical profiles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sections/pybear_details.html">Detailed Description of pyBeAR</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="#">Documentation overview</a><ul>
+      <li>Next: <a href="sections/overview.html" title="next chapter">Overview</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
       <div class="documentwrapper">
         <div class="bodywrapper">
           
@@ -44,32 +115,69 @@ to <a class="reference external" href="mailto:daniel&#46;kitzmann&#37;&#52;&#48;
 <li class="toctree-l1"><a class="reference internal" href="sections/installation.html">Installation</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="sections/installation.html#obtaining-the-code">Obtaining the code</a></li>
 <li class="toctree-l2"><a class="reference internal" href="sections/installation.html#prerequisites">Prerequisites</a></li>
-<li class="toctree-l2"><a class="reference internal" href="sections/installation.html#configuration-and-compilation-with-cmake">Configuration and compilation with CMake</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sections/installation.html#configuration-and-compilation-of-bear-with-cmake">Configuration and compilation of BeAR with CMake</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sections/installation.html#configuration-and-compilation-of-pybear-with-cmake">Configuration and compilation of pyBeAR with CMake</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="sections/opacity_data.html">Opacity data</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="sections/opacity_data.html#global-wavenumber-grid">Global wavenumber grid</a></li>
-<li class="toctree-l2"><a class="reference internal" href="sections/opacity_data.html#opacity-data-for-a-specific-species">Opacity data for a specific species</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sections/opacity_data.html#opacity-data-for-a-specific-species">Opacity data for a specific species</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sections/opacity_data.html#special-cases">Special cases</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="sections/opacity_data.html#opacities-included-in-bear">Opacities included in BeAR</a></li>
 <li class="toctree-l2"><a class="reference internal" href="sections/opacity_data.html#choosing-opacity-sources-in-forward-models">Choosing opacity sources in forward models</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="sections/observations.html">Observations</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="sections/observations.html#supported-observational-types">Supported observational types</a></li>
-<li class="toctree-l2"><a class="reference internal" href="sections/observations.html#spectroscopy">Spectroscopy</a></li>
-<li class="toctree-l2"><a class="reference internal" href="sections/observations.html#band-spectroscopy">Band Spectroscopy</a></li>
-<li class="toctree-l2"><a class="reference internal" href="sections/observations.html#photometry">Photometry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sections/observations.html#spectroscopy">Spectroscopy</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sections/observations.html#input-file-structure">Input file structure</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="sections/observations.html#band-spectroscopy">Band Spectroscopy</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sections/observations.html#id1">Input file structure</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="sections/observations.html#photometry">Photometry</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sections/observations.html#id2">Input file structure</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="sections/observations.html#instrument-line-profile">Instrument Line Profile</a></li>
-<li class="toctree-l2"><a class="reference internal" href="sections/observations.html#filter-transmission-function">Filter transmission function</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sections/observations.html#filter-transmission-function">Filter transmission function</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sections/observations.html#id3">Input file structure</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sections/observations.html#observational-data-file">Observational data file</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="sections/forward_models.html">Forward Models</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="sections/forward_models.html#model-postprocessing">Model postprocessing</a></li>
-<li class="toctree-l2"><a class="reference internal" href="sections/forward_models.html#flat-line">Flat line</a></li>
-<li class="toctree-l2"><a class="reference internal" href="sections/forward_models.html#transmission-spectrum">Transmission spectrum</a></li>
-<li class="toctree-l2"><a class="reference internal" href="sections/forward_models.html#secondary-eclipse-spectrum">Secondary eclipse spectrum</a></li>
-<li class="toctree-l2"><a class="reference internal" href="sections/forward_models.html#secondary-eclipse-spectrum-with-planetary-blackbody">Secondary eclipse spectrum with planetary blackbody</a></li>
-<li class="toctree-l2"><a class="reference internal" href="sections/forward_models.html#emission-spectrum">Emission spectrum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sections/forward_models.html#flat-line">Flat line</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sections/forward_models.html#model-config-file">Model config file</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sections/forward_models.html#id1">Model postprocessing</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="sections/forward_models.html#transmission-spectrum">Transmission spectrum</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sections/forward_models.html#id2">Model config file</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sections/forward_models.html#id3">Model postprocessing</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="sections/forward_models.html#secondary-eclipse-spectrum">Secondary eclipse spectrum</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sections/forward_models.html#id4">Model config file</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sections/forward_models.html#id5">Model postprocessing</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="sections/forward_models.html#secondary-eclipse-spectrum-with-planetary-blackbody">Secondary eclipse spectrum with planetary blackbody</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sections/forward_models.html#id6">Model config file</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sections/forward_models.html#id7">Model postprocessing</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="sections/forward_models.html#emission-spectrum">Emission spectrum</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sections/forward_models.html#id8">Model config file</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sections/forward_models.html#id9">Model postprocessing</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="sections/priors.html">Prior distributions</a><ul>
@@ -79,8 +187,26 @@ to <a class="reference external" href="mailto:daniel&#46;kitzmann&#37;&#52;&#48;
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="sections/retrieval_setup.html">Setting up and starting a retrieval</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="sections/retrieval_setup.html#configuration-files">Configuration files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sections/retrieval_setup.html#configuration-files">Configuration files</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sections/retrieval_setup.html#main-retrieval-file">Main retrieval file</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sections/retrieval_setup.html#forward-model-configuration-file">Forward model configuration file</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sections/retrieval_setup.html#prior-distributions-file">Prior distributions file</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sections/retrieval_setup.html#observational-data-file">Observational data file</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sections/retrieval_setup.html#postprocess-configuration-file">Postprocess configuration file</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="sections/retrieval_setup.html#output-files">Output files</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sections/pybear.html">The pyBeAR package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sections/pybear.html#starting-a-simple-pybear-retrieval">Starting a simple pyBeAR retrieval</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sections/pybear.html#advanced-pybear-retrieval-calculations">Advanced pyBeAR retrieval calculations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sections/pybear.html#calling-forward-models-directly">Calling forward models directly</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sections/pybear.html#transmission-spectrum-forward-model">Transmission Spectrum Forward Model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sections/pybear.html#secondary-eclipse-spectrum-forward-model">Secondary Eclipse Spectrum Forward Model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sections/pybear.html#emission-spectrum-forward-model">Emission Spectrum Forward Model</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="sections/temperature_profiles.html">Temperature profiles</a><ul>
@@ -121,6 +247,40 @@ to <a class="reference external" href="mailto:daniel&#46;kitzmann&#37;&#52;&#48;
 <li class="toctree-l2"><a class="reference internal" href="sections/profile_parametrisations.html#cubic-b-splines">Cubic b splines</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="sections/pybear_details.html">Detailed Description of pyBeAR</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sections/pybear_details.html#retrieval-and-postprocess-classes">Retrieval and PostProcess classes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sections/pybear_details.html#pybear-retrieval-class">pybear.Retrieval class</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sections/pybear_details.html#pybear-postprocess-class">pybear.PostProcess class</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="sections/pybear_details.html#pybear-config">pybear.Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sections/pybear_details.html#pybear-spectralgrid">pybear.SpectralGrid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sections/pybear_details.html#pybear-observation">pybear.Observation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sections/pybear_details.html#pybear-prior">pybear.Prior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sections/pybear_details.html#pybear-forwardmodeloutput">pybear.ForwardModelOutput</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sections/pybear_details.html#pybear-atmosphereoutput">pybear.AtmosphereOutput</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sections/pybear_details.html#transmission-spectrum">Transmission Spectrum</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sections/pybear_details.html#model-config">Model Config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sections/pybear_details.html#postprocess-config">PostProcess Config</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="sections/pybear_details.html#secondary-eclipse-spectrum">Secondary Eclipse Spectrum</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sections/pybear_details.html#id1">Model Config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sections/pybear_details.html#id2">PostProcess Config</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="sections/pybear_details.html#secondary-eclipse-spectrum-with-planetary-blackbody">Secondary Eclipse Spectrum with Planetary Blackbody</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sections/pybear_details.html#id3">Model Config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sections/pybear_details.html#id4">PostProcess Config</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="sections/pybear_details.html#emission-spectrum">Emission Spectrum</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="sections/pybear_details.html#id5">Model Config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="sections/pybear_details.html#id6">PostProcess Config</a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </div>
 </section>
@@ -130,80 +290,10 @@ to <a class="reference external" href="mailto:daniel&#46;kitzmann&#37;&#52;&#48;
           
         </div>
       </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper">
-<p class="logo">
-  <a href="#">
-    <img class="logo" src="_static/bear.png" alt="Logo"/>
-    
-  </a>
-</p>
-
-
-
-<p class="blurb">BeAR - The Bern Atmospheric Retrieval code</p>
-
-
-
-
-<p>
-<iframe src="https://ghbtns.com/github-btn.html?user=newstrangeworlds&repo=bear&type=watch&count=true&size=large&v=2"
-  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
-</p>
-
-
-
-
-
-<h3>Navigation</h3>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="sections/overview.html">Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sections/licence.html">Licence</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sections/installation.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sections/opacity_data.html">Opacity data</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sections/observations.html">Observations</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sections/forward_models.html">Forward Models</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sections/priors.html">Prior distributions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sections/retrieval_setup.html">Setting up and starting a retrieval</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sections/temperature_profiles.html">Temperature profiles</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sections/chemistry_models.html">Chemistry Models</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sections/cloud_models.html">Cloud Models</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sections/stellar_spectra.html">Stellar spectra</a></li>
-<li class="toctree-l1"><a class="reference internal" href="sections/profile_parametrisations.html">Parametrisations of vertical profiles</a></li>
-</ul>
-
-<div class="relations">
-<h3>Related Topics</h3>
-<ul>
-  <li><a href="#">Documentation overview</a><ul>
-      <li>Next: <a href="sections/overview.html" title="next chapter">Overview</a></li>
-  </ul></li>
-</ul>
-</div>
-<div id="searchbox" style="display: none" role="search">
-  <h3 id="searchlabel">Quick search</h3>
-    <div class="searchformwrapper">
-    <form class="search" action="search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
-      <input type="submit" value="Go" />
-    </form>
-    </div>
-</div>
-<script>document.getElementById('searchbox').style.display = "block"</script>
-
-
-
-
-
-
-
-
-        </div>
-      </div>
-      <div class="clearer"></div>
-    </div>
+    <div class="clearer"></div>
+  </div>
     <div class="footer">
-      &copy;2020 - 2024, Daniel Kitzmann.
+      &copy;2020 - 2025, Daniel Kitzmann.
       
       |
       Powered by <a href="http://sphinx-doc.org/">Sphinx 7.1.2</a>

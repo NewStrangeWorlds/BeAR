@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Detailed Description of pyBeAR &#8212; BeAR 2.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=6625fa76" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=89da6986" />
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=a7e3f902"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="Parametrisations of vertical profiles" href="profile_parametrisations.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../index.html">
+    <img class="logo" src="../_static/bear_small.png" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+<p class="blurb">BeAR - The Bern Atmospheric Retrieval code</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=newstrangeworlds&repo=bear&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="licence.html">Licence</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="opacity_data.html">Opacity data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="observations.html">Observations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="forward_models.html">Forward Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="priors.html">Prior distributions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="retrieval_setup.html">Setting up and starting a retrieval</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pybear.html">The pyBeAR package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="temperature_profiles.html">Temperature profiles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="chemistry_models.html">Chemistry Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cloud_models.html">Cloud Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="stellar_spectra.html">Stellar spectra</a></li>
+<li class="toctree-l1"><a class="reference internal" href="profile_parametrisations.html">Parametrisations of vertical profiles</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Detailed Description of pyBeAR</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#retrieval-and-postprocess-classes">Retrieval and PostProcess classes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pybear-retrieval-class">pybear.Retrieval class</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pybear-postprocess-class">pybear.PostProcess class</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#pybear-config">pybear.Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pybear-spectralgrid">pybear.SpectralGrid</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pybear-observation">pybear.Observation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pybear-prior">pybear.Prior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pybear-forwardmodeloutput">pybear.ForwardModelOutput</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pybear-atmosphereoutput">pybear.AtmosphereOutput</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#transmission-spectrum">Transmission Spectrum</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#model-config">Model Config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#postprocess-config">PostProcess Config</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#secondary-eclipse-spectrum">Secondary Eclipse Spectrum</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id1">Model Config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id2">PostProcess Config</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#secondary-eclipse-spectrum-with-planetary-blackbody">Secondary Eclipse Spectrum with Planetary Blackbody</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id3">Model Config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id4">PostProcess Config</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#emission-spectrum">Emission Spectrum</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id5">Model Config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id6">PostProcess Config</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="profile_parametrisations.html" title="previous chapter">Parametrisations of vertical profiles</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="detailed-description-of-pybear">
+<span id="sec-pybear-details"></span><h1>Detailed Description of pyBeAR<a class="headerlink" href="#detailed-description-of-pybear" title="Permalink to this heading">¶</a></h1>
+<section id="retrieval-and-postprocess-classes">
+<h2>Retrieval and PostProcess classes<a class="headerlink" href="#retrieval-and-postprocess-classes" title="Permalink to this heading">¶</a></h2>
+<p>These two classes are the main classes of the pyBeAR package. The Retrieval class is used to set up and perform
+the retrieval calculations, while the PostProcess class is used to perform post retrieval calculations based
+on the posterior samples obtained from a retrieval run.</p>
+<section id="pybear-retrieval-class">
+<h3>pybear.Retrieval class<a class="headerlink" href="#pybear-retrieval-class" title="Permalink to this heading">¶</a></h3>
+<p>This class describes the retrieval object that is used to perform the retrieval calculations. It is mainly responsible for converting
+the model parameters into physical values, computing the forward model spectra, and calculating the likelihoods. likelihood calculations can
+either done by the retrieval itself using the internal MultiNest sampler and likelihood functions of BeAR or by external functions written in Python.
+For the latter, this class can return the model spectra for a given set of parameters that can then be compared to the observational data in Python.</p>
+<p>The class has the following structure:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Retrieval</span>
+ <span class="fm">__init__</span><span class="p">(</span>
+   <span class="n">pyBear</span><span class="o">.</span><span class="n">Config</span> <span class="n">config</span><span class="p">)</span>
+ <span class="fm">__init__</span><span class="p">(</span>
+   <span class="n">pyBear</span><span class="o">.</span><span class="n">Config</span> <span class="n">config</span><span class="p">,</span>
+   <span class="n">pyBear</span><span class="o">.</span><span class="n">ModelConfig</span> <span class="n">model_config</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="n">pyBear</span><span class="o">.</span><span class="n">Observation</span><span class="p">]</span> <span class="n">observations</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="n">pyBear</span><span class="o">.</span><span class="n">Prior</span><span class="p">]</span> <span class="n">priors</span><span class="p">)</span>
+ <span class="n">pyBear</span><span class="o">.</span><span class="n">SpectralGrid</span> <span class="n">spectral_grid</span>
+ <span class="n">run</span><span class="p">()</span>
+ <span class="nb">int</span> <span class="n">nbParameters</span><span class="p">()</span>
+ <span class="n">pair</span><span class="p">(</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">])</span> <span class="n">convertCubeParameters</span><span class="p">(</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="n">cube_parameters</span><span class="p">)</span>
+ <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="n">convertToPhysicalParameters</span><span class="p">(</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="n">cube_parameters</span><span class="p">)</span>
+ <span class="nb">float</span> <span class="n">computeLikelihood</span><span class="p">(</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="n">physical_parameters</span><span class="p">)</span>
+ <span class="n">pyBear</span><span class="o">.</span><span class="n">ForwardModelOutput</span> <span class="n">computeModel</span><span class="p">(</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="n">physical_parameters</span><span class="p">,</span>
+   <span class="nb">bool</span> <span class="n">return_high_res_spectrum</span><span class="p">)</span>
+ <span class="n">pyBear</span><span class="o">.</span><span class="n">AtmosphereOutput</span> <span class="n">computeAtmosphereStructure</span><span class="p">(</span>
+     <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="n">physical_parameters</span><span class="p">,</span>
+     <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">species_symbols</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The class contains two different constructors. The first one takes a single argument that is the general configuration
+of BeAR:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">retrieval</span> <span class="o">=</span> <span class="n">pybear</span><span class="o">.</span><span class="n">Retrieval</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>In this case, the other configuration files for the chosen forward model, the observational data, and the prior information
+are read in during the setup of the object from the folder set in the <code class="docutils literal notranslate"><span class="pre">config.retrieval_folder_path</span></code> variable.</p>
+<p>The second constructor takes additional arguments for the model configuration, observations, and priors:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">retrieval</span> <span class="o">=</span> <span class="n">pybear</span><span class="o">.</span><span class="n">Retrieval</span><span class="p">(</span>
+ <span class="n">config</span><span class="p">,</span>
+ <span class="n">model_config</span><span class="p">,</span>
+ <span class="n">observations</span><span class="p">,</span>
+ <span class="n">priors</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>These config objects need to be created beforehand with the corresponding classes of pyBeAR as described in the following sections.</p>
+<p>The Retrieval class has the following attributes:</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">spectral_grid</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">pyBear.SpectralGrid</span></code> object that contains the spectral grid information for the retrieval.</p>
+</dd>
+</dl>
+<p>The Retrieval class has the following methods:</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">run()</span></code></dt><dd><p>This method starts the retrieval calculation using the internal MultiNest sampler and likelihood functions of BeAR.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">nbParameters()</span></code></dt><dd><p>This method returns an <code class="docutils literal notranslate"><span class="pre">int</span></code> that contains the number of free parameters of the retrieval.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">convertCubeParameters(cube_parameters)</span></code></dt><dd><p>This method takes a <code class="docutils literal notranslate"><span class="pre">list[float]</span></code> of hypercube parameters as input and returns a <code class="docutils literal notranslate"><span class="pre">pair(list[float],</span> <span class="pre">list[float])</span></code>
+that contains the values of the hypercube parameters into their prior distributions and their physical values.
+For the latter, the units of the priors are taken into account.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">convertToPhysicalParameters(cube_parameters)</span></code></dt><dd><p>This method takes a <code class="docutils literal notranslate"><span class="pre">list[float]</span></code> of prior parameters as input and returns a <code class="docutils literal notranslate"><span class="pre">list[float]</span></code> that contains
+the corresponding physical parameters.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">computeLikelihood(physical_parameters)</span></code></dt><dd><p>This method takes a <code class="docutils literal notranslate"><span class="pre">list[float]</span></code> of physical parameters as input, internally calculates a forward model for these parameters,
+compares it to the observational data and returns a <code class="docutils literal notranslate"><span class="pre">float</span></code> that contains the corresponding likelihood value for this parameter set.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">computeModel(physical_parameters,</span> <span class="pre">return_high_res_spectrum)</span></code></dt><dd><p>This method takes a <code class="docutils literal notranslate"><span class="pre">list[float]</span></code> of physical parameters as input and returns an object of type <code class="docutils literal notranslate"><span class="pre">pyBear.ForwardModelOutput</span></code> that contains
+the corresponding model spectra. If the argument <code class="docutils literal notranslate"><span class="pre">return_high_res_spectrum</span></code> is set to <code class="docutils literal notranslate"><span class="pre">True</span></code>, the high-resolution spectrum
+will also be returned in the output object.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">computeAtmosphereStructure(physical_parameters,</span> <span class="pre">species_symbols)</span></code></dt><dd><p>This method takes a <code class="docutils literal notranslate"><span class="pre">list[float]</span></code> of physical parameters as input and returns a <code class="docutils literal notranslate"><span class="pre">pyBear.AtmosphereOutput</span></code> object that contains
+the corresponding atmosphere structure for these parameters. The argument <code class="docutils literal notranslate"><span class="pre">species_symbols</span></code> is a <code class="docutils literal notranslate"><span class="pre">list[str]</span></code> that contains the chemical
+symbols of the species that should be included in the atmosphere structure output.</p>
+</dd>
+</dl>
+</section>
+<section id="pybear-postprocess-class">
+<h3>pybear.PostProcess class<a class="headerlink" href="#pybear-postprocess-class" title="Permalink to this heading">¶</a></h3>
+<p>The postprocess class is used to perform post retrieval calculations based on the posterior samples obtained from a retrieval run.
+This includes the calculation of model spectra for the posterior samples, effective temperatures, and other derived parameters.
+This class will either read in the posterior sample or take them as an argument. The class is a child class of the <code class="docutils literal notranslate"><span class="pre">pyBear.Retrieval</span></code>
+class and thus inherits most of its attributes and methods.</p>
+<p>The class has the following structure, where only the additional constructors and methods are listed:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">PostProcess</span><span class="p">(</span><span class="n">pyBear</span><span class="o">.</span><span class="n">Retrieval</span><span class="p">):</span>
+  <span class="fm">__init__</span><span class="p">(</span>
+    <span class="n">pyBear</span><span class="o">.</span><span class="n">Config</span> <span class="n">config</span><span class="p">)</span>
+  <span class="fm">__init__</span><span class="p">(</span>
+    <span class="n">pyBear</span><span class="o">.</span><span class="n">Config</span> <span class="n">config</span><span class="p">,</span>
+    <span class="n">pyBear</span><span class="o">.</span><span class="n">ModelConfig</span> <span class="n">model_config</span><span class="p">,</span>
+    <span class="n">pyBear</span><span class="o">.</span><span class="n">PostProcessConfig</span> <span class="n">post_process_config</span><span class="p">,</span>
+    <span class="nb">list</span><span class="p">[</span><span class="n">pyBear</span><span class="o">.</span><span class="n">ObservationInput</span><span class="p">]</span> <span class="n">observations</span><span class="p">,</span>
+    <span class="nb">list</span><span class="p">[</span><span class="n">pyBear</span><span class="o">.</span><span class="n">Prior</span><span class="p">]</span> <span class="n">priors</span><span class="p">)</span>
+  <span class="n">run</span><span class="p">()</span>
+  <span class="n">run</span><span class="p">(</span><span class="nb">str</span> <span class="n">posterior_file_path</span><span class="p">)</span>
+  <span class="n">run</span><span class="p">(</span>
+    <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]]</span> <span class="o">&amp;</span><span class="n">posteriors</span><span class="p">,</span>
+    <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">&amp;</span><span class="n">log_likelihoods</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The constructors are similar to those of the <code class="docutils literal notranslate"><span class="pre">pyBear.Retrieval</span></code> class except that the second one takes an
+additional argument for the postprocess configuration.</p>
+<p>The PostProcess class has the following additional methods:</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">run()</span></code></dt><dd><p>This method starts the post process calculations using the standard MultiNest output files located in the folder
+set in the <code class="docutils literal notranslate"><span class="pre">config.retrieval_folder_path</span></code> variable.
+The output will be saved in the folder set by the <code class="docutils literal notranslate"><span class="pre">config.post_output_path</span></code> variable.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">run(output_folder)</span></code></dt><dd><p>This method takes a <code class="docutils literal notranslate"><span class="pre">str</span></code> argument that is the path to the output posterior sample file.
+The output will be saved in the folder set by the <code class="docutils literal notranslate"><span class="pre">config.post_output_path</span></code> variable.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">run(posteriors,</span> <span class="pre">log_likelihoods)</span></code></dt><dd><p>This method takes a <code class="docutils literal notranslate"><span class="pre">list[list[float]]</span></code> of posterior samples and a <code class="docutils literal notranslate"><span class="pre">list[float]</span></code> of corresponding log-likelihoods
+as arguments and starts the post process calculations based on these samples.
+The output will be saved in the folder set by the <code class="docutils literal notranslate"><span class="pre">config.post_output_path</span></code> variable.</p>
+</dd>
+</dl>
+</section>
+</section>
+<section id="pybear-config">
+<h2>pybear.Config<a class="headerlink" href="#pybear-config" title="Permalink to this heading">¶</a></h2>
+<p>This class describes the general model configuration of BeAR and is equivalent to the information located in a
+<code class="docutils literal notranslate"><span class="pre">retrieval.config</span></code> file. The class is used to load the configuration files of BeAR and to set up the retrieval object.</p>
+<p>It has the following attributes and methods:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Config</span><span class="p">:</span>
+    <span class="fm">__init__</span><span class="p">()</span>
+    <span class="fm">__init__</span><span class="p">(</span><span class="nb">str</span> <span class="n">file_path</span><span class="p">)</span>
+    <span class="fm">__init__</span><span class="p">(</span>
+       <span class="nb">bool</span> <span class="n">use_gpu</span><span class="p">,</span>
+       <span class="nb">str</span> <span class="n">forward_model_type</span><span class="p">,</span>
+       <span class="nb">str</span> <span class="n">opacity_path</span><span class="p">,</span>
+       <span class="nb">str</span> <span class="n">spectral_discretisation</span><span class="p">,</span>
+       <span class="nb">float</span> <span class="n">resolution</span><span class="p">,</span>
+       <span class="nb">str</span> <span class="n">multinest_output_folder</span><span class="p">,</span>
+       <span class="nb">str</span> <span class="n">post_process_output_folder</span><span class="p">)</span>
+   <span class="n">forward_model_type</span> <span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+   <span class="n">retrieval_folder_path</span> <span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+   <span class="n">multinest_output_path</span> <span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+   <span class="n">post_output_path</span> <span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+   <span class="n">wavenumber_file_path</span> <span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+   <span class="n">cross_section_file_path</span> <span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+   <span class="n">spectral_disecretisation</span> <span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+   <span class="n">spectral_resolution</span> <span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">0</span>
+   <span class="n">multinest_print_iter_values</span> <span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+   <span class="n">multinest_efficiency</span> <span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.8</span>
+   <span class="n">multinest_nb_living_points</span> <span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">800</span>
+   <span class="n">multinest_nb_iterations</span> <span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+   <span class="n">multinest_feedback</span> <span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+   <span class="n">use_error_inflation</span> <span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+   <span class="n">use_gpu</span> <span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+   <span class="n">nb_omp_processes</span> <span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+</pre></div>
+</div>
+<p>The class contains three different constructors. The first one is the default constructor that does not take any arguments.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model_config</span> <span class="o">=</span> <span class="n">pybear</span><span class="o">.</span><span class="n">Config</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>In this case the object will be created will all values set to their default values. The second constructor takes a string
+argument that is the path to the retrieval folder. This is the folder where the configuration file <code class="docutils literal notranslate"><span class="pre">retrieval.config</span></code> is
+located.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model_config</span> <span class="o">=</span> <span class="n">pybear</span><span class="o">.</span><span class="n">Config</span><span class="p">(</span><span class="n">folder</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The function will load the configuration file and set the attributes of the object accordingly. The third constructor is the
+most flexible one and allows the user to set the most important attributes of the object directly. The arguments are:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model_config</span> <span class="o">=</span> <span class="n">pybear</span><span class="o">.</span><span class="n">Config</span><span class="p">(</span>
+ <span class="nb">bool</span> <span class="n">use_gpu</span><span class="p">,</span>
+ <span class="nb">str</span> <span class="n">forward_model_type</span><span class="p">,</span>
+ <span class="nb">str</span> <span class="n">cross_section_file_path</span><span class="p">,</span>
+ <span class="nb">str</span> <span class="n">spectral_discretisation</span><span class="p">,</span>
+ <span class="nb">float</span> <span class="n">spectral_resolution</span><span class="p">,</span>
+ <span class="nb">str</span> <span class="n">multinest_output_folder</span><span class="p">,</span>
+ <span class="nb">str</span> <span class="n">post_process_output_folder</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>All other attributes are set to their default values. The attributes of the object can be accessed and changed directly after
+the object has been created. For example, the forward model type can be changed via:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model_config</span><span class="o">.</span><span class="n">forward_model_type</span> <span class="o">=</span> <span class="s2">&quot;emission&quot;</span>
+</pre></div>
+</div>
+<p>or the error inflation can be enabled via:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model_config</span><span class="o">.</span><span class="n">use_error_inflation</span> <span class="o">=</span> <span class="kc">True</span>
+</pre></div>
+</div>
+<p>The Config class has the following attributes:</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">forward_model_type</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">str</span></code> that contains the choice of the forward model. The available model types can be found <a class="reference internal" href="forward_models.html#sec-forward-models"><span class="std std-ref">here</span></a></p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">retrieval_folder_path</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">str</span></code> that contains the path to the folder where the configuration files are located.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">multinest_output_path</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">str</span></code> that contains the path to the folder where the MultiNest output files will be stored.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">post_output_path</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">str</span></code> that contains the path to the folder where the post process output files will be stored.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">wavenumber_file_path</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">str</span></code> that contains the path to the file that contains the wavenumber grid. If the standard HELIOS-k opacities
+with a constant wavenumber step of 0.01 cm^-1 are used, this file is not needed.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">cross_section_file_path</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">str</span></code> that contains the path to the file that contains the opacity data.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">spectral_discretisation</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">str</span></code> that contains the choice of the spectral discretisation. The available options can be found <a class="reference internal" href="retrieval_setup.html#sec-config-files"><span class="std std-ref">here</span></a></p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">spectral_resolution</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">float</span></code> that contains the spectral resolution or constant wavelength/wavenumber step of the data.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">multinest_print_iter_values</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">bool</span></code> that determines if the model parameters and iteration values of MultiNest are printed to the terminal.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">multinest_efficiency</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">float</span></code> that contains the efficiency of the MultiNest sampler.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">multinest_nb_living_points</span></code></dt><dd><p>An <code class="docutils literal notranslate"><span class="pre">int</span></code> that contains the number of living points of the MultiNest sampler.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">multinest_nb_iterations</span></code></dt><dd><p>An <code class="docutils literal notranslate"><span class="pre">int</span></code> that contains the number of iterations of the MultiNest sampler. A value of 0 implies that no fixed number of iterations is
+set and MultiNest will iterate until it converges.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">multinest_feedback</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">bool</span></code> that determines if the feedback of the MultiNest sampler is enabled. This includes printing regular
+updates of the iteration to the terminal.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">use_error_inflation</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">bool</span></code> that determines if the error inflation is enabled.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">use_gpu</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">bool</span></code> that determines if the GPU is used for the calculations.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">nb_omp_processes</span></code></dt><dd><p>An <code class="docutils literal notranslate"><span class="pre">int</span></code> that contains the number of OpenMP processes that are used for the calculations.
+A number of 0 implies that the maximum available number of processes will be used.</p>
+</dd>
+</dl>
+</section>
+<section id="pybear-spectralgrid">
+<h2>pybear.SpectralGrid<a class="headerlink" href="#pybear-spectralgrid" title="Permalink to this heading">¶</a></h2>
+<p>This class describes the spectral grid that is used for the retrieval calculations. The class has the following structure:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">SpectralGrid</span>
+ <span class="fm">__init__</span><span class="p">(</span>
+   <span class="n">pyBear</span><span class="o">.</span><span class="n">GlobalConfig</span> <span class="n">config</span><span class="p">,</span>
+   <span class="nb">float</span> <span class="n">min_wavenumber</span><span class="p">,</span>
+   <span class="nb">float</span> <span class="n">max_wavenumber</span><span class="p">)</span>
+ <span class="n">wavenumber_list</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span>
+ <span class="n">wavelength_list</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span>
+ <span class="nb">float</span> <span class="n">wavelengthToWavenumber</span><span class="p">(</span>
+   <span class="nb">float</span> <span class="n">wavelength</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The constructor takes the general config as an argument as well as the minimum and maximum wavenumber of the spectral grid:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">spectral_grid</span> <span class="o">=</span> <span class="n">pybear</span><span class="o">.</span><span class="n">SpectralGrid</span><span class="p">(</span>
+ <span class="n">config</span><span class="p">,</span>
+ <span class="n">min_wavenumber</span><span class="p">,</span>
+ <span class="n">max_wavenumber</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The spectral grid will be created based on the provided wavenumber range and the spectral discretisation and resolution
+set in the configuration. Note that the retrieval and post process classes will automatically create the spectral grid during their setup,
+so the user usually does not need to create this object directly.</p>
+<p>The SpectralGrid class has the following attributes and methods:</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">wavenumber_list</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">list[float]</span></code> that contains the wavenumber grid in units of cm^-1.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">wavelength_list</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">list[float]</span></code> that contains the wavelength grid in units of micron.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">float</span> <span class="pre">wavelengthToWavenumber(float</span> <span class="pre">wavelength)</span></code></dt><dd><p>This method takes a <code class="docutils literal notranslate"><span class="pre">float</span></code> argument that is a wavelength in units of micron and returns a <code class="docutils literal notranslate"><span class="pre">float</span></code>
+that contains the corresponding wavenumber in units of cm^-1.</p>
+</dd>
+</dl>
+</section>
+<section id="pybear-observation">
+<h2>pybear.Observation<a class="headerlink" href="#pybear-observation" title="Permalink to this heading">¶</a></h2>
+<p>This class describes the a single observation that are usually read in from a file with a structure described <a class="reference internal" href="observations.html#sec-observational-data"><span class="std std-ref">here</span></a>.
+The class has the following structure:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Observation</span><span class="p">:</span>
+ <span class="fm">__init__</span><span class="p">()</span>
+ <span class="fm">__init__</span><span class="p">(</span>
+   <span class="nb">str</span> <span class="n">name</span><span class="p">,</span>
+   <span class="nb">str</span> <span class="nb">type</span><span class="p">)</span>
+ <span class="fm">__init__</span><span class="p">(</span>
+   <span class="nb">str</span> <span class="n">name</span><span class="p">,</span>
+   <span class="n">std</span> <span class="nb">type</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="n">wavelengths</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="n">observation_data</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="n">observation_error</span><span class="p">)</span>
+ <span class="fm">__init__</span><span class="p">(</span>
+   <span class="nb">str</span> <span class="n">name</span><span class="p">,</span>
+   <span class="n">std</span> <span class="nb">type</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]]</span> <span class="n">wavelength_bins</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="n">observation_data</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="n">observation_error</span><span class="p">)</span>
+ <span class="n">name</span> <span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+ <span class="nb">type</span> <span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+ <span class="n">wavelengths</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span>
+ <span class="n">bin_wavelength_edges</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]]</span>
+ <span class="n">data</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span>
+ <span class="n">data_error</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span>
+ <span class="n">likelihood_weight</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span>
+ <span class="n">instrument_profile_fwhm</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span>
+ <span class="n">filter_response</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]]</span>
+ <span class="n">filter_detector_type</span> <span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+ <span class="n">spectrum_modifier_id</span> <span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+</pre></div>
+</div>
+<p>The class contains four different constructors. The first one is the default constructor that does not take any arguments.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">observation</span> <span class="o">=</span> <span class="n">pybear</span><span class="o">.</span><span class="n">Observation</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>In this case the object will be created will all values set to their default values. The second constructor takes two string
+argumentse that is the name of the observation and its type:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">observation</span> <span class="o">=</span> <span class="n">pybear</span><span class="o">.</span><span class="n">Observation</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">type</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The third constructor is used for spectroscopy observations that are given as a list of wavelengths, observation data,
+and observation errors:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">observation</span> <span class="o">=</span> <span class="n">pybear</span><span class="o">.</span><span class="n">Observation</span><span class="p">(</span>
+ <span class="n">name</span><span class="p">,</span>
+ <span class="nb">type</span><span class="p">,</span>
+ <span class="n">wavelengths</span><span class="p">,</span> <span class="n">observation_data</span><span class="p">,</span>
+ <span class="n">observation_error</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Finally, the fourth constructor is used for photometry or band-spectroscopy observations that are given as a list of wavelength bins, observation data, and observation errors:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">observation</span> <span class="o">=</span> <span class="n">pybear</span><span class="o">.</span><span class="n">Observation</span><span class="p">(</span>
+ <span class="n">name</span><span class="p">,</span>
+ <span class="nb">type</span><span class="p">,</span>
+ <span class="n">wavelength_bins</span><span class="p">,</span>
+ <span class="n">observation_data</span><span class="p">,</span>
+ <span class="n">observation_error</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The variable <code class="docutils literal notranslate"><span class="pre">wavelength_bins</span></code> is a two-dimensional array that contains the wavelengths of the  bin edges.</p>
+<p>All attributes can also be set directly after the object has been created. For example, the observation type can be changed via:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">observation</span><span class="o">.</span><span class="n">type</span> <span class="o">=</span> <span class="s2">&quot;photometry&quot;</span>
+</pre></div>
+</div>
+<p>The Observation class has the following attributes:</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">name</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">str</span></code> that contains the name of the observation.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">type</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">str</span></code> that contains the type of the observation. The available options can be found <a class="reference internal" href="observations.html#sec-observational-data"><span class="std std-ref">here</span></a></p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">wavelengths</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">list[float]</span></code> that contains the wavelengths of the observation. This value needs to be set if the observation is of type <code class="docutils literal notranslate"><span class="pre">spectroscopy</span></code>.
+For all other types, this value is ignored.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">bin_wavelength_edges</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">list[list[float]]</span></code> that contains the wavelength edges of the observation bins. This value needs to be set if the observation is of
+type <code class="docutils literal notranslate"><span class="pre">photometry</span></code> or <code class="docutils literal notranslate"><span class="pre">band-spectroscopy</span></code>. It is ignored for all other types.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">data</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">list[float]</span></code> that contains the observation data.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">data_error</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">list[float]</span></code> that contains the observation errors.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">likelihood_weight</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">list[float]</span></code> that contains the likelihood weights of the observation. If no weights are provided, they are set to unity.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">instrument_profile_fwhm</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">list[float]</span></code> that contains the optional full width at half maximum of the instrument profile.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">filter_response</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">list[list[float]]</span></code> that contains the optional filter response of the observation. This is a two-dimensional array where the first
+column contains the wavelengths and the second column the response function. The response function will internally be interpolated to the
+wavenumber grid of the retrieval calculation.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">filter_detector_type</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">str</span></code> that contains the type of the detector if a filter function is used.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">spectrum_modifier_id</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">str</span></code> that contains the optional spectrum modifier.</p>
+</dd>
+</dl>
+</section>
+<section id="pybear-prior">
+<h2>pybear.Prior<a class="headerlink" href="#pybear-prior" title="Permalink to this heading">¶</a></h2>
+<p>This class describes a specific model prior distribution used in the retrieval as described <a class="reference internal" href="priors.html#sec-prior-distributions"><span class="std std-ref">here</span></a>.
+The class has the following structure:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">Prior</span>
+ <span class="fm">__init__</span><span class="p">(</span>
+   <span class="nb">str</span> <span class="n">description</span><span class="p">,</span>
+   <span class="nb">str</span> <span class="nb">type</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="n">parameters</span><span class="p">)</span>
+ <span class="fm">__init__</span><span class="p">(</span>
+   <span class="nb">str</span> <span class="n">description</span><span class="p">,</span>
+   <span class="nb">str</span> <span class="nb">type</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="n">parameters</span><span class="p">,</span>
+   <span class="nb">str</span> <span class="n">unit</span><span class="p">)</span>
+ <span class="n">description</span> <span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+ <span class="nb">type</span> <span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+ <span class="n">parameter</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span>
+ <span class="n">unit</span> <span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+</pre></div>
+</div>
+<p>The class contains two different constructors. The first one is used for priors that do not have a unit:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">prior</span> <span class="o">=</span> <span class="n">pybear</span><span class="o">.</span><span class="n">Prior</span><span class="p">(</span>
+ <span class="n">description</span><span class="p">,</span>
+ <span class="nb">type</span><span class="p">,</span>
+ <span class="n">parameters</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>For example, a uniform prior can be created via:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">prior</span> <span class="o">=</span> <span class="n">pybear</span><span class="o">.</span><span class="n">Prior</span><span class="p">(</span>
+ <span class="s2">&quot;log g&quot;</span><span class="p">,</span>
+ <span class="s2">&quot;uniform&quot;</span><span class="p">,</span>
+ <span class="p">[</span><span class="mf">2.0</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>The second constructor is used for priors that have a unit:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">prior</span> <span class="o">=</span> <span class="n">pybear</span><span class="o">.</span><span class="n">Prior</span><span class="p">(</span>
+ <span class="n">description</span><span class="p">,</span>
+ <span class="nb">type</span><span class="p">,</span>
+ <span class="n">parameters</span><span class="p">,</span>
+ <span class="n">unit</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>For example, a Gaussian prior in solar radii can be created via:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">prior</span> <span class="o">=</span> <span class="n">pybear</span><span class="o">.</span><span class="n">Prior</span><span class="p">(</span>
+ <span class="s2">&quot;stellar_radius&quot;</span><span class="p">,</span>
+ <span class="s2">&quot;gaussian&quot;</span><span class="p">,</span>
+ <span class="p">[</span><span class="mf">1.5</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">],</span>
+ <span class="s2">&quot;Rs&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>All attributes can also be set directly after the object has been created. For example, the unit can be changed via:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">prior</span><span class="o">.</span><span class="n">unit</span> <span class="o">=</span> <span class="s2">&quot;Rj&quot;</span>
+</pre></div>
+</div>
+<p>The Prior class has the following attributes:</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">description</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">str</span></code> that contains the description/name of the prior.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">type</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">str</span></code> that contains the type of the prior. The available options can be found <a class="reference internal" href="priors.html#sec-prior-distributions"><span class="std std-ref">here</span></a></p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">parameters</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">list[float]</span></code> that contains the parameters of the prior. For a prior that only requires one parameter,
+this variable still needs to be a list.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">unit</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">str</span></code> that contains the optional unit of the prior. A list of possible units can be found <a class="reference internal" href="priors.html#sec-prior-distributions"><span class="std std-ref">here</span></a></p>
+</dd>
+</dl>
+</section>
+<section id="pybear-forwardmodeloutput">
+<h2>pybear.ForwardModelOutput<a class="headerlink" href="#pybear-forwardmodeloutput" title="Permalink to this heading">¶</a></h2>
+<blockquote>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">ForwardModelOutput</span><span class="p">:</span>
+   <span class="n">neglect_model</span> <span class="p">:</span> <span class="nb">bool</span>
+   <span class="n">spectrum_obs</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]]</span>
+   <span class="n">spectrum</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>This structure is used to store the output of a forward model calculation. It has the following attributes:</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">neglect_model</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">bool</span></code> that determines if the model should be neglected in the likelihood calculations. This is set to <code class="docutils literal notranslate"><span class="pre">True</span></code>
+if the forward model calculation failed. This can occur, for example, if unphysical parameter values were used, such as when the sum of all
+volume mixing ratios exceeds unity.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">spectrum_obs</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">list[list[float]]</span></code> that contains the binned spectrum for the observational data.
+The first index refers to the observation and the second one to the wavelengths of each observation.
+The size of the first dimension corresponds to the number of observations used in the retrieval.
+The wavelength points for the second dimension are identical to those read in from the observation files and are not stored here but can be accessed
+via the <code class="docutils literal notranslate"><span class="pre">pyBear.Observation</span></code> objects.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">spectrum</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">list[float]</span></code> that contains the high-resolution spectrum calculated on the spectral grid of the retrieval.</p>
+</dd>
+</dl>
+</section>
+<section id="pybear-atmosphereoutput">
+<h2>pybear.AtmosphereOutput<a class="headerlink" href="#pybear-atmosphereoutput" title="Permalink to this heading">¶</a></h2>
+<blockquote>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">AtmosphereOutput</span><span class="p">:</span>
+   <span class="n">neglect_model</span> <span class="p">:</span> <span class="nb">bool</span>
+   <span class="n">pressure</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span>
+   <span class="n">altitude</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span>
+   <span class="n">temperature</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span>
+   <span class="n">species_symbols</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+   <span class="n">mixing_ratios</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]]</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>This structure is used to store the output of an atmosphere structure calculation. It has the following attributes:</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">neglect_model</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">bool</span></code> that determines if the model should be neglected in the likelihood calculations. This is set to <code class="docutils literal notranslate"><span class="pre">True</span></code>
+if the atmosphere structure calculation failed. This can occur, for example, if unphysical parameter values were used, such as when the sum of all
+volume mixing ratios exceeds unity.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">pressure</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">list[float]</span></code> that contains the pressure values in bar for each level of the atmosphere.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">altitude</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">list[float]</span></code> that contains the altitude values in units of cm for each level of the atmosphere.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">temperature</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">list[float]</span></code> that contains the temperature values for each level of the atmosphere.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">species_symbols</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">list[str]</span></code> that contains the chemical symbols of the species present in the output.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">mixing_ratios</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">list[list[float]]</span></code> that contains the mixing ratios of chemical species for each level of the atmosphere. The first dimension refers to the species
+and the second dimension to the atmospheric levels. The order of the species corresponds to that given in the <code class="docutils literal notranslate"><span class="pre">species_symbols</span></code> list.</p>
+</dd>
+</dl>
+<p>Every forward model in BeAR has its own configuration that is used to set up the model and an additional one
+for the post process calculations. The configuration parameters are different for every model type and are
+described in the <a class="reference internal" href="forward_models.html#sec-forward-models"><span class="std std-ref">section</span></a> on forward models. Below, the Python classes for these
+configurations are described.</p>
+</section>
+<section id="transmission-spectrum">
+<h2>Transmission Spectrum<a class="headerlink" href="#transmission-spectrum" title="Permalink to this heading">¶</a></h2>
+<section id="model-config">
+<h3>Model Config<a class="headerlink" href="#model-config" title="Permalink to this heading">¶</a></h3>
+<p>The configuration class for the transmission model has the following structure:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">TransmissionModelConfig</span><span class="p">:</span>
+ <span class="fm">__init__</span><span class="p">(</span><span class="nb">str</span> <span class="n">file_path</span><span class="p">)</span>
+ <span class="fm">__init__</span><span class="p">(</span>
+   <span class="nb">int</span> <span class="n">nb_grid_points</span><span class="p">,</span>
+   <span class="nb">float</span> <span class="n">atmos_bottom_pressure</span><span class="p">,</span>
+   <span class="nb">float</span> <span class="n">atmos_top_pressure</span><span class="p">,</span>
+   <span class="nb">str</span> <span class="n">temperature_profile_model</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">temperature_profile_parameters</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">chemistry_model</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="n">chemistry_parameters</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">opacity_species_symbol</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">opacity_species_folder</span><span class="p">)</span>
+ <span class="fm">__init__</span><span class="p">(</span>
+   <span class="nb">bool</span> <span class="n">fit_mean_molecular_weight</span><span class="p">,</span>
+   <span class="nb">bool</span> <span class="n">fit_scale_height</span><span class="p">,</span>
+   <span class="nb">bool</span> <span class="n">use_variable_gravity</span><span class="p">,</span>
+   <span class="nb">int</span> <span class="n">nb_grid_points</span><span class="p">,</span>
+   <span class="nb">float</span> <span class="n">atmos_bottom_pressure</span><span class="p">,</span>
+   <span class="nb">float</span> <span class="n">atmos_top_pressure</span><span class="p">,</span>
+   <span class="nb">str</span> <span class="n">temperature_profile_model</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">temperature_profile_parameters</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">chemistry_model</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="n">chemistry_parameters</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">opacity_species_symbol</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">opacity_species_folder</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">cloud_model</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="n">cloud_model_parameters</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">modules</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="n">modules_parameters</span><span class="p">)</span>
+ <span class="n">nb_grid_points</span> <span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+ <span class="n">atmos_boundaries</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span>
+ <span class="n">fit_mean_molecular_weight</span> <span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+ <span class="n">fit_scale_height</span> <span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+ <span class="n">temperature_profile_model</span> <span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+ <span class="n">temperature_profile_parameters</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+ <span class="n">chemistry_model</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+ <span class="n">chemistry_parameters</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span>
+ <span class="n">cloud_model</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+ <span class="n">cloud_model_parameters</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+ <span class="n">modules</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+ <span class="n">modules_parameters</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span>
+ <span class="n">opacity_species_symbol</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+ <span class="n">opacity_species_folder</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>The class contains three different constructors. The first one takes a string argument that is the path to the
+transmission model configuration file: <cite>file_path</cite>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model_config</span> <span class="o">=</span> <span class="n">pybear</span><span class="o">.</span><span class="n">TransmissionModelConfig</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The second constructor takes the most important parameters of the model as arguments:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model_config</span> <span class="o">=</span> <span class="n">pybear</span><span class="o">.</span><span class="n">TransmissionModelConfig</span><span class="p">(</span>
+   <span class="nb">int</span> <span class="n">nb_grid_points</span><span class="p">,</span>
+   <span class="nb">float</span> <span class="n">atmos_bottom_pressure</span><span class="p">,</span>
+   <span class="nb">float</span> <span class="n">atmos_top_pressure</span><span class="p">,</span>
+   <span class="nb">str</span> <span class="n">temperature_profile_model</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">temperature_profile_parameters</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">chemistry_model</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="n">chemistry_parameters</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">cloud_model</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="n">cloud_model_parameters</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The constructor has the following arguments:</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">nb_grid_points</span></code></dt><dd><p>An <code class="docutils literal notranslate"><span class="pre">int</span></code> that contains the number of grid points of the atmosphere.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">atmos_bottom_pressure_</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">float</span></code> that contains the bottom pressure of the atmosphere in bar.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">atmos_top_pressure_</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">float</span></code> that contains the top pressure of the atmosphere in bar.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">temperature_profile_model</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">str</span></code> that contains the choice of the temperature profile model. The available options can be found <a class="reference internal" href="temperature_profiles.html#sec-temperature-profiles"><span class="std std-ref">here</span></a>.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">temperature_profile_parameters</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">list[str]</span></code> that contains the parameters of the temperature profile model.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">chemistry_model</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">list[str]</span></code> that contains the choice of the chemistry model(s). The available options can be found <a class="reference internal" href="chemistry_models.html#sec-chemistry-models"><span class="std std-ref">here</span></a>.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">chemistry_parameters</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">list[list[str]]</span></code> that contains the parameters of the chemistry model(s).</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">opacity_species_symbol</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">list[str]</span></code> that contains the symbols/formulas of the opacity species used in the radiative transfer calculations.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">opacity_species_folder</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">list[str]</span></code> that contains the folder where opacity for each species are stored.</p>
+</dd>
+</dl>
+<p>The third constructor is the most flexible one and takes additional arguments for advanced model options:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model_config</span> <span class="o">=</span> <span class="n">pybear</span><span class="o">.</span><span class="n">TransmissionModelConfig</span><span class="p">(</span>
+   <span class="nb">bool</span> <span class="n">fit_mean_molecular_weight</span><span class="p">,</span>
+   <span class="nb">bool</span> <span class="n">fit_scale_height</span><span class="p">,</span>
+   <span class="nb">bool</span> <span class="n">use_variable_gravity</span><span class="p">,</span>
+   <span class="nb">int</span> <span class="n">nb_grid_points</span><span class="p">,</span>
+   <span class="nb">float</span> <span class="n">atmos_bottom_pressure_</span><span class="p">,</span>
+   <span class="nb">float</span> <span class="n">atmos_top_pressure_</span><span class="p">,</span>
+   <span class="nb">str</span> <span class="n">temperature_profile_model</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">temperature_profile_parameters</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">chemistry_model</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="n">chemistry_parameters</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">opacity_species_symbol</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">opacity_species_folder</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">cloud_model</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">cloud_model_parameters</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">modules</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="n">modules_parameters</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The additional arguments are:</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">fit_mean_molecular_weight</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">bool</span></code> that determines if the mean molecular weight is fitted as an additional free parameter.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">fit_scale_height</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">bool</span></code> that determines if the scale height is fitted as an additional free parameter.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">use_variable_gravity</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">bool</span></code> that determines if the variable gravity with altitude is used in the calculations.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">cloud_model</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">list[str]</span></code> that contains the choice of the cloud model(s). The available options can be found <a class="reference internal" href="cloud_models.html#sec-cloud-models"><span class="std std-ref">here</span></a>.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">cloud_model_parameters</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">list[list[str]]</span></code> that contains the parameters of the cloud model(s).</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">modules</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">list[str]</span></code> that contains the choice of additional model modules. The available options can be found <a class="reference internal" href="forward_models.html#sec-forward-models"><span class="std std-ref">here</span></a>.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">modules_parameters</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">list[list[str]]</span></code> that contains the parameters of the additional model module(s).</p>
+</dd>
+</dl>
+<p>All attributes can also be set directly after the object has been created. For example, the number of grid points can be changed via:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model_config</span><span class="o">.</span><span class="n">nb_grid_points</span> <span class="o">=</span> <span class="mi">128</span>
+</pre></div>
+</div>
+</section>
+<section id="postprocess-config">
+<h3>PostProcess Config<a class="headerlink" href="#postprocess-config" title="Permalink to this heading">¶</a></h3>
+<p>The configuration class for the transmission model post process has the following structure:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">TransmissionPostProcessConfig</span><span class="p">:</span>
+ <span class="fm">__init__</span><span class="p">(</span><span class="nb">str</span> <span class="n">file_path</span><span class="p">)</span>
+ <span class="fm">__init__</span><span class="p">(</span>
+   <span class="nb">bool</span> <span class="n">save_temperatures</span><span class="p">,</span>
+   <span class="nb">bool</span> <span class="n">save_spectra</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">chemical_species_symbols</span><span class="p">)</span>
+ <span class="n">save_temperatures</span> <span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+ <span class="n">save_spectra</span> <span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+ <span class="n">delete_sampler_files</span> <span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+</pre></div>
+</div>
+<p>The class contains two different constructors. The first one takes a string argument that is the path to the
+transmission model post process configuration file: <cite>file_path</cite>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">post_process_config</span> <span class="o">=</span> <span class="n">pybear</span><span class="o">.</span><span class="n">TransmissionPostProcessConfig</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The second constructor takes the most important parameters of the post process as arguments:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">post_process_config</span> <span class="o">=</span> <span class="n">pybear</span><span class="o">.</span><span class="n">TransmissionPostProcessConfig</span><span class="p">(</span>
+   <span class="nb">bool</span> <span class="n">save_temperatures</span><span class="p">,</span>
+   <span class="nb">bool</span> <span class="n">save_spectra</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">chemical_species_symbols</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The different options are discussed <a class="reference internal" href="forward_models.html#sec-forward-model-transmission"><span class="std std-ref">here</span></a>.</p>
+</section>
+</section>
+<section id="secondary-eclipse-spectrum">
+<h2>Secondary Eclipse Spectrum<a class="headerlink" href="#secondary-eclipse-spectrum" title="Permalink to this heading">¶</a></h2>
+<section id="id1">
+<h3>Model Config<a class="headerlink" href="#id1" title="Permalink to this heading">¶</a></h3>
+<p>The configuration class for the secondary eclipse model has the following structure:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">OccultationConfig</span><span class="p">:</span>
+ <span class="fm">__init__</span><span class="p">(</span><span class="nb">str</span> <span class="n">file_path</span><span class="p">)</span>
+ <span class="fm">__init__</span><span class="p">(</span>
+   <span class="nb">int</span> <span class="n">nb_grid_points</span><span class="p">,</span>
+   <span class="nb">float</span> <span class="n">atmos_bottom_pressure</span><span class="p">,</span>
+   <span class="nb">float</span> <span class="n">atmos_top_pressure</span><span class="p">,</span>
+   <span class="nb">str</span> <span class="n">temperature_profile_model</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">temperature_profile_parameters</span><span class="p">,</span>
+   <span class="nb">str</span> <span class="n">radiative_transfer_model</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">radiative_transfer_parameters</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">chemistry_model</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="n">chemistry_parameters</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">opacity_species_symbol</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">opacity_species_folder</span>
+   <span class="nb">str</span> <span class="n">stellar_spectrum_model</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">stellar_model_parameters</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">cloud_model</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="n">cloud_model_parameters</span><span class="p">)</span>
+ <span class="n">nb_grid_points</span> <span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+ <span class="n">atmos_boundaries</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span>
+ <span class="n">temperature_profile_model</span> <span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+ <span class="n">temperature_profile_parameters</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+ <span class="n">radiative_transfer_model</span> <span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+ <span class="n">radiative_transfer_parameters</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+ <span class="n">stellar_spectrum_model</span> <span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+ <span class="n">stellar_model_parameters</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+ <span class="n">chemistry_model</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+ <span class="n">chemistry_parameters</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span>
+ <span class="n">cloud_model</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+ <span class="n">cloud_model_parameters</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span>
+ <span class="n">opacity_species_symbol</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+ <span class="n">opacity_species_folder</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>The class contains two different constructors. The first one takes a string argument that is the path to the
+secondary eclipse model configuration file: <cite>file_path</cite>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model_config</span> <span class="o">=</span> <span class="n">pybear</span><span class="o">.</span><span class="n">OccultationConfig</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The second constructor takes the most important parameters of the model as arguments:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model_config</span> <span class="o">=</span> <span class="n">pybear</span><span class="o">.</span><span class="n">OccultationConfig</span><span class="p">(</span>
+   <span class="nb">int</span> <span class="n">nb_grid_points</span><span class="p">,</span>
+   <span class="nb">float</span> <span class="n">atmos_bottom_pressure</span><span class="p">,</span>
+   <span class="nb">float</span> <span class="n">atmos_top_pressure</span><span class="p">,</span>
+   <span class="nb">str</span> <span class="n">temperature_profile_model</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">temperature_profile_parameters</span><span class="p">,</span>
+   <span class="nb">str</span> <span class="n">radiative_transfer_model</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">radiative_transfer_parameters</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">chemistry_model</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="n">chemistry_parameters</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">opacity_species_symbol</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">opacity_species_folder</span>
+   <span class="nb">str</span> <span class="n">stellar_spectrum_model</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">stellar_model_parameters</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">cloud_model</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="n">cloud_model_parameters</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The constructor has the following arguments:</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">nb_grid_points</span></code></dt><dd><p>An <code class="docutils literal notranslate"><span class="pre">int</span></code> that contains the number of grid points of the atmosphere.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">atmos_bottom_pressure_</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">float</span></code> that contains the bottom pressure of the atmosphere in bar.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">atmos_top_pressure_</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">float</span></code> that contains the top pressure of the atmosphere in bar.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">temperature_profile_model</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">str</span></code> that contains the choice of the temperature profile model. The available options can be found <a class="reference internal" href="temperature_profiles.html#sec-temperature-profiles"><span class="std std-ref">here</span></a>.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">temperature_profile_parameters</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">list[str]</span></code> that contains the parameters of the temperature profile model.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">radiative_transfer_model</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">str</span></code> that contains the choice of the radiative transfer model. The available options can be found <a class="reference internal" href="forward_models.html#sec-forward-model-se"><span class="std std-ref">here</span></a>.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">radiative_transfer_parameters</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">list[str]</span></code> that contains the parameters of the radiative transfer model.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">chemistry_model</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">list[str]</span></code> that contains the choice of the chemistry model(s). The available options can be found <a class="reference internal" href="chemistry_models.html#sec-chemistry-models"><span class="std std-ref">here</span></a>.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">chemistry_parameters</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">list[list[str]]</span></code> that contains the parameters of the chemistry model(s).</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">opacity_species_symbol</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">list[str]</span></code> that contains the symbols/formulas of the opacity species used in the radiative transfer calculations.§</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">opacity_species_folder</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">list[str]</span></code> that contains the folder where opacity for each species are stored.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">stellar_spectrum_model</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">str</span></code> that contains the choice of the stellar spectrum model. The available options can be found <a class="reference internal" href="stellar_spectra.html#sec-stellar-spectra"><span class="std std-ref">here</span></a>.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">stellar_model_parameters</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">list[str]</span></code> that contains the parameters of the stellar spectrum model.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">cloud_model</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">list[str]</span></code> that contains the choice of the cloud model(s). The available options can be found <a class="reference internal" href="cloud_models.html#sec-cloud-models"><span class="std std-ref">here</span></a>.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">cloud_model_parameters</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">list[list[str]]</span></code> that contains the parameters of the cloud model(s).</p>
+</dd>
+</dl>
+</section>
+<section id="id2">
+<h3>PostProcess Config<a class="headerlink" href="#id2" title="Permalink to this heading">¶</a></h3>
+<p>The configuration class for the secondary eclipse model post process has the following structure:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">OccultationPostProcessConfig</span><span class="p">:</span>
+ <span class="fm">__init__</span><span class="p">(</span><span class="nb">str</span> <span class="n">file_path</span><span class="p">)</span>
+ <span class="fm">__init__</span><span class="p">(</span>
+   <span class="nb">bool</span> <span class="n">save_temperatures</span><span class="p">,</span>
+   <span class="nb">bool</span> <span class="n">save_spectra</span><span class="p">,</span>
+   <span class="nb">bool</span> <span class="n">save_contribution_functions</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">chemical_species_symbols</span><span class="p">)</span>
+ <span class="n">save_temperatures</span> <span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+ <span class="n">save_spectra</span> <span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+ <span class="n">save_contribution_functions</span> <span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+ <span class="n">delete_sampler_files</span> <span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+</pre></div>
+</div>
+<p>The class contains two different constructors. The first one takes a string argument that is the path to the
+secondary eclipse model post process configuration file: <cite>file_path</cite>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">post_process_config</span> <span class="o">=</span> <span class="n">pybear</span><span class="o">.</span><span class="n">OccultationPostProcessConfig</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The second constructor takes the most important parameters of the post process as arguments:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">post_process_config</span> <span class="o">=</span> <span class="n">pybear</span><span class="o">.</span><span class="n">OccultationPostProcessConfig</span><span class="p">(</span>
+   <span class="nb">bool</span> <span class="n">save_temperatures</span><span class="p">,</span>
+   <span class="nb">bool</span> <span class="n">save_spectra</span><span class="p">,</span>
+   <span class="nb">bool</span> <span class="n">save_contribution_functions</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">chemical_species_symbols</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The different options are discussed <a class="reference internal" href="forward_models.html#sec-forward-model-se"><span class="std std-ref">here</span></a>.</p>
+</section>
+</section>
+<section id="secondary-eclipse-spectrum-with-planetary-blackbody">
+<h2>Secondary Eclipse Spectrum with Planetary Blackbody<a class="headerlink" href="#secondary-eclipse-spectrum-with-planetary-blackbody" title="Permalink to this heading">¶</a></h2>
+<section id="id3">
+<h3>Model Config<a class="headerlink" href="#id3" title="Permalink to this heading">¶</a></h3>
+<p>The configuration class for this special secondary eclipse model has the following structure:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">OccultationBlackBodyConfig</span><span class="p">:</span>
+ <span class="fm">__init__</span><span class="p">(</span><span class="nb">str</span> <span class="n">file_path</span><span class="p">)</span>
+ <span class="fm">__init__</span><span class="p">(</span>
+   <span class="nb">str</span> <span class="n">stellar_spectrum_model</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">stellar_model_parameters</span><span class="p">)</span>
+ <span class="n">stellar_spectrum_model</span> <span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+ <span class="n">stellar_model_parameters</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>The class contains two different constructors. The first one takes a string argument that is the path to the
+secondary eclipse blackbody model configuration file: <cite>file_path</cite>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model_config</span> <span class="o">=</span> <span class="n">pybear</span><span class="o">.</span><span class="n">OccultationBlackBodyConfig</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The second constructor takes the most important parameters of the model as arguments:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model_config</span> <span class="o">=</span> <span class="n">pybear</span><span class="o">.</span><span class="n">OccultationBlackBodyConfig</span><span class="p">(</span>
+   <span class="nb">str</span> <span class="n">stellar_spectrum_model</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">stellar_model_parameters</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The constructor has the following arguments:</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">stellar_spectrum_model</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">str</span></code> that contains the choice of the stellar spectrum model. The available options can be found <a class="reference internal" href="stellar_spectra.html#sec-stellar-spectra"><span class="std std-ref">here</span></a>.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">stellar_model_parameters</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">list[str]</span></code> that contains the parameters of the stellar spectrum model.</p>
+</dd>
+</dl>
+</section>
+<section id="id4">
+<h3>PostProcess Config<a class="headerlink" href="#id4" title="Permalink to this heading">¶</a></h3>
+<p>The configuration class for the secondary eclipse model post process has the following structure:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">OccultationBlackBodyPostProcessConfig</span><span class="p">:</span>
+ <span class="fm">__init__</span><span class="p">(</span><span class="nb">str</span> <span class="n">file_path</span><span class="p">)</span>
+ <span class="fm">__init__</span><span class="p">(</span><span class="nb">bool</span> <span class="n">save_spectra</span><span class="p">,)</span>
+ <span class="n">save_spectra</span> <span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+ <span class="n">delete_sampler_files</span> <span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+</pre></div>
+</div>
+<p>The class contains two different constructors. The first one takes a string argument that is the path to the
+secondary eclipse model post process configuration file: <cite>file_path</cite>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">post_process_config</span> <span class="o">=</span> <span class="n">pybear</span><span class="o">.</span><span class="n">OccultationPostProcessConfig</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The second constructor takes the most important parameters of the post process as arguments:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">post_process_config</span> <span class="o">=</span> <span class="n">pybear</span><span class="o">.</span><span class="n">OccultationPostProcessConfig</span><span class="p">(</span>
+   <span class="nb">bool</span> <span class="n">save_spectra</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The different options are discussed <a class="reference internal" href="forward_models.html#sec-forward-model-se-bb"><span class="std std-ref">here</span></a>.</p>
+</section>
+</section>
+<section id="emission-spectrum">
+<h2>Emission Spectrum<a class="headerlink" href="#emission-spectrum" title="Permalink to this heading">¶</a></h2>
+<section id="id5">
+<h3>Model Config<a class="headerlink" href="#id5" title="Permalink to this heading">¶</a></h3>
+<p>The configuration class for the emission model has the following structure:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">EmissionModelConfig</span><span class="p">:</span>
+ <span class="fm">__init__</span><span class="p">(</span><span class="nb">str</span> <span class="n">file_path</span><span class="p">)</span>
+ <span class="fm">__init__</span><span class="p">(</span>
+   <span class="nb">int</span> <span class="n">nb_grid_points</span><span class="p">,</span>
+   <span class="nb">float</span> <span class="n">atmos_bottom_pressure</span><span class="p">,</span>
+   <span class="nb">float</span> <span class="n">atmos_top_pressure</span><span class="p">,</span>
+   <span class="nb">str</span> <span class="n">temperature_profile_model</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">temperature_profile_parameters</span><span class="p">,</span>
+   <span class="nb">str</span> <span class="n">radiative_transfer_model</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">radiative_transfer_parameters</span><span class="p">,</span>
+   <span class="nb">str</span> <span class="n">chemistry_model</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="n">chemistry_parameters</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">opacity_species_symbol</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">opacity_species_folder</span><span class="p">)</span>
+ <span class="fm">__init__</span><span class="p">(</span>
+   <span class="nb">int</span> <span class="n">nb_grid_points</span><span class="p">,</span>
+   <span class="nb">float</span> <span class="n">atmos_bottom_pressure</span><span class="p">,</span>
+   <span class="nb">float</span> <span class="n">atmos_top_pressure</span><span class="p">,</span>
+   <span class="nb">str</span> <span class="n">temperature_profile_model</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">temperature_profile_parameters</span><span class="p">,</span>
+   <span class="nb">str</span> <span class="n">radiative_transfer_model</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">radiative_transfer_parameters</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">chemistry_model</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="n">chemistry_parameters</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">opacity_species_symbol</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">opacity_species_folder</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">cloud_model</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="n">cloud_model_parameters</span><span class="p">)</span>
+ <span class="n">nb_grid_points</span> <span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+ <span class="n">atmos_boundaries</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span>
+ <span class="n">temperature_profile_model</span> <span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+ <span class="n">temperature_profile_parameters</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+ <span class="n">radiative_transfer_model</span> <span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+ <span class="n">radiative_transfer_parameters</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+ <span class="n">chemistry_model</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+ <span class="n">chemistry_parameters</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span>
+ <span class="n">cloud_model</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+ <span class="n">cloud_model_parameters</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span>
+ <span class="n">opacity_species_symbol</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+ <span class="n">opacity_species_folder</span> <span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>The class contains three different constructors. The first one takes a string argument that is the path to the
+emission model configuration file: <cite>file_path</cite>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model_config</span> <span class="o">=</span> <span class="n">pybear</span><span class="o">.</span><span class="n">EmissionModelConfig</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The second constructor takes the most important parameters of the model as arguments:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model_config</span> <span class="o">=</span> <span class="n">pybear</span><span class="o">.</span><span class="n">EmissionModelConfig</span><span class="p">(</span>
+   <span class="nb">int</span> <span class="n">nb_grid_points</span><span class="p">,</span>
+   <span class="nb">float</span> <span class="n">atmos_bottom_pressure</span><span class="p">,</span>
+   <span class="nb">float</span> <span class="n">atmos_top_pressure</span><span class="p">,</span>
+   <span class="nb">str</span> <span class="n">temperature_profile_model</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">temperature_profile_parameters</span><span class="p">,</span>
+   <span class="nb">str</span> <span class="n">radiative_transfer_model</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">radiative_transfer_parameters</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">chemistry_model</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="n">chemistry_parameters</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">opacity_species_symbol</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">opacity_species_folder</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">cloud_model</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="n">cloud_model_parameters</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The constructor has the following arguments:</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">nb_grid_points</span></code></dt><dd><p>An <code class="docutils literal notranslate"><span class="pre">int</span></code> that contains the number of grid points of the atmosphere.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">atmos_bottom_pressure_</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">float</span></code> that contains the bottom pressure of the atmosphere in bar.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">atmos_top_pressure_</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">float</span></code> that contains the top pressure of the atmosphere in bar.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">temperature_profile_model</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">str</span></code> that contains the choice of the temperature profile model. The available options can be found <a class="reference internal" href="temperature_profiles.html#sec-temperature-profiles"><span class="std std-ref">here</span></a>.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">temperature_profile_parameters</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">list[str]</span></code> that contains the parameters of the temperature profile model.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">radiative_transfer_model</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">str</span></code> that contains the choice of the radiative transfer model. The available options can be found <a class="reference internal" href="forward_models.html#sec-forward-model-se"><span class="std std-ref">here</span></a>.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">radiative_transfer_parameters</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">list[str]</span></code> that contains the parameters of the radiative transfer model.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">chemistry_model</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">list[str]</span></code> that contains the choice of the chemistry model(s). The available options can be found <a class="reference internal" href="chemistry_models.html#sec-chemistry-models"><span class="std std-ref">here</span></a>.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">chemistry_parameters</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">list[list[str]]</span></code> that contains the parameters of the chemistry model(s).</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">opacity_species_symbol</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">list[str]</span></code> that contains the symbols/formulas of the opacity species used in the radiative transfer calculations.§</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">opacity_species_folder</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">list[str]</span></code> that contains the folder where opacity for each species are stored.</p>
+</dd>
+</dl>
+<p>The third constructor is similar to the second one but includes additional arguments for cloud models:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model_config</span> <span class="o">=</span> <span class="n">pybear</span><span class="o">.</span><span class="n">EmissionModelConfig</span><span class="p">(</span>
+   <span class="nb">int</span> <span class="n">nb_grid_points</span><span class="p">,</span>
+   <span class="nb">float</span> <span class="n">atmos_bottom_pressure</span><span class="p">,</span>
+   <span class="nb">float</span> <span class="n">atmos_top_pressure</span><span class="p">,</span>
+   <span class="nb">str</span> <span class="n">temperature_profile_model</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">temperature_profile_parameters</span><span class="p">,</span>
+   <span class="nb">str</span> <span class="n">radiative_transfer_model</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">radiative_transfer_parameters</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">chemistry_model</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="n">chemistry_parameters</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">opacity_species_symbol</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">opacity_species_folder</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">cloud_model</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="n">cloud_model_parameters</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The additional arguments are:</p>
+<dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">cloud_model</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">list[str]</span></code> that contains the choice of the cloud model(s). The available options can be found <a class="reference internal" href="cloud_models.html#sec-cloud-models"><span class="std std-ref">here</span></a>.</p>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">cloud_model_parameters</span></code></dt><dd><p>A <code class="docutils literal notranslate"><span class="pre">list[list[str]]</span></code> that contains the parameters of the cloud model(s).</p>
+</dd>
+</dl>
+</section>
+<section id="id6">
+<h3>PostProcess Config<a class="headerlink" href="#id6" title="Permalink to this heading">¶</a></h3>
+<p>The configuration class for the emission spectroscopy model post process has the following structure:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">EmissionPostProcessConfig</span><span class="p">:</span>
+ <span class="fm">__init__</span><span class="p">(</span><span class="nb">str</span> <span class="n">file_path</span><span class="p">)</span>
+ <span class="fm">__init__</span><span class="p">(</span>
+   <span class="nb">bool</span> <span class="n">save_temperatures</span><span class="p">,</span>
+   <span class="nb">bool</span> <span class="n">save_effective_temperatures</span><span class="p">,</span>
+   <span class="nb">bool</span> <span class="n">save_spectra</span><span class="p">,</span>
+   <span class="nb">bool</span> <span class="n">save_contribution_functions</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">chemical_species_symbols</span><span class="p">)</span>
+ <span class="n">save_temperatures</span> <span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+ <span class="n">save_effective_temperatures</span> <span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+ <span class="n">save_spectra</span> <span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+ <span class="n">save_contribution_functions</span> <span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+ <span class="n">delete_sampler_files</span> <span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+</pre></div>
+</div>
+<p>The class contains two different constructors. The first one takes a string argument that is the path to the
+secondary eclipse model post process configuration file: <cite>file_path</cite>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">post_process_config</span> <span class="o">=</span> <span class="n">pybear</span><span class="o">.</span><span class="n">EmissionPostProcessConfig</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The second constructor takes the most important parameters of the post process as arguments:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">post_process_config</span> <span class="o">=</span> <span class="n">pybear</span><span class="o">.</span><span class="n">EmissionPostProcessConfig</span><span class="p">(</span>
+   <span class="nb">bool</span> <span class="n">save_temperatures</span><span class="p">,</span>
+   <span class="nb">bool</span> <span class="n">save_effective_temperatures</span><span class="p">,</span>
+   <span class="nb">bool</span> <span class="n">save_spectra</span><span class="p">,</span>
+   <span class="nb">bool</span> <span class="n">save_contribution_functions</span><span class="p">,</span>
+   <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="n">chemical_species_symbols</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The different options are discussed <a class="reference internal" href="forward_models.html#sec-forward-model-em"><span class="std std-ref">here</span></a>.</p>
+</section>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+    <div class="clearer"></div>
+  </div>
+    <div class="footer">
+      &copy;2020 - 2025, Daniel Kitzmann.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      
+      |
+      <a href="../_sources/sections/pybear_details.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

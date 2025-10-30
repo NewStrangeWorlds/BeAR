@@ -5,10 +5,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Installation &#8212; BeAR 1.0 documentation</title>
-    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=4f649999" />
-    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=5bc47236" />
-    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=359c27e9"></script>
+    <title>Installation &#8212; BeAR 2.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=6625fa76" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=89da6986" />
+    <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=a7e3f902"></script>
     <script src="../_static/doctools.js?v=888ff710"></script>
     <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
     <link rel="index" title="Index" href="../genindex.html" />
@@ -22,9 +22,87 @@
   <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
 
   </head><body>
-  
+  <div class="document">
+    
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="../index.html">
+    <img class="logo" src="../_static/bear_small.png" alt="Logo"/>
+    
+  </a>
+</p>
 
-    <div class="document">
+
+
+<p class="blurb">BeAR - The Bern Atmospheric Retrieval code</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=newstrangeworlds&repo=bear&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="licence.html">Licence</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#obtaining-the-code">Obtaining the code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#prerequisites">Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#configuration-and-compilation-of-bear-with-cmake">Configuration and compilation of BeAR with CMake</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#configuration-and-compilation-of-pybear-with-cmake">Configuration and compilation of pyBeAR with CMake</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="opacity_data.html">Opacity data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="observations.html">Observations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="forward_models.html">Forward Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="priors.html">Prior distributions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="retrieval_setup.html">Setting up and starting a retrieval</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pybear.html">The pyBeAR package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="temperature_profiles.html">Temperature profiles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="chemistry_models.html">Chemistry Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cloud_models.html">Cloud Models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="stellar_spectra.html">Stellar spectra</a></li>
+<li class="toctree-l1"><a class="reference internal" href="profile_parametrisations.html">Parametrisations of vertical profiles</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pybear_details.html">Detailed Description of pyBeAR</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="licence.html" title="previous chapter">Licence</a></li>
+      <li>Next: <a href="opacity_data.html" title="next chapter">Opacity data</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
       <div class="documentwrapper">
         <div class="bodywrapper">
           
@@ -68,9 +146,27 @@ This includes, in particular,</p>
 <li><p>the BLAS linear algebra library for MultiNest (e.g. <code class="docutils literal notranslate"><span class="pre">OpenBLAS</span></code>)</p></li>
 <li><p>a C compiler (e.g. <code class="docutils literal notranslate"><span class="pre">gcc</span></code>) for the CDisort code</p></li>
 </ul>
+<p>BeAR also comes with its own Python interface pyBeAR. The interface allows the forward model
+and retrieval calculations to be performed in Python. The interface requires</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Python 3.9 or higher</p></li>
+<li><p>the pyMultiNest package (if the retrieval should be performed with MultiNest under Python)</p></li>
+</ul>
+<p>Some combinations of the CUDA, g++, and Python compiler versions seem to produce issues during either
+the compilation or when executing the code. Symptoms include, for example, segmentation faults when
+the BeAR C++ code is called from within Python. This seems to be caused by compatibility issues within
+the PyBind11 library and are, thus, not directly related to BeAR and also not fixable within BeAR itself.
+The following combinations have been tested and are known to work with the PyBind11 version used in BeAR:</p>
+</div></blockquote>
+<ul class="simple">
+<li><p>g++/gcc/gfortran 12.3</p></li>
+<li><p>CUDA 12.0</p></li>
+<li><p>Python 3.10</p></li>
+</ul>
 </section>
-<section id="configuration-and-compilation-with-cmake">
-<span id="sec-install-config"></span><h2>Configuration and compilation with CMake<a class="headerlink" href="#configuration-and-compilation-with-cmake" title="Permalink to this heading">¶</a></h2>
+<section id="configuration-and-compilation-of-bear-with-cmake">
+<span id="sec-install-config"></span><h2>Configuration and compilation of BeAR with CMake<a class="headerlink" href="#configuration-and-compilation-of-bear-with-cmake" title="Permalink to this heading">¶</a></h2>
 <div class="line-block">
 <div class="line">Before BeAR can be compiled, <code class="docutils literal notranslate"><span class="pre">CMake</span></code> is required to
 configure the compilation files, locate libraries, and write the
@@ -97,6 +193,26 @@ BeAR can be compiled by running:</p>
 <p>Upon successful compilation, the executable <code class="docutils literal notranslate"><span class="pre">bear</span></code> should be
 present in the main BeAR folder.</p>
 </section>
+<section id="configuration-and-compilation-of-pybear-with-cmake">
+<h2>Configuration and compilation of pyBeAR with CMake<a class="headerlink" href="#configuration-and-compilation-of-pybear-with-cmake" title="Permalink to this heading">¶</a></h2>
+<div class="line-block">
+<div class="line">To compile the Python interface in addition to BeAR’s stand-alone version,
+The <code class="docutils literal notranslate"><span class="pre">CMake</span></code> command above needs to be extended by the following option:</div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cmake<span class="w"> </span>-DUSE_PYTHON<span class="o">=</span>ON<span class="w"> </span>..
+</pre></div>
+</div>
+<p>After <code class="docutils literal notranslate"><span class="pre">CMake</span></code> successfully configured the compilation files,
+BeAR can be compiled by running:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>make
+</pre></div>
+</div>
+<p>This will compile the Python interface <em>and</em> the stand-alone version of BeAR. Since
+the compilation will in fact be run twice, it will obviously take longer than
+compiling only the stand-alone version.</p>
+<p>After successful compilation, the Python package will be located in the <code class="docutils literal notranslate"><span class="pre">python/lib</span></code>
+folder.</p>
+</section>
 </section>
 
 
@@ -104,86 +220,10 @@ present in the main BeAR folder.</p>
           
         </div>
       </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper">
-<p class="logo">
-  <a href="../index.html">
-    <img class="logo" src="../_static/bear.png" alt="Logo"/>
-    
-  </a>
-</p>
-
-
-
-<p class="blurb">BeAR - The Bern Atmospheric Retrieval code</p>
-
-
-
-
-<p>
-<iframe src="https://ghbtns.com/github-btn.html?user=newstrangeworlds&repo=bear&type=watch&count=true&size=large&v=2"
-  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
-</p>
-
-
-
-
-
-<h3>Navigation</h3>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="licence.html">Licence</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Installation</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#obtaining-the-code">Obtaining the code</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#prerequisites">Prerequisites</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#configuration-and-compilation-with-cmake">Configuration and compilation with CMake</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="opacity_data.html">Opacity data</a></li>
-<li class="toctree-l1"><a class="reference internal" href="observations.html">Observations</a></li>
-<li class="toctree-l1"><a class="reference internal" href="forward_models.html">Forward Models</a></li>
-<li class="toctree-l1"><a class="reference internal" href="priors.html">Prior distributions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="retrieval_setup.html">Setting up and starting a retrieval</a></li>
-<li class="toctree-l1"><a class="reference internal" href="temperature_profiles.html">Temperature profiles</a></li>
-<li class="toctree-l1"><a class="reference internal" href="chemistry_models.html">Chemistry Models</a></li>
-<li class="toctree-l1"><a class="reference internal" href="cloud_models.html">Cloud Models</a></li>
-<li class="toctree-l1"><a class="reference internal" href="stellar_spectra.html">Stellar spectra</a></li>
-<li class="toctree-l1"><a class="reference internal" href="profile_parametrisations.html">Parametrisations of vertical profiles</a></li>
-</ul>
-
-<div class="relations">
-<h3>Related Topics</h3>
-<ul>
-  <li><a href="../index.html">Documentation overview</a><ul>
-      <li>Previous: <a href="licence.html" title="previous chapter">Licence</a></li>
-      <li>Next: <a href="opacity_data.html" title="next chapter">Opacity data</a></li>
-  </ul></li>
-</ul>
-</div>
-<div id="searchbox" style="display: none" role="search">
-  <h3 id="searchlabel">Quick search</h3>
-    <div class="searchformwrapper">
-    <form class="search" action="../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
-      <input type="submit" value="Go" />
-    </form>
-    </div>
-</div>
-<script>document.getElementById('searchbox').style.display = "block"</script>
-
-
-
-
-
-
-
-
-        </div>
-      </div>
-      <div class="clearer"></div>
-    </div>
+    <div class="clearer"></div>
+  </div>
     <div class="footer">
-      &copy;2020 - 2024, Daniel Kitzmann.
+      &copy;2020 - 2025, Daniel Kitzmann.
       
       |
       Powered by <a href="http://sphinx-doc.org/">Sphinx 7.1.2</a>

@@ -45,11 +45,27 @@ This includes, in particular,
 
 - a C compiler (e.g. ``gcc``) for the CDisort code
 
+BeAR also comes with its own Python interface pyBeAR. The interface allows the forward model
+and retrieval calculations to be performed in Python. The interface requires
+
+ - Python 3.9 or higher
+ - the pyMultiNest package (if the retrieval should be performed with MultiNest under Python)
+
+ Some combinations of the CUDA, g++, and Python compiler versions seem to produce issues during either
+ the compilation or when executing the code. Symptoms include, for example, segmentation faults when 
+ the BeAR C++ code is called from within Python. This seems to be caused by compatibility issues within 
+ the PyBind11 library and are, thus, not directly related to BeAR and also not fixable within BeAR itself.
+ The following combinations have been tested and are known to work with the PyBind11 version used in BeAR:
+
+- g++/gcc/gfortran 12.3
+- CUDA 12.0
+- Python 3.10
+
 
 .. _sec:install_config:
 
-Configuration and compilation with CMake
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Configuration and compilation of BeAR with CMake
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 | Before BeAR can be compiled, ``CMake`` is required to
   configure the compilation files, locate libraries, and write the
@@ -80,3 +96,28 @@ BeAR can be compiled by running:
 
 Upon successful compilation, the executable ``bear`` should be
 present in the main BeAR folder.
+
+
+Configuration and compilation of pyBeAR with CMake
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+| To compile the Python interface in addition to BeAR's stand-alone version, 
+  The ``CMake`` command above needs to be extended by the following option:
+
+.. code:: bash
+
+   cmake -DUSE_PYTHON=ON ..
+
+After ``CMake`` successfully configured the compilation files,
+BeAR can be compiled by running:
+
+.. code:: bash
+
+   make
+
+This will compile the Python interface *and* the stand-alone version of BeAR. Since
+the compilation will in fact be run twice, it will obviously take longer than
+compiling only the stand-alone version.
+
+After successful compilation, the Python package will be located in the ``python/lib`` 
+folder.
