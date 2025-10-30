@@ -102,10 +102,10 @@ opacity_species_data = np.array([
   ['CIA-H2-He', 'CIA/H2-He'],
   ['Na',        'Alkali_Allard/Na'],
   ['K',         'Alkali_Allard/K'],
-  ['H2O',       'Molecules/1H2-16O__POKAZATEL_e2b_n'],
+  ['H2O',       'Molecules/1H2-16O__POKAZATEL_e2b'],
   ['CH4',       'Molecules/12C-1H4__YT34to10_e2b'],
   ['CO2',       'Molecules/12C-16O2__CDSD_4000_e2b'],
-  ['CO',        'Molecules/12C-16O__Li2015_e2b_n'],
+  ['CO',        'Molecules/12C-16O__Li2015_e2b'],
   ['NH3',       'Molecules/14N-1H3__CoYuTe_e2b'],
   ['H2S',       'Molecules/1H2-32S__AYT2_e2b']])
   

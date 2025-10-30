@@ -125,7 +125,8 @@ PYBIND11_MODULE(pybear, m) {
         .def("convertCubeParameters", &bear::Retrieval::convertCubeParameters)
         .def("convertToPhysicalParameters", &bear::Retrieval::convertToPhysicalParameters)
         .def("computeLikelihood", &bear::Retrieval::computeLikelihood)
-        .def("computeModel", &bear::Retrieval::computeModel);
+        .def("computeModel", &bear::Retrieval::computeModel)
+        .def("computeAtmosphereStructure", &bear::PostProcess::computeAtmosphereStructure);
 
     py::class_<bear::PostProcess>(m, "PostProcess")
         .def(py::init<bear::GlobalConfig*>())

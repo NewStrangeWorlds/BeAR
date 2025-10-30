@@ -19,8 +19,8 @@ cross_section_file_path = "/media/data/opacity_data/helios-k/"
 opacity_species_data = np.array([
   ['CIA-H2-H2', 'CIA/H2-H2'], 
   ['CIA-H2-He', 'CIA/H2-He'],
-  ['H2O', 'Molecules/1H2-16O__POKAZATEL_e2b_n'],
-  ['CO', 'Molecules/12C-16O__Li2015_e2b_n'],
+  ['H2O', 'Molecules/1H2-16O__POKAZATEL_e2b'],
+  ['CO', 'Molecules/12C-16O__Li2015_e2b'],
   ['CO2', 'Molecules/12C-16O2__UCL-4000_e2b']
   ])
 
