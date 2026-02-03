@@ -37,288 +37,34 @@
 namespace bear{
 
 
-__forceinline__ __device__ double rayleighCrossSection(
-  const double reference_density, 
-  const double refractive_index, 
-  const double king_correction,
-  const double wavenumber)
-{
-  return 24. * pow(constants::pi, 3) * pow(wavenumber, 4) / (reference_density*reference_density)
-         * pow((refractive_index*refractive_index - 1) / (refractive_index*refractive_index + 2),2) * king_correction;
-}
-
-
-
-//Rayleigh cross section from Lee & Kim 2002
-//low-energy expansion, valid for wavelengths > 0.14 micron
-__global__ void rayleighScatteringH(
+__global__ void rayleighScatteringDevice(
   const double number_density,
   const int nb_spectral_points,
-  const int nb_grid_points, 
   const int grid_point,
-  double* wavelength,
-  double* wavenumber,
+  double* rayleigh_cross_sections_dev,
   double* scattering_coeff)
 {
   //tid is the wavenumber index
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
-  
-  constexpr double lambda_lyman = 0.0912; //wavelength of the Lyman limit in micron
 
   if (tid < nb_spectral_points)
   { 
-    const double lambda_fraction = lambda_lyman / wavelength[tid];
-
-    const double sigma = 8.41e-25 * pow(lambda_fraction, 4) 
-                       + 3.37e-24 * pow(lambda_fraction, 6) 
-                       + 4.71e-22 * pow(lambda_fraction, 14); //in cm2
-
-    scattering_coeff[grid_point*nb_spectral_points + tid] += sigma * number_density; 
+    scattering_coeff[grid_point*nb_spectral_points + tid] += rayleigh_cross_sections_dev[tid] * number_density; 
   }
 
 }
 
 
 
-__global__ void rayleighScatteringH2(
-  const double number_density,
-  const int nb_spectral_points,
-  const int nb_grid_points, 
-  const int grid_point,
-  double* wavelength,
-  double* wavenumber,
-  double* scattering_coeff)
-{
-  //tid is the wavenumber index
-  int tid = blockIdx.x * blockDim.x + threadIdx.x;
-  
-  const double king_correction = 1.0;
-  const double reference_density = 2.651629e19; //molecules cm^-3
-
-  if (tid < nb_spectral_points)
-  { 
-    const double refractive_index = (13.58e-5 * (1. + 7.52e-3/std::pow(wavelength[tid],2))) + 1.;
-    
-    const double sigma = rayleighCrossSection(
-        reference_density,
-        refractive_index,
-        king_correction,
-        wavenumber[tid]);
-    
-    scattering_coeff[grid_point*nb_spectral_points + tid] += sigma * number_density; 
-  }
-
-}
-
-
-
-__global__ void rayleighScatteringHe(
-  const double number_density,
-  const int nb_spectral_points,
-  const int nb_grid_points, 
-  const int grid_point,
-  double* wavelength,
-  double* wavenumber,
-  double* scattering_coeff)
-{
-  //tid is the wavenumber index
-  int tid = blockIdx.x * blockDim.x + threadIdx.x;
-
-  const double king_correction = 1.0;
-  const double reference_density = 2.546899e19; //molecules cm^-3
-
-  if (tid < nb_spectral_points)
-  { 
-    const double refractive_index = (2283. + 1.8102e13 / (1.5342e10 - wavenumber[tid]*wavenumber[tid])) * 1e-8 + 1;
-
-    const double sigma = rayleighCrossSection(
-      reference_density,
-      refractive_index,
-      king_correction,
-      wavenumber[tid]);
-  
-    scattering_coeff[grid_point*nb_spectral_points + tid] += sigma * number_density; 
-  }
-
-}
-
-
-
-__global__ void rayleighScatteringCO(
-  const double number_density,
-  const int nb_spectral_points,
-  const int nb_grid_points, 
-  const int grid_point,
-  double* wavelength,
-  double* wavenumber,
-  double* scattering_coeff)
-{
-  //tid is the wavenumber index
-  int tid = blockIdx.x * blockDim.x + threadIdx.x;
-
-  const double king_correction = 1.0;
-  const double reference_density = 2.546899e19; //molecules cm^-3
-
-  if (tid < nb_spectral_points)
-  {
-    if (wavelength[tid] < 2.0)
-    {
-      const double refractive_index = (22851. + 0.456e14 / (71427.0*71427.0 - wavenumber[tid]*wavenumber[tid])) * 1e-8 + 1;
-
-      const double sigma = rayleighCrossSection(
-        reference_density,
-        refractive_index,
-        king_correction,
-        wavenumber[tid]);
-    
-      scattering_coeff[grid_point*nb_spectral_points + tid] += sigma * number_density; 
-    }
-  }
-
-}
-
-
-
-__global__ void rayleighScatteringCO2(
-  const double number_density,
-  const int nb_spectral_points,
-  const int nb_grid_points, 
-  const int grid_point,
-  double* wavelength,
-  double* wavenumber,
-  double* scattering_coeff)
-{
-  //tid is the wavenumber index
-  int tid = blockIdx.x * blockDim.x + threadIdx.x;
-
-  const double reference_density = 2.546899e19; //molecules cm^-3
-
-  if (tid < nb_spectral_points)
-  {
-    if (wavelength[tid] < 2.0)
-    {
-      const double nu = wavenumber[tid];
-      const double king_correction =  1.1364 + 25.3e-12 * nu*nu;
-      const double refractive_index = (5799.25 / (128908.9*128908.9 - nu*nu) 
-                                    + 120.05 / (89223.8*89223.8 - nu*nu) 
-                                    + 5.3334 / (75037.5*75037.5 - nu*nu) 
-                                    + 4.3244 / (67837.7*67837.7 - nu*nu) 
-                                    + 0.1218145e-6 / (2418.136*2418.136 - nu*nu))
-                                    * 1.1427e3 + 1.0;
-
-      const double sigma = rayleighCrossSection(
-        reference_density,
-        refractive_index,
-        king_correction,
-        wavenumber[tid]);
-
-      scattering_coeff[grid_point*nb_spectral_points + tid] += sigma * number_density; 
-    }
-  }
-
-}
-
-
-
-__global__ void rayleighScatteringCH4(
-  const double number_density,
-  const int nb_spectral_points,
-  const int nb_grid_points, 
-  const int grid_point,
-  double* wavelength,
-  double* wavenumber,
-  double* scattering_coeff)
-{
-  //tid is the wavenumber index
-  int tid = blockIdx.x * blockDim.x + threadIdx.x;
-
-  const double king_correction = 1.0;
-  const double reference_density = 2.546899e19; //molecules cm^-3
-
-  if (tid < nb_spectral_points)
-  {
-    if (wavelength[tid] < 2.0)
-    {
-      double refractive_index = (46662. + 4.02e-6 *wavenumber[tid]*wavenumber[tid]) * 1e-8 + 1;
-
-      const double sigma = rayleighCrossSection(
-        reference_density,
-        refractive_index,
-        king_correction,
-        wavenumber[tid]);
-    
-      scattering_coeff[grid_point*nb_spectral_points + tid] += sigma * number_density; 
-    }
-  }
-
-}
-
-
-__global__ void rayleighScatteringH2O(
-  const double number_density,
-  const int nb_spectral_points,
-  const int nb_grid_points, 
-  const int grid_point,
-  double* wavelength,
-  double* wavenumber,
-  double* scattering_coeff)
-{
-  //tid is the wavenumber index
-  int tid = blockIdx.x * blockDim.x + threadIdx.x;
-
-  constexpr double king_correction = (6 + 3 * 3e-4) / (6 - 7 * 3e-4);
-
-  //this is the number density of water at standard temperature and pressure
-  //determined from the Avogradro constant and the properties of water at STP
-  constexpr double reference_density = 3.34279671749673e+22; //molecules cm^-3
-
-  //values for water at STP
-  constexpr double delta = 1.0;
-  constexpr double theta = 1.0;
-
-  constexpr double lambda_uv = 0.229202;
-  constexpr double lambda_ir = 5.432937;
-  
-  constexpr double a_coeff[8] = {0.244257733, 0.974634476e-2, -0.373234996e-2, 0.268678472e-3, 0.158920570e-2, 0.245934259e-2, 0.900704920, -0.166626219e-1};
-
-  if (tid < nb_spectral_points)
-  { 
-    if (wavelength[tid] < 2.0)
-    {
-      const double lambda = wavelength[tid] / 0.589;
-
-      const double a_factor = delta * (a_coeff[0] 
-                            + a_coeff[1]*delta 
-                            + a_coeff[2]*theta 
-                            + a_coeff[3]*lambda*lambda*theta 
-                            + a_coeff[4]*std::pow(lambda,-2) 
-                            + a_coeff[5] / (lambda*lambda - lambda_uv*lambda_uv) 
-                            + a_coeff[6] / (lambda*lambda - lambda_ir*lambda_ir) + a_coeff[7]*delta*delta);
-
-      const double refractive_index = pow(((2 * a_factor + 1)/(1 - a_factor)), 0.5);
-
-      const double sigma = rayleighCrossSection(
-        reference_density,
-        refractive_index,
-        king_correction,
-        wavenumber[tid]);
-    
-      scattering_coeff[grid_point*nb_spectral_points + tid] += sigma * number_density;
-    }
-  }
-
-}
-
-
-
-
-
-__host__ void GasCORayleigh::calcRayleighCrossSectionsGPU(
+__host__ void  OpacitySpecies::calcRayleighCrossSectionsGPU(
   const double number_density,
   const size_t nb_grid_points, 
   const size_t grid_point,
-  double* scattering_coeff)
+  double* scattering_coeff_dev)
 {
+  if (rayleigh_available == false)
+    return;
+  
   cudaDeviceSynchronize();
 
   const auto nb_spectral_points = spectral_grid->nbSpectralPoints();
@@ -327,195 +73,17 @@ __host__ void GasCORayleigh::calcRayleighCrossSectionsGPU(
   int blocks = nb_spectral_points / threads;
   if (nb_spectral_points % threads) blocks++;
 
-  rayleighScatteringCO<<<blocks,threads>>>(
+  rayleighScatteringDevice<<<blocks,threads>>>(
     number_density,
     nb_spectral_points,
-    nb_grid_points,
     grid_point,
-    spectral_grid->wavelength_list_gpu,
-    spectral_grid->wavenumber_list_gpu,
-    scattering_coeff);
+    rayleigh_cross_sections_dev,
+    scattering_coeff_dev);
 
 
   cudaDeviceSynchronize();
   gpuErrchk( cudaPeekAtLastError() );
 }
-
-
-__host__ void GasCO2Rayleigh::calcRayleighCrossSectionsGPU(
-  const double number_density,
-  const size_t nb_grid_points, 
-  const size_t grid_point,
-  double* scattering_coeff)
-{
-  cudaDeviceSynchronize();
-
-  const auto nb_spectral_points = spectral_grid->nbSpectralPoints();
-  int threads = 256;
-  
-  int blocks = nb_spectral_points / threads;
-  if (nb_spectral_points % threads) blocks++;
-
-  rayleighScatteringCO2<<<blocks,threads>>>(
-    number_density,
-    nb_spectral_points,
-    nb_grid_points,
-    grid_point,
-    spectral_grid->wavelength_list_gpu,
-    spectral_grid->wavenumber_list_gpu,
-    scattering_coeff);
-
-
-  cudaDeviceSynchronize();
-  gpuErrchk( cudaPeekAtLastError() );
-}
-
-
-__host__ void GasHRayleigh::calcRayleighCrossSectionsGPU(
-  const double number_density,
-  const size_t nb_grid_points, 
-  const size_t grid_point,
-  double* scattering_coeff)
-{
-  cudaDeviceSynchronize();
-
-  const auto nb_spectral_points = spectral_grid->nbSpectralPoints();
-  int threads = 256;
-  
-  int blocks = nb_spectral_points / threads;
-  if (nb_spectral_points % threads) blocks++;
-
-  rayleighScatteringH<<<blocks,threads>>>(
-    number_density,
-    nb_spectral_points,
-    nb_grid_points,
-    grid_point,
-    spectral_grid->wavelength_list_gpu,
-    spectral_grid->wavenumber_list_gpu,
-    scattering_coeff);
-
-
-  cudaDeviceSynchronize();
-  gpuErrchk( cudaPeekAtLastError() );
-}
-
-
-
-__host__ void GasH2Rayleigh::calcRayleighCrossSectionsGPU(
-  const double number_density,
-  const size_t nb_grid_points, 
-  const size_t grid_point,
-  double* scattering_coeff)
-{
-  cudaDeviceSynchronize();
-
-  const auto nb_spectral_points = spectral_grid->nbSpectralPoints();
-  int threads = 256;
-  
-  int blocks = nb_spectral_points / threads;
-  if (nb_spectral_points % threads) blocks++;
-
-  rayleighScatteringH2<<<blocks,threads>>>(
-    number_density,
-    nb_spectral_points,
-    nb_grid_points,
-    grid_point,
-    spectral_grid->wavelength_list_gpu,
-    spectral_grid->wavenumber_list_gpu,
-    scattering_coeff);
-
-
-  cudaDeviceSynchronize();
-  gpuErrchk( cudaPeekAtLastError() );
-}
-
-
-__host__ void GasCH4Rayleigh::calcRayleighCrossSectionsGPU(
-  const double number_density,
-  const size_t nb_grid_points, 
-  const size_t grid_point,
-  double* scattering_coeff)
-{
-  cudaDeviceSynchronize();
-
-  const auto nb_spectral_points = spectral_grid->nbSpectralPoints();
-  int threads = 256;
-  
-  int blocks = nb_spectral_points / threads;
-  if (nb_spectral_points % threads) blocks++;
-
-  rayleighScatteringCH4<<<blocks,threads>>>(
-    number_density,
-    nb_spectral_points,
-    nb_grid_points,
-    grid_point,
-    spectral_grid->wavelength_list_gpu,
-    spectral_grid->wavenumber_list_gpu,
-    scattering_coeff);
-
-
-  cudaDeviceSynchronize();
-  gpuErrchk( cudaPeekAtLastError() );
-}
-
-
-__host__ void GasH2ORayleigh::calcRayleighCrossSectionsGPU(
-  const double number_density,
-  const size_t nb_grid_points, 
-  const size_t grid_point,
-  double* scattering_coeff)
-{
-  cudaDeviceSynchronize();
-
-  const auto nb_spectral_points = spectral_grid->nbSpectralPoints();
-  int threads = 256;
-  
-  int blocks = nb_spectral_points / threads;
-  if (nb_spectral_points % threads) blocks++;
-
-  rayleighScatteringH2O<<<blocks,threads>>>(
-    number_density,
-    nb_spectral_points,
-    nb_grid_points,
-    grid_point,
-    spectral_grid->wavelength_list_gpu,
-    spectral_grid->wavenumber_list_gpu,
-    scattering_coeff);
-
-
-  cudaDeviceSynchronize();
-  gpuErrchk( cudaPeekAtLastError() );
-}
-
-
-__host__ void GasHeRayleigh::calcRayleighCrossSectionsGPU(
-  const double number_density,
-  const size_t nb_grid_points, 
-  const size_t grid_point,
-  double* scattering_coeff)
-{
-  cudaDeviceSynchronize();
-
-  const auto nb_spectral_points = spectral_grid->nbSpectralPoints();
-  int threads = 256;
-  
-  int blocks = nb_spectral_points / threads;
-  if (nb_spectral_points % threads) blocks++;
-
-  rayleighScatteringHe<<<blocks,threads>>>(
-    number_density,
-    nb_spectral_points,
-    nb_grid_points,
-    grid_point,
-    spectral_grid->wavelength_list_gpu,
-    spectral_grid->wavenumber_list_gpu,
-    scattering_coeff);
-
-
-  cudaDeviceSynchronize();
-  gpuErrchk( cudaPeekAtLastError() );
-}
-
 
 
 

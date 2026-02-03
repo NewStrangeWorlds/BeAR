@@ -32,7 +32,6 @@
 
 namespace bear{
 
-
 __forceinline__ __device__ double distanceToTangentCenter(
   const double tangent_altitude, 
   const double altitude, 
@@ -44,6 +43,85 @@ __forceinline__ __device__ double distanceToTangentCenter(
   if (a <= b) return 0;
 
   return sqrt(a*a - b*b);
+}
+
+__global__
+void transmissionSpectrumKernel(
+  int nb_spectral_points,
+  int nb_grid_points,
+  double bottom_radius,
+  double star_radius,
+  const double* __restrict__ altitude,
+  const double* __restrict__ absorption,
+  const double* __restrict__ scattering,
+  const double* __restrict__ cloud,
+  double transmission_cutoff,
+  double* spectrum)
+{
+  int w = blockIdx.x * blockDim.x + threadIdx.x;
+  
+  if (w >= nb_spectral_points) return;
+
+  // Each thread gets its own local transmission array (in registers/local memory)
+  double effective_tangent_height = 0.0;
+
+  // ---- integrateEffectiveTangentHeight ----
+  double prev_trans = 1.0;  // top limb = transparent
+  double prev_alt   = altitude[nb_grid_points-1];
+
+  for (int t = nb_grid_points-2; t >= 0; --t)
+  {
+    // ---- tangentOpticalDepth ----
+    float tau = 0.0;
+    float b = bottom_radius + altitude[t];
+
+    for (int i = t; i < nb_grid_points-1; ++i)
+    {
+      float a1 = bottom_radius + altitude[i];
+      float a2 = bottom_radius + altitude[i+1];
+
+      float path = sqrt(a2*a2 - b*b);
+      
+      if (i != t)
+        path -= sqrt(a1*a1-b*b);
+      
+      int idx1 = i*nb_spectral_points + w;
+      int idx2 = (i+1)*nb_spectral_points + w;
+
+      // int idx1 = w*nb_grid_points + i;
+      // int idx2 = w*nb_grid_points + i+1;
+
+      float ext1 = absorption[idx1] + scattering[idx1]; // + cloud[idx1];
+      float ext2 = absorption[idx2] + scattering[idx2]; // + cloud[idx2];
+
+      tau += path * (ext1 + ext2);
+      
+      if (tau > transmission_cutoff) break;
+    }
+    
+    float trans = exp(-tau);
+
+    // ---- trapezoidal integration for effective tangent height ----
+    double alt = altitude[t];
+
+    effective_tangent_height +=
+      ( (bottom_radius + alt) * (1.0 - trans)
+      + (bottom_radius + prev_alt) * (1.0 - prev_trans) )
+      * (prev_alt - alt);
+
+    prev_trans = trans;
+    prev_alt   = alt;
+  }
+  
+  effective_tangent_height =
+      sqrt(effective_tangent_height + bottom_radius*bottom_radius)
+      - bottom_radius;
+
+  double planet_radius = effective_tangent_height + bottom_radius;
+
+  spectrum[w] = (planet_radius * planet_radius) /
+                (star_radius * star_radius) * 1e6;
+  
 }
 
 
@@ -194,6 +272,20 @@ __global__ void sumExtinctionCoeff(
 }
 
 
+//sum all transparencies to get the total extinction coefficient
+//the result is placed in the absorption_coeff array
+__global__ void sumExtinctionCoeff(
+  const int nb_points, 
+  double* absorption_coeff, 
+  double* scattering_coeff)
+{
+  int i = blockIdx.x * blockDim.x + threadIdx.x;  // Global thread index
+  
+  if (i < nb_points)
+    absorption_coeff[i] += scattering_coeff[i];
+}
+
+
 __global__ void transitDepthDev(
   double* transit_radius,
   double* extinction_coeff,
@@ -230,39 +322,68 @@ __host__ void  TransmissionModel::calcTransitDepthGPU(
   const double radius_planet, 
   const double radius_star)
 {
-  int threads = 256;
-  int blocks = nb_spectral_points / threads;
+  // int threads = 256;
+  // int blocks = (nb_spectral_points*nb_grid_points) / threads;
 
-  if (nb_spectral_points % threads) blocks++;
+  // if ((nb_spectral_points*nb_grid_points) % threads) blocks++;
 
   
-  if (cloud_extinction_dev != nullptr)
-    sumExtinctionCoeff<<<blocks,threads>>>(
-      nb_spectral_points, 
-      atmosphere.nb_grid_points, 
-      absorption_coeff_dev, 
-      scattering_coeff_dev, 
-      cloud_extinction_dev); 
-  else
-    sumExtinctionCoeff<<<blocks,threads>>>(
-      nb_spectral_points, 
-      atmosphere.nb_grid_points, 
-      absorption_coeff_dev, 
-      scattering_coeff_dev);
+  // if (cloud_extinction_dev != nullptr)
+  //   sumExtinctionCoeff<<<blocks,threads>>>(
+  //     nb_spectral_points, 
+  //     atmosphere.nb_grid_points, 
+  //     absorption_coeff_dev, 
+  //     scattering_coeff_dev, 
+  //     cloud_extinction_dev); 
+  // else
+  //   // sumExtinctionCoeff<<<blocks,threads>>>(
+  //   //   nb_spectral_points, 
+  //   //   atmosphere.nb_grid_points, 
+  //   //   absorption_coeff_dev, 
+  //   //   scattering_coeff_dev);
+  //    sumExtinctionCoeff<<<blocks,threads>>>(
+  //     nb_spectral_points*nb_grid_points, 
+  //     absorption_coeff_dev, 
+  //     scattering_coeff_dev);
 
-  cudaDeviceSynchronize();
-  gpuErrchk( cudaPeekAtLastError() );
-  gpuErrchk( cudaDeviceSynchronize() );
+  // cudaDeviceSynchronize();
+  // gpuErrchk( cudaPeekAtLastError() );
+  // gpuErrchk( cudaDeviceSynchronize() );
 
-  transitDepthDev<<<blocks,threads>>>(
-    transit_radius_dev, 
-    absorption_coeff_dev, 
-    atmosphere.altitude_dev, 
-    nb_spectral_points, 
-    nb_grid_points, 
-    radius_planet, 
-    radius_star*radius_star);
 
+  // threads = 256;
+  // blocks = nb_spectral_points / threads;
+
+  // if (nb_spectral_points % threads) blocks++;
+
+  // transitDepthDev<<<blocks,threads>>>(
+  //   transit_radius_dev, 
+  //   absorption_coeff_dev, 
+  //   atmosphere.altitude_dev, 
+  //   nb_spectral_points, 
+  //   nb_grid_points, 
+  //   radius_planet, 
+  //   radius_star*radius_star);
+
+
+  // cudaDeviceSynchronize();
+  // gpuErrchk( cudaPeekAtLastError() );
+  // gpuErrchk( cudaDeviceSynchronize() );
+
+  int threads = 256;
+  int blocks  = (nb_spectral_points + threads - 1) / threads;
+
+  transmissionSpectrumKernel<<<blocks, threads>>>(
+    nb_spectral_points,
+    nb_grid_points,
+    radius_planet,
+    radius_star,
+    atmosphere.altitude_dev,
+    absorption_coeff_dev,
+    scattering_coeff_dev,
+    cloud_extinction_dev,
+    transmission_optical_depth_cutoff,
+    transit_radius_dev);
 
   cudaDeviceSynchronize();
   gpuErrchk( cudaPeekAtLastError() );

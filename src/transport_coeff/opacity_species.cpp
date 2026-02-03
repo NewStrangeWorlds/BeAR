@@ -45,10 +45,17 @@ void OpacitySpecies::init()
 {
   std::string file_path = config->cross_section_file_path;
   
-  //if we use the built-in Rayleigh scattering
-  //or continuum absorption, we don't need to read any data
-  if (rayleigh_available == true || continuum_available == true)
+  //if we have only continuum absorption, we don't need to read any data
+  if (continuum_available == true)
     return;
+  
+  //if only Rayleigh scattering is available, 
+  //we just tabulate the cross sections once
+  if (rayleigh_available == true)
+  {
+    tabulateRayleighCrossSections();
+    return;
+  }
 
   readFileList(file_path);
   orderDataList();
@@ -429,10 +436,15 @@ void OpacitySpecies::calcTransportCoefficients(
 
   cross_sections.assign(spectral_grid->nbSpectralPoints(), 0.0);
 
-  if (calcScatteringCrossSections(cross_sections) == true)
+  // if (calcScatteringCrossSections(cross_sections) == true)
+  //   #pragma omp parallel for
+  //   for (size_t i=0; i<spectral_grid->nbSpectralPoints(); ++i)
+  //     scattering_coeff[i] += cross_sections[i] * number_densities[species_index];
+
+  if (rayleigh_available == true)
     #pragma omp parallel for
     for (size_t i=0; i<spectral_grid->nbSpectralPoints(); ++i)
-      scattering_coeff[i] += cross_sections[i] * number_densities[species_index];
+      scattering_coeff[i] += rayleigh_cross_sections[i] * number_densities[species_index];
 
 
   cross_sections.assign(spectral_grid->nbSpectralPoints(), 0.0);
@@ -493,6 +505,24 @@ bool OpacitySpecies::calcScatteringCrossSections(std::vector<double>& cross_sect
 
   return calcRayleighCrossSections(cross_sections);
 
+}
+
+
+
+void OpacitySpecies::tabulateRayleighCrossSections()
+{
+  if (rayleigh_available == false) return;
+
+  rayleigh_cross_sections.resize(spectral_grid->nbSpectralPoints(), 0.0);
+  calcRayleighCrossSections(rayleigh_cross_sections);
+
+  if (config->use_gpu == true)
+  {
+    moveToDevice(
+      rayleigh_cross_sections_dev,
+      rayleigh_cross_sections,
+      true);
+  }
 }
 
 

@@ -80,6 +80,45 @@ __global__ void calcCrossSectionsDevice(const double* cross_sections1, const dou
 }
 
 
+//calculates the cross sections for a given p-T pair based on tabulated data
+//uses a two-dimensional linar interpolation in log pressure and linear temperature based on the four closest tabulated p-T points
+//note that the cross-sections are given in log10 here
+__global__ void calcCrossSectionsDevice(
+  const double* cross_sections1, 
+  const double* cross_sections2, 
+  const double* cross_sections3, 
+  const double* cross_sections4,
+  const double temperature_interpol_factor,
+  const double pressure_interpol_factor,
+  const double number_density,
+  const int nb_spectral_points, 
+  const int grid_point,
+  double* __restrict__ absorption_coeff_device)
+{
+  //tid is the wavenumber index
+  int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+  
+  if (tid < nb_spectral_points)
+  {
+    double c1 = cross_sections1[tid];
+    double c2 = cross_sections2[tid];
+    const double c3 = cross_sections3[tid];
+    const double c4 = cross_sections4[tid];
+
+    c1 = c1 + (c2 - c1) * pressure_interpol_factor;
+    c2 = c3 + (c4 - c3) * pressure_interpol_factor;
+
+    double sigma = c1 + (c2 - c1) * temperature_interpol_factor;
+    sigma = exp10(sigma);
+   
+    absorption_coeff_device[grid_point*nb_spectral_points + tid] += sigma * number_density;
+    //absorption_coeff_device[grid_point*nb_spectral_points + tid] += sigma * number_density;
+  }
+
+}
+
+
 
 //calculates the H- continuum
 __global__ void calcHmContinuumDevice(const double hm_number_density, const int nb_spectral_points, const int grid_point, double* wavelengths_d, double* __restrict__ absorption_coeff_device)
@@ -312,13 +351,23 @@ __host__ void calcCrossSectionsHost(double* cross_sections1, double* cross_secti
   int blocks = nb_spectral_points / threads;
   if (nb_spectral_points % threads) blocks++;
 
+  const double pressure_interpol_factor = (log_pressure - log_pressure1_gpu)/(log_pressure2_gpu - log_pressure1_gpu);
+  const double temperature_interpol_factor = (temperature - temperature1_gpu)/(temperature2_gpu - temperature1_gpu);
+
 
   calcCrossSectionsDevice<<<blocks,threads>>>(cross_sections1, cross_sections2, cross_sections3, cross_sections4,
-                                     temperature1_gpu, temperature2_gpu,
-                                     log_pressure1_gpu, log_pressure2_gpu,
-                                     temperature, log_pressure, number_density,
-                                     nb_spectral_points, nb_grid_points, grid_point,
+                                     temperature_interpol_factor,
+                                     pressure_interpol_factor,
+                                     number_density,
+                                     nb_spectral_points,grid_point,
                                      absorption_coeff_device);
+
+  // calcCrossSectionsDevice<<<blocks,threads>>>(cross_sections1, cross_sections2, cross_sections3, cross_sections4,
+  //                                    temperature1_gpu, temperature2_gpu,
+  //                                    log_pressure1_gpu, log_pressure2_gpu,
+  //                                    temperature, log_pressure, number_density,
+  //                                    nb_spectral_points, nb_grid_points, grid_point,
+  //                                    absorption_coeff_device);
 
 
   cudaDeviceSynchronize();

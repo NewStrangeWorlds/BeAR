@@ -139,23 +139,30 @@ __host__ void initializeOnDevice(T*& device_data, const size_t nb_points)
 
 
 template void moveToHost<double>(double*&, std::vector<double>&);
+template void moveToHost<float>(float*&, std::vector<float>&);
 template void moveToHost<int>(int*&, std::vector<int>&);
 
 template void moveToHostAndDelete<double>(double*&, std::vector<double>&);
+template void moveToHostAndDelete<float>(float*&, std::vector<float>&);
 template void moveToHostAndDelete<int>(int*&, std::vector<int>&);
 
 template void deleteFromDevice<double>(double*&);
 template void deleteFromDevice<int>(int*&);
+template void deleteFromDevice<float>(float*&);
 
 template void initializeOnDevice<double>(double*&, const size_t);
 template void initializeOnDevice<int>(int*&, const size_t);
+template void initializeOnDevice<float>(float*&, const size_t);
 
 template void moveToDevice<double>(double*&, std::vector<double>&);
 template void moveToDevice<int>(int*&, std::vector<int>&);
+template void moveToDevice<float>(float*&, std::vector<float>&);
 
 template void moveToDevice<double>(double*&, std::vector<double>&, const bool);
 template void moveToDevice<int>(int*&, std::vector<int>&, const bool);
+template void moveToDevice<float>(float*&, std::vector<float>&, const bool);
 
 template void allocateOnDevice<double>(double*&, size_t);
 template void allocateOnDevice<int>(int*&, size_t);
+template void allocateOnDevice<float>(float*&, size_t);
 }

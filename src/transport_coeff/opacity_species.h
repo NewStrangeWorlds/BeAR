@@ -29,6 +29,7 @@
 #include "../chemistry/chem_species.h"
 #include "../spectral_grid/spectral_grid.h"
 #include "../config/global_config.h"
+#include "../CUDA_kernels/data_management_kernels.h"
 #include "sampled_data.h"
 
 
@@ -43,7 +44,10 @@ class OpacitySpecies {
       const std::string folder) 
         : species_index(index), species_name(name), species_folder(folder) 
         {}
-    virtual ~OpacitySpecies() {}
+    virtual ~OpacitySpecies() {
+      if (rayleigh_cross_sections_dev != nullptr)
+        deleteFromDevice(rayleigh_cross_sections_dev);
+    }
    
     bool dataAvailable() {
       if (rayleigh_available || continuum_available)
@@ -85,6 +89,9 @@ class OpacitySpecies {
     std::vector<SampledData> sampled_cross_sections;
     std::vector<std::vector<SampledData*>> ordered_data_list;
 
+    std::vector<double> rayleigh_cross_sections;
+    double* rayleigh_cross_sections_dev = nullptr;
+
     void init();
     void orderDataList();
 
@@ -104,11 +111,13 @@ class OpacitySpecies {
       std::vector<double>& cross_sections) {
       return false;};
 
+    void tabulateRayleighCrossSections();
+
     virtual void calcRayleighCrossSectionsGPU(
       const double number_density,
       const size_t nb_grid_points, 
       const size_t grid_point,
-      double* scattering_coeff_dev) {};
+      double* scattering_coeff_dev);
 
     void readFileList(const std::string file_path);
     
