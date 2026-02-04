@@ -39,9 +39,9 @@ namespace bear{
 //uses two angles, distributed according to a Gaussian quadrature scheme
 __global__ void shortCharacteristicsDev(
   double* model_spectrum_gpu,
-  const double* absorption_coeff_dev,
+  const float* absorption_coeff_dev,
   const double* wavenumber_list_dev,
-  const double* cloud_optical_depth_dev,
+  const float* cloud_optical_depth_dev,
   const double* temperature_dev,
   const double* vertical_grid_dev,
   const double spectrum_scaling,
@@ -111,11 +111,11 @@ __global__ void shortCharacteristicsDev(
 
 void ShortCharacteristics::calcSpectrumGPU(
   const Atmosphere& atmosphere,
-  double* absorption_coeff_dev,
-  double* scattering_coeff_dev,
-  double* cloud_optical_depth_dev,
-  double* cloud_single_scattering_dev,
-  double* cloud_asym_param_dev,
+  float* absorption_coeff_dev,
+  float* scattering_coeff_dev,
+  float* cloud_optical_depth_dev,
+  float* cloud_single_scattering_dev,
+  float* cloud_asym_param_dev,
   const double spectrum_scaling,
   double* model_spectrum_dev)
 {

@@ -46,7 +46,8 @@ void SampledData::deleteSampledData()
 
 
 void SampledData::sampleCrossSections(
-  const std::vector<size_t>& sampling_list_indices, const double species_mass)
+  const std::vector<size_t>& sampling_list_indices, 
+  const double species_mass)
 {
   if (!data_file.is_loaded) data_file.loadFile();
 
@@ -70,7 +71,7 @@ void SampledData::sampleCrossSections(
     
     if (i < 1e-200) i = 1e-200;
   }
-
+  
   //convert the cross-section to log for performance reasons
   for (auto & i : cross_sections)
     i = std::log10(i);

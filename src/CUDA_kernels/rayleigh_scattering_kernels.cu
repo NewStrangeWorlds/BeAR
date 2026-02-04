@@ -37,12 +37,13 @@
 namespace bear{
 
 
-__global__ void rayleighScatteringDevice(
+__global__ 
+void rayleighScatteringDevice(
   const double number_density,
   const int nb_spectral_points,
   const int grid_point,
-  double* rayleigh_cross_sections_dev,
-  double* scattering_coeff)
+  float* rayleigh_cross_sections_dev,
+  float* scattering_coeff)
 {
   //tid is the wavenumber index
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -56,11 +57,12 @@ __global__ void rayleighScatteringDevice(
 
 
 
-__host__ void  OpacitySpecies::calcRayleighCrossSectionsGPU(
+__host__ 
+void  OpacitySpecies::calcRayleighCrossSectionsGPU(
   const double number_density,
   const size_t nb_grid_points, 
   const size_t grid_point,
-  double* scattering_coeff_dev)
+  float* scattering_coeff_dev)
 {
   if (rayleigh_available == false)
     return;

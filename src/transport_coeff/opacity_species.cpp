@@ -275,7 +275,9 @@ std::vector<SampledData*> OpacitySpecies::findClosestDataPoints(
 
 
 void OpacitySpecies::calcAbsorptionCrossSections(
-  const double pressure, const double temperature, std::vector<double>& cross_sections)
+  const double pressure, 
+  const double temperature, 
+  std::vector<double>& cross_sections)
 { 
   std::vector<SampledData*> data_points = findClosestDataPoints(pressure, temperature);
 
@@ -372,8 +374,8 @@ void OpacitySpecies::calcAbsorptionCoefficientsGPU(
   const double number_density,
   const size_t nb_grid_points,
   const size_t grid_point,
-  double* absorption_coeff_device,
-  double* scattering_coeff_device)
+  float* absorption_coeff_device,
+  float* scattering_coeff_device)
 {
   std::vector<SampledData*> data_points = findClosestDataPoints(pressure, temperature);
 
@@ -464,8 +466,8 @@ void OpacitySpecies::calcTransportCoefficientsGPU(
   const std::vector<double>& number_densities,
   const size_t nb_grid_points,
   const size_t grid_point,
-  double* absorption_coeff_device,
-  double* scattering_coeff_device)
+  float* absorption_coeff_device,
+  float* scattering_coeff_device)
 {
   double number_density = number_densities[species_index];
 
@@ -500,7 +502,8 @@ void OpacitySpecies::calcTransportCoefficientsGPU(
 
 
 
-bool OpacitySpecies::calcScatteringCrossSections(std::vector<double>& cross_sections)
+bool OpacitySpecies::calcScatteringCrossSections(
+  std::vector<double>& cross_sections)
 {
 
   return calcRayleighCrossSections(cross_sections);
@@ -520,8 +523,7 @@ void OpacitySpecies::tabulateRayleighCrossSections()
   {
     moveToDevice(
       rayleigh_cross_sections_dev,
-      rayleigh_cross_sections,
-      true);
+      rayleigh_cross_sections);
   }
 }
 

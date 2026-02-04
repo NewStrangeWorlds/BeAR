@@ -25,6 +25,7 @@
 #include <cmath>
 #include <stdio.h>
 #include <new>
+#include <algorithm>
 
 #include "error_check.h"
 
@@ -116,6 +117,27 @@ __host__ void moveToDevice(T*& device_data, std::vector<T>& host_data)
     allocateOnDevice(device_data, host_data.size());
 
   cudaMemcpy(device_data, &host_data[0], bytes, cudaMemcpyHostToDevice);
+
+  cudaDeviceSynchronize();
+  gpuErrchk( cudaPeekAtLastError() );
+  gpuErrchk( cudaDeviceSynchronize() );
+}
+
+
+__host__
+void moveToDevice(float*& device_data, std::vector<double>& host_data)
+{
+  if (device_data == nullptr)
+    allocateOnDevice(device_data, host_data.size());
+  
+  const int bytes = host_data.size()*sizeof(float);
+  
+  std::vector<float> host_data_f(host_data.size());
+  
+  std::transform(host_data.begin(), host_data.end(), host_data_f.begin(),
+               [](double x) { return static_cast<float>(x); });
+
+  cudaMemcpy(device_data, &host_data_f[0], bytes, cudaMemcpyHostToDevice);
 
   cudaDeviceSynchronize();
   gpuErrchk( cudaPeekAtLastError() );

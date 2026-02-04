@@ -105,7 +105,7 @@ class GasHm : public OpacitySpecies {
       const std::vector<double>& number_densities,
       const size_t nb_grid_points, 
       const size_t grid_point,
-      double* absorption_coeff_device) 
+      float* absorption_coeff_device) 
       {
         calcHmContinuumHost(
           number_densities[_Hm],

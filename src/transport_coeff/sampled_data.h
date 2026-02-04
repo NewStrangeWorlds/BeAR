@@ -73,7 +73,7 @@ class SampledData{
     
     bool is_sampled = false;
 
-    double* cross_sections_device = nullptr; //pointer to the cross section data on the GPU
+    float* cross_sections_device = nullptr;
     std::vector<double> cross_sections;
   private:
     CrossSectionFile data_file;

@@ -20,13 +20,15 @@ namespace bear{
 
 
 
-__global__ void contributionFunctionDevice(double* contribution_function_gpu,
-                                           const double* absorption_coeff_dev, const double* wavenumber_list_dev,
-                                           const double* temperature_dev, const double* vertical_grid_dev,
-                                           const int nb_spectral_points, const int nb_grid_points)
+__global__ void contributionFunctionDevice(
+  double* contribution_function_gpu,
+  const float* absorption_coeff_dev, 
+  const double* wavenumber_list_dev,
+  const double* temperature_dev, 
+  const double* vertical_grid_dev,
+  const int nb_spectral_points, 
+  const int nb_grid_points)
 {
-
-
   //tid is the wavenumber index
   //int tid = blockIdx.x * blockDim.x + threadIdx.x;
   for (int tid = blockIdx.x * blockDim.x + threadIdx.x; tid < nb_spectral_points; tid += blockDim.x * gridDim.x)
@@ -70,10 +72,13 @@ __global__ void contributionFunctionDevice(double* contribution_function_gpu,
 
 
 
-__host__ void contributionFunctionGPU(double* contribution_function_dev,
-                                      double* absorption_coeff_dev, double* wavenumber_list_dev,
-                                      std::vector<double>& temperature, std::vector<double>& vertical_grid,
-                                      const size_t& nb_spectral_points)
+__host__ void contributionFunctionGPU(
+  double* contribution_function_dev,
+  float* absorption_coeff_dev, 
+  double* wavenumber_list_dev,
+  std::vector<double>& temperature, 
+  std::vector<double>& vertical_grid,
+  const size_t& nb_spectral_points)
 {
   size_t nb_grid_points = temperature.size();
 

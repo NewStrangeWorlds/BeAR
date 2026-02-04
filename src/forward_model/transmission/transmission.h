@@ -215,7 +215,7 @@ class TransmissionModel : public ForwardModel{
     size_t nb_grid_points = 0;
 
     std::vector<std::vector<double>> cloud_extinction;
-    double* cloud_extinction_gpu = nullptr;
+    float* cloud_extinction_gpu = nullptr;
 
     bool fit_mean_molecular_weight = false;
     bool fit_scale_height = false;
@@ -257,9 +257,9 @@ class TransmissionModel : public ForwardModel{
     
     void calcTransitDepthGPU(
       double* transit_radius_dev, 
-      double* absorption_coeff_dev, 
-      double* scattering_coeff_dev, 
-      double* cloud_extinction_coeff_dev, 
+      float* absorption_coeff_dev, 
+      float* scattering_coeff_dev, 
+      float* cloud_extinction_coeff_dev, 
       const Atmosphere& atmosphere, 
       const size_t nb_spectral_points, 
       const double radius_planet, 

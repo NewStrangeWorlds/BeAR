@@ -75,12 +75,12 @@ class OpacityCalculation {
     std::vector< std::vector<double> > cloud_asym_param;
 
     //pointer to the array that holds the pointers to the coefficients on the GPU
-    double* absorption_coeff_gpu = nullptr;
-    double* scattering_coeff_dev = nullptr;
+    float* absorption_coeff_gpu = nullptr;
+    float* scattering_coeff_dev = nullptr;
 
-    double* cloud_optical_depths_dev = nullptr;
-    double* cloud_single_scattering_dev = nullptr;
-    double* cloud_asym_param_dev = nullptr;
+    float* cloud_optical_depths_dev = nullptr;
+    float* cloud_single_scattering_dev = nullptr;
+    float* cloud_asym_param_dev = nullptr;
     
   private:
     SpectralGrid* spectral_grid;
@@ -146,11 +146,8 @@ inline void OpacityCalculation::calculateGPU(
         cloud_optical_depths_dev, 
         cloud_single_scattering_dev, 
         cloud_asym_param_dev);
-      
     }
   }
-
-
 }
 
 
@@ -184,9 +181,15 @@ inline void OpacityCalculation::calculate(
     }
   }
 
-  cloud_optical_depths.assign(nb_spectral_points, std::vector<double>(nb_grid_points-1, 0.0));
-  cloud_single_scattering.assign(nb_spectral_points, std::vector<double>(nb_grid_points-1, 0.0));
-  cloud_asym_param.assign(nb_spectral_points, std::vector<double>(nb_grid_points-1, 0.0));
+  cloud_optical_depths.assign(
+    nb_spectral_points, 
+    std::vector<double>(nb_grid_points-1, 0.0));
+  cloud_single_scattering.assign(
+    nb_spectral_points, 
+    std::vector<double>(nb_grid_points-1, 0.0));
+  cloud_asym_param.assign(
+    nb_spectral_points, 
+    std::vector<double>(nb_grid_points-1, 0.0));
 
 
   if (use_cloud)
@@ -204,7 +207,6 @@ inline void OpacityCalculation::calculate(
       std::vector<std::vector<double>> optical_depths;
       std::vector<std::vector<double>> single_scattering;
       std::vector<std::vector<double>> asym_param;
-
       i->opticalProperties(
         parameter, 
         *atmosphere, 

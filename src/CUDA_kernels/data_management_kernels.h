@@ -30,6 +30,7 @@ namespace bear{
 template <typename T> void allocateOnDevice(T*& device_data, size_t nb_double_values);
 template <typename T> void moveToDevice(T*& device_data, std::vector<T>& host_data, const bool alloc_memory);
 template <typename T> void moveToDevice(T*& device_data, std::vector<T>& host_data);
+void moveToDevice(float*& device_data, std::vector<double>& host_data);
 template <typename T> void moveToHost(T*& device_data, std::vector<T>& host_data);
 template <typename T> void moveToHostAndDelete(T*& device_data, std::vector<T>& host_data);
 template <typename T> void deleteFromDevice(T*& device_data);

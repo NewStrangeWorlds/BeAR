@@ -53,11 +53,11 @@ class ShortCharacteristics : public RadiativeTransfer{
 
     virtual void calcSpectrumGPU(
       const Atmosphere& atmosphere,
-      double* absorption_coeff_dev,
-      double* scattering_coeff_dev,
-      double* cloud_optical_depth,
-      double* cloud_single_scattering,
-      double* cloud_asym_param,
+      float* absorption_coeff_dev,
+      float* scattering_coeff_dev,
+      float* cloud_optical_depth,
+      float* cloud_single_scattering,
+      float* cloud_asym_param,
       const double spectrum_scaling,
       double* model_spectrum_dev);
   private:

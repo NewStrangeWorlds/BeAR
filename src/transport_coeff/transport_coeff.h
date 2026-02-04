@@ -53,8 +53,8 @@ class TransportCoefficients {
       const std::vector<double>& number_densities,
       const size_t nb_grid_points,
       const size_t grid_point,
-      double* absorption_coeff_device,
-      double* scattering_coeff_device);
+      float* absorption_coeff_device,
+      float* scattering_coeff_device);
 
   private:
     GlobalConfig* config = nullptr;

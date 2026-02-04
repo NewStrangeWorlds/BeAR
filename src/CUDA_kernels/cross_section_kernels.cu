@@ -40,80 +40,35 @@ namespace bear{
 //calculates the cross sections for a given p-T pair based on tabulated data
 //uses a two-dimensional linar interpolation in log pressure and linear temperature based on the four closest tabulated p-T points
 //note that the cross-sections are given in log10 here
-__global__ void calcCrossSectionsDevice(const double* cross_sections1, const double* cross_sections2, const double* cross_sections3, const double* cross_sections4,
-                                        const double temperature1, const double temperature2,
-                                        const double log_pressure1, const double log_pressure2,
-                                        const double temperature, const double log_pressure, const double number_density,
-                                        const int nb_spectral_points, const int nb_grid_points, const int grid_point,
-                                        double* __restrict__ absorption_coeff_device)
-{
-  //tid is the wavenumber index
-  int tid = blockIdx.x * blockDim.x + threadIdx.x;
-
-  
-  if (tid < nb_spectral_points)
-  {
-    double c1 = cross_sections1[tid];
-    double c2 = cross_sections2[tid];
-    double c3 = cross_sections3[tid];
-    double c4 = cross_sections4[tid];
-    const double pressure_interpol_factor = (log_pressure - log_pressure1)/(log_pressure2 - log_pressure1);
-
-
-    /*c1 = c1 + (c2 - c1) * (temperature - temperature1)/(temperature2 - temperature1);
-    c2 = c3 + (c4 - c3) * (temperature - temperature1)/(temperature2 - temperature1);
-
-    double sigma = c1 + (c2 - c1) * (log_pressure - log_pressure1)/(log_pressure2 - log_pressure1);
-    sigma = exp10(sigma);*/
-
-
-    c1 = c1 + (c2 - c1) * pressure_interpol_factor;
-    c2 = c3 + (c4 - c3) * pressure_interpol_factor;
-
-    double sigma = c1 + (c2 - c1) * (temperature - temperature1)/(temperature2 - temperature1);
-    sigma = exp10(sigma);
-
-   
-    absorption_coeff_device[grid_point*nb_spectral_points + tid] += sigma * number_density;
-  }
-
-}
-
-
-//calculates the cross sections for a given p-T pair based on tabulated data
-//uses a two-dimensional linar interpolation in log pressure and linear temperature based on the four closest tabulated p-T points
-//note that the cross-sections are given in log10 here
 __global__ void calcCrossSectionsDevice(
-  const double* cross_sections1, 
-  const double* cross_sections2, 
-  const double* cross_sections3, 
-  const double* cross_sections4,
-  const double temperature_interpol_factor,
-  const double pressure_interpol_factor,
-  const double number_density,
+  const float* __restrict__ cross_sections1, 
+  const float* __restrict__ cross_sections2, 
+  const float* __restrict__ cross_sections3, 
+  const float* __restrict__ cross_sections4,
+  const float temperature_interpol_factor,
+  const float pressure_interpol_factor,
+  const float number_density,
   const int nb_spectral_points, 
   const int grid_point,
-  double* __restrict__ absorption_coeff_device)
+  float* __restrict__ absorption_coeff_device)
 {
   //tid is the wavenumber index
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-  
   if (tid < nb_spectral_points)
   {
-    double c1 = cross_sections1[tid];
-    double c2 = cross_sections2[tid];
-    const double c3 = cross_sections3[tid];
-    const double c4 = cross_sections4[tid];
-
+    float c1 = cross_sections1[tid];
+    float c2 = cross_sections2[tid];
+    const float c3 = cross_sections3[tid];
+    const float c4 = cross_sections4[tid];
+    
     c1 = c1 + (c2 - c1) * pressure_interpol_factor;
     c2 = c3 + (c4 - c3) * pressure_interpol_factor;
 
     double sigma = c1 + (c2 - c1) * temperature_interpol_factor;
-    sigma = exp10(sigma);
+    sigma = exp10(sigma) * number_density;
    
-    absorption_coeff_device[grid_point*nb_spectral_points + tid] += sigma * number_density;
-    //absorption_coeff_device[grid_point*nb_spectral_points + tid] += sigma * number_density;
+    absorption_coeff_device[grid_point*nb_spectral_points + tid] += sigma;
   }
 
 }
@@ -121,7 +76,12 @@ __global__ void calcCrossSectionsDevice(
 
 
 //calculates the H- continuum
-__global__ void calcHmContinuumDevice(const double hm_number_density, const int nb_spectral_points, const int grid_point, double* wavelengths_d, double* __restrict__ absorption_coeff_device)
+__global__ void calcHmContinuumDevice(
+  const double hm_number_density, 
+  const int nb_spectral_points, 
+  const int grid_point, 
+  double* wavelengths_d, 
+  float* __restrict__ absorption_coeff_device)
 {
   const double lambda_0 = 1.6419; //photo-detachment threshold
   const double C_n[7] = {0.0, 152.519, 49.534, -118.858, 92.536, -34.194, 4.982};
@@ -146,17 +106,20 @@ __global__ void calcHmContinuumDevice(const double hm_number_density, const int 
       
       absorption_coeff_device[grid_point*nb_spectral_points + tid] += sigma * hm_number_density;
     }
-
   }
-
-
 }
 
 
 
 //calculates the free-free H- continuum
-__global__ void calcHmffContinuumDevice(const double h_number_density, const double e_pressure, const double temperature,
-                                        const int nb_spectral_points, const int grid_point, double* wavelengths_d, double* __restrict__ absorption_coeff_device)
+__global__ void calcHmffContinuumDevice(
+  const double h_number_density, 
+  const double e_pressure, 
+  const double temperature,
+  const int nb_spectral_points, 
+  const int grid_point, 
+  double* wavelengths_d, 
+  float* __restrict__ absorption_coeff_device)
 {
   //for wavelengths larger than 0.3645 micron
   const double A_n1[7] = {0.0, 0.0, 2483.3460, -3449.8890, 2200.0400, -696.2710, 88.2830};
@@ -204,19 +167,18 @@ __global__ void calcHmffContinuumDevice(const double h_number_density, const dou
    
     absorption_coeff_device[grid_point*nb_spectral_points + tid] += ff_sigma * h_number_density * e_pressure;
   }
-
-
 }
 
 
 
 //set all absorption coefficients to 0
-__global__ void initCrossSectionsDevice(const int nb_points, double* absorption_coeff_device)
+__global__ void initCrossSectionsDevice(
+  const int nb_points, 
+  float* absorption_coeff_device)
 {
   //tid is the wavenumber index
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-  
   if (tid < nb_points)
     absorption_coeff_device[tid] = 0.0;
 }
@@ -225,23 +187,27 @@ __global__ void initCrossSectionsDevice(const int nb_points, double* absorption_
 //calculates the contributions due to collision induced absorption
 //performs a 1D linear interpolation of the tabulated data as a function of temperature
 //note that the cross-sections are given in log10 and that number_densities contains the product of both collision partners
-__global__ void calcCIACoefficientsDevice(const double* cross_sections1, const double* cross_sections2,
-                                          const double temperature1, const double temperature2,
-                                          const double temperature, const double number_densities,
-                                          const int nb_spectral_points, const int nb_grid_points, const int grid_point,
-                                          double* __restrict__ absorption_coeff_device)
+__global__ void calcCIACoefficientsDevice(
+  const float* cross_sections1, 
+  const float* cross_sections2,
+  const double temperature1, 
+  const double temperature2,
+  const double temperature, 
+  const double number_densities,
+  const int nb_spectral_points, 
+  const int nb_grid_points, 
+  const int grid_point,
+  float* __restrict__ absorption_coeff_device)
 {
   //tid is the wavenumber index
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-
   if (tid < nb_spectral_points)
   {
-    double coeff1 = cross_sections1[tid];
-    double coeff2 = cross_sections2[tid];
+    float coeff1 = cross_sections1[tid];
+    float coeff2 = cross_sections2[tid];
 
-    double sigma = exp10(coeff1 + (coeff2 - coeff1) * (temperature - temperature1)/(temperature2 - temperature1));
-
+    float sigma = exp10(coeff1 + (coeff2 - coeff1) * (temperature - temperature1)/(temperature2 - temperature1));
 
     absorption_coeff_device[grid_point*nb_spectral_points + tid] += sigma * number_densities;
   }
@@ -273,7 +239,10 @@ __global__ void printAC(const size_t nb_spectral_points, const size_t nb_grid_po
 
 //checks the calculated cross-sections for too large or small values
 //this is just for debug purposes
-__global__ void checkCrossSections(const int nb_points, double* absorption_coeff_dev)
+__global__ 
+void checkCrossSections(
+  const int nb_points, 
+  float* absorption_coeff_dev)
 {
   for (int tid = blockIdx.x * blockDim.x + threadIdx.x; tid < nb_points; tid += blockDim.x * gridDim.x)
   {
@@ -286,16 +255,18 @@ __global__ void checkCrossSections(const int nb_points, double* absorption_coeff
 
 
 //sets all cross-sections back to zero
-__host__ void initCrossSectionsHost(const size_t nb_points, double* absorption_coeff_device)
+__host__ void initCrossSectionsHost(
+  const size_t nb_points, 
+  float* absorption_coeff_device)
 {
   int threads = 256;
   //int blocks = min((int (nb_points)/4+threads-1)/threads, 2048);
   int blocks = nb_points / threads;
   if (nb_points % threads) blocks++;
 
-
-  initCrossSectionsDevice<<<blocks,threads>>>(nb_points, absorption_coeff_device);
-
+  initCrossSectionsDevice<<<blocks,threads>>>(
+    nb_points, 
+    absorption_coeff_device);
 
   cudaDeviceSynchronize();
   gpuErrchk( cudaPeekAtLastError() );
@@ -305,17 +276,17 @@ __host__ void initCrossSectionsHost(const size_t nb_points, double* absorption_c
 
 //Checks computed absorption coefficients for unrealistic values
 //This is just a debug function that is normally only called to validate calculations
-__host__ void checkCrossSectionsHost(const size_t nb_spectral_points, const size_t nb_grid_points,
-                                     double* absorption_coeff_device)
+__host__ void checkCrossSectionsHost(
+  const size_t nb_spectral_points, 
+  const size_t nb_grid_points,
+  float* absorption_coeff_device)
 {
   int threads = 256;
   //int blocks = min((int (nb_spectral_points)/4+threads-1)/threads, 2048);
   int blocks = nb_spectral_points / threads;
   if (nb_spectral_points % threads) blocks++;
 
-
   checkCrossSections<<<blocks,threads>>>(nb_spectral_points*nb_grid_points, absorption_coeff_device);
-
 
   cudaDeviceSynchronize();
   gpuErrchk( cudaPeekAtLastError() );
@@ -323,13 +294,23 @@ __host__ void checkCrossSectionsHost(const size_t nb_spectral_points, const size
 
 
 
-__host__ void calcCrossSectionsHost(double* cross_sections1, double* cross_sections2, double* cross_sections3, double* cross_sections4,
-                                    const double temperature1, const double temperature2,
-                                    const double log_pressure1, const double log_pressure2,
-                                    const double temperature, const double log_pressure, const double number_density,
-                                    const size_t nb_spectral_points, const size_t nb_grid_points, const size_t grid_point,
-                                    double* absorption_coeff_device, double* scattering_coeff_device)
-
+__host__ void calcCrossSectionsHost(
+  float* cross_sections1, 
+  float* cross_sections2, 
+  float* cross_sections3, 
+  float* cross_sections4,
+  const double temperature1, 
+  const double temperature2,
+  const double log_pressure1, 
+  const double log_pressure2,
+  const double temperature, 
+  const double log_pressure, 
+  const double number_density,
+  const size_t nb_spectral_points, 
+  const size_t nb_grid_points, 
+  const size_t grid_point,
+  float* absorption_coeff_device, 
+  float* scattering_coeff_device)
 {
   double log_pressure1_gpu = log_pressure1;
   double log_pressure2_gpu = log_pressure2;
@@ -342,32 +323,30 @@ __host__ void calcCrossSectionsHost(double* cross_sections1, double* cross_secti
   if (temperature1_gpu == temperature2_gpu) temperature2_gpu += 1;
   if (log_pressure1_gpu == log_pressure2_gpu) log_pressure2_gpu += 0.001;
 
-
   cudaDeviceSynchronize();
-
 
   int threads = 256;
   
   int blocks = nb_spectral_points / threads;
   if (nb_spectral_points % threads) blocks++;
 
-  const double pressure_interpol_factor = (log_pressure - log_pressure1_gpu)/(log_pressure2_gpu - log_pressure1_gpu);
-  const double temperature_interpol_factor = (temperature - temperature1_gpu)/(temperature2_gpu - temperature1_gpu);
+  const double pressure_interpol_factor = 
+    (log_pressure - log_pressure1_gpu)/(log_pressure2_gpu - log_pressure1_gpu);
+  const double temperature_interpol_factor = 
+    (temperature - temperature1_gpu)/(temperature2_gpu - temperature1_gpu);
 
 
-  calcCrossSectionsDevice<<<blocks,threads>>>(cross_sections1, cross_sections2, cross_sections3, cross_sections4,
-                                     temperature_interpol_factor,
-                                     pressure_interpol_factor,
-                                     number_density,
-                                     nb_spectral_points,grid_point,
-                                     absorption_coeff_device);
-
-  // calcCrossSectionsDevice<<<blocks,threads>>>(cross_sections1, cross_sections2, cross_sections3, cross_sections4,
-  //                                    temperature1_gpu, temperature2_gpu,
-  //                                    log_pressure1_gpu, log_pressure2_gpu,
-  //                                    temperature, log_pressure, number_density,
-  //                                    nb_spectral_points, nb_grid_points, grid_point,
-  //                                    absorption_coeff_device);
+  calcCrossSectionsDevice<<<blocks,threads>>>(
+    cross_sections1, 
+    cross_sections2, 
+    cross_sections3, 
+    cross_sections4,
+    temperature_interpol_factor,
+    pressure_interpol_factor,
+    number_density,
+    nb_spectral_points,
+    grid_point,
+    absorption_coeff_device);
 
 
   cudaDeviceSynchronize();
@@ -377,11 +356,17 @@ __host__ void calcCrossSectionsHost(double* cross_sections1, double* cross_secti
 
 
 
-__host__ void calcCIACoefficientsHost(double* cross_sections1, double* cross_sections2,
-                                      const double temperature1, const double temperature2,
-                                      const double temperature, const double number_densities,
-                                      const size_t nb_spectral_points, const size_t nb_grid_points, const size_t grid_point,
-                                      double* absorption_coeff_device)
+__host__ void calcCIACoefficientsHost(
+  float* cross_sections1, 
+  float* cross_sections2,
+  const double temperature1, 
+  const double temperature2,
+  const double temperature, 
+  const double number_densities,
+  const size_t nb_spectral_points, 
+  const size_t nb_grid_points, 
+  const size_t grid_point,
+  float* absorption_coeff_device)
 {
   cudaDeviceSynchronize();
 
@@ -412,13 +397,15 @@ __host__ void calcCIACoefficientsHost(double* cross_sections1, double* cross_sec
 
 
 
-__host__ void calcHmContinuumHost(const double hm_number_density,
-                                  const double h_number_density,
-                                  const double e_pressure,
-                                  const double temperature,
-                                  const int nb_spectral_points, const int grid_point,
-                                  double* wavelengths_device,
-                                  double* absorption_coeff_device)
+__host__ void calcHmContinuumHost(
+  const double hm_number_density,
+  const double h_number_density,
+  const double e_pressure,
+  const double temperature,
+  const int nb_spectral_points, 
+  const int grid_point,
+  double* wavelengths_device,
+  float* absorption_coeff_device)
 {
 
 int threads = 256;
@@ -427,8 +414,12 @@ int blocks = nb_spectral_points / threads;
 if (nb_spectral_points % threads) blocks++;
 
 
-calcHmContinuumDevice<<<blocks,threads>>>(hm_number_density, nb_spectral_points, grid_point, wavelengths_device, absorption_coeff_device);
-
+calcHmContinuumDevice<<<blocks,threads>>>(
+  hm_number_density, 
+  nb_spectral_points, 
+  grid_point, 
+  wavelengths_device, 
+  absorption_coeff_device);
 
 cudaDeviceSynchronize();
 

@@ -44,19 +44,19 @@ class CloudModel{
       const std::vector<double>& parameters, 
       const Atmosphere& atmosphere,
       SpectralGrid* spectral_grid,
-      double* optical_depth_dev, 
-      double* single_scattering_dev, 
-      double* asym_param) = 0;
+      float* optical_depth_dev, 
+      float* single_scattering_dev, 
+      float* asym_param) = 0;
     void convertOpticalDepth(
       std::vector<std::vector<double>>& optical_depth,
       std::vector<std::vector<double>>& extinction_coeff,
       std::vector<double>& altitude);
     void convertOpticalDepthGPU(
-      double* optical_depth_dev,
+      float* optical_depth_dev,
       double* altitude,
       const size_t nb_grid_points,
       const size_t nb_spectral_points,
-      double* extinction_coeff_dev);
+      float* extinction_coeff_dev);
     size_t nbParameters() {return nb_parameters;}
   protected:
     size_t nb_parameters {};

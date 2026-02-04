@@ -91,16 +91,16 @@ void FixedCloudModel::opticalPropertiesGPU(
   const std::vector<double>& parameters, 
   const Atmosphere& atmosphere,
   SpectralGrid* spectral_grid,
-  double* optical_depth_dev, 
-  double* single_scattering_dev, 
-  double* asym_param)
+  float* optical_depth_dev, 
+  float* single_scattering_dev, 
+  float* asym_param)
 {
   size_t nb_spectral_points = spectral_grid->nbSpectralPoints();
   size_t nb_layers = atmosphere.nb_grid_points - 1;
 
-  std::vector<double> optical_depth_flat(nb_spectral_points*nb_layers, 0.0);
-  std::vector<double> single_scattering_flat(nb_spectral_points*nb_layers, 0.0);
-  std::vector<double> asymmetry_param_flat(nb_spectral_points*nb_layers, 0.0);
+  std::vector<float> optical_depth_flat(nb_spectral_points*nb_layers, 0.0);
+  std::vector<float> single_scattering_flat(nb_spectral_points*nb_layers, 0.0);
+  std::vector<float> asymmetry_param_flat(nb_spectral_points*nb_layers, 0.0);
   
   for (size_t j = 0; j<nb_spectral_points; ++j)
   {

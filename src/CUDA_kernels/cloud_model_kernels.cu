@@ -37,11 +37,11 @@ namespace bear{
 
 
   __global__ void  convertOpticalDepthDev(
-  double* optical_depth,
+  float* optical_depth,
   double* altitude,
   const int nb_grid_points,
   const int nb_spectral_points,
-  double* extinction_coeff)
+  float* extinction_coeff)
 {
   //the thread index tid is the wavelength
   for (int tid = blockIdx.x * blockDim.x + threadIdx.x; tid < nb_spectral_points; tid += blockDim.x * gridDim.x)
@@ -62,8 +62,8 @@ namespace bear{
 
 
 __global__ void greyCloudModel(
-  double* optical_depth, 
-  double* single_scattering_albedo, 
+  float* optical_depth, 
+  float* single_scattering_albedo, 
   const double layer_optical_depth,
   const int cloud_top,
   const int cloud_bottom,
@@ -89,8 +89,8 @@ __global__ void greyCloudModel(
 
 
 __global__ void KHnongreyCloudModel(
-  double* optical_depth, 
-  double* single_scattering_albedo, 
+  float* optical_depth, 
+  float* single_scattering_albedo, 
   double* wavelengths,
   const double optical_depth_layer_ref,
   const double reference_q,
@@ -125,8 +125,8 @@ __global__ void KHnongreyCloudModel(
 
 
 __global__ void powerLawCloudModel(
-  double* optical_depth, 
-  double* single_scattering_albedo, 
+  float* optical_depth, 
+  float* single_scattering_albedo, 
   double* wavelengths,
   const double optical_depth_layer_ref,
   const double reference_value,
@@ -158,11 +158,11 @@ __global__ void powerLawCloudModel(
 
 //converts layer optical depths to level-based extinction coefficients
 __host__ void CloudModel::convertOpticalDepthGPU(
-  double* optical_depth_dev,
+  float* optical_depth_dev,
   double* altitude,
   const size_t nb_grid_points,
   const size_t nb_spectral_points,
-  double* extinction_coeff_dev)
+  float* extinction_coeff_dev)
 {
 
   int threads = 256;
@@ -188,9 +188,9 @@ __host__ void CloudModel::convertOpticalDepthGPU(
 //the optical depth will be distributed over the layers between the cloud's top and bottom
 __host__ void GreyCloudModel::opticalPropertiesGPU(const std::vector<double>& parameters, const Atmosphere& atmosphere,
   SpectralGrid* spectral_grid,
-  double* optical_depth_dev, 
-  double* single_scattering_dev, 
-  double* asym_param)
+  float* optical_depth_dev, 
+  float* single_scattering_dev, 
+  float* asym_param)
 {
   double cloud_optical_depth = parameters[0];
   double cloud_top_pressure = parameters[1];
@@ -242,9 +242,9 @@ __host__ void KHCloudModel::opticalPropertiesGPU(
   const std::vector<double>& parameters, 
   const Atmosphere& atmosphere,
   SpectralGrid* spectral_grid,
-  double* optical_depth_dev, 
-  double* single_scattering_dev, 
-  double* asym_param)
+  float* optical_depth_dev, 
+  float* single_scattering_dev, 
+  float* asym_param)
 {
   double cloud_optical_depth = parameters[0];
   double q0 = parameters[1];
@@ -308,9 +308,9 @@ __host__ void PowerLawCloudModel::opticalPropertiesGPU(
   const std::vector<double>& parameters, 
   const Atmosphere& atmosphere,
   SpectralGrid* spectral_grid,
-  double* optical_depth_dev, 
-  double* single_scattering_dev, 
-  double* asym_param)
+  float* optical_depth_dev, 
+  float* single_scattering_dev, 
+  float* asym_param)
 {
   double cloud_optical_depth = parameters[0];
   double exponent = parameters[1];
@@ -336,7 +336,8 @@ __host__ void PowerLawCloudModel::opticalPropertiesGPU(
     cloudPosition(atmosphere, cloud_top_pressure, cloud_bottom_pressure, cloud_top_index, cloud_bottom_index);
 
 
-  const double optical_depth_layer_reference = cloud_optical_depth/static_cast<double>(cloud_top_index - cloud_bottom_index); 
+  const double optical_depth_layer_reference = cloud_optical_depth
+    /static_cast<double>(cloud_top_index - cloud_bottom_index); 
   const double reference_value =  std::pow(reference_wavelength, exponent);
   
   int threads = 256;

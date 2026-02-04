@@ -67,8 +67,8 @@ class OpacitySpecies {
       const std::vector<double>& number_densities,
       const size_t nb_grid_points,
       const size_t grid_point,
-      double* absorption_coeff_device,
-      double* scattering_coeff_device);
+      float* absorption_coeff_device,
+      float* scattering_coeff_device);
     
     const size_t species_index = 0;
     const std::string species_name = "";
@@ -90,7 +90,7 @@ class OpacitySpecies {
     std::vector<std::vector<SampledData*>> ordered_data_list;
 
     std::vector<double> rayleigh_cross_sections;
-    double* rayleigh_cross_sections_dev = nullptr;
+    float* rayleigh_cross_sections_dev = nullptr;
 
     void init();
     void orderDataList();
@@ -105,7 +105,7 @@ class OpacitySpecies {
       const std::vector<double>& number_densities,
       const size_t nb_grid_points, 
       const size_t grid_point,
-      double* absorption_coeff_device) {};
+      float* absorption_coeff_device) {};
     
     virtual bool calcRayleighCrossSections(
       std::vector<double>& cross_sections) {
@@ -117,20 +117,22 @@ class OpacitySpecies {
       const double number_density,
       const size_t nb_grid_points, 
       const size_t grid_point,
-      double* scattering_coeff_dev);
+      float* scattering_coeff_dev);
 
     void readFileList(const std::string file_path);
     
     std::vector<SampledData*> findClosestDataPoints(
       const double sampling_pressure,
       const double sampling_temperature);
-    void checkDataAvailability(std::vector<SampledData*>& data_points);
+    void checkDataAvailability(
+      std::vector<SampledData*>& data_points);
 
     void calcAbsorptionCrossSections(
       const double local_pressure,
       const double local_temperature,
       std::vector<double>& cross_sections);
-    bool calcScatteringCrossSections(std::vector<double>& cross_sections);
+    bool calcScatteringCrossSections(
+      std::vector<double>& cross_sections);
 
     void calcAbsorptionCoefficientsGPU(
       const double pressure,
@@ -138,8 +140,8 @@ class OpacitySpecies {
       const double number_density,
       const size_t nb_grid_points,
       const size_t grid_point,
-      double* absorption_coeff_device,
-      double* scattering_coeff_device);
+      float* absorption_coeff_device,
+      float* scattering_coeff_device);
     
     double generalRayleighCrossSection(
       double reference_density,

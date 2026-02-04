@@ -56,8 +56,9 @@ void CrossSectionFile::loadFile()
     file.read((char *) &x, sizeof x);
 
     cross_sections[i] = x;
-
-    if (is_data_log) cross_sections[i] = std::pow(10.0, cross_sections[i]);
+    
+    if (is_data_log) 
+      cross_sections[i] = std::pow(10.0, cross_sections[i]);
   }
 
 
