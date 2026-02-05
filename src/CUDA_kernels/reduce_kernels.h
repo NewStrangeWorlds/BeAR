@@ -72,6 +72,48 @@ double blockReduceSum(double val)
 }
 
 
+
+__inline__ __device__
+float warpReduceSum(float val)
+{
+  for (int offset = warpSize/2; offset > 0; offset /= 2)
+    //val += __shfl_down(val, offset);
+    val += __shfl_down_sync(0xFFFFFFFF, val, offset); 
+
+
+  return val;
+}
+
+
+__inline__ __device__
+float blockReduceSum(float val)
+{
+  static __shared__ float shared[32]; // Shared mem for 32 partial sums
+  int lane = threadIdx.x % warpSize;
+  int wid = threadIdx.x / warpSize;
+
+  // Each warp performs partial reduction
+  val = warpReduceSum(val);
+
+
+  // Write reduced value to shared memory
+  if (lane==0) shared[wid]=val;
+
+
+   // Wait for all partial reductions
+  __syncthreads();
+
+
+  //read from shared memory only if that warp existed
+  val = (threadIdx.x < blockDim.x / warpSize) ? shared[lane] : 0;
+
+  if (wid==0) val = warpReduceSum(val); //Final reduce within first warp
+
+
+  return val;
+}
+
+
 }
 
 

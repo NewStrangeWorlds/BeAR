@@ -176,7 +176,7 @@ void SpectralBands::convolveSpectrumGPU(
   int threads = 128;
   int blocks = nb_high_res_points;
 
-  convolveSpectrumDevice<<<blocks,threads>>>(
+  convolveSpectrumDeviceFl<<<blocks,threads>>>(
     spectrum, 
     obs_index_range.first,
     spectral_grid->wavelength_list_gpu, 
