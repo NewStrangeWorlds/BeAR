@@ -31,8 +31,8 @@ project(bear C CXX CUDA Fortran)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(CMAKE_CXX_FLAGS "-Wall -pedantic -MMD")
-set(CMAKE_C_FLAGS "-Wall -pedantic -MMD")
+set(CMAKE_CXX_FLAGS "-Wall -march=native -pedantic -MMD")
+set(CMAKE_C_FLAGS "-Wall -march=native -pedantic -MMD")
 
 
 set(CMAKE_BUILD_TYPE Release)
@@ -56,7 +56,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR})
 
 #set CUDA flags
 string(APPEND CMAKE_CUDA_FLAGS ${CUDA_ARCH_FLAGS})
-string(APPEND CMAKE_CUDA_FLAGS " -std=c++11 -lineinfo -Xptxas -v")
+string(APPEND CMAKE_CUDA_FLAGS " -std=c++11 -march=native -lineinfo -Xptxas -v")
 
 #string (APPEND CMAKE_CUDA_FLAGS " -cudart shared" )
 
