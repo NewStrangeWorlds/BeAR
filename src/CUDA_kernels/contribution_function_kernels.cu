@@ -20,7 +20,8 @@ namespace bear{
 
 
 
-__global__ void contributionFunctionDevice(
+__global__ 
+void contributionFunctionDevice(
   double* contribution_function_gpu,
   const float* absorption_coeff_dev, 
   const double* wavenumber_list_dev,

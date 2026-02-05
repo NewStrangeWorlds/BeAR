@@ -188,14 +188,11 @@ __global__ void initCrossSectionsDevice(
 //performs a 1D linear interpolation of the tabulated data as a function of temperature
 //note that the cross-sections are given in log10 and that number_densities contains the product of both collision partners
 __global__ void calcCIACoefficientsDevice(
-  const float* cross_sections1, 
-  const float* cross_sections2,
-  const double temperature1, 
-  const double temperature2,
-  const double temperature, 
+  const float* __restrict__ cross_sections1, 
+  const float* __restrict__ cross_sections2,
+  const double temperature_interpol_factor, 
   const double number_densities,
   const int nb_spectral_points, 
-  const int nb_grid_points, 
   const int grid_point,
   float* __restrict__ absorption_coeff_device)
 {
@@ -206,10 +203,12 @@ __global__ void calcCIACoefficientsDevice(
   {
     float coeff1 = cross_sections1[tid];
     float coeff2 = cross_sections2[tid];
+    
+    coeff1 = coeff1 + (coeff2 - coeff1) * temperature_interpol_factor;
 
-    float sigma = exp10(coeff1 + (coeff2 - coeff1) * (temperature - temperature1)/(temperature2 - temperature1));
+    const double kappa = exp10(coeff1) * number_densities;
 
-    absorption_coeff_device[grid_point*nb_spectral_points + tid] += sigma * number_densities;
+    absorption_coeff_device[grid_point*nb_spectral_points + tid] += kappa;
   }
 
 }
@@ -323,8 +322,6 @@ __host__ void calcCrossSectionsHost(
   if (temperature1_gpu == temperature2_gpu) temperature2_gpu += 1;
   if (log_pressure1_gpu == log_pressure2_gpu) log_pressure2_gpu += 0.001;
 
-  cudaDeviceSynchronize();
-
   int threads = 256;
   
   int blocks = nb_spectral_points / threads;
@@ -384,11 +381,17 @@ __host__ void calcCIACoefficientsHost(
   //to avoid a bunch of if-statements in the CUDA kernel, we here simply offset one of the temperatures a bit
   if (temperature2 == temperature1) temperature2_gpu += 1.0;
 
-  calcCIACoefficientsDevice<<<blocks,threads>>>(cross_sections1, cross_sections2,
-                                                temperature1_gpu, temperature2_gpu,
-                                                temperature, number_densities,
-                                                nb_spectral_points, nb_grid_points, grid_point,
-                                                absorption_coeff_device);
+  const double temperature_interpol_factor = 
+    (temperature - temperature1_gpu)/(temperature2_gpu - temperature1_gpu);
+
+  calcCIACoefficientsDevice<<<blocks,threads>>>(
+    cross_sections1, 
+    cross_sections2,
+    temperature_interpol_factor,
+    number_densities,
+    nb_spectral_points,
+    grid_point,
+    absorption_coeff_device);
 
 
   cudaDeviceSynchronize();

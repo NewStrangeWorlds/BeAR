@@ -31,8 +31,9 @@
 namespace bear{
 
 
-__global__ void addShiftToSpectrumDev(
-  double* spectrum_bands,
+__global__ 
+void addShiftToSpectrumDev(
+  double* __restrict__ spectrum_bands,
   const double spectrum_shift,
   const int nb_points)
 {
@@ -44,9 +45,8 @@ __global__ void addShiftToSpectrumDev(
 }
 
 
-
-//converts layer optical depths to level-based extinction coefficients
-__host__ void Observation::addShiftToSpectrumGPU(
+__host__ 
+void Observation::addShiftToSpectrumGPU(
   double* spectrum_obs,
   const double spectrum_shift)
 {

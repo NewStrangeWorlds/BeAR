@@ -36,43 +36,41 @@
 
 namespace bear{
 
-
 //every block reduces one band
 //spectrum_high_res is the pointer to the array on the GPU
 //the integration is done by a simple piece-wise trapezoidal rule
 //note that the units of the high-res spectrum are in W m-2 cm, while the mean band values are in W m-2 mu-1
-__global__ void bandIntegrationDevice(
-  double* spectrum_high_res, 
-  int* band_start, 
-  int* band_end,
-  int nb_bands,
-  double* wavenumbers, 
-  double* wavelengths,
-  double* spectrum_bands,
+__global__ 
+void bandIntegrationDevice(
+  const double* __restrict__ spectrum_high_res, 
+  const int* __restrict__ band_start, 
+  const int*  __restrict__ band_end,
+  const double* __restrict__ wavenumbers, 
+  const double* __restrict__ wavelengths,
+  double* __restrict__ spectrum_bands,
   const bool is_flux,
   const bool use_filter_transmission)
 {
-  double band_sum = 0;
+  float band_sum = 0;
   
   //indices to navigate through the high-res spectrum
   const int start_index = band_start[blockIdx.x];
   const int end_index = band_end[blockIdx.x];
   const int band_size = end_index - start_index + 1;
 
-
   for (int j = threadIdx.x; j < band_size-1; j += blockDim.x)
   {
     const int index1 = j + start_index + 1;
     const int index2 = j + start_index;
 
-    double delta = 0;
+    float delta = 0;
 
     if (is_flux) 
       delta = (wavenumbers[index1] - wavenumbers[index2]);
     else
       delta = (wavelengths[index2] - wavelengths[index1]);
 
-    const double sum = (spectrum_high_res[index1] + spectrum_high_res[index2]) * delta;
+    const float sum = (spectrum_high_res[index1] + spectrum_high_res[index2]) * delta;
 
     band_sum += sum;
   }
@@ -99,8 +97,8 @@ __global__ void bandIntegrationDevice(
 }
 
 
-
-__host__ void SpectralBands::bandIntegrateSpectrumGPU(
+__host__ 
+void SpectralBands::bandIntegrateSpectrumGPU(
   double* spectrum, 
   double* spectrum_bands, 
   const bool is_flux,
@@ -113,7 +111,6 @@ __host__ void SpectralBands::bandIntegrateSpectrumGPU(
     spectrum, 
     band_start_dev, 
     band_end_dev,
-    nb_bands,
     spectral_grid->wavenumber_list_gpu,
     spectral_grid->wavelength_list_gpu,
     spectrum_bands,

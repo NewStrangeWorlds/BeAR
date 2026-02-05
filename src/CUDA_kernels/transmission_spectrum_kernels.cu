@@ -41,7 +41,6 @@ void transmissionSpectrumKernel(
   const double star_radius,
   const double* __restrict__ altitude,
   const float* __restrict__ extinction_coeff,
-  const double transmission_cutoff,
   double* spectrum)
 {
   //thread index is the wavelength index
@@ -50,11 +49,11 @@ void transmissionSpectrumKernel(
   if (w >= nb_spectral_points) return;
 
   //each thread integrates a single wavelength
-  double effective_tangent_height = 0.0;
+  float effective_tangent_height = 0.0;
 
   //integrate effective tangent height
   float prev_transmission = 1.0;  // top limb = transparent
-  double prev_alt   = altitude[nb_grid_points-1];
+  float prev_alt   = altitude[nb_grid_points-1];
 
   for (int t = nb_grid_points-2; t >= 0; --t)
   {
@@ -66,7 +65,7 @@ void transmissionSpectrumKernel(
     {
       float a1 = bottom_radius + altitude[i];
       float a2 = bottom_radius + altitude[i+1];
-
+      
       float path = sqrt(a2*a2 - b*b);
       
       if (i != t)
@@ -80,7 +79,7 @@ void transmissionSpectrumKernel(
       
       tau += path * (ext1 + ext2);
       
-      if (tau > transmission_cutoff) break;
+      if (tau > transmission_optical_depth_cutoff) break;
     }
     
     float transmission = exp(-tau);
@@ -88,7 +87,7 @@ void transmissionSpectrumKernel(
     //trapezoidal integration for effective tangent height
     //the factor of 0.5 from the trapezoidal rule cancels with 
     //the factor of 2 from accounting for both hemispheres
-    double alt = altitude[t];
+    float alt = altitude[t];
 
     effective_tangent_height +=
       ( (bottom_radius + alt) * (1.0 - transmission)
@@ -97,6 +96,14 @@ void transmissionSpectrumKernel(
 
     prev_transmission = transmission;
     prev_alt   = alt;
+    
+    //if the optical depth is too high, we simply add the bottom part
+    if (transmission < transmission_cutoff)
+    {
+      //effective_tangent_height += (bottom_radius + alt)*(bottom_radius + alt) - bottom_radius*bottom_radius;
+      effective_tangent_height += (2*bottom_radius + alt)*alt;
+      break;
+    }
   }
   
   effective_tangent_height =
@@ -107,7 +114,6 @@ void transmissionSpectrumKernel(
 
   spectrum[w] = (planet_radius * planet_radius) /
                 (star_radius * star_radius) * 1e6;
-  
 }
 
 
@@ -186,7 +192,6 @@ void  TransmissionModel::calcTransitDepthGPU(
     radius_star,
     atmosphere.altitude_dev,
     absorption_coeff_dev,
-    transmission_optical_depth_cutoff,
     transit_radius_dev);
 
   cudaDeviceSynchronize();
