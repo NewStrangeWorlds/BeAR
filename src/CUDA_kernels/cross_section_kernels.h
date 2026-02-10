@@ -25,41 +25,6 @@
 
 namespace bear{
 
-
-void calcCrossSectionsHost(
-  float* cross_sections1, 
-  float* cross_sections2, 
-  float* cross_sections3, 
-  float* cross_sections4,
-  const double temperature1, 
-  const double temperature2,
-  const double log_pressure1, 
-  const double log_pressure2,
-  const double temperature, 
-  const double log_pressure, 
-  const double number_density,
-  const size_t nb_spectral_points, 
-  const size_t nb_grid_points, 
-  const size_t grid_point,
-  float* absorption_coeff_device, 
-  float* scattering_coeff_device);
-
-
-void calcCIACoefficientsHost(float* cross_sections1, float* cross_sections2,
-                             const double temperature1, const double temperature2,
-                             const double temperature, const double number_densities,
-                             const size_t nb_spectral_points, const size_t nb_grid_points, const size_t grid_point,
-                             float* absorption_coeff_device);
-
-void calcHmContinuumHost(const double hm_number_density,
-                         const double h_number_density,
-                         const double e_pressure,
-                         const double temperature,
-                         const int nb_spectral_points, const int grid_point,
-                         double* wavelengths_device,
-                         float* absorption_coeff_device);
-
-
 void initCrossSectionsHost(
   const size_t nb_points, 
   float* absorption_coeff_device);

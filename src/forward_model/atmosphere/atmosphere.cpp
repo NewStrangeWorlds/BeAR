@@ -114,8 +114,8 @@ bool Atmosphere::calcAtmosphereStructure(
 
   if (altitude_dev != nullptr)
   {
-    moveToDevice(altitude_dev, altitude, false);
-    moveToDevice(temperature_dev, temperature, false);
+    moveToDevice(altitude_dev, altitude);
+    moveToDevice(temperature_dev, temperature);
   }
 
   return neglect_model;
@@ -179,8 +179,8 @@ bool Atmosphere::calcAtmosphereStructure(
 
   if (altitude_dev != nullptr)
   {
-    moveToDevice(altitude_dev, altitude, false);
-    moveToDevice(temperature_dev, temperature, false);
+    moveToDevice(altitude_dev, altitude);
+    moveToDevice(temperature_dev, temperature);
   }
 
   return neglect_model;
@@ -233,8 +233,8 @@ bool Atmosphere::calcAtmosphereStructure(
 
   if (altitude_dev != nullptr)
   {
-    moveToDevice(altitude_dev, altitude, false);
-    moveToDevice(temperature_dev, temperature, false);
+    moveToDevice(altitude_dev, altitude);
+    moveToDevice(temperature_dev, temperature);
   }
 
   return neglect_model;
@@ -277,8 +277,8 @@ void Atmosphere::setAtmosphericStructure(
 
   if (altitude_dev != nullptr)
   {
-    moveToDevice(altitude_dev, altitude, false);
-    moveToDevice(temperature_dev, temperature, false);
+    moveToDevice(altitude_dev, altitude);
+    moveToDevice(temperature_dev, temperature);
   }
 }
 

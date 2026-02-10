@@ -94,7 +94,10 @@ class GasHm : public OpacitySpecies {
           continuum_available = true;
           init();
         }
-    virtual ~GasHm() {}
+    virtual ~GasHm() {
+        if (bound_free_sigma_dev != nullptr)
+          deleteFromDevice(bound_free_sigma_dev);
+    }
   protected:
     virtual bool calcContinuumAbsorption(
       const double temperature,
@@ -105,9 +108,8 @@ class GasHm : public OpacitySpecies {
       const std::vector<double>& number_densities,
       const size_t nb_grid_points, 
       const size_t grid_point,
-      float* absorption_coeff_device) 
-      {
-        calcHmContinuumHost(
+      float* absorption_coeff_device) {
+        calcContinuumGPU(
           number_densities[_Hm],
           number_densities[_H],
           number_densities[_e]*constants::boltzmann_k*temperature,
@@ -120,6 +122,18 @@ class GasHm : public OpacitySpecies {
     private:
       std::vector<double> boundFreeAbsorption(const double temperature);
       std::vector<double> freeFreeAbsorption(const double temperature);
+
+      float* bound_free_sigma_dev = nullptr;
+
+      void calcContinuumGPU(
+        const double hm_number_density,
+        const double h_number_density,
+        const double e_pressure,
+        const double temperature,
+        const int nb_spectral_points, 
+        const int grid_point,
+        double* wavelengths_device,
+        float* absorption_coeff_device);
 };
 
 

@@ -41,7 +41,7 @@ namespace bear{
 //the integration is done by a simple piece-wise trapezoidal rule
 //note that the units of the high-res spectrum are in W m-2 cm, while the mean band values are in W m-2 mu-1
 __global__ 
-void bandIntegrationDevice(
+void bandIntegrationDeviceOld(
   const double* __restrict__ spectrum_high_res, 
   const int* __restrict__ band_start, 
   const int*  __restrict__ band_end,
@@ -97,6 +97,114 @@ void bandIntegrationDevice(
 }
 
 
+//every block reduces one band
+//spectrum_high_res is the pointer to the array on the GPU
+//the integration is done by a simple piece-wise trapezoidal rule
+//note that the units of the high-res spectrum are in W m-2 cm, while the mean band values are in W m-2 mu-1
+__global__ 
+void bandIntegrationDeviceFlux(
+  const double* __restrict__ spectrum_high_res, 
+  const int* __restrict__ band_start, 
+  const int*  __restrict__ band_end,
+  const double* __restrict__ wavenumbers,
+  const double* __restrict__ wavelengths,
+  double* __restrict__ spectrum_bands)
+{
+  float band_sum = 0;
+  
+  //indices to navigate through the high-res spectrum
+  const int start_index = band_start[blockIdx.x];
+  const int end_index = band_end[blockIdx.x];
+  const int band_size = end_index - start_index + 1;
+
+  for (int j = threadIdx.x; j < band_size-1; j += blockDim.x)
+  {
+    const int index1 = j + start_index + 1;
+    const int index2 = j + start_index;
+
+    const float w1 = wavenumbers[index1];
+    const float w2 = wavenumbers[index2];
+
+    const float spectrum1 = spectrum_high_res[index1];
+    const float spectrum2 = spectrum_high_res[index2];
+    
+    const float delta = (w1 - w2);
+    
+    const float sum = (spectrum1 + spectrum2) * delta;
+    band_sum += sum;
+  }
+
+  band_sum = blockReduceSum(band_sum);
+
+  if (threadIdx.x == 0)
+  { 
+    const float w1 = wavelengths[start_index];
+    const float w2 = wavelengths[end_index];
+    
+    spectrum_bands[blockIdx.x] = band_sum * 0.5 / (w1 - w2);
+  }
+
+}
+
+
+
+//every block reduces one band
+//spectrum_high_res is the pointer to the array on the GPU
+//the integration is done by a simple piece-wise trapezoidal rule
+//note that the units of the high-res spectrum are in W m-2 cm, while the mean band values are in W m-2 mu-1
+__global__ 
+void bandIntegrationDevice(
+  const double* __restrict__ spectrum_high_res, 
+  const int* __restrict__ band_start, 
+  const int*  __restrict__ band_end,
+  const double* __restrict__ wavelengths,
+  double* __restrict__ spectrum_bands,
+  const bool use_filter_transmission)
+{
+  float band_sum = 0;
+  
+  //indices to navigate through the high-res spectrum
+  const int start_index = band_start[blockIdx.x];
+  const int end_index = band_end[blockIdx.x];
+  const int band_size = end_index - start_index + 1;
+
+  for (int j = threadIdx.x; j < band_size-1; j += blockDim.x)
+  {
+    const int index1 = j + start_index + 1;
+    const int index2 = j + start_index;
+
+    const float w1 = wavelengths[index1];
+    const float w2 = wavelengths[index2];
+
+    const float spectrum1 = spectrum_high_res[index1];
+    const float spectrum2 = spectrum_high_res[index2];
+
+    const float delta = (w2 - w1);
+    
+    const float sum = (spectrum1 + spectrum2) * delta;
+    band_sum += sum;
+  }
+
+  band_sum = blockReduceSum(band_sum);
+
+  if (threadIdx.x == 0)
+  {
+    if (use_filter_transmission)
+      spectrum_bands[blockIdx.x] = band_sum * 0.5;
+    else
+    {
+      const float w1 = wavelengths[start_index];
+      const float w2 = wavelengths[end_index];
+
+      spectrum_bands[blockIdx.x] = band_sum * 0.5 / (w1 - w2);
+    }
+  }
+
+}
+
+
+
+
 __host__ 
 void SpectralBands::bandIntegrateSpectrumGPU(
   double* spectrum, 
@@ -107,16 +215,36 @@ void SpectralBands::bandIntegrateSpectrumGPU(
   int threads = 128;
   int blocks = nb_bands;
 
-  bandIntegrationDevice<<<blocks,threads>>>(
-    spectrum, 
-    band_start_dev, 
-    band_end_dev,
-    spectral_grid->wavenumber_list_gpu,
-    spectral_grid->wavelength_list_gpu,
-    spectrum_bands,
-    is_flux,
-    use_filter_transmission);
-
+  // bandIntegrationDeviceOld<<<blocks,threads>>>(
+  //   spectrum, 
+  //   band_start_dev, 
+  //   band_end_dev,
+  //   spectral_grid->wavenumber_list_gpu,
+  //   spectral_grid->wavelength_list_gpu,
+  //   spectrum_bands,
+  //   is_flux,
+  //   use_filter_transmission);
+  
+  if (is_flux)
+  {
+    bandIntegrationDeviceFlux<<<blocks,threads>>>(
+      spectrum, 
+      band_start_dev, 
+      band_end_dev,
+      spectral_grid->wavenumber_list_gpu,
+      spectral_grid->wavelength_list_gpu,
+      spectrum_bands);
+  }
+  else
+  {
+    bandIntegrationDevice<<<blocks,threads>>>(
+      spectrum, 
+      band_start_dev, 
+      band_end_dev,
+      spectral_grid->wavelength_list_gpu,
+      spectrum_bands,
+      use_filter_transmission);
+  }
 
   cudaDeviceSynchronize(); 
   gpuErrchk( cudaPeekAtLastError() );

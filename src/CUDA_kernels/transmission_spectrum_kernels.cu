@@ -37,12 +37,24 @@ __global__
 void transmissionSpectrumKernel(
   const int nb_spectral_points,
   const int nb_grid_points,
-  const double bottom_radius,
-  const double star_radius,
-  const double* __restrict__ altitude,
+  const float bottom_radius,
+  const float star_radius,
+  const float* __restrict__ altitude_ns,
   const float* __restrict__ extinction_coeff,
   double* spectrum)
-{
+{ 
+  // Dynamically or statically allocate shared memory
+  // Note: Adjust the size or use extern __shared__ if nb_grid_points is l
+  extern __shared__ float altitude[];
+  
+  // Collaborative loading: all threads help load the atmospheric profile
+  for (int i = threadIdx.x; i < nb_grid_points; i += blockDim.x) 
+  {
+    altitude[i] = altitude_ns[i];
+  }
+  
+  __syncthreads(); // Ensure the profile is fully loaded before proceeding
+  
   //thread index is the wavelength index
   int w = blockIdx.x * blockDim.x + threadIdx.x;
   
@@ -110,7 +122,7 @@ void transmissionSpectrumKernel(
       sqrt(effective_tangent_height + bottom_radius*bottom_radius)
       - bottom_radius;
 
-  double planet_radius = effective_tangent_height + bottom_radius;
+  const float planet_radius = effective_tangent_height + bottom_radius;
 
   spectrum[w] = (planet_radius * planet_radius) /
                 (star_radius * star_radius) * 1e6;
@@ -180,23 +192,20 @@ void  TransmissionModel::calcTransitDepthGPU(
 
   cudaDeviceSynchronize();
   gpuErrchk( cudaPeekAtLastError() );
-  gpuErrchk( cudaDeviceSynchronize() );
-
 
   int blocks  = (nb_spectral_points + threads - 1) / threads;
 
-  transmissionSpectrumKernel<<<blocks, threads>>>(
+  transmissionSpectrumKernel<<<blocks, threads, nb_grid_points * sizeof(float)>>>(
     nb_spectral_points,
     nb_grid_points,
-    radius_planet,
-    radius_star,
+    static_cast<float>(radius_planet),
+    static_cast<float>(radius_star),
     atmosphere.altitude_dev,
     absorption_coeff_dev,
     transit_radius_dev);
 
   cudaDeviceSynchronize();
   gpuErrchk( cudaPeekAtLastError() );
-  gpuErrchk( cudaDeviceSynchronize() );
 }
 
 }

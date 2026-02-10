@@ -374,15 +374,13 @@ void OpacitySpecies::calcAbsorptionCoefficientsGPU(
   const double number_density,
   const size_t nb_grid_points,
   const size_t grid_point,
-  float* absorption_coeff_device,
-  float* scattering_coeff_device)
+  float* absorption_coeff_device)
 {
   std::vector<SampledData*> data_points = findClosestDataPoints(pressure, temperature);
 
   checkDataAvailability(data_points);
 
-
-  calcCrossSectionsHost(
+  calcAbsorptionCoefficientsGPU(
     data_points[0]->cross_sections_device,
     data_points[1]->cross_sections_device,
     data_points[2]->cross_sections_device,
@@ -395,8 +393,7 @@ void OpacitySpecies::calcAbsorptionCoefficientsGPU(
     number_density,
     spectral_grid->nbSpectralPoints(),
     nb_grid_points, grid_point,
-    absorption_coeff_device,
-    scattering_coeff_device);
+    absorption_coeff_device);
 }
 
 
@@ -490,8 +487,7 @@ void OpacitySpecies::calcTransportCoefficientsGPU(
     number_density,
     nb_grid_points,
     grid_point,
-    absorption_coeff_device,
-    scattering_coeff_device);
+    absorption_coeff_device);
   
   calcRayleighCrossSectionsGPU(
     number_density, nb_grid_points, grid_point, scattering_coeff_device);

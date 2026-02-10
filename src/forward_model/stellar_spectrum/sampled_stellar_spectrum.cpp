@@ -63,15 +63,18 @@ void SampledStellarSpectrum::sampleSpectrum(
     data_file.spectrum[i] = data_file.spectrum[i]*grid_wavelengths[i]*grid_wavelengths[i]/10000.;
 
 
-  spectrum = spectral_grid->interpolateToWavelengthGrid(grid_wavelengths, data_file.spectrum, false);
+  spectrum = spectral_grid->interpolateToWavelengthGrid(
+    grid_wavelengths, 
+    data_file.spectrum, 
+    false);
 
 
   //remove zeros from the spectrum
   for (auto & s : spectrum)
-    if (s < 1e-40) s = 1e-40;
+    if (s < 1e-37) s = 1e-37;
 
   if (use_gpu)
-    moveToDevice(spectrum_gpu, spectrum, true);
+    moveToDevice(spectrum_gpu, spectrum);
 
   is_sampled = true;
 

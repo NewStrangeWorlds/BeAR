@@ -50,9 +50,9 @@ class Atmosphere {
     std::vector<double> scale_height;
     std::vector< std::vector<double> > number_densities;
 
-    double* altitude_dev = nullptr;
-    double* pressure_dev = nullptr;
-    double* temperature_dev = nullptr;
+    float* altitude_dev = nullptr;
+    float* pressure_dev = nullptr;
+    float* temperature_dev = nullptr;
 
     bool calcAtmosphereStructure(
       const double surface_gravity,

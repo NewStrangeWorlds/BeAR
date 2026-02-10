@@ -38,7 +38,7 @@ namespace bear{
 
   __global__ void  convertOpticalDepthDev(
   float* optical_depth,
-  double* altitude,
+  float* altitude,
   const int nb_grid_points,
   const int nb_spectral_points,
   float* extinction_coeff)
@@ -159,7 +159,7 @@ __global__ void powerLawCloudModel(
 //converts layer optical depths to level-based extinction coefficients
 __host__ void CloudModel::convertOpticalDepthGPU(
   float* optical_depth_dev,
-  double* altitude,
+  float* altitude,
   const size_t nb_grid_points,
   const size_t nb_spectral_points,
   float* extinction_coeff_dev)

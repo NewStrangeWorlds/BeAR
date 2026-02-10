@@ -77,7 +77,7 @@ class SampledStellarSpectrum{
     
     bool is_sampled = false;
 
-    double* spectrum_gpu = nullptr;
+    float* spectrum_gpu = nullptr;
     std::vector<double> spectrum;
   private:
     SpectrumFile data_file;

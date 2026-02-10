@@ -53,7 +53,7 @@ class CloudModel{
       std::vector<double>& altitude);
     void convertOpticalDepthGPU(
       float* optical_depth_dev,
-      double* altitude,
+      float* altitude,
       const size_t nb_grid_points,
       const size_t nb_spectral_points,
       float* extinction_coeff_dev);

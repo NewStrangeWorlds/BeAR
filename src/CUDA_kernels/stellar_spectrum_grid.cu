@@ -32,7 +32,7 @@
 namespace bear{
 
 
-__global__ void stellarSpectrumInterpolation(
+__global__ void stellarSpectrumInterpolationOld(
   const double xd, const double yd, const double zd,
   const double* c000, const double* c100,
   const double* c010, const double* c110,
@@ -54,6 +54,74 @@ __global__ void stellarSpectrumInterpolation(
     const double c = c0 * (1. - zd) + c1 * zd;
 
     spectrum_dev[tid] = c0 * (1. - zd) + c1 * zd;
+  }
+}
+
+
+__global__ 
+void stellarSpectrumInterpolation(
+  const double xd, const double yd, const double zd,
+  const double* __restrict__ c000, const double* __restrict__ c100,
+  const double* __restrict__ c010, const double* __restrict__ c110,
+  const double* __restrict__ c001, const double* __restrict__ c101,
+  const double* __restrict__ c011, const double* __restrict__ c111,
+  const int nb_wavenumbers,
+  double* __restrict__ spectrum_dev)
+{
+  // Pre-calculate weights to save subtractions in the loop
+  const double omx = 1.0 - xd;
+  const double omy = 1.0 - yd;
+  const double omz = 1.0 - zd;
+
+  int tid = blockIdx.x * blockDim.x + threadIdx.x;
+  int stride = blockDim.x * gridDim.x;
+
+  for (; tid < nb_wavenumbers; tid += stride)
+  {
+    // Layer 0 (z=0)
+    double xy0 = omy * (c000[tid] * omx + c100[tid] * xd) + 
+                 yd  * (c010[tid] * omx + c110[tid] * xd);
+    
+    // Layer 1 (z=1)
+    double xy1 = omy * (c001[tid] * omx + c101[tid] * xd) + 
+                 yd  * (c011[tid] * omx + c111[tid] * xd);
+
+    // Final Interpolation
+    spectrum_dev[tid] = xy0 * omz + xy1 * zd;
+  }
+}
+
+
+__global__ 
+void stellarSpectrumInterpolationFl(
+  const float xd, const float yd, const float zd,
+  const float* __restrict__ c000, const float* __restrict__ c100,
+  const float* __restrict__ c010, const float* __restrict__ c110,
+  const float* __restrict__ c001, const float* __restrict__ c101,
+  const float* __restrict__ c011, const float* __restrict__ c111,
+  const int nb_wavenumbers,
+  double* __restrict__ spectrum_dev)
+{
+  // Pre-calculate weights to save subtractions in the loop
+  const float omx = 1.0f - xd;
+  const float omy = 1.0f - yd;
+  const float omz = 1.0f - zd;
+
+  int tid = blockIdx.x * blockDim.x + threadIdx.x;
+  int stride = blockDim.x * gridDim.x;
+
+  for (; tid < nb_wavenumbers; tid += stride)
+  {
+    // Layer 0 (z=0)
+    float xy0 = omy * (c000[tid] * omx + c100[tid] * xd) + 
+                 yd  * (c010[tid] * omx + c110[tid] * xd);
+    
+    // Layer 1 (z=1)
+    float xy1 = omy * (c001[tid] * omx + c101[tid] * xd) + 
+                 yd  * (c011[tid] * omx + c111[tid] * xd);
+
+    // Final Interpolation
+    spectrum_dev[tid] = xy0 * omz + xy1 * zd;
   }
 }
 
@@ -107,7 +175,7 @@ __host__ void StellarSpectrumGrid::calcFluxGPU(
 
   const double effective_temperature = parameter[0];
 
-  stellarSpectrumInterpolation<<<blocks,threads>>>(
+  stellarSpectrumInterpolationFl<<<blocks,threads>>>(
     xd, yd, zd,
     grid[t_i.first][g_i.first][m_i.first]->spectrum_gpu,    //c000
     grid[t_i.second][g_i.first][m_i.first]->spectrum_gpu,   //c100
