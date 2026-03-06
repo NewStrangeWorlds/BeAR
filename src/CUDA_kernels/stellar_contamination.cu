@@ -118,9 +118,7 @@ __host__ void StellarContamination::modifySpectrumGPU(
     fraction_spot,
     nb_spectral_points);
 
-  cudaDeviceSynchronize();
-  gpuErrchk( cudaPeekAtLastError() );
-  gpuErrchk( cudaDeviceSynchronize() );
+  CUDA_CHECK_AFTER_KERNEL();
 }
 
 

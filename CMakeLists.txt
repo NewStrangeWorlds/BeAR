@@ -15,6 +15,7 @@
 cmake_minimum_required (VERSION 3.10 FATAL_ERROR)
 
 OPTION(USE_PYTHON "Compile BeAR's Python Wrapper" OFF)
+OPTION(DEBUG_CUDA "Enable full CUDA synchronization for debugging" OFF)
 
 # check command line args, user can specify SM to override manual setting
 set(SM "0" CACHE STRING "GPU SM value")
@@ -28,7 +29,7 @@ project(bear C CXX CUDA Fortran)
 
 
 #some C++/C flags
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_CXX_FLAGS "-Wall -march=native -pedantic -MMD")
@@ -56,7 +57,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR})
 
 #set CUDA flags
 string(APPEND CMAKE_CUDA_FLAGS ${CUDA_ARCH_FLAGS})
-string(APPEND CMAKE_CUDA_FLAGS " -std=c++11 -march=native -lineinfo -Xptxas -v")
+string(APPEND CMAKE_CUDA_FLAGS " -std=c++17 -march=native -lineinfo -Xptxas -v")
 
 #string (APPEND CMAKE_CUDA_FLAGS " -cudart shared" )
 
@@ -270,6 +271,10 @@ find_package(LAPACK REQUIRED)
 add_library(bear_cuda ${SRC_CUDA})
 target_include_directories(bear_cuda PUBLIC ${boost_math_SOURCE_DIR}/include/)
 
+if(DEBUG_CUDA MATCHES ON)
+  target_compile_definitions(bear_cuda PRIVATE DEBUG_CUDA)
+endif()
+
 
 if (USE_PYTHON MATCHES ON)
     #find the python version
@@ -298,6 +303,10 @@ if (USE_PYTHON MATCHES ON)
   
   add_library(bear_cuda_for_py ${SRC_CUDA})
   target_include_directories(bear_cuda_for_py PUBLIC ${boost_math_SOURCE_DIR}/include/)
+
+  if(DEBUG_CUDA MATCHES ON)
+    target_compile_definitions(bear_cuda_for_py PRIVATE DEBUG_CUDA)
+  endif()
   
   
   target_compile_options(bear_for_py PRIVATE "${OpenMP_CXX_FLAGS}" PRIVATE "-O3" PRIVATE "-fPIC")

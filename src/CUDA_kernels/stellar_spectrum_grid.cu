@@ -188,9 +188,7 @@ __host__ void StellarSpectrumGrid::calcFluxGPU(
     nb_spectral_points,
     spectrum_gpu);
 
-  cudaDeviceSynchronize();
-  gpuErrchk( cudaPeekAtLastError() );
-  gpuErrchk( cudaDeviceSynchronize() );
+  CUDA_CHECK_AFTER_KERNEL();
 }
 
 

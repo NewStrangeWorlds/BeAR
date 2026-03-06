@@ -26,6 +26,7 @@
 #include <cmath>
 #include <fstream>
 #include <string>
+#include <memory>
 
 #include "../forward_model.h"
 #include "../generic_config.h"
@@ -109,7 +110,7 @@ class OccultationBlackBodyModel : public ForwardModel{
     virtual bool testModel(
       const std::vector<double>& parameters);
   protected:
-    StellarSpectrumModel* stellar_model;
+    std::unique_ptr<StellarSpectrumModel> stellar_model;
 
     size_t nb_general_param = 0;
     size_t nb_stellar_param = 0;

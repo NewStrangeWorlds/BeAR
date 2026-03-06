@@ -24,6 +24,7 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <memory>
 
 #include "stellar_spectrum.h"
 
@@ -41,13 +42,13 @@ namespace bear {
 //definition of the different chemistry modules with an
 //identifier, a keyword to be located in the config file and a short version of the keyword
 namespace stellar_modules{
-  enum id {blackbody, file, grid}; 
+  enum id {blackbody, file, grid};
   const std::vector<std::string> description {"blackbody", "file", "grid"};
 }
 
 
 
-inline StellarSpectrumModel* selectStellarModel(
+inline std::unique_ptr<StellarSpectrumModel> selectStellarModel(
   const std::string model_type,
   const std::vector<std::string>& parameters,
   SpectralGrid* spectral_grid)
@@ -72,61 +73,45 @@ inline StellarSpectrumModel* selectStellarModel(
     std::distance(stellar_modules::description.begin(), it));
 
 
-  //create the temperature profile object based on the chosen module
-  StellarSpectrumModel* stellar_spectrum_model = nullptr;
-
+  //create the stellar spectrum object based on the chosen module
   switch (module_id)
   {
     case stellar_modules::blackbody :
       if (parameters.size() != 0)
       {
-        std::string error_message = 
+        std::string error_message =
           "Stellar blackbody model requires no parameters!\n";
         throw InvalidInput(std::string ("forward_model.config"), error_message);
       }
-      {
-        StarBlackBody* star = new StarBlackBody(spectral_grid);
-        stellar_spectrum_model = star;  
-      }
-      break;
+      return std::make_unique<StarBlackBody>(spectral_grid);
 
     case stellar_modules::file :
       if (parameters.size() != 1)
       {
-        std::string error_message = 
+        std::string error_message =
           "Stellar model requires one parameter (the file path)!\n";
         throw InvalidInput(std::string ("forward_model.config"), error_message);
       }
-      {
-        StarSpectrumFile* star = new StarSpectrumFile(
+      return std::make_unique<StarSpectrumFile>(
           parameters[0],
           spectral_grid);
-        stellar_spectrum_model = star;  
-      }
-      break;
 
     case stellar_modules::grid :
       if (parameters.size() != 1)
       {
-        std::string error_message = 
+        std::string error_message =
           "Stellar grid model requires one parameter (the parameter file path)!\n";
         throw InvalidInput(std::string ("forward_model.config"), error_message);
       }
-      {
-        StellarSpectrumGrid* star = new StellarSpectrumGrid(
+      return std::make_unique<StellarSpectrumGrid>(
           parameters[0],
           spectral_grid);
-        stellar_spectrum_model = star;  
-      }
-      break;
-
   }
 
 
-  return stellar_spectrum_model;
+  return nullptr;
 }
 
 
 }
 #endif
-

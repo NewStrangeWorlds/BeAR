@@ -70,8 +70,7 @@ __host__ void Observation::applyFilterResponseGPU(double* spectrum)
     spectrum_filter_dev);
 
 
-  cudaDeviceSynchronize(); 
-  gpuErrchk( cudaPeekAtLastError() ); 
+  CUDA_CHECK_AFTER_KERNEL();
 }
 
 

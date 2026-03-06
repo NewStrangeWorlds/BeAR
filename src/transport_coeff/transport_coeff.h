@@ -22,6 +22,7 @@
 #define TRANSPORT_COEFF_H
 
 #include <vector>
+#include <memory>
 
 #include "opacity_species.h"
 #include "../spectral_grid/spectral_grid.h"
@@ -60,7 +61,7 @@ class TransportCoefficients {
     GlobalConfig* config = nullptr;
     SpectralGrid* spectral_grid = nullptr;
 
-    std::vector<OpacitySpecies*> gas_species;
+    std::vector<std::unique_ptr<OpacitySpecies>> gas_species;
 
     bool addOpacitySpecies(
       const std::string& species_symbol, const std::string& species_folder);

@@ -83,9 +83,7 @@ __host__ void OccultationBlackBodyModel::calcPlanetSpectrumGPU(
     planet_temperature,
     spectrum_dev);
 
-  cudaDeviceSynchronize();
-  gpuErrchk( cudaPeekAtLastError() );
-  gpuErrchk( cudaDeviceSynchronize() );
+  CUDA_CHECK_AFTER_KERNEL();
 }
 
 
@@ -112,9 +110,7 @@ __host__ void OccultationBlackBodyModel::calcOccultationGPU(
     albedo_contribution);
 
 
-  cudaDeviceSynchronize();
-  gpuErrchk( cudaPeekAtLastError() );
-  gpuErrchk( cudaDeviceSynchronize() );
+  CUDA_CHECK_AFTER_KERNEL();
 }
 
 

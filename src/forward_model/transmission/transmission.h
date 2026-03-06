@@ -27,6 +27,7 @@
 #include <cmath>
 #include <fstream>
 #include <string>
+#include <memory>
 
 #include "../forward_model.h"
 #include "../generic_config.h"
@@ -145,7 +146,7 @@ class TransmissionModel : public ForwardModel{
       const std::vector<std::string>& opacity_species_symbol,
       const std::vector<std::string>& opacity_species_folder);
     
-    virtual ~TransmissionModel();
+    virtual ~TransmissionModel() override;
 
     virtual size_t parametersNumber() {
       return nb_total_param();};
@@ -193,10 +194,10 @@ class TransmissionModel : public ForwardModel{
     Atmosphere atmosphere;
     OpacityCalculation opacity_calc;
 
-    Temperature* temperature_profile = nullptr;
-    std::vector<Chemistry*> chemistry;
-    std::vector<CloudModel*> cloud_models;
-    std::vector<Module*> modules;
+    std::unique_ptr<Temperature> temperature_profile;
+    std::vector<std::unique_ptr<Chemistry>> chemistry;
+    std::vector<std::unique_ptr<CloudModel>> cloud_models;
+    std::vector<std::unique_ptr<Module>> modules;
 
     size_t nb_general_param = 0;
     size_t nb_total_chemistry_param = 0;

@@ -26,6 +26,7 @@
 #include <cmath>
 #include <fstream>
 #include <string>
+#include <memory>
 
 #include "module.h"
 
@@ -59,7 +60,7 @@ class StellarContamination : public Module{
       double* spectrum_gpu);
   protected:
     SpectralGrid* spectral_grid;
-    StellarSpectrumModel* stellar_model;
+    std::unique_ptr<StellarSpectrumModel> stellar_model;
 
     double* spectrum_phot_gpu = nullptr;
     double* spectrum_fac_gpu = nullptr;

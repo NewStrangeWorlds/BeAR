@@ -66,9 +66,7 @@ __host__ void StarBlackBody::calcFluxGPU(
     effective_temperature,
     spectrum_gpu);
 
-  cudaDeviceSynchronize();
-  gpuErrchk( cudaPeekAtLastError() );
-  gpuErrchk( cudaDeviceSynchronize() );
+  CUDA_CHECK_AFTER_KERNEL();
 }
 
 

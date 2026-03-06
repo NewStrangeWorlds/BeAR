@@ -75,9 +75,7 @@ __host__ void OccultationModel::calcOccultationGPU(
     albedo_contribution);
 
 
-  cudaDeviceSynchronize();
-  gpuErrchk( cudaPeekAtLastError() );
-  gpuErrchk( cudaDeviceSynchronize() );
+  CUDA_CHECK_AFTER_KERNEL();
 }
 
 

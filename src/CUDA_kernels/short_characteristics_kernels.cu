@@ -326,8 +326,7 @@ void ShortCharacteristics::calcSpectrumGPU(
   //   nb_grid_points);
 
 
-  cudaDeviceSynchronize();
-  gpuErrchk( cudaPeekAtLastError() );
+  CUDA_CHECK_AFTER_KERNEL();
 }
 
 

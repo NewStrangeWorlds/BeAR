@@ -67,8 +67,6 @@ void  OpacitySpecies::calcRayleighCrossSectionsGPU(
   if (rayleigh_available == false)
     return;
   
-  cudaDeviceSynchronize();
-
   const auto nb_spectral_points = spectral_grid->nbSpectralPoints();
   int threads = 256;
   
@@ -83,8 +81,7 @@ void  OpacitySpecies::calcRayleighCrossSectionsGPU(
     scattering_coeff_dev);
 
 
-  cudaDeviceSynchronize();
-  gpuErrchk( cudaPeekAtLastError() );
+  CUDA_CHECK_AFTER_KERNEL();
 }
 
 

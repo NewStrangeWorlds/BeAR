@@ -176,9 +176,7 @@ __host__ void CloudModel::convertOpticalDepthGPU(
     nb_spectral_points,
     extinction_coeff_dev);
 
-  cudaDeviceSynchronize();
-  gpuErrchk( cudaPeekAtLastError() );
-  gpuErrchk( cudaDeviceSynchronize() );
+  CUDA_CHECK_AFTER_KERNEL();
 }
 
 
@@ -228,9 +226,7 @@ __host__ void GreyCloudModel::opticalPropertiesGPU(const std::vector<double>& pa
     cloud_bottom_index,
     nb_spectral_points);
 
-  cudaDeviceSynchronize();
-  gpuErrchk( cudaPeekAtLastError() );
-  gpuErrchk( cudaDeviceSynchronize() ); 
+  CUDA_CHECK_AFTER_KERNEL(); 
 }
 
 
@@ -295,9 +291,7 @@ __host__ void KHCloudModel::opticalPropertiesGPU(
     cloud_bottom_index,
     nb_spectral_points);
 
-  cudaDeviceSynchronize();
-  gpuErrchk( cudaPeekAtLastError() );
-  gpuErrchk( cudaDeviceSynchronize() );
+  CUDA_CHECK_AFTER_KERNEL();
 }
 
 
@@ -355,9 +349,7 @@ __host__ void PowerLawCloudModel::opticalPropertiesGPU(
     cloud_bottom_index,
     nb_spectral_points);
 
-  cudaDeviceSynchronize();
-  gpuErrchk( cudaPeekAtLastError() );
-  gpuErrchk( cudaDeviceSynchronize() );
+  CUDA_CHECK_AFTER_KERNEL();
 }
 
 

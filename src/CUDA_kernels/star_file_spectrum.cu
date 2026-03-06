@@ -65,9 +65,7 @@ __host__ void StarSpectrumFile::calcFluxGPU(
     spectrum_dev,
     spectrum_gpu);
 
-  cudaDeviceSynchronize();
-  gpuErrchk( cudaPeekAtLastError() );
-  gpuErrchk( cudaDeviceSynchronize() );
+  CUDA_CHECK_AFTER_KERNEL();
 }
 
 

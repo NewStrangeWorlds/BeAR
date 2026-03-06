@@ -87,11 +87,9 @@ __global__ void calcCrossSectionsDevice(
     c1 = c1 + (c2 - c1) * pressure_interpol_factor;
     c2 = c3 + (c4 - c3) * pressure_interpol_factor;
 
-    double sigma = c1 + (c2 - c1) * temperature_interpol_factor;
-    
-    sigma = exp10(sigma) * number_density;
-   
-    absorption_coeff_device[grid_point*nb_spectral_points + tid] += sigma;
+    float sigma = c1 + (c2 - c1) * temperature_interpol_factor;
+
+    absorption_coeff_device[grid_point*nb_spectral_points + tid] += __exp10f(sigma) * static_cast<float>(number_density);
   }
 }
 
@@ -309,8 +307,7 @@ __host__ void checkCrossSectionsHost(
 
   checkCrossSections<<<blocks,threads>>>(nb_spectral_points*nb_grid_points, absorption_coeff_device);
 
-  cudaDeviceSynchronize();
-  gpuErrchk( cudaPeekAtLastError() );
+  CUDA_CHECK_AFTER_KERNEL();
 }
 
 
@@ -366,8 +363,7 @@ __host__ void OpacitySpecies::calcAbsorptionCoefficientsGPU(
     grid_point,
     absorption_coeff_device);
 
-  cudaDeviceSynchronize();
-  gpuErrchk( cudaPeekAtLastError() );
+  CUDA_CHECK_AFTER_KERNEL();
 }
 
 
@@ -414,8 +410,7 @@ __host__ void GasHm::calcContinuumGPU(
     wavelengths_device, 
     absorption_coeff_device);
 
-  cudaDeviceSynchronize();
-  gpuErrchk( cudaPeekAtLastError() );
+  CUDA_CHECK_AFTER_KERNEL();
 }
 
 

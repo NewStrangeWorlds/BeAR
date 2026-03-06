@@ -99,9 +99,6 @@ __host__ void contributionFunctionGPU(
   cudaMemcpy(vertical_grid_dev, &vertical_grid[0], bytes, cudaMemcpyHostToDevice);
 
 
-  cudaDeviceSynchronize();
-
-
   int threads = 256;
   //int blocks = min(( int(nb_spectral_points)+ threads-1)/threads, 2048);
   int blocks = nb_spectral_points / threads;
@@ -115,12 +112,10 @@ __host__ void contributionFunctionGPU(
                                                  nb_spectral_points, nb_grid_points);
 
 
-  cudaDeviceSynchronize();
+  CUDA_CHECK_AFTER_KERNEL();
 
-  cudaFree(temperature_dev);
-  cudaFree(vertical_grid_dev);
-
-  gpuErrchk( cudaPeekAtLastError() ); 
+  gpuErrchk(cudaFree(temperature_dev));
+  gpuErrchk(cudaFree(vertical_grid_dev));
 }
 
 

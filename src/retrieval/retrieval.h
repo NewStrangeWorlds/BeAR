@@ -24,6 +24,7 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include <memory>
 
 
 #include "../spectral_grid/spectral_grid.h"
@@ -88,9 +89,9 @@ class Retrieval{
       return priors.number();}
 
   protected:
-    ForwardModel* forward_model = nullptr;
-    
-    ForwardModel* selectForwardModel(
+    std::unique_ptr<ForwardModel> forward_model;
+
+    std::unique_ptr<ForwardModel> selectForwardModel(
        const std::string model_description,
        GenericConfig* model_config);
     void setAdditionalPriors();
@@ -130,6 +131,15 @@ class Retrieval{
     double logLikeDev(
       std::vector<double*> model_spectrum,
       const double error_inflation_coefficient);
+
+    double* spectrum_dev = nullptr;
+    std::vector<double*> spectrum_obs_dev;
+    double* d_log_like_dev = nullptr;
+    bool gpu_memory_initialized = false;
+
+    void initGPUMemory();
+    void freeGPUMemory();
+
     static void multinestDumper(
       int &nSamples, 
       int &nlive, 

@@ -235,8 +235,6 @@ bool OccultationBlackBodyModel::calcModelGPU(
 
 OccultationBlackBodyModel::~OccultationBlackBodyModel()
 {
-  delete stellar_model;
-
 }
 
 

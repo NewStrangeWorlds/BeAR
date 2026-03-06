@@ -26,6 +26,7 @@
 #include <cmath>
 #include <fstream>
 #include <string>
+#include <memory>
 
 #include "../../chemistry/chemistry.h"
 #include "../../temperature/temperature.h"
@@ -60,7 +61,7 @@ class Atmosphere {
       const bool use_variable_gravity,
       Temperature* temperature_profile,
       const std::vector<double>& temp_parameters,
-      std::vector<Chemistry*>& chemistry,
+      std::vector<std::unique_ptr<Chemistry>>& chemistry,
       const std::vector<double>& chem_parameters);
     bool calcAtmosphereStructure(
       const double surface_gravity,
@@ -68,7 +69,7 @@ class Atmosphere {
       const bool use_variable_gravity,
       Temperature* temperature_profile,
       const std::vector<double>& temp_parameters,
-      std::vector<Chemistry*>& chemistry,
+      std::vector<std::unique_ptr<Chemistry>>& chemistry,
       const std::vector<double>& chem_parameters,
       const double mean_molecular_weight);
     bool calcAtmosphereStructure(
@@ -76,7 +77,7 @@ class Atmosphere {
       const double constant_scale_height,
       Temperature* temperature_profile,
       const std::vector<double>& temp_parameters,
-      std::vector<Chemistry*>& chemistry,
+      std::vector<std::unique_ptr<Chemistry>>& chemistry,
       const std::vector<double>& chem_parameters);
 
     void setAtmosphericStructure(

@@ -100,16 +100,16 @@ OccultationModel::OccultationModel (
 {
   nb_grid_points = nb_grid_points_;
 
-  stellar_model =  new StarSpectrumFile(
+  stellar_model = std::make_unique<StarSpectrumFile>(
     stellar_spectrum_wavelengths,
     stellar_spectrum_flux,
     spectral_grid);
 
   radiative_transfer = selectRadiativeTransfer(
-    std::string("scm"), 
-    std::vector<std::string> {}, 
-    nb_grid_points, 
-    config, 
+    std::string("scm"),
+    std::vector<std::string> {},
+    nb_grid_points,
+    config,
     spectral_grid);
 }
 
@@ -163,12 +163,12 @@ bool OccultationModel::calcAtmosphereStructure(const std::vector<double>& parame
   
   //determine atmosphere structure
   neglect_model = atmosphere.calcAtmosphereStructure(
-    surface_gravity, 
+    surface_gravity,
     1.0,
     false,
-    temperature_profile, 
-    temperature_parameters, 
-    chemistry, 
+    temperature_profile.get(),
+    temperature_parameters,
+    chemistry,
     chemistry_parameters);
 
 
@@ -382,12 +382,10 @@ void OccultationModel::setCloudProperties(
     nb_grid_points-1, 
     std::vector<double>(spectral_grid->nbSpectralPoints(), 0.0));
 
-  FixedCloudModel* model = new FixedCloudModel(
+  cloud_models.push_back(std::make_unique<FixedCloudModel>(
     cloud_optical_depth,
     single_scattering_albedo,
-    asymmetry_parameter);
-
-  cloud_models.push_back(model);
+    asymmetry_parameter));
 }
 
 
@@ -472,11 +470,7 @@ std::vector<double> OccultationModel::calcSpectrum(
       spectrum[i] = spectrum[i] / stellar_spectrum[i] * radius_ratio*radius_ratio * 1e6;
   }
 
-  if (cloud_models.size() > 0)
-  {
-    delete cloud_models[0];
-    cloud_models.clear();
-  }
+  cloud_models.clear();
 
   return spectrum;
 }
@@ -485,15 +479,6 @@ std::vector<double> OccultationModel::calcSpectrum(
 
 OccultationModel::~OccultationModel()
 {
-  delete radiative_transfer;
-  delete temperature_profile;
-  delete stellar_model;
-  
-  for (auto & i : cloud_models)
-    delete i;
-  
-  for (auto & i : chemistry)
-    delete i;
 }
 
 

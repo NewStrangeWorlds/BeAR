@@ -58,9 +58,7 @@ __host__ void RadiativeTransfer::changeSpectrumUnitsGPU(
     spectral_grid->wavelength_list_gpu,
     nb_points);
 
-  cudaDeviceSynchronize();
-  gpuErrchk( cudaPeekAtLastError() );
-  gpuErrchk( cudaDeviceSynchronize() );
+  CUDA_CHECK_AFTER_KERNEL();
 }
 
 

@@ -246,8 +246,7 @@ void SpectralBands::bandIntegrateSpectrumGPU(
       use_filter_transmission);
   }
 
-  cudaDeviceSynchronize(); 
-  gpuErrchk( cudaPeekAtLastError() );
+  CUDA_CHECK_AFTER_KERNEL();
 }
 
 

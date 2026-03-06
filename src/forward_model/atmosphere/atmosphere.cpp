@@ -66,7 +66,7 @@ bool Atmosphere::calcAtmosphereStructure(
   const bool use_variable_gravity,
   Temperature* temperature_profile,
   const std::vector<double>& temp_parameters,
-  std::vector<Chemistry*>& chemistry,
+  std::vector<std::unique_ptr<Chemistry>>& chemistry,
   const std::vector<double>& chem_parameters_all)
 { 
   bool neglect_model = false;
@@ -129,7 +129,7 @@ bool Atmosphere::calcAtmosphereStructure(
   const bool use_variable_gravity,
   Temperature* temperature_profile,
   const std::vector<double>& temp_parameters,
-  std::vector<Chemistry*>& chemistry,
+  std::vector<std::unique_ptr<Chemistry>>& chemistry,
   const std::vector<double>& chem_parameters_all,
   const double mean_molecular_weight)
 { 
@@ -193,7 +193,7 @@ bool Atmosphere::calcAtmosphereStructure(
   const double constant_scale_height,
   Temperature* temperature_profile,
   const std::vector<double>& temp_parameters,
-  std::vector<Chemistry*>& chemistry,
+  std::vector<std::unique_ptr<Chemistry>>& chemistry,
   const std::vector<double>& chem_parameters_all)
 { 
   bool neglect_model = false;

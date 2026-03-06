@@ -26,6 +26,7 @@
 #include <cmath>
 #include <fstream>
 #include <string>
+#include <memory>
 
 #include "../forward_model.h"
 #include "../generic_config.h"
@@ -181,10 +182,10 @@ class EmissionModel : public ForwardModel{
     Atmosphere atmosphere;
     OpacityCalculation opacity_calc;
 
-    RadiativeTransfer* radiative_transfer = nullptr;
-    Temperature* temperature_profile = nullptr;
-    std::vector<Chemistry*> chemistry;
-    std::vector<CloudModel*> cloud_models;
+    std::unique_ptr<RadiativeTransfer> radiative_transfer;
+    std::unique_ptr<Temperature> temperature_profile;
+    std::vector<std::unique_ptr<Chemistry>> chemistry;
+    std::vector<std::unique_ptr<CloudModel>> cloud_models;
     
     size_t nb_general_param = 0;
     size_t nb_total_chemistry_param = 0;

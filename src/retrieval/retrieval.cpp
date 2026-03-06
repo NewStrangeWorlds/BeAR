@@ -101,6 +101,9 @@ Retrieval::Retrieval(
   }
 
   priors.printInfo();
+
+  if (config->use_gpu)
+    initGPUMemory();
 }
 
 
@@ -165,6 +168,9 @@ Retrieval::Retrieval(
   setAdditionalPriors();
 
   priors.printInfo();
+
+  if (config->use_gpu)
+    initGPUMemory();
 }
 
 
@@ -373,27 +379,21 @@ double Retrieval::logLikelihood(
 
 double Retrieval::logLikelihoodGPU(
   std::vector<double>& physical_parameters)
-{ 
-  double* spectrum = nullptr;
-  allocateOnDevice(
-    spectrum, 
+{
+  initializeOnDevice(
+    spectrum_dev,
     spectral_grid.nbSpectralPoints());
 
-
-  std::vector<double*> spectrum_obs{
-    observations.size(), 
-    nullptr};
-
   for (size_t i=0; i<observations.size(); ++i)
-    allocateOnDevice(
-      spectrum_obs[i], 
+    initializeOnDevice(
+      spectrum_obs_dev[i],
       observations[i].nbPoints());
 
 
   bool neglect = forward_model->calcModelGPU(
-    physical_parameters, 
-    spectrum, 
-    spectrum_obs);
+    physical_parameters,
+    spectrum_dev,
+    spectrum_obs_dev);
 
 
   double error_inflation = 0;
@@ -402,17 +402,11 @@ double Retrieval::logLikelihoodGPU(
     error_inflation = std::pow(10, physical_parameters.back());
 
 
-  double log_like = logLikeDev(spectrum_obs, error_inflation);
+  double log_like = logLikeDev(spectrum_obs_dev, error_inflation);
 
   //if the forward model tells us to neglect the current set of parameters,
   //set the likelihood to a low value
   if (neglect == true) log_like = -1e30;
-
-
-  deleteFromDevice(spectrum);
-
-  for (size_t i=0; i<observations.size(); ++i)
-    deleteFromDevice(spectrum_obs[i]);
 
 
   if (config->multinest_print_iter_values)
@@ -444,9 +438,45 @@ AtmosphereOutput Retrieval::computeAtmosphereStructure(
 
 
 
+void Retrieval::initGPUMemory()
+{
+  if (gpu_memory_initialized)
+    return;
+
+  allocateOnDevice(spectrum_dev, spectral_grid.nbSpectralPoints());
+
+  spectrum_obs_dev.resize(observations.size(), nullptr);
+
+  for (size_t i=0; i<observations.size(); ++i)
+    allocateOnDevice(spectrum_obs_dev[i], observations[i].nbPoints());
+
+  allocateOnDevice(d_log_like_dev, 1);
+
+  gpu_memory_initialized = true;
+}
+
+
+void Retrieval::freeGPUMemory()
+{
+  if (!gpu_memory_initialized)
+    return;
+
+  deleteFromDevice(spectrum_dev);
+
+  for (size_t i=0; i<spectrum_obs_dev.size(); ++i)
+    deleteFromDevice(spectrum_obs_dev[i]);
+
+  spectrum_obs_dev.clear();
+
+  deleteFromDevice(d_log_like_dev);
+
+  gpu_memory_initialized = false;
+}
+
+
 Retrieval::~Retrieval()
 {
-  delete forward_model;
+  freeGPUMemory();
 }
 
 

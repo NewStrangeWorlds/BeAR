@@ -37,6 +37,15 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 }
 
 
+#ifdef DEBUG_CUDA
+  #define CUDA_CHECK_AFTER_KERNEL() \
+    do { gpuErrchk(cudaDeviceSynchronize()); } while(0)
+#else
+  #define CUDA_CHECK_AFTER_KERNEL() \
+    gpuErrchk(cudaPeekAtLastError())
+#endif
+
+
 }
 
 

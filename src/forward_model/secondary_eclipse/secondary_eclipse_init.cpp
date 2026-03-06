@@ -42,10 +42,10 @@ namespace bear{
 void OccultationModel::initModules(const OccultationConfig& model_config)
 {
   radiative_transfer = selectRadiativeTransfer(
-    model_config.radiative_transfer_model, 
-    model_config.radiative_transfer_parameters, 
-    model_config.nb_grid_points, 
-    config, 
+    model_config.radiative_transfer_model,
+    model_config.radiative_transfer_parameters,
+    model_config.nb_grid_points,
+    config,
     spectral_grid);
 
 
@@ -57,15 +57,15 @@ void OccultationModel::initModules(const OccultationConfig& model_config)
   nb_stellar_param = stellar_model->nbParameters();
 
 
-  chemistry.assign(model_config.chemistry_model.size(), nullptr);
+  chemistry.resize(model_config.chemistry_model.size());
 
   for (size_t i=0; i<model_config.chemistry_model.size(); ++i)
     chemistry[i] = selectChemistryModule(
-      model_config.chemistry_model[i], 
-      model_config.chemistry_parameters[i], 
-      config, 
+      model_config.chemistry_model[i],
+      model_config.chemistry_parameters[i],
+      config,
       model_config.atmos_boundaries);
-  
+
   //count the total number of free parameters for the chemistry modules
   nb_total_chemistry_param = 0;
 
@@ -74,8 +74,8 @@ void OccultationModel::initModules(const OccultationConfig& model_config)
 
 
   temperature_profile = selectTemperatureProfile(
-    model_config.temperature_profile_model, 
-    model_config.temperature_profile_parameters, 
+    model_config.temperature_profile_model,
+    model_config.temperature_profile_parameters,
     model_config.atmos_boundaries);
 
   nb_temperature_param = temperature_profile->nbParameters();
@@ -83,12 +83,12 @@ void OccultationModel::initModules(const OccultationConfig& model_config)
 
   for (size_t i=0; i<model_config.cloud_model.size(); ++i)
   {
-    CloudModel* model = selectCloudModel(
-      model_config.cloud_model[i], 
+    auto model = selectCloudModel(
+      model_config.cloud_model[i],
       model_config.cloud_model_parameters[i]);
-    
+
     if (model != nullptr)
-      cloud_models.push_back(model);
+      cloud_models.push_back(std::move(model));
   }
   
   //count the total number of free parameters for the cloud modules

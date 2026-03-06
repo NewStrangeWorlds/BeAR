@@ -30,12 +30,14 @@
 #include "../forward_model/flat_line/flat_line.h"
 #include "../forward_model/secondary_eclipse_bb/secondary_eclipse_bb.h"
 
+#include <memory>
+
 
 namespace bear{
 
 //Selects and initialises the forward model based on the option found in retrieval.config
 //Exits with an error if the selected forward model is unkown
-ForwardModel* Retrieval::selectForwardModel(
+std::unique_ptr<ForwardModel> Retrieval::selectForwardModel(
   const std::string model_description,
   GenericConfig* model_config)
 {
@@ -43,25 +45,21 @@ ForwardModel* Retrieval::selectForwardModel(
   {
     if (model_config == nullptr)
     {
-      EmissionModel* model = new EmissionModel(
+      return std::make_unique<EmissionModel>(
         EmissionModelConfig (config->retrieval_folder_path),
         config,
         &spectral_grid,
         observations);
-
-      return model;
     }
     else
     {
       EmissionModelConfig* c = dynamic_cast<EmissionModelConfig*>(model_config);
 
-      EmissionModel* model = new EmissionModel(
+      return std::make_unique<EmissionModel>(
         *c,
         config,
         &spectral_grid,
         observations);
-
-      return model;
     }
   }
 
@@ -70,24 +68,20 @@ ForwardModel* Retrieval::selectForwardModel(
   {
     if (model_config == nullptr)
     {
-      OccultationModel* model = new OccultationModel(
+      return std::make_unique<OccultationModel>(
         OccultationConfig (config->retrieval_folder_path),
         config,
         &spectral_grid,
         observations);
-
-      return model;
     }
     {
       OccultationConfig* c = dynamic_cast<OccultationConfig*>(model_config);
 
-      OccultationModel* model = new OccultationModel(
+      return std::make_unique<OccultationModel>(
         *c,
         config,
         &spectral_grid,
         observations);
-
-      return model;
     }
   }
 
@@ -96,63 +90,53 @@ ForwardModel* Retrieval::selectForwardModel(
   {
     if (model_config == nullptr)
     {
-      TransmissionModel* model = new TransmissionModel(
+      return std::make_unique<TransmissionModel>(
         TransmissionModelConfig (config->retrieval_folder_path),
         config,
         &spectral_grid,
         observations);
-
-      return model;
     }
     else
     {
       TransmissionModelConfig* c = dynamic_cast<TransmissionModelConfig*>(model_config);
 
-      TransmissionModel* model = new TransmissionModel(
+      return std::make_unique<TransmissionModel>(
         *c,
         config,
         &spectral_grid,
         observations);
-
-      return model;
     }
   }
 
 
   if (model_description == "flat_line" || model_description == "Flat_line" || model_description == "fl")
   {
-    FlatLine* model = new FlatLine(
+    return std::make_unique<FlatLine>(
       config,
       &spectral_grid,
       observations);
-
-    return model;
   }
 
-  
+
   if (model_description == "secondary_eclipse_bb" || model_description == "Secondary_eclipse_bb" || model_description == "se_bb")
   {
     if (model_config == nullptr)
     {
-      OccultationBlackBodyModel* model = new OccultationBlackBodyModel(
+      return std::make_unique<OccultationBlackBodyModel>(
         OccultationBlackBodyConfig (config->retrieval_folder_path),
         config,
         &spectral_grid,
         observations);
-
-      return model;
     }
     else
-    { 
+    {
       OccultationBlackBodyConfig* c = dynamic_cast<OccultationBlackBodyConfig*>(model_config);
-      
-      OccultationBlackBodyModel* model = new OccultationBlackBodyModel(
+
+      return std::make_unique<OccultationBlackBodyModel>(
         *c,
         config,
         &spectral_grid,
         observations);
-      
-      return model;
     }
   }
 

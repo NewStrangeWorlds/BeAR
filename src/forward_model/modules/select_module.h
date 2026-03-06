@@ -24,6 +24,7 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <memory>
 
 #include "module.h"
 
@@ -40,13 +41,13 @@ namespace bear {
 //definition of the different chemistry modules with an
 //identifier, a keyword to be located in the config file and a short version of the keyword
 namespace modules{
-  enum id {stellar_contamination}; 
+  enum id {stellar_contamination};
   const std::vector<std::string> description {"stellar_contamination"};
 }
 
 
 
-inline Module* selectModule(
+inline std::unique_ptr<Module> selectModule(
   const std::string model_type,
   const std::vector<std::string>& parameters,
   SpectralGrid* spectral_grid)
@@ -71,32 +72,24 @@ inline Module* selectModule(
     std::distance(modules::description.begin(), it));
 
 
-  //create the temperature profile object based on the chosen module
-  Module* module = nullptr;
-
+  //create the module object based on the chosen module
   switch (module_id)
   {
     case modules::stellar_contamination :
       if (parameters.size() < 1)
       {
-        std::string error_message = 
+        std::string error_message =
           "Stellar activity module requires at least one parameter!\n";
         throw InvalidInput(std::string ("forward_model.config"), error_message);
       }
-      {
-        StellarContamination* stellar_module = new StellarContamination(
+      return std::make_unique<StellarContamination>(
           parameters,
           spectral_grid);
-        module = stellar_module;
-      }
-      break;
-
   }
 
-  return module;
+  return nullptr;
 }
 
 
 }
 #endif
-

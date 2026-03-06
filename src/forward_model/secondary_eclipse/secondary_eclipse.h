@@ -26,6 +26,7 @@
 #include <cmath>
 #include <fstream>
 #include <string>
+#include <memory>
 
 #include "../forward_model.h"
 #include "../generic_config.h"
@@ -188,11 +189,11 @@ class OccultationModel : public ForwardModel{
     Atmosphere atmosphere;
     OpacityCalculation opacity_calc;
 
-    RadiativeTransfer* radiative_transfer = nullptr;
-    Temperature* temperature_profile = nullptr;
-    std::vector<Chemistry*> chemistry;
-    std::vector<CloudModel*> cloud_models;
-    StellarSpectrumModel* stellar_model;
+    std::unique_ptr<RadiativeTransfer> radiative_transfer;
+    std::unique_ptr<Temperature> temperature_profile;
+    std::vector<std::unique_ptr<Chemistry>> chemistry;
+    std::vector<std::unique_ptr<CloudModel>> cloud_models;
+    std::unique_ptr<StellarSpectrumModel> stellar_model;
 
     size_t nb_grid_points = 0;
     size_t nb_general_param = 0;

@@ -190,8 +190,7 @@ void  TransmissionModel::calcTransitDepthGPU(
       absorption_coeff_dev, 
       scattering_coeff_dev);
 
-  cudaDeviceSynchronize();
-  gpuErrchk( cudaPeekAtLastError() );
+  CUDA_CHECK_AFTER_KERNEL();
 
   int blocks  = (nb_spectral_points + threads - 1) / threads;
 
@@ -204,8 +203,7 @@ void  TransmissionModel::calcTransitDepthGPU(
     absorption_coeff_dev,
     transit_radius_dev);
 
-  cudaDeviceSynchronize();
-  gpuErrchk( cudaPeekAtLastError() );
+  CUDA_CHECK_AFTER_KERNEL();
 }
 
 }

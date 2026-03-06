@@ -33,6 +33,7 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <memory>
 
 
 namespace bear {
@@ -40,13 +41,13 @@ namespace bear {
 //definition of the different chemistry modules with an
 //identifier, a keyword to be located in the config file
 namespace cloud_modules{
-  enum id {none, grey, KHnongrey, power_law}; 
+  enum id {none, grey, KHnongrey, power_law};
   const std::vector<std::string> description {"none", "grey", "KHnongrey", "power_law"};
 }
 
 
 
-inline CloudModel* selectCloudModel(const std::string type, const std::vector<std::string>& parameters)
+inline std::unique_ptr<CloudModel> selectCloudModel(const std::string type, const std::vector<std::string>& parameters)
 {
   //find the corresponding cloud module to the supplied type string
   auto it = std::find(cloud_modules::description.begin(), cloud_modules::description.end(), type);
@@ -65,40 +66,25 @@ inline CloudModel* selectCloudModel(const std::string type, const std::vector<st
 
 
   //create the cloud object based on the chosen module
-  CloudModel* cloud_model = nullptr;
-
   switch (module_id)
   {
     case cloud_modules::none :
       break;
 
     case cloud_modules::grey :
-      {
-        GreyCloudModel* model = new GreyCloudModel(parameters);
-        cloud_model = model;
-      }
-      break;
+      return std::make_unique<GreyCloudModel>(parameters);
 
     case cloud_modules::KHnongrey :
-      {
-        KHCloudModel* model = new KHCloudModel(parameters);
-        cloud_model = model;
-      }
-      break;
+      return std::make_unique<KHCloudModel>(parameters);
 
     case cloud_modules::power_law :
-      {
-        PowerLawCloudModel* model = new PowerLawCloudModel(parameters);
-        cloud_model = model;
-      }
-      break;
+      return std::make_unique<PowerLawCloudModel>(parameters);
   }
 
 
-  return cloud_model;
+  return nullptr;
 }
 
 
 }
 #endif
-

@@ -73,10 +73,7 @@ __host__ double Retrieval::logLikeDev(
 
   for (size_t i=0; i<nb_observations; ++i)
   {
-    double* d_log_like = nullptr;
-
-    cudaMalloc(&d_log_like, sizeof(double));
-    cudaMemset(d_log_like, 0, sizeof(double));
+    gpuErrchk(cudaMemset(d_log_like_dev, 0, sizeof(double)));
 
     const int threads = 128;
     const int nb_points = observations[i].nbPoints();
@@ -92,19 +89,13 @@ __host__ double Retrieval::logLikeDev(
       model_spectrum[i],
       nb_points,
       error_inflation_coefficient,
-      d_log_like);
+      d_log_like_dev);
 
 
-    cudaDeviceSynchronize();
-    gpuErrchk( cudaPeekAtLastError() );
-    gpuErrchk( cudaDeviceSynchronize() );
+    CUDA_CHECK_AFTER_KERNEL();
 
     double h_log_like = 0;
-    cudaMemcpy(&h_log_like, d_log_like, sizeof(double), cudaMemcpyDeviceToHost);
-
-    cudaDeviceSynchronize();
-    cudaFree(d_log_like);
-    cudaDeviceSynchronize();
+    gpuErrchk(cudaMemcpy(&h_log_like, d_log_like_dev, sizeof(double), cudaMemcpyDeviceToHost));
 
     log_like += h_log_like;
   }

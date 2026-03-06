@@ -23,6 +23,7 @@
 
 
 #include <vector>
+#include <memory>
 
 #include "transport_coeff.h"
 #include "../config/global_config.h"
@@ -61,10 +62,10 @@ class OpacityCalculation {
     ~OpacityCalculation();
 
     void calculate(
-      std::vector<CloudModel*>& cloud_models,
+      std::vector<std::unique_ptr<CloudModel>>& cloud_models,
       const std::vector<double>& cloud_parameter);
     void calculateGPU(
-      std::vector<CloudModel*>& cloud_models,
+      std::vector<std::unique_ptr<CloudModel>>& cloud_models,
       const std::vector<double>& cloud_parameter);
 
     std::vector< std::vector<double> > absorption_coeff;
@@ -96,7 +97,7 @@ class OpacityCalculation {
 
 
 inline void OpacityCalculation::calculateGPU(
-  std::vector<CloudModel*>& cloud_models,
+  std::vector<std::unique_ptr<CloudModel>>& cloud_models,
   const std::vector<double>& cloud_parameter)
 {
   const size_t nb_grid_points = atmosphere->nb_grid_points;
@@ -152,7 +153,7 @@ inline void OpacityCalculation::calculateGPU(
 
 
 inline void OpacityCalculation::calculate(
-  std::vector<CloudModel*>& cloud_models,
+  std::vector<std::unique_ptr<CloudModel>>& cloud_models,
   const std::vector<double>& cloud_parameter)
 { 
   const size_t nb_grid_points = atmosphere->nb_grid_points;

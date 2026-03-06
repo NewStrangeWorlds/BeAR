@@ -47,13 +47,13 @@ void EmissionModel::initModules(const EmissionModelConfig& model_config)
     spectral_grid);
 
 
-  chemistry.assign(model_config.chemistry_model.size(), nullptr);
+  chemistry.resize(model_config.chemistry_model.size());
 
   for (size_t i=0; i<model_config.chemistry_model.size(); ++i)
     chemistry[i] = selectChemistryModule(
-      model_config.chemistry_model[i], 
-      model_config.chemistry_parameters[i], 
-      config, 
+      model_config.chemistry_model[i],
+      model_config.chemistry_parameters[i],
+      config,
       model_config.atmos_boundaries);
 
   //count the total number of free parameters for the chemistry modules
@@ -73,12 +73,12 @@ void EmissionModel::initModules(const EmissionModelConfig& model_config)
 
   for (size_t i=0; i<model_config.cloud_model.size(); ++i)
   {
-    CloudModel* model = selectCloudModel(
-      model_config.cloud_model[i], 
+    auto model = selectCloudModel(
+      model_config.cloud_model[i],
       model_config.cloud_model_parameters[i]);
-    
+
     if (model != nullptr)
-      cloud_models.push_back(model);
+      cloud_models.push_back(std::move(model));
   }
   
   //count the total number of free parameters for the cloud modules

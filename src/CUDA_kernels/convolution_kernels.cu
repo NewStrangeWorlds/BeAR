@@ -185,8 +185,7 @@ void SpectralBands::convolveSpectrumGPU(
     convolution_end_dev,
     spectrum_processed_dev);
 
-  cudaDeviceSynchronize(); 
-  gpuErrchk( cudaPeekAtLastError() ); 
+  CUDA_CHECK_AFTER_KERNEL();
 }
 
 

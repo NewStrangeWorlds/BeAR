@@ -157,37 +157,37 @@ bool TransmissionModel::calcAtmosphereStructure(const std::vector<double>& param
   if (!fit_mean_molecular_weight && !fit_scale_height)
   {
     neglect_model = atmosphere.calcAtmosphereStructure(
-      surface_gravity, 
+      surface_gravity,
       bottom_radius,
       use_variable_gravity,
-      temperature_profile, 
-      temperature_parameters, 
-      chemistry, 
+      temperature_profile.get(),
+      temperature_parameters,
+      chemistry,
       chemistry_parameters);
 
     return neglect_model;
   }
-  
+
   //either mean molecular weight or scale height
   const double param = parameter[3];
 
   if (fit_mean_molecular_weight)
     neglect_model = atmosphere.calcAtmosphereStructure(
-      surface_gravity, 
+      surface_gravity,
       bottom_radius,
       use_variable_gravity,
-      temperature_profile, 
-      temperature_parameters, 
-      chemistry, 
+      temperature_profile.get(),
+      temperature_parameters,
+      chemistry,
       chemistry_parameters,
       param);
   else
     neglect_model = atmosphere.calcAtmosphereStructure(
-      surface_gravity, 
+      surface_gravity,
       param,
-      temperature_profile, 
-      temperature_parameters, 
-      chemistry, 
+      temperature_profile.get(),
+      temperature_parameters,
+      chemistry,
       chemistry_parameters);
 
   return neglect_model;
@@ -357,12 +357,10 @@ void TransmissionModel::setCloudProperties(
     nb_grid_points-1, 
     std::vector<double>(spectral_grid->nbSpectralPoints(), 0.0));
 
-  FixedCloudModel* model = new FixedCloudModel(
+  cloud_models.push_back(std::make_unique<FixedCloudModel>(
     cloud_optical_depth,
     single_scattering_albedo,
-    asymmetry_parameter);
-
-  cloud_models.push_back(model);
+    asymmetry_parameter));
 
 }
 
@@ -456,11 +454,7 @@ std::vector<double> TransmissionModel::calcSpectrum(
     calcTransmissionSpectrum(bottom_radius, star_radius, spectrum);
   }
 
-  if (cloud_models.size() > 0)
-  {
-    delete cloud_models[0];
-    cloud_models.clear();
-  }
+  cloud_models.clear();
 
   return spectrum;
 }
@@ -468,18 +462,7 @@ std::vector<double> TransmissionModel::calcSpectrum(
 
 
 TransmissionModel::~TransmissionModel()
-{ 
-  delete temperature_profile;
-
-  for (auto & i : cloud_models)
-    delete i;
-  
-  for (auto & i : chemistry)
-    delete i;
-
-  for (auto & i : modules)
-    delete i;
-
+{
   if (cloud_extinction_gpu != nullptr)
     deleteFromDevice(cloud_extinction_gpu);
 }

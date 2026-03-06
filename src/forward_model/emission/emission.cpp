@@ -176,12 +176,12 @@ bool EmissionModel::calcAtmosphereStructure(const std::vector<double>& parameter
   if (derived_mass > 80) neglect_model = true;
 
   neglect_model = atmosphere.calcAtmosphereStructure(
-    surface_gravity, 
+    surface_gravity,
     1.0,
     false,
-    temperature_profile, 
-    temperature_parameters, 
-    chemistry, 
+    temperature_profile.get(),
+    temperature_parameters,
+    chemistry,
     chemistry_parameters);
 
 
@@ -326,11 +326,7 @@ std::vector<double> EmissionModel::calcSpectrum(
       spectrum);
   }
 
-  if (cloud_models.size() > 0)
-  {
-    delete cloud_models[0];
-    cloud_models.clear();
-  }
+  cloud_models.clear();
 
 
   for (size_t i=0; i<spectrum.size(); ++i)
@@ -367,25 +363,15 @@ void EmissionModel::setCloudProperties(
     nb_grid_points-1, 
     std::vector<double>(spectral_grid->nbSpectralPoints(), 0.0));
 
-  FixedCloudModel* model = new FixedCloudModel(
+  cloud_models.push_back(std::make_unique<FixedCloudModel>(
     cloud_optical_depth,
     single_scattering_albedo,
-    asymmetry_parameter);
-
-  cloud_models.push_back(model);
+    asymmetry_parameter));
 }
 
 
 EmissionModel::~EmissionModel()
 {
-  delete radiative_transfer;
-  delete temperature_profile;
-  
-  for (auto & i : cloud_models)
-    delete i;
-
-  for (auto & i : chemistry)
-    delete i;
 }
 
 

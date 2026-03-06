@@ -61,9 +61,7 @@ void Observation::addShiftToSpectrumGPU(
     spectrum_shift,
     nb_points);
 
-  cudaDeviceSynchronize();
-  gpuErrchk( cudaPeekAtLastError() );
-  gpuErrchk( cudaDeviceSynchronize() );
+  CUDA_CHECK_AFTER_KERNEL();
 }
 
 

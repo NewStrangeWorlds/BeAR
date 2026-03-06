@@ -37,6 +37,7 @@
 
 #include <vector>
 #include <algorithm>
+#include <memory>
 
 
 namespace bear {
@@ -45,26 +46,26 @@ namespace bear {
 //definition of the different chemistry modules with an
 //identifier, a keyword to be located in the config file and a short version of the keyword
 namespace chemistry_modules{
-  enum id {free, iso, eq, cspline, iso_clr, bg, sf}; 
+  enum id {free, iso, eq, cspline, iso_clr, bg, sf};
   const std::vector<std::string> description {"free", "isoprofile", "equilibrium", "free_cspline", "isoprofile_clr", "background", "step_function"};
   const std::vector<std::string> description_short {"free", "iso", "eq", "free_cs", "iso_clr", "bg", "sf"};
 }
 
 
-inline Chemistry* selectChemistryModule(
-  const std::string chemistry_type, 
-  const std::vector<std::string>& parameters, 
-  GlobalConfig* config, 
+inline std::unique_ptr<Chemistry> selectChemistryModule(
+  const std::string chemistry_type,
+  const std::vector<std::string>& parameters,
+  GlobalConfig* config,
   const std::vector<double>& atmos_boundaries)
 {
   //find the corresponding chemistry module to the supplied "type" string
   auto it = std::find(
-    chemistry_modules::description.begin(), 
-    chemistry_modules::description.end(), 
+    chemistry_modules::description.begin(),
+    chemistry_modules::description.end(),
     chemistry_type);
   auto it_short = std::find(
-    chemistry_modules::description_short.begin(), 
-    chemistry_modules::description_short.end(), 
+    chemistry_modules::description_short.begin(),
+    chemistry_modules::description_short.end(),
     chemistry_type);
 
 
@@ -81,11 +82,11 @@ inline Chemistry* selectChemistryModule(
 
   if (it != chemistry_modules::description.end())
     module_id = static_cast<chemistry_modules::id>(
-      std::distance(chemistry_modules::description.begin(), 
+      std::distance(chemistry_modules::description.begin(),
       it));
   else
     module_id = static_cast<chemistry_modules::id>(
-      std::distance(chemistry_modules::description_short.begin(), 
+      std::distance(chemistry_modules::description_short.begin(),
       it_short));
 
 
@@ -94,18 +95,15 @@ inline Chemistry* selectChemistryModule(
     if (parameters.size() != 1) {
         std::string error_message = "Equilibrium chemistry requires exactly one parameter!\n";
         throw InvalidInput(std::string ("forward_model.config"), error_message);}
-    
-    FastChemChemistry* model = new FastChemChemistry(
-        config->retrieval_folder_path + parameters[0], 
-        config->nb_omp_processes);
 
-    return model;
+    return std::make_unique<FastChemChemistry>(
+        config->retrieval_folder_path + parameters[0],
+        config->nb_omp_processes);
   }
 
   if (module_id == chemistry_modules::iso)
   {
-    IsoprofileChemistry* model = new IsoprofileChemistry(parameters);
-    return model;
+    return std::make_unique<IsoprofileChemistry>(parameters);
   }
 
   if (module_id == chemistry_modules::free)
@@ -114,13 +112,11 @@ inline Chemistry* selectChemistryModule(
         std::string error_message = "Free chemistry requires exactly three parameters!\n";
         throw InvalidInput(std::string ("forward_model.config"), error_message);}
 
-    FreeChemistry* model = new FreeChemistry(
-        parameters[0], 
+    return std::make_unique<FreeChemistry>(
+        parameters[0],
         std::stoi(parameters[1]),
         std::stoi(parameters[2]),
         atmos_boundaries);
-
-    return model;
   }
 
   if (module_id == chemistry_modules::cspline)
@@ -129,17 +125,14 @@ inline Chemistry* selectChemistryModule(
         std::string error_message = "Free cubic spline chemistry requires exactly two parameters!\n";
         throw InvalidInput(std::string ("forward_model.config"), error_message);}
 
-    FreeCBSplineChemistry* model = new FreeCBSplineChemistry(
+    return std::make_unique<FreeCBSplineChemistry>(
         parameters[0],
         std::stoi(parameters[1]));
-
-    return model;
   }
 
   if (module_id == chemistry_modules::iso_clr)
   {
-    IsoprofileCLRChemistry* model = new IsoprofileCLRChemistry(parameters);
-    return model;
+    return std::make_unique<IsoprofileCLRChemistry>(parameters);
   }
 
   if (module_id == chemistry_modules::bg)
@@ -148,8 +141,7 @@ inline Chemistry* selectChemistryModule(
         std::string error_message = "Background chemistry requires exactly one parameter!\n";
         throw InvalidInput(std::string ("forward_model.config"), error_message);}
 
-    BackgroundChemistry* model = new BackgroundChemistry(parameters[0]);
-    return model;
+    return std::make_unique<BackgroundChemistry>(parameters[0]);
   }
 
   if (module_id == chemistry_modules::sf)
@@ -158,14 +150,13 @@ inline Chemistry* selectChemistryModule(
         std::string error_message = "Step function chemistry requires exactly one parameter!\n";
         throw InvalidInput(std::string ("forward_model.config"), error_message);}
 
-    StepFunctionChemistry* model = new StepFunctionChemistry(parameters[0]);
-    return model;
+    return std::make_unique<StepFunctionChemistry>(parameters[0]);
   }
-  
+
   //we should never reach this point
   return nullptr;
 }
 
 
 }
-#endif 
+#endif
