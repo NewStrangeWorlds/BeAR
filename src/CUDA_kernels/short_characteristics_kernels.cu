@@ -109,7 +109,7 @@ __global__ void shortCharacteristicsDevOld(
 
 
 __global__ 
-void shortCharacteristicsDev(
+void shortCharacteristicsDev_(
   double* __restrict__ model_spectrum_gpu,
   const float* __restrict__ absorption_coeff_dev,
   const double* __restrict__ wavenumber_list_dev,
@@ -148,12 +148,13 @@ void shortCharacteristicsDev(
       // Combining memory loads: fetch absorption for next layer
       float abs_curr = absorption_coeff_dev[i * nb_spectral_points + tid];
       float abs_next = absorption_coeff_dev[(i + 1) * nb_spectral_points + tid];
+      if (tid == 0) printf("Layer %d: abs_curr = %e, abs_next = %e\n", i, abs_curr, abs_next); // Debug print for absorption coefficients
       
       float tau_layer = (z_next - z_curr) * (abs_next + abs_curr) * 0.5;
 
       if (cloud_optical_depth_dev != nullptr)
         tau_layer += cloud_optical_depth_dev[i * nb_spectral_points + tid];
-
+      if (tid == 0) printf("Layer %d: tau_layer = %e\n", i, tau_layer); // Debug print for optical depth  
       // Early exit if layer is transparent
       if (tau_layer > 1e-12) 
       {
@@ -243,6 +244,86 @@ void shortCharacteristicsDev_Shared(
       if (cloud_optical_depth_dev != nullptr) 
         tau_layer += cloud_optical_depth_dev[i * nb_spectral_points + tid];
       
+      if (tau_layer > 1e-12f)
+      {
+        // Mu 1 path
+        float d1 = tau_layer / mu1;
+        float att1 = __expf(-d1);
+        float term1 = expm1f(-d1) / d1;
+        intensity_mu1 = intensity_mu1 * att1 + (1.0f + term1) * p_next + (-att1 - term1) * p_curr;
+
+        // Mu 2 path
+        float d2 = tau_layer / mu2;
+        float att2 = __expf(-d2);
+        float term2 = expm1f(-d2) / d2;
+        intensity_mu2 = intensity_mu2 * att2 + (1.0f + term2) * p_next + (-att2 - term2) * p_curr;
+      }
+      
+      z_curr = z_next;
+      p_curr = p_next;
+    }
+
+    const double final_const = 3.141592653589793 * 1e-3 * spectrum_scaling;
+    model_spectrum_gpu[tid] = final_const * (intensity_mu1 * mu1 + intensity_mu2 * mu2);
+  }
+}
+
+
+__global__ 
+void shortCharacteristicsDev_Shared__(
+  double* __restrict__ model_spectrum_gpu,
+  const float* __restrict__ absorption_coeff_dev,
+  const double* __restrict__ wavenumber_list_dev,
+  const float* __restrict__ cloud_optical_depth_dev,
+  const float* __restrict__ temperature_dev,
+  const float* __restrict__ vertical_grid_dev,
+  const double spectrum_scaling,
+  const int nb_spectral_points,
+  const int nb_grid_points)
+{
+  // Dynamically or statically allocate shared memory
+  // Note: Adjust the size or use extern __shared__ if nb_grid_points is large
+  extern __shared__ float shared_data[];
+  float* s_vertical_grid = shared_data; 
+  float* s_temperature = &shared_data[nb_grid_points];
+  
+  // Collaborative loading: all threads help load the atmospheric profile
+  for (int i = threadIdx.x; i < nb_grid_points; i += blockDim.x) 
+  {
+    s_vertical_grid[i] = vertical_grid_dev[i];
+    s_temperature[i] = temperature_dev[i];
+  }
+  
+  __syncthreads(); // Ensure the profile is fully loaded before proceeding
+  
+  for (int tid = blockIdx.x * blockDim.x + threadIdx.x; tid < nb_spectral_points; tid += blockDim.x * gridDim.x)
+  {
+    const float mu1 = 0.211324865405187;
+    const float mu2 = 0.788675134594813;
+    const float wavenumber = wavenumber_list_dev[tid];
+    const float wn_cube = wavenumber * wavenumber * wavenumber; 
+    
+    // Use shared memory for initial boundary condition
+    float p_curr = planckFunction(s_temperature[0], wn_cube, wavenumber);
+    double intensity_mu1 = p_curr;
+    double intensity_mu2 = p_curr;
+    
+    float z_curr = s_vertical_grid[0];
+    
+    for (int i = 0; i < nb_grid_points - 1; ++i)
+    {
+      const float z_next = s_vertical_grid[i+1];
+      const float p_next = planckFunction(s_temperature[i+1], wn_cube, wavenumber);
+      
+      // Global memory loads (absorption is unique per spectral point/thread)
+      float abs_curr = absorption_coeff_dev[i * nb_spectral_points + tid];
+      float abs_next = absorption_coeff_dev[(i + 1) * nb_spectral_points + tid];
+      
+      float tau_layer = (z_next - z_curr) * (abs_next + abs_curr) * 0.5;
+      
+      if (cloud_optical_depth_dev != nullptr) 
+        tau_layer += cloud_optical_depth_dev[i * nb_spectral_points + tid];
+      
       if (tau_layer > 1e-12) 
       {
         // Optimization: Pre-calculate shared terms
@@ -270,7 +351,6 @@ void shortCharacteristicsDev_Shared(
     model_spectrum_gpu[tid] = final_const * (intensity_mu1 * mu1 + intensity_mu2 * mu2);
   }
 }
-
 
 
 

@@ -172,7 +172,8 @@ set(SRC_CUDA
   src/CUDA_kernels/stellar_contamination.cu
   src/CUDA_kernels/stellar_spectrum_grid.cu
   src/CUDA_kernels/observation_kernels.cu
-  src/CUDA_kernels/radiative_transfer_kernels.cu)
+  src/CUDA_kernels/radiative_transfer_kernels.cu
+  src/CUDA_kernels/batched_opacity_kernels.cu)
 
 
 set(SRC_PYTHON_WRAPPER

@@ -27,6 +27,7 @@
 #include "opacity_species.h"
 #include "../spectral_grid/spectral_grid.h"
 #include "../config/global_config.h"
+#include "../forward_model/atmosphere/atmosphere.h"
 
 
 namespace bear{
@@ -56,6 +57,23 @@ class TransportCoefficients {
       const size_t grid_point,
       float* absorption_coeff_device,
       float* scattering_coeff_device);
+
+    void prepareBatchedGPU(
+      const Atmosphere& atmosphere,
+      std::vector<float*>& cs1_ptrs, std::vector<float*>& cs2_ptrs,
+      std::vector<float*>& cs3_ptrs, std::vector<float*>& cs4_ptrs,
+      std::vector<float>& temp_factors, std::vector<float>& pres_factors,
+      std::vector<float>& cs_log_number_densities, std::vector<int>& cs_grid_points,
+      std::vector<float*>& ray_ptrs,
+      std::vector<double>& ray_number_densities, std::vector<int>& ray_grid_points);
+
+    void calculateContinuumGPU(
+      const double temperature,
+      const double pressure,
+      const std::vector<double>& number_densities,
+      const size_t nb_grid_points,
+      const size_t grid_point,
+      float* absorption_coeff_device);
 
   private:
     GlobalConfig* config = nullptr;

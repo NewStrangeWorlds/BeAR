@@ -87,9 +87,11 @@ __global__ void calcCrossSectionsDevice(
     c1 = c1 + (c2 - c1) * pressure_interpol_factor;
     c2 = c3 + (c4 - c3) * pressure_interpol_factor;
 
-    float sigma = c1 + (c2 - c1) * temperature_interpol_factor;
+    double sigma = c1 + (c2 - c1) * temperature_interpol_factor;
+    
+    sigma = exp10(sigma) * number_density;
 
-    absorption_coeff_device[grid_point*nb_spectral_points + tid] += __exp10f(sigma) * static_cast<float>(number_density);
+    absorption_coeff_device[grid_point*nb_spectral_points + tid] += sigma;
   }
 }
 
@@ -106,7 +108,7 @@ __global__ void calcHmbfContinuumDevice(
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
   if (tid < nb_spectral_points)
-  {
+  { 
     absorption_coeff_device[grid_point*nb_spectral_points + tid] += 
       cross_section_dev[tid] * hm_number_density;
   }
@@ -247,7 +249,7 @@ __global__ void initCrossSectionsDevice(
 //prints the calculated cross-sections
 //this is just for debug purposes
 __global__ void printAC(const size_t nb_spectral_points, const size_t nb_grid_points, const size_t grid_point,
-                        double* absorption_coeff_device)
+                        float* absorption_coeff_device)
 {
   int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -339,18 +341,17 @@ __host__ void OpacitySpecies::calcAbsorptionCoefficientsGPU(
   //we here simply offset one of the temperatures or pressures by a bit
   if (temperature1_gpu == temperature2_gpu) temperature2_gpu += 1;
   if (log_pressure1_gpu == log_pressure2_gpu) log_pressure2_gpu += 0.001;
-
+  
   int threads = 256;
   
   int blocks = nb_spectral_points / threads;
   if (nb_spectral_points % threads) blocks++;
-
+  
   const double pressure_interpol_factor = 
     (log_pressure - log_pressure1_gpu)/(log_pressure2_gpu - log_pressure1_gpu);
   const double temperature_interpol_factor = 
     (temperature - temperature1_gpu)/(temperature2_gpu - temperature1_gpu);
-
-
+  
   calcCrossSectionsDevice<<<blocks,threads>>>(
     cross_sections1, 
     cross_sections2, 
@@ -362,7 +363,7 @@ __host__ void OpacitySpecies::calcAbsorptionCoefficientsGPU(
     nb_spectral_points,
     grid_point,
     absorption_coeff_device);
-
+  
   CUDA_CHECK_AFTER_KERNEL();
 }
 

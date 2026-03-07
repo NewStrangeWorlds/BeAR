@@ -216,11 +216,6 @@ class GasHeRayleigh : public OpacitySpecies {
     virtual ~GasHeRayleigh() {}
   protected:
     virtual bool calcRayleighCrossSections(std::vector<double>& cross_sections);
-    // virtual void calcRayleighCrossSectionsGPU(
-    //   const double number_density,
-    //   const size_t nb_grid_points, 
-    //   const size_t grid_point,
-    //   double* scattering_coeff_dev);
 };
 
 
@@ -245,11 +240,6 @@ class GasCORayleigh : public OpacitySpecies {
     virtual ~GasCORayleigh() {}
   protected:
     virtual bool calcRayleighCrossSections(std::vector<double>& cross_sections);
-    // virtual void calcRayleighCrossSectionsGPU(
-    //   const double number_density,
-    //   const size_t nb_grid_points, 
-    //   const size_t grid_point,
-    //   double* scattering_coeff_dev);
 };
 
 
@@ -274,11 +264,6 @@ class GasCO2Rayleigh : public OpacitySpecies {
     virtual ~GasCO2Rayleigh() {}
   protected:
     virtual bool calcRayleighCrossSections(std::vector<double>& cross_sections);
-    // virtual void calcRayleighCrossSectionsGPU(
-    //   const double number_density,
-    //   const size_t nb_grid_points, 
-    //   const size_t grid_point,
-    //   double* scattering_coeff_dev);
 };
 
 
@@ -303,11 +288,6 @@ class GasCH4Rayleigh : public OpacitySpecies {
     virtual ~GasCH4Rayleigh() {}
   protected:
     virtual bool calcRayleighCrossSections(std::vector<double>& cross_sections);
-    // virtual void calcRayleighCrossSectionsGPU(
-    //   const double number_density,
-    //   const size_t nb_grid_points, 
-    //   const size_t grid_point,
-    //   double* scattering_coeff_dev);
 };
 
 
@@ -333,11 +313,6 @@ class GasH2ORayleigh : public OpacitySpecies {
     virtual ~GasH2ORayleigh() {}
   protected:
     virtual bool calcRayleighCrossSections(std::vector<double>& cross_sections);
-    // virtual void calcRayleighCrossSectionsGPU(
-    //   const double number_density,
-    //   const size_t nb_grid_points, 
-    //   const size_t grid_point,
-    //   double* scattering_coeff_dev);
 };
 
 

@@ -21,6 +21,8 @@
 #ifndef _error_check_h
 #define _error_check_h
 
+#include <cstdio>
+#include <cstdlib>
 
 
 namespace bear{

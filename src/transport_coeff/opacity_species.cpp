@@ -498,6 +498,52 @@ void OpacitySpecies::calcTransportCoefficientsGPU(
 
 
 
+OpacitySpecies::CrossSectionMetadata OpacitySpecies::prepareCrossSectionMetadata(
+  const double pressure, const double temperature)
+{
+  CrossSectionMetadata meta;
+
+  if (!cross_section_available) return meta;
+
+  auto data_points = findClosestDataPoints(pressure, temperature);
+  checkDataAvailability(data_points);
+
+  meta.cs1 = data_points[0]->cross_sections_device;
+  meta.cs2 = data_points[1]->cross_sections_device;
+  meta.cs3 = data_points[2]->cross_sections_device;
+  meta.cs4 = data_points[3]->cross_sections_device;
+
+  double log_p1 = data_points[0]->log_pressure;
+  double log_p2 = data_points[1]->log_pressure;
+  double t1 = data_points[0]->temperature;
+  double t2 = data_points[2]->temperature;
+
+  if (t1 == t2) t2 += 1;
+  if (log_p1 == log_p2) log_p2 += 0.001;
+
+  double log_p = std::log10(pressure);
+  meta.pressure_interpol_factor = (log_p - log_p1) / (log_p2 - log_p1);
+  meta.temperature_interpol_factor = (temperature - t1) / (t2 - t1);
+  meta.valid = true;
+
+  return meta;
+}
+
+
+void OpacitySpecies::calcContinuumGPU(
+  const double temperature,
+  const std::vector<double>& number_densities,
+  const size_t nb_grid_points,
+  const size_t grid_point,
+  float* absorption_coeff_device)
+{
+  if (!continuum_available) return;
+
+  calcContinuumAbsorptionGPU(
+    temperature, number_densities, nb_grid_points, grid_point, absorption_coeff_device);
+}
+
+
 bool OpacitySpecies::calcScatteringCrossSections(
   std::vector<double>& cross_sections)
 {

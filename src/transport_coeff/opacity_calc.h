@@ -32,6 +32,7 @@
 #include "../cloud_model/cloud_model.h"
 #include "../CUDA_kernels/data_management_kernels.h"
 #include "../CUDA_kernels/cross_section_kernels.h"
+#include "../CUDA_kernels/batched_opacity_kernels.h"
 
 
 namespace bear{
@@ -91,6 +92,8 @@ class OpacityCalculation {
     bool use_gpu = false;
     bool use_cloud = false;
 
+    BatchedDeviceBuffers batch_buffers;
+
     void initDeviceMemory();
 };
 
@@ -104,28 +107,62 @@ inline void OpacityCalculation::calculateGPU(
   const size_t nb_spectral_points = spectral_grid->nbSpectralPoints();
 
   initCrossSectionsHost(
-    nb_spectral_points*nb_grid_points, 
+    nb_spectral_points*nb_grid_points,
     absorption_coeff_gpu);
 
   initCrossSectionsHost(
-    nb_spectral_points*nb_grid_points, 
+    nb_spectral_points*nb_grid_points,
     scattering_coeff_dev);
 
-  for (size_t i=0; i<nb_grid_points; ++i)
-    transport_coeff.calculateGPU(
-      atmosphere->temperature[i], 
-      atmosphere->pressure[i], 
-      atmosphere->number_densities[i],
-      nb_grid_points, 
-      i,
-      absorption_coeff_gpu, 
-      scattering_coeff_dev);
+  // Collect all cross-section and Rayleigh metadata on the CPU
+  std::vector<float*> cs1_ptrs, cs2_ptrs, cs3_ptrs, cs4_ptrs;
+  std::vector<float> temp_factors, pres_factors;
+  std::vector<float> cs_log_number_densities;
+  std::vector<int> cs_grid_points;
+  std::vector<float*> ray_ptrs;
+  std::vector<double> ray_number_densities;
+  std::vector<int> ray_grid_points;
 
+  transport_coeff.prepareBatchedGPU(
+    *atmosphere,
+    cs1_ptrs, cs2_ptrs, cs3_ptrs, cs4_ptrs,
+    temp_factors, pres_factors,
+    cs_log_number_densities, cs_grid_points,
+    ray_ptrs, ray_number_densities, ray_grid_points);
+
+  // Ensure batch buffers are large enough
+  size_t max_items = std::max(cs_grid_points.size(), ray_grid_points.size());
+  allocateBatchBuffers(batch_buffers, max_items);
+
+  //Launch batched cross-section kernel
+  if (!cs_grid_points.empty())
+    launchBatchedCrossSections(
+      cs1_ptrs, cs2_ptrs, cs3_ptrs, cs4_ptrs,
+      temp_factors, pres_factors,
+      cs_log_number_densities, cs_grid_points,
+      batch_buffers, nb_spectral_points,
+      absorption_coeff_gpu);
+
+  // Launch batched Rayleigh kernel
+  if (!ray_grid_points.empty())
+    launchBatchedRayleigh(
+      ray_ptrs, ray_number_densities, ray_grid_points,
+      batch_buffers, nb_spectral_points,
+      scattering_coeff_dev);
+  
+  //H- continuum (0-1 species, kept as per-layer launches)
+  for (size_t i=0; i<nb_grid_points; ++i)
+    transport_coeff.calculateContinuumGPU(
+      atmosphere->temperature[i],
+      atmosphere->pressure[i],
+      atmosphere->number_densities[i],
+      nb_grid_points, i,
+      absorption_coeff_gpu);
 
   if (use_cloud)
-  { 
+  {
     const size_t nb_layers = nb_grid_points - 1;
-    
+
     initializeOnDevice(cloud_optical_depths_dev, nb_layers*nb_spectral_points);
     initializeOnDevice(cloud_single_scattering_dev, nb_layers*nb_spectral_points);
     initializeOnDevice(cloud_asym_param_dev, nb_layers*nb_spectral_points);
@@ -135,17 +172,17 @@ inline void OpacityCalculation::calculateGPU(
     for (auto & cm : cloud_models)
     {
       std::vector<double> parameter(
-        cloud_parameter.begin() + nb_param, 
+        cloud_parameter.begin() + nb_param,
         cloud_parameter.begin() + nb_param + cm->nbParameters());
 
       nb_param += cm->nbParameters();
-      
+
       cm->opticalPropertiesGPU(
-        parameter, 
-        *atmosphere, 
-        spectral_grid, 
-        cloud_optical_depths_dev, 
-        cloud_single_scattering_dev, 
+        parameter,
+        *atmosphere,
+        spectral_grid,
+        cloud_optical_depths_dev,
+        cloud_single_scattering_dev,
         cloud_asym_param_dev);
     }
   }
@@ -277,6 +314,8 @@ inline OpacityCalculation::~OpacityCalculation()
   {
     deleteFromDevice(absorption_coeff_gpu);
     deleteFromDevice(scattering_coeff_dev);
+
+    freeBatchBuffers(batch_buffers);
 
     if (use_cloud)
     {

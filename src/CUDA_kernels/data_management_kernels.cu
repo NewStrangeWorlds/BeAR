@@ -137,6 +137,7 @@ template void moveToHostAndDelete<int>(int*&, std::vector<int>&);
 template void deleteFromDevice<double>(double*&);
 template void deleteFromDevice<int>(int*&);
 template void deleteFromDevice<float>(float*&);
+template void deleteFromDevice<float*>(float**&);
 
 template void initializeOnDevice<double>(double*&, const size_t);
 template void initializeOnDevice<int>(int*&, const size_t);
@@ -153,4 +154,5 @@ template void moveToDevice<float>(float*&, std::vector<float>&, const bool);
 template void allocateOnDevice<double>(double*&, size_t);
 template void allocateOnDevice<int>(int*&, size_t);
 template void allocateOnDevice<float>(float*&, size_t);
+template void allocateOnDevice<float*>(float**&, size_t);
 }

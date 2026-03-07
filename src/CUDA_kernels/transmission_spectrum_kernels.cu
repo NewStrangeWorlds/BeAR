@@ -78,10 +78,10 @@ void transmissionSpectrumKernel(
       float a1 = bottom_radius + altitude[i];
       float a2 = bottom_radius + altitude[i+1];
       
-      float path = sqrt(a2*a2 - b*b);
+      float path = sqrtf(a2*a2 - b*b);
       
       if (i != t)
-        path -= sqrt(a1*a1-b*b);
+        path -= sqrtf(a1*a1-b*b);
       
       int idx1 = i*nb_spectral_points + w;
       int idx2 = (i+1)*nb_spectral_points + w;
@@ -94,7 +94,7 @@ void transmissionSpectrumKernel(
       if (tau > transmission_optical_depth_cutoff) break;
     }
     
-    float transmission = exp(-tau);
+    float transmission = __expf(-tau);
 
     //trapezoidal integration for effective tangent height
     //the factor of 0.5 from the trapezoidal rule cancels with 

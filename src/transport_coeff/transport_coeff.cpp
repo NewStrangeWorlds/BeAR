@@ -286,6 +286,88 @@ void TransportCoefficients::calculateGPU(
 
 
 
+void TransportCoefficients::prepareBatchedGPU(
+  const Atmosphere& atmosphere,
+  std::vector<float*>& cs1_ptrs, std::vector<float*>& cs2_ptrs,
+  std::vector<float*>& cs3_ptrs, std::vector<float*>& cs4_ptrs,
+  std::vector<float>& temp_factors, std::vector<float>& pres_factors,
+  std::vector<float>& cs_log_number_densities, std::vector<int>& cs_grid_points,
+  std::vector<float*>& ray_ptrs,
+  std::vector<double>& ray_number_densities, std::vector<int>& ray_grid_points)
+{
+  cs1_ptrs.clear(); cs2_ptrs.clear(); cs3_ptrs.clear(); cs4_ptrs.clear();
+  temp_factors.clear(); pres_factors.clear();
+  cs_log_number_densities.clear(); cs_grid_points.clear();
+  ray_ptrs.clear(); ray_number_densities.clear(); ray_grid_points.clear();
+
+  const size_t nb_grid_points = atmosphere.nb_grid_points;
+
+  for (size_t gp = 0; gp < nb_grid_points; ++gp)
+  {
+    const double temperature = atmosphere.temperature[gp];
+    const double pressure = atmosphere.pressure[gp];
+    const auto& number_densities = atmosphere.number_densities[gp];
+
+    for (auto& species : gas_species)
+    {
+      double number_density = number_densities[species->species_index];
+
+      for (const auto& partner : species->getCIACollisionPartners())
+        number_density *= number_densities[partner];
+
+      if (number_density == 0) continue;
+
+      double reference_pressure = pressure;
+      if (species->getPressureReferenceSpecies() != _TOTAL)
+        reference_pressure *= number_densities[species->getPressureReferenceSpecies()]
+                            / number_densities[_TOTAL];
+
+      if (species->hasCrossSections())
+      {
+        auto meta = species->prepareCrossSectionMetadata(reference_pressure, temperature);
+
+        if (meta.valid)
+        {
+          cs1_ptrs.push_back(meta.cs1);
+          cs2_ptrs.push_back(meta.cs2);
+          cs3_ptrs.push_back(meta.cs3);
+          cs4_ptrs.push_back(meta.cs4);
+          temp_factors.push_back(meta.temperature_interpol_factor);
+          pres_factors.push_back(meta.pressure_interpol_factor);
+          cs_log_number_densities.push_back(static_cast<float>(std::log10(number_density)));
+          cs_grid_points.push_back(static_cast<int>(gp));
+        }
+      }
+
+      if (species->hasRayleigh())
+      {
+        float* ray_dev = species->getRayleighDevicePtr();
+        if (ray_dev != nullptr)
+        {
+          ray_ptrs.push_back(ray_dev);
+          ray_number_densities.push_back(number_densities[species->species_index]);
+          ray_grid_points.push_back(static_cast<int>(gp));
+        }
+      }
+    }
+  }
+}
+
+
+void TransportCoefficients::calculateContinuumGPU(
+  const double temperature,
+  const double pressure,
+  const std::vector<double>& number_densities,
+  const size_t nb_grid_points,
+  const size_t grid_point,
+  float* absorption_coeff_device)
+{
+  for (auto& species : gas_species)
+    species->calcContinuumGPU(
+      temperature, number_densities, nb_grid_points, grid_point, absorption_coeff_device);
+}
+
+
 TransportCoefficients::~TransportCoefficients()
 {
 }

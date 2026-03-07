@@ -33,7 +33,10 @@
 
 namespace bear{
 
-bool GasHm::calcContinuumAbsorption(const double temperature, const std::vector<double>& number_densities, std::vector<double>& absorption_coeff)
+bool GasHm::calcContinuumAbsorption(
+  const double temperature, 
+  const std::vector<double>& number_densities, 
+  std::vector<double>& absorption_coeff)
 {
   const size_t nb_wavelengths = spectral_grid->nbSpectralPoints();
 

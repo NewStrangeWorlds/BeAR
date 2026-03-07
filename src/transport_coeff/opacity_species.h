@@ -70,6 +70,33 @@ class OpacitySpecies {
       float* absorption_coeff_device,
       float* scattering_coeff_device);
     
+    struct CrossSectionMetadata {
+      float* cs1 = nullptr;
+      float* cs2 = nullptr;
+      float* cs3 = nullptr;
+      float* cs4 = nullptr;
+      float temperature_interpol_factor = 0;
+      float pressure_interpol_factor = 0;
+      bool valid = false;
+    };
+
+    CrossSectionMetadata prepareCrossSectionMetadata(
+      const double pressure, const double temperature);
+
+    bool hasCrossSections() const { return cross_section_available; }
+    bool hasRayleigh() const { return rayleigh_available; }
+    bool hasContinuum() const { return continuum_available; }
+    float* getRayleighDevicePtr() const { return rayleigh_cross_sections_dev; }
+    size_t getPressureReferenceSpecies() const { return pressure_reference_species; }
+    const std::vector<size_t>& getCIACollisionPartners() const { return cia_collision_partner; }
+
+    void calcContinuumGPU(
+      const double temperature,
+      const std::vector<double>& number_densities,
+      const size_t nb_grid_points,
+      const size_t grid_point,
+      float* absorption_coeff_device);
+
     const size_t species_index = 0;
     const std::string species_name = "";
     const std::string species_folder = "";
