@@ -11,7 +11,7 @@ namespace bear{
 
 
 void contributionFunctionGPU(
-  double* contribution_function_dev,
+  float* contribution_function_dev,
   float* absorption_coeff_device, 
   double* wavenumber_list_device,
   std::vector<double>& temperature, 

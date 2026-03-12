@@ -45,13 +45,13 @@ float normalFactorFl(float sigma)
 
 __global__ 
 void convolveSpectrumDeviceFl(
-  const double* __restrict__ spectrum,
+  const float* __restrict__ spectrum,
   const int index_start,
   const double* __restrict__ wavelengths,
   const double* __restrict__ band_sigma,
   const int* __restrict__ start_index,
   const int* __restrict__ end_index,
-  double* __restrict__ convolved_spectrum)
+  float* __restrict__ convolved_spectrum)
 {
   const int i = blockIdx.x;
   const int tid = threadIdx.x;
@@ -110,13 +110,13 @@ double normalFactor(double sigma)
 
 __global__ 
 void convolveSpectrumDevice(
-  const double* __restrict__ spectrum,
+  const float* __restrict__ spectrum,
   const int index_start,
   const double* __restrict__ wavelengths,
   const double* __restrict__ band_sigma,
   const int* __restrict__ start_index,
   const int* __restrict__ end_index,
-  double* __restrict__ convolved_spectrum)
+  float* __restrict__ convolved_spectrum)
 {
   const int i = blockIdx.x;
   const int tid = threadIdx.x;
@@ -167,8 +167,8 @@ void convolveSpectrumDevice(
 
 __host__ 
 void SpectralBands::convolveSpectrumGPU(
-  double* spectrum, 
-  double* spectrum_processed_dev)
+  float* spectrum,
+  float* spectrum_processed_dev)
 {
   const size_t nb_high_res_points = 
     obs_index_range.second - obs_index_range.first + 1;

@@ -24,13 +24,13 @@
 #include <stdio.h>
 #include <new>
 
-#include "../radiative_transfer/short_characteristics.h"
+#include "short_characteristics.h"
 
-#include "../forward_model/atmosphere/atmosphere.h"
-#include "../spectral_grid/spectral_grid.h"
-#include "../additional/physical_const.h"
-#include "error_check.h"
-#include "planck_function.h"
+#include "../../forward_model/atmosphere/atmosphere.h"
+#include "../../spectral_grid/spectral_grid.h"
+#include "../../additional/physical_const.h"
+#include "../../CUDA_kernels/error_check.h"
+#include "../../CUDA_kernels/planck_function.h"
 
 
 namespace bear{
@@ -38,7 +38,7 @@ namespace bear{
 //solves the radiative transfer equation with the short characteristic method
 //uses two angles, distributed according to a Gaussian quadrature scheme
 __global__ void shortCharacteristicsDevOld(
-  double* model_spectrum_gpu,
+  float* model_spectrum_gpu,
   const float* absorption_coeff_dev,
   const double* wavenumber_list_dev,
   const float* cloud_optical_depth_dev,
@@ -100,17 +100,17 @@ __global__ void shortCharacteristicsDevOld(
     }
 
     //and integration with the corresponding Gauss-Legendre quadrature weights
-    model_spectrum_gpu[tid] = 
-    2.0 * constants::pi 
-    * (intensity_mu1 * gauss_nodes[0] * gauss_weights[0] 
-     + intensity_mu2 * gauss_nodes[1] * gauss_weights[1]) * 1e-3 * spectrum_scaling; //in W m-2 cm-1
+    model_spectrum_gpu[tid] = static_cast<float>(
+    2.0 * constants::pi
+    * (intensity_mu1 * gauss_nodes[0] * gauss_weights[0]
+     + intensity_mu2 * gauss_nodes[1] * gauss_weights[1]) * 1e-3 * spectrum_scaling); //in W m-2 cm-1
   }
 }
 
 
 __global__ 
 void shortCharacteristicsDev_(
-  double* __restrict__ model_spectrum_gpu,
+  float* __restrict__ model_spectrum_gpu,
   const float* __restrict__ absorption_coeff_dev,
   const double* __restrict__ wavenumber_list_dev,
   const float* __restrict__ cloud_optical_depth_dev,
@@ -183,15 +183,15 @@ void shortCharacteristicsDev_(
     // Final weighted integration
     // Combined constants: 2 * pi * 0.5 * 1e-3 = pi * 1e-3
     const double final_const = constants::pi * 1e-3 * spectrum_scaling;
-    model_spectrum_gpu[tid] = final_const * (intensity_mu1 * mu1 + intensity_mu2 * mu2);
+    model_spectrum_gpu[tid] = static_cast<float>(final_const * (intensity_mu1 * mu1 + intensity_mu2 * mu2));
   }
 }
 
 
 
-__global__ 
+__global__
 void shortCharacteristicsDev_Shared(
-  double* __restrict__ model_spectrum_gpu,
+  float* __restrict__ model_spectrum_gpu,
   const float* __restrict__ absorption_coeff_dev,
   const double* __restrict__ wavenumber_list_dev,
   const float* __restrict__ cloud_optical_depth_dev,
@@ -264,14 +264,14 @@ void shortCharacteristicsDev_Shared(
     }
 
     const double final_const = 3.141592653589793 * 1e-3 * spectrum_scaling;
-    model_spectrum_gpu[tid] = final_const * (intensity_mu1 * mu1 + intensity_mu2 * mu2);
+    model_spectrum_gpu[tid] = static_cast<float>(final_const * (intensity_mu1 * mu1 + intensity_mu2 * mu2));
   }
 }
 
 
-__global__ 
+__global__
 void shortCharacteristicsDev_Shared__(
-  double* __restrict__ model_spectrum_gpu,
+  float* __restrict__ model_spectrum_gpu,
   const float* __restrict__ absorption_coeff_dev,
   const double* __restrict__ wavenumber_list_dev,
   const float* __restrict__ cloud_optical_depth_dev,
@@ -348,7 +348,7 @@ void shortCharacteristicsDev_Shared__(
     }
 
     const double final_const = 3.141592653589793 * 1e-3 * spectrum_scaling;
-    model_spectrum_gpu[tid] = final_const * (intensity_mu1 * mu1 + intensity_mu2 * mu2);
+    model_spectrum_gpu[tid] = static_cast<float>(final_const * (intensity_mu1 * mu1 + intensity_mu2 * mu2));
   }
 }
 
@@ -362,7 +362,7 @@ void ShortCharacteristics::calcSpectrumGPU(
   float* cloud_single_scattering_dev,
   float* cloud_asym_param_dev,
   const double spectrum_scaling,
-  double* model_spectrum_dev)
+  float* model_spectrum_dev)
 {
   size_t nb_grid_points = atmosphere.temperature.size();
   size_t nb_spectral_points = spectral_grid->nbSpectralPoints();

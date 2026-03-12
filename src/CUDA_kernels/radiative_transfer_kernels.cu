@@ -31,21 +31,21 @@ namespace bear{
 
 
 __global__ void changeSpectrumUnitsDevice(
-  double* spectrum,
+  float* spectrum,
   double* wavelengths,
   int nb_points)
 {
   
   for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < nb_points; i += blockDim.x * gridDim.x)
   {
-    spectrum[i] = spectrum[i]/wavelengths[i]/wavelengths[i]*10000.0;
+    spectrum[i] = static_cast<float>(static_cast<double>(spectrum[i])/wavelengths[i]/wavelengths[i]*10000.0);
   }
 }
 
 
 
 __host__ void RadiativeTransfer::changeSpectrumUnitsGPU(
-  double* spectrum)
+  float* spectrum)
 {
   int threads = 256;
   

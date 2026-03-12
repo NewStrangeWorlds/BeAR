@@ -35,24 +35,24 @@ namespace bear{
 
 
 __global__ void applyFilterResponseDevice(
-  const double* wavenumber, 
-  double* spectrum, 
-  double* filter_response_function, 
-  double* filter_response_weight, 
+  const double* wavenumber,
+  float* spectrum,
+  double* filter_response_function,
+  double* filter_response_weight,
   const double filter_normalisation,
-  const int nb_points, 
-  double* spectrum_filter)
+  const int nb_points,
+  float* spectrum_filter)
 {
   for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < nb_points; i += blockDim.x * gridDim.x)
   {
-    spectrum_filter[i] = spectrum[i] * filter_response_function[i] * filter_response_weight[i] / filter_normalisation;
+    spectrum_filter[i] = static_cast<float>(static_cast<double>(spectrum[i]) * filter_response_function[i] * filter_response_weight[i] / filter_normalisation);
   }
 
 }
 
 
 
-__host__ void Observation::applyFilterResponseGPU(double* spectrum)
+__host__ void Observation::applyFilterResponseGPU(float* spectrum)
 {
   int nb_spectral_points = spectral_grid->nbSpectralPoints();
 

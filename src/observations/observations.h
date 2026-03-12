@@ -129,8 +129,8 @@ class Observation{
     double* filter_response_gpu = nullptr;
     double* filter_response_weight_gpu = nullptr;
 
-    double* spectrum_filter_dev = nullptr;
-    double* spectrum_convolved_dev = nullptr;
+    float* spectrum_filter_dev = nullptr;
+    float* spectrum_convolved_dev = nullptr;
 
     void printObservationDetails();
     void setFilterResponseFunction();
@@ -139,18 +139,18 @@ class Observation{
 
     std::vector<double> applyFilterResponseFunction(
       const std::vector<double>& spectrum);
-    void applyFilterResponseGPU(double* spectrum);
+    void applyFilterResponseGPU(float* spectrum);
 
     std::vector<double> processModelSpectrum(
       const std::vector<double> spectrum, 
       const bool is_flux);
     void processModelSpectrumGPU(
-      double* spectrum,
-      double* spectrum_obs,
+      float* spectrum,
+      float* spectrum_obs,
       const bool is_flux);
 
     void addShiftToSpectrumGPU(
-      double* spectrum_obs,
+      float* spectrum_obs,
       const double spectrum_shift);
     void addShiftToSpectrum(
       std::vector<double>& spectrum_bands,

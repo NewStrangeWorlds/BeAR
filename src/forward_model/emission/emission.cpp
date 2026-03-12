@@ -232,9 +232,9 @@ bool EmissionModel::calcModelCPU(
 //run the forward model with the help of the GPU
 //the atmospheric structure itself is still done on the CPU
 bool EmissionModel::calcModelGPU(
-  const std::vector<double>& parameters, 
-  double* spectrum, 
-  std::vector<double*>& spectrum_obs)
+  const std::vector<double>& parameters,
+  float* spectrum,
+  std::vector<float*>& spectrum_obs)
 { 
   extractParameters(parameters);
 
@@ -295,21 +295,26 @@ std::vector<double> EmissionModel::calcSpectrum(
   {
     opacity_calc.calculateGPU(cloud_models, std::vector<double> {});
 
-    double* model_spectrum_gpu = nullptr;
+    float* model_spectrum_gpu = nullptr;
 
     allocateOnDevice(model_spectrum_gpu, spectral_grid->nbSpectralPoints());
 
     radiative_transfer->calcSpectrumGPU(
       atmosphere,
-      opacity_calc.absorption_coeff_gpu, 
-      opacity_calc.scattering_coeff_dev, 
+      opacity_calc.absorption_coeff_gpu,
+      opacity_calc.scattering_coeff_dev,
       opacity_calc.cloud_optical_depths_dev,
       opacity_calc.cloud_single_scattering_dev,
       opacity_calc.cloud_asym_param_dev,
       1.0,
       model_spectrum_gpu);
-     
-    moveToHostAndDelete(model_spectrum_gpu, spectrum);
+
+    {
+      std::vector<float> spectrum_float(spectral_grid->nbSpectralPoints());
+      moveToHost(model_spectrum_gpu, spectrum_float);
+      deleteFromDevice(model_spectrum_gpu);
+      spectrum.assign(spectrum_float.begin(), spectrum_float.end());
+    }
   }
   else
   {

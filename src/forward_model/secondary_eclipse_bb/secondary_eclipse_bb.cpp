@@ -149,9 +149,9 @@ bool OccultationBlackBodyModel::calcModelCPU(
 //run the forward model with the help of the GPU
 //the atmospheric structure itself is still done on the CPU
 bool OccultationBlackBodyModel::calcModelGPU(
-  const std::vector<double>& parameters, 
-  double* spectrum, 
-  std::vector<double*>& spectrum_obs)
+  const std::vector<double>& parameters,
+  float* spectrum,
+  std::vector<float*>& spectrum_obs)
 {
   extractParameters(parameters);
 
@@ -161,8 +161,8 @@ bool OccultationBlackBodyModel::calcModelGPU(
   calcPlanetSpectrumGPU(planet_temperature, spectrum);
 
 
-  std::vector<double*> planet_spectrum_obs(observations.size(), nullptr);
-  std::vector<double*> stellar_spectrum_obs(observations.size(), nullptr);
+  std::vector<float*> planet_spectrum_obs(observations.size(), nullptr);
+  std::vector<float*> stellar_spectrum_obs(observations.size(), nullptr);
 
   for (size_t i=0; i<observations.size(); ++i)
   {
@@ -171,39 +171,39 @@ bool OccultationBlackBodyModel::calcModelGPU(
   }
 
   convertSpectrumToObservationGPU(
-    spectrum, 
+    spectrum,
     true,
     planet_spectrum_obs);
 
 
-  double* stellar_spectrum = nullptr;
+  float* stellar_spectrum = nullptr;
   allocateOnDevice(stellar_spectrum, spectral_grid->nbSpectralPoints());
-  
+
   stellar_model->calcFluxGPU(stellar_parameters, stellar_spectrum);
-  
+
 
   convertSpectrumToObservationGPU(
-    stellar_spectrum, 
+    stellar_spectrum,
     true,
     stellar_spectrum_obs);
 
 
-  double* albedo_contribution_gpu = nullptr;
-  double* albedo_contribution_bands_gpu = nullptr;
+  float* albedo_contribution_gpu = nullptr;
+  float* albedo_contribution_bands_gpu = nullptr;
   //moveToDevice(albedo_contribution_gpu, albedo_contribution);
-  
+
   for (size_t i=0; i<observations.size(); ++i)
   {
     calcOccultationGPU(
-    spectrum_obs[i], 
-    planet_spectrum_obs[i], 
-    stellar_spectrum_obs[i], 
+    spectrum_obs[i],
+    planet_spectrum_obs[i],
+    stellar_spectrum_obs[i],
     observations[i].nbPoints(),
-    radius_ratio, 
+    radius_ratio,
     albedo_contribution_bands_gpu);
   }
-  
-  
+
+
   deleteFromDevice(albedo_contribution_bands_gpu);
 
   for (size_t i=0; i<observations.size(); ++i)
@@ -218,11 +218,11 @@ bool OccultationBlackBodyModel::calcModelGPU(
 
   //convert the original high-res spectrum also to a secondary eclipse
   calcOccultationGPU(
-    spectrum, 
-    spectrum, 
-    stellar_spectrum, 
+    spectrum,
+    spectrum,
+    stellar_spectrum,
     spectral_grid->nbSpectralPoints(),
-    radius_ratio, 
+    radius_ratio,
     albedo_contribution_gpu);
 
   deleteFromDevice(albedo_contribution_gpu);

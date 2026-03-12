@@ -26,11 +26,11 @@
 
 #include "short_characteristics.h"
 
-#include "../forward_model/atmosphere/atmosphere.h"
-#include "../spectral_grid/spectral_grid.h"
-#include "../additional/aux_functions.h"
-#include "../additional/physical_const.h"
-#include "../additional/quadrature.h"
+#include "../../forward_model/atmosphere/atmosphere.h"
+#include "../../spectral_grid/spectral_grid.h"
+#include "../../additional/aux_functions.h"
+#include "../../additional/physical_const.h"
+#include "../../additional/quadrature.h"
 
 
 namespace bear{

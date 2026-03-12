@@ -37,24 +37,6 @@ double planckFunction(const double temperature, const double wavenumber)
 
 
 __forceinline__ __device__ 
-double planckFunctionOld(
-  const double temperature, 
-  const double wavenumber_cube, 
-  const double wavenumber)
-{  
-  constexpr double c1 = 2. * constants::planck_h * constants::light_c * constants::light_c;
-  constexpr double c2 = constants::planck_h * constants::light_c / constants::boltzmann_k;
-  
-  // If temperature is near zero, avoid division by zero/overflow
-  if (temperature < 1e-5) return 0.0;
-  
-  // Use pre-calculated constants to reduce operations to: 
-  // 1 division, 1 exp, 3 multiplications
-  return (c1 * wavenumber_cube) / (exp(c2 * wavenumber / temperature) - 1.0);
-}
-
-
-__forceinline__ __device__ 
 float planckFunction(
   const float temperature, 
   const float wavenumber_cube, 

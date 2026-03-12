@@ -53,11 +53,11 @@ class StarSpectrumFile : public StellarSpectrumModel{
     
     virtual void calcFluxGPU(
       const std::vector<double>& parameter,
-      double* spectrum_gpu);
+      float* spectrum_gpu);
   protected:
     SpectralGrid* spectral_grid;
     std::vector<double> spectrum;
-    double* spectrum_dev = nullptr;
+    float* spectrum_dev = nullptr;
 
     void readSpectrum(
       const std::string file_path,

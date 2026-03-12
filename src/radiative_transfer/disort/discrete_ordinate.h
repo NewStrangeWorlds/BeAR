@@ -25,18 +25,26 @@
 #include <vector>
 #include <iostream>
 #include <cmath>
+#include <memory>
 
-#include "radiative_transfer.h"
-#include "../forward_model/atmosphere/atmosphere.h"
-#include "../spectral_grid/spectral_grid.h"
+#include "../radiative_transfer.h"
+#include "../../forward_model/atmosphere/atmosphere.h"
+#include "../../spectral_grid/spectral_grid.h"
 
-
-extern "C" {
-  #include "cdisort_src/cdisort.h"
-}
+#include <DisortFluxConfig.hpp>
+#include <FluxResult.hpp>
 
 
 namespace bear {
+
+
+struct FluxSolverBase {
+  virtual ~FluxSolverBase() = default;
+  virtual disortpp::FluxResult solve(disortpp::DisortFluxConfig& config) = 0;
+};
+
+template<int NStr>
+struct FluxSolverWrapper;
 
 
 class DiscreteOrdinates : public RadiativeTransfer{
@@ -46,11 +54,11 @@ class DiscreteOrdinates : public RadiativeTransfer{
       const size_t nb_streams,
       const size_t nb_grid_points,
       const bool use_gpu);
-    virtual ~DiscreteOrdinates() {finaliseDISORT();}
-    
+    virtual ~DiscreteOrdinates() {}
+
     virtual void calcSpectrum(
       const Atmosphere& atmosphere,
-      const std::vector< std::vector<double> >& absorption_coeff, 
+      const std::vector< std::vector<double> >& absorption_coeff,
       const std::vector< std::vector<double> >& scattering_coeff,
       const std::vector< std::vector<double> >& cloud_optical_depth,
       const std::vector< std::vector<double> >& cloud_single_scattering,
@@ -65,39 +73,16 @@ class DiscreteOrdinates : public RadiativeTransfer{
       float* cloud_single_scattering,
       float* cloud_asym_param,
       const double spectrum_scaling,
-      double* model_spectrum_dev) 
+      float* model_spectrum_dev)
       {
-        std::cout << "Sorry, CDISORT has no GPU option :(\n";
+        std::cout << "Sorry, DisORT has no GPU option :(\n";
       }
   private:
-    std::vector<disort_state> ds;
-    std::vector<disort_output> out;
+    size_t nb_streams;
+    size_t nb_grid_points;
 
-    double calcSpectrum(
-      const std::vector<double> absorption_coeff,
-      const std::vector<double> scattering_coeff,
-      const std::vector<double>& cloud_optical_depth,
-      const std::vector<double>& vertical_grid, const size_t nu_index);
-    void calcRadiativeTransfer(
-      double incident_stellar_radiation, double zenith_angle,
-      std::vector<double>& flux_up,
-      std::vector<double>& flux_down,
-      std::vector<double>& mean_intensity);
-    void setTemperatureStructure(
-      const std::vector<double>& temperature_structure,
-      const double& surface_temperature);
-    void setOpticalDepth(
-      const double wavenumber_input,
-      const std::vector<double>& optical_depth,
-	    const std::vector<double>& single_scattering_albedo,
-      const std::vector<double>& asymmetry_parameter,
-	    const double surface_albedo);
-    void initDISORT(unsigned int nb_streams, unsigned int nb_layers);
-    void finaliseDISORT();
-    void runDISORT(
-      std::vector<double>& flux_up,
-      std::vector<double>& flux_down,
-      std::vector<double>& mean_intensity);
+    std::vector<std::unique_ptr<FluxSolverBase>> solvers;
+    std::vector<disortpp::DisortFluxConfig> configs;
 };
 
 

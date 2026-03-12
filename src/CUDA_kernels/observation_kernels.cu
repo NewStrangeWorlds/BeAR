@@ -33,21 +33,21 @@ namespace bear{
 
 __global__ 
 void addShiftToSpectrumDev(
-  double* __restrict__ spectrum_bands,
+  float* __restrict__ spectrum_bands,
   const double spectrum_shift,
   const int nb_points)
 {
 
   //the thread index tid is the observation point
   for (int tid = blockIdx.x * blockDim.x + threadIdx.x; tid < nb_points; tid += blockDim.x * gridDim.x)
-    spectrum_bands[tid] += spectrum_shift;
+    spectrum_bands[tid] += static_cast<float>(spectrum_shift);
 
 }
 
 
 __host__ 
 void Observation::addShiftToSpectrumGPU(
-  double* spectrum_obs,
+  float* spectrum_obs,
   const double spectrum_shift)
 {
   int threads = 256;

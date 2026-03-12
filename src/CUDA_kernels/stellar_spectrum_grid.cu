@@ -92,7 +92,7 @@ void stellarSpectrumInterpolation(
 }
 
 
-__global__ 
+__global__
 void stellarSpectrumInterpolationFl(
   const float xd, const float yd, const float zd,
   const float* __restrict__ c000, const float* __restrict__ c100,
@@ -100,7 +100,7 @@ void stellarSpectrumInterpolationFl(
   const float* __restrict__ c001, const float* __restrict__ c101,
   const float* __restrict__ c011, const float* __restrict__ c111,
   const int nb_wavenumbers,
-  double* __restrict__ spectrum_dev)
+  float* __restrict__ spectrum_dev)
 {
   // Pre-calculate weights to save subtractions in the loop
   const float omx = 1.0f - xd;
@@ -113,11 +113,11 @@ void stellarSpectrumInterpolationFl(
   for (; tid < nb_wavenumbers; tid += stride)
   {
     // Layer 0 (z=0)
-    float xy0 = omy * (c000[tid] * omx + c100[tid] * xd) + 
+    float xy0 = omy * (c000[tid] * omx + c100[tid] * xd) +
                  yd  * (c010[tid] * omx + c110[tid] * xd);
-    
+
     // Layer 1 (z=1)
-    float xy1 = omy * (c001[tid] * omx + c101[tid] * xd) + 
+    float xy1 = omy * (c001[tid] * omx + c101[tid] * xd) +
                  yd  * (c011[tid] * omx + c111[tid] * xd);
 
     // Final Interpolation
@@ -129,7 +129,7 @@ void stellarSpectrumInterpolationFl(
 
 __host__ void StellarSpectrumGrid::calcFluxGPU(
   const std::vector<double>& parameter,
-  double* spectrum_gpu)
+  float* spectrum_gpu)
 {
   double temperature_int = parameter[0];
   double log_g_int = parameter[1];

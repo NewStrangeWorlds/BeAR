@@ -71,9 +71,9 @@ class FlatLine : public ForwardModel{
       std::vector<std::vector<double>>& spectrum_obs);
     
     virtual bool calcModelGPU(
-      const std::vector<double>& parameters, 
-      double* spectrum, 
-      std::vector<double*>& spectrum_obs);
+      const std::vector<double>& parameters,
+      float* spectrum,
+      std::vector<float*>& spectrum_obs);
     
     virtual void postProcess(
       const std::vector< std::vector<double> >& model_parameter,
@@ -101,7 +101,7 @@ class FlatLine : public ForwardModel{
     void postProcessSpectrum(
       std::vector<double>& model_spectrum, std::vector<double>& model_spectrum_bands);
     void postProcessSpectrumGPU(
-      double* model_spectrum, double* model_spectrum_bands);
+      float* model_spectrum, float* model_spectrum_bands);
 };
 
 

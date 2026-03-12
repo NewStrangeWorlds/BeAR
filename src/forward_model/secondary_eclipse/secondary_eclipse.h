@@ -161,8 +161,8 @@ class OccultationModel : public ForwardModel{
       std::vector<std::vector<double>>& spectrum_obs);
     virtual bool calcModelGPU(
       const std::vector<double>& parameters,
-      double* spectrum,
-      std::vector<double*>& spectrum_obs);
+      float* spectrum,
+      std::vector<float*>& spectrum_obs);
     
     virtual void postProcess(
       const std::vector< std::vector<double> >& model_parameter,
@@ -229,12 +229,12 @@ class OccultationModel : public ForwardModel{
       const double geometric_albedo,
       const double radius_distance_ratio);
     void calcOccultationGPU(
-      double* secondary_eclipse,
-      double* planet_spectrum,
-      const double* stellar_spectrum,
+      float* secondary_eclipse,
+      float* planet_spectrum,
+      const float* stellar_spectrum,
       const int nb_points,
       const double radius_ratio,
-      const double* albedo_contribution);
+      const float* albedo_contribution);
 
     bool calcAtmosphereStructure(const std::vector<double>& parameter);
 

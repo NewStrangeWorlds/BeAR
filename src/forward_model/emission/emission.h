@@ -151,9 +151,9 @@ class EmissionModel : public ForwardModel{
       std::vector<std::vector<double>>& spectrum_obs);
     
     virtual bool calcModelGPU(
-      const std::vector<double>& parameter, 
-      double* spectrum, 
-      std::vector<double*>& spectrum_obs);
+      const std::vector<double>& parameter,
+      float* spectrum,
+      std::vector<float*>& spectrum_obs);
     
     std::vector<double> calcSpectrum(
       const double surface_gravity,
@@ -214,7 +214,7 @@ class EmissionModel : public ForwardModel{
 
     bool calcAtmosphereStructure(const std::vector<double>& parameter);
     double radiusDistanceScaling(const std::vector<double>& parameter);
-    void changeSpectrumUnitsGPU(double* spectrum_gpu);
+    void changeSpectrumUnitsGPU(float* spectrum_gpu);
 
     void setCloudProperties(const std::vector<std::vector<double>>& cloud_optical_depth);
 

@@ -34,8 +34,8 @@ namespace bear{
 
 __global__ void copyStellarSpectrum(
   int nb_wavenumbers,
-  double* stellar_spectrum,
-  double* spectrum)
+  float* stellar_spectrum,
+  float* spectrum)
 {
   for (int tid = blockIdx.x * blockDim.x + threadIdx.x; tid < nb_wavenumbers; tid += blockDim.x * gridDim.x)
   {
@@ -47,12 +47,12 @@ __global__ void copyStellarSpectrum(
 
 __host__ void StarSpectrumFile::calcFluxGPU(
   const std::vector<double>& parameter,
-  double* spectrum_gpu)
+  float* spectrum_gpu)
 {
   size_t nb_spectral_points = spectral_grid->nbSpectralPoints();
 
   if (spectrum_dev == nullptr)
-    moveToDevice(spectrum_dev, spectrum, true);
+    moveToDevice(spectrum_dev, spectrum);
 
   int threads = 256;
   int blocks = nb_spectral_points / threads;

@@ -74,9 +74,9 @@ class ForwardModel{
     //calculate a model on the GPU
     //the return value signals the retrieval to neglect this model
     virtual bool calcModelGPU(
-      const std::vector<double>& physical_parameters, 
-      double* spectrum, 
-      std::vector<double*>& spectrum_obs) = 0;
+      const std::vector<double>& physical_parameters,
+      float* spectrum,
+      std::vector<float*>& spectrum_obs) = 0;
     virtual ForwardModelOutput calcModel(
       const std::vector<double>& physical_parameter,
       const bool return_high_res_spectrum);
@@ -113,9 +113,9 @@ class ForwardModel{
       std::vector<std::vector<double>>& spectrum_obs);
 
     virtual void convertSpectrumToObservationGPU(
-      double* model_spectrum_gpu, 
+      float* model_spectrum_gpu,
       const bool is_flux,
-      std::vector<double*>& model_spectrum_bands);
+      std::vector<float*>& model_spectrum_bands);
 
     virtual void applyObservationModifier(
       const std::vector<double>& spectrum_modifier_param,
@@ -123,7 +123,7 @@ class ForwardModel{
     
     virtual void applyObservationModifierGPU(
       const std::vector<double>& spectrum_modifier_param,
-      std::vector<double*>& spectrum_obs);
+      std::vector<float*>& spectrum_obs);
 
     virtual void calcPostProcessSpectra(
       const std::vector< std::vector<double> >& model_parameter,

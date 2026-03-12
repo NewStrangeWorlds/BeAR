@@ -74,17 +74,17 @@ bool FlatLine::calcModelCPU(
 //run the forward model with the help of the GPU
 //the atmospheric structure itself is still done on the CPU
 bool FlatLine::calcModelGPU(
-  const std::vector<double>& parameters, 
-  double* spectrum, 
-  std::vector<double*>& spectrum_obs)
-{ 
+  const std::vector<double>& parameters,
+  float* spectrum,
+  std::vector<float*>& spectrum_obs)
+{
   bool neglect = false;
 
   const double spectrum_value = parameters[0];
 
   std::vector<double> spectrum_cpu(spectral_grid->nbSpectralPoints(), spectrum_value);
 
-  moveToDevice(spectrum, spectrum_cpu, false);
+  moveToDevice(spectrum, spectrum_cpu);
 
   convertSpectrumToObservationGPU(spectrum, false, spectrum_obs);
 

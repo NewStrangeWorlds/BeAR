@@ -36,13 +36,13 @@ __global__ void starBlackBodyFlux(
   double* wavenumbers,
   int nb_wavenumbers,
   const double effective_temperature,
-  double* flux)
+  float* flux)
 {
   for (int tid = blockIdx.x * blockDim.x + threadIdx.x; tid < nb_wavenumbers; tid += blockDim.x * gridDim.x)
   {
-    flux[tid] = planckFunction(
+    flux[tid] = static_cast<float>(planckFunction(
       effective_temperature,
-      wavenumbers[tid]) * constants::pi * 1e-3;
+      wavenumbers[tid]) * constants::pi * 1e-3);
   }
 }
 
@@ -50,7 +50,7 @@ __global__ void starBlackBodyFlux(
 
 __host__ void StarBlackBody::calcFluxGPU(
   const std::vector<double>& parameter,
-  double* spectrum_gpu)
+  float* spectrum_gpu)
 {
   size_t nb_spectral_points = spectral_grid->nbSpectralPoints();
   int threads = 256;

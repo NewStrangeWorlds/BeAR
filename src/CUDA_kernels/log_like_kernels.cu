@@ -38,7 +38,7 @@ __global__ void logLikeDevice(
   double* observation,
   double* error,
   double* loglike_weight,
-  double* model,
+  float* model,
   const int nb_spectral_points,
   const double error_inflation_coefficient,
   double* d_log_like)
@@ -52,7 +52,8 @@ __global__ void logLikeDevice(
     const double error_square = error[i]*error[i] + error_inflation_coefficient;
 
     //Eq. 23 from Paper I
-    d_log_like_sum += (- 0.5 * log(error_square * 2.0 * constants::pi) - 0.5 * (observation[i] - model[i])*(observation[i] - model[i]) / error_square) * loglike_weight[i];
+    const double model_val = static_cast<double>(model[i]);
+    d_log_like_sum += (- 0.5 * log(error_square * 2.0 * constants::pi) - 0.5 * (observation[i] - model_val)*(observation[i] - model_val) / error_square) * loglike_weight[i];
   }
 
 
@@ -66,7 +67,7 @@ __global__ void logLikeDevice(
 
 
 __host__ double Retrieval::logLikeDev(
-  std::vector<double*> model_spectrum,
+  std::vector<float*> model_spectrum,
   const double error_inflation_coefficient)
 {
   double log_like = 0;

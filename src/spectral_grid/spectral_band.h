@@ -63,13 +63,13 @@ class SpectralBands{
       const bool is_flux,
       const bool use_filter_transmission);
     void bandIntegrateSpectrumGPU(
-      double* spectrum, 
-      double* spectrum_bands, 
+      float* spectrum,
+      float* spectrum_bands,
       const bool is_flux,
       const bool use_filter_transmission);
 
     std::vector<double> convolveSpectrum(const std::vector<double>& spectrum);
-    void convolveSpectrumGPU(double* spectrum, double* spectrum_processed_dev);
+    void convolveSpectrumGPU(float* spectrum, float* spectrum_processed_dev);
 
     size_t nbBands() {return nb_bands;}
 

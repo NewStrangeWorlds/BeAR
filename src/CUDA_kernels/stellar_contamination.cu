@@ -34,10 +34,10 @@ namespace bear{
 
 
 __global__ void addStellarContamination(
-  double* spectrum,
-  double* spectrum_phot,
-  double* spectrum_fac,
-  double* spectrum_spot,
+  float* spectrum,
+  float* spectrum_phot,
+  float* spectrum_fac,
+  float* spectrum_spot,
   const double frac_fac,
   const double frac_spot,
   int nb_wavenumbers)
@@ -45,16 +45,17 @@ __global__ void addStellarContamination(
   for (int tid = blockIdx.x * blockDim.x + threadIdx.x; tid < nb_wavenumbers; tid += blockDim.x * gridDim.x)
   {
     double flux_spot = 0;
-    if (frac_spot > 0) flux_spot = spectrum_spot[tid];
+    if (frac_spot > 0) flux_spot = static_cast<double>(spectrum_spot[tid]);
 
     double flux_fac = 0;
-    if (frac_fac > 0) flux_fac = spectrum_fac[tid];
+    if (frac_fac > 0) flux_fac = static_cast<double>(spectrum_fac[tid]);
 
-    const double stellar_activity = 1.0 
-      - frac_spot * (1.0 - flux_spot/spectrum_phot[tid])
-      - frac_fac * (1.0 - flux_fac/spectrum_phot[tid]);
+    const double phot = static_cast<double>(spectrum_phot[tid]);
+    const double stellar_activity = 1.0
+      - frac_spot * (1.0 - flux_spot/phot)
+      - frac_fac * (1.0 - flux_fac/phot);
 
-    spectrum[tid] /= stellar_activity;
+    spectrum[tid] = static_cast<float>(static_cast<double>(spectrum[tid]) / stellar_activity);
 
     // if (tid == 0) printf("%d %f %f %f %1.6e %1.6e %1.6e\n",
     //   tid, stellar_activity, frac_spot, frac_fac, spectrum_spot[tid], spectrum_fac[tid], spectrum_phot[tid]);
@@ -66,7 +67,7 @@ __global__ void addStellarContamination(
 __host__ void StellarContamination::modifySpectrumGPU(
   const std::vector<double>& parameter,
   Atmosphere* atmosphere,
-  double* spectrum_gpu)
+  float* spectrum_gpu)
 {
   size_t nb_spectral_points = spectral_grid->nbSpectralPoints();
 

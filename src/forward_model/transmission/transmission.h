@@ -157,9 +157,9 @@ class TransmissionModel : public ForwardModel{
       std::vector<std::vector<double>>& spectrum_obs);
     
     virtual bool calcModelGPU(
-      const std::vector<double>& parameter, 
-      double* spectrum, 
-      std::vector<double*>& spectrum_obs);
+      const std::vector<double>& parameter,
+      float* spectrum,
+      std::vector<float*>& spectrum_obs);
     
     virtual void postProcess(
       const std::vector< std::vector<double> >& model_parameter,
@@ -257,13 +257,13 @@ class TransmissionModel : public ForwardModel{
       const std::vector<std::vector<double>>& temperature_profiles);
     
     void calcTransitDepthGPU(
-      double* transit_radius_dev, 
-      float* absorption_coeff_dev, 
-      float* scattering_coeff_dev, 
-      float* cloud_extinction_coeff_dev, 
-      const Atmosphere& atmosphere, 
-      const size_t nb_spectral_points, 
-      const double radius_planet, 
+      float* transit_radius_dev,
+      float* absorption_coeff_dev,
+      float* scattering_coeff_dev,
+      float* cloud_extinction_coeff_dev,
+      const Atmosphere& atmosphere,
+      const size_t nb_spectral_points,
+      const double radius_planet,
       const double radius_star);
 
     void calcTransmissionSpectrum(

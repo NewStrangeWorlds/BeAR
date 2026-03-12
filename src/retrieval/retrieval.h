@@ -129,11 +129,11 @@ class Retrieval{
       double &new_log_like, 
       void *context);
     double logLikeDev(
-      std::vector<double*> model_spectrum,
+      std::vector<float*> model_spectrum,
       const double error_inflation_coefficient);
 
-    double* spectrum_dev = nullptr;
-    std::vector<double*> spectrum_obs_dev;
+    float* spectrum_dev = nullptr;
+    std::vector<float*> spectrum_obs_dev;
     double* d_log_like_dev = nullptr;
     bool gpu_memory_initialized = false;
 

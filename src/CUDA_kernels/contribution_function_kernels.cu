@@ -22,7 +22,7 @@ namespace bear{
 
 __global__ 
 void contributionFunctionDevice(
-  double* contribution_function_gpu,
+  float* contribution_function_gpu,
   const float* absorption_coeff_dev, 
   const double* wavenumber_list_dev,
   const double* temperature_dev, 
@@ -46,7 +46,7 @@ void contributionFunctionDevice(
 
       const double layer_transmission = exp(-optical_depth_layer);
 
-      contribution_function_gpu[i*nb_spectral_points + tid] = 2 * constants::pi * planckFunction(temperature_dev[i], wavenumber_list_dev[tid]) * (1.0 - layer_transmission) * cumulative_transmission;
+      contribution_function_gpu[i*nb_spectral_points + tid] = static_cast<float>(2 * constants::pi * planckFunction(temperature_dev[i], wavenumber_list_dev[tid]) * (1.0 - layer_transmission) * cumulative_transmission);
 
       cumulative_transmission *= layer_transmission;
       //printf("%d  %d  %f  %f  %f  %f\n", tid, i, optical_depth_layer, layer_transmission, cumulative_transmission, contribution_function_gpu[i*nb_spectral_points + tid]);
@@ -74,7 +74,7 @@ void contributionFunctionDevice(
 
 
 __host__ void contributionFunctionGPU(
-  double* contribution_function_dev,
+  float* contribution_function_dev,
   float* absorption_coeff_dev, 
   double* wavenumber_list_dev,
   std::vector<double>& temperature, 

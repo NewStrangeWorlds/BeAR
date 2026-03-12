@@ -41,7 +41,7 @@ void transmissionSpectrumKernel(
   const float star_radius,
   const float* __restrict__ altitude_ns,
   const float* __restrict__ extinction_coeff,
-  double* spectrum)
+  float* spectrum)
 { 
   // Dynamically or statically allocate shared memory
   // Note: Adjust the size or use extern __shared__ if nb_grid_points is l
@@ -164,7 +164,7 @@ void sumExtinctionCoeff(
 
 __host__ 
 void  TransmissionModel::calcTransitDepthGPU(
-  double* transit_radius_dev, 
+  float* transit_radius_dev,
   float* absorption_coeff_dev, 
   float* scattering_coeff_dev, 
   float* cloud_extinction_dev, 

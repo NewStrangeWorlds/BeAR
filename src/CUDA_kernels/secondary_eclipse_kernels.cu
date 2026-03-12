@@ -33,32 +33,32 @@ namespace bear{
 
 
 __global__ void OccultationDevice(
-  double* secondary_eclipse,
-  double* planet_spectrum,
-  const double* stellar_spectrum,
+  float* secondary_eclipse,
+  float* planet_spectrum,
+  const float* stellar_spectrum,
   const int nb_points,
-  const double radius_ratio, 
-  const double* albedo_contribution)
+  const double radius_ratio,
+  const float* albedo_contribution)
 {
-  
+
   for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < nb_points; i += blockDim.x * gridDim.x)
   {
-    secondary_eclipse[i] = planet_spectrum[i]/stellar_spectrum[i] * radius_ratio*radius_ratio * 1e6; 
+    secondary_eclipse[i] = static_cast<float>(static_cast<double>(planet_spectrum[i])/static_cast<double>(stellar_spectrum[i]) * radius_ratio*radius_ratio * 1e6);
 
     if (albedo_contribution != nullptr)
-      secondary_eclipse[i] += albedo_contribution[i]*1e6;
+      secondary_eclipse[i] += static_cast<float>(static_cast<double>(albedo_contribution[i])*1e6);
   }
 }
 
 
 
 __host__ void OccultationModel::calcOccultationGPU(
-  double* secondary_eclipse,
-  double* planet_spectrum,
-  const double* stellar_spectrum,
+  float* secondary_eclipse,
+  float* planet_spectrum,
+  const float* stellar_spectrum,
   const int nb_points,
   const double radius_ratio,
-  const double* albedo_contribution)
+  const float* albedo_contribution)
 {
   int threads = 256;
 

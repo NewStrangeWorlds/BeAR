@@ -57,14 +57,14 @@ class StellarContamination : public Module{
     virtual void modifySpectrumGPU(
       const std::vector<double>& parameter,
       Atmosphere* atmosphere,
-      double* spectrum_gpu);
+      float* spectrum_gpu);
   protected:
     SpectralGrid* spectral_grid;
     std::unique_ptr<StellarSpectrumModel> stellar_model;
 
-    double* spectrum_phot_gpu = nullptr;
-    double* spectrum_fac_gpu = nullptr;
-    double* spectrum_spot_gpu = nullptr;
+    float* spectrum_phot_gpu = nullptr;
+    float* spectrum_fac_gpu = nullptr;
+    float* spectrum_spot_gpu = nullptr;
 
     size_t nb_stellar_model_param = 0;
 };

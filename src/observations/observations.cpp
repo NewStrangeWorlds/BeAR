@@ -306,8 +306,8 @@ std::vector<double> Observation::processModelSpectrum(
 
 
 void Observation::processModelSpectrumGPU(
-  double* spectrum,
-  double* spectrum_obs,
+  float* spectrum,
+  float* spectrum_obs,
   const bool is_flux)
 { 
   bool use_filter_response = filter_response.size() != 0;

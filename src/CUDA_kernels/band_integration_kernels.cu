@@ -42,12 +42,12 @@ namespace bear{
 //note that the units of the high-res spectrum are in W m-2 cm, while the mean band values are in W m-2 mu-1
 __global__ 
 void bandIntegrationDeviceOld(
-  const double* __restrict__ spectrum_high_res, 
-  const int* __restrict__ band_start, 
+  const float* __restrict__ spectrum_high_res,
+  const int* __restrict__ band_start,
   const int*  __restrict__ band_end,
-  const double* __restrict__ wavenumbers, 
+  const double* __restrict__ wavenumbers,
   const double* __restrict__ wavelengths,
-  double* __restrict__ spectrum_bands,
+  float* __restrict__ spectrum_bands,
   const bool is_flux,
   const bool use_filter_transmission)
 {
@@ -103,12 +103,12 @@ void bandIntegrationDeviceOld(
 //note that the units of the high-res spectrum are in W m-2 cm, while the mean band values are in W m-2 mu-1
 __global__ 
 void bandIntegrationDeviceFlux(
-  const double* __restrict__ spectrum_high_res, 
-  const int* __restrict__ band_start, 
+  const float* __restrict__ spectrum_high_res,
+  const int* __restrict__ band_start,
   const int*  __restrict__ band_end,
   const double* __restrict__ wavenumbers,
   const double* __restrict__ wavelengths,
-  double* __restrict__ spectrum_bands)
+  float* __restrict__ spectrum_bands)
 {
   float band_sum = 0;
   
@@ -154,11 +154,11 @@ void bandIntegrationDeviceFlux(
 //note that the units of the high-res spectrum are in W m-2 cm, while the mean band values are in W m-2 mu-1
 __global__ 
 void bandIntegrationDevice(
-  const double* __restrict__ spectrum_high_res, 
-  const int* __restrict__ band_start, 
+  const float* __restrict__ spectrum_high_res,
+  const int* __restrict__ band_start,
   const int*  __restrict__ band_end,
   const double* __restrict__ wavelengths,
-  double* __restrict__ spectrum_bands,
+  float* __restrict__ spectrum_bands,
   const bool use_filter_transmission)
 {
   float band_sum = 0;
@@ -207,8 +207,8 @@ void bandIntegrationDevice(
 
 __host__ 
 void SpectralBands::bandIntegrateSpectrumGPU(
-  double* spectrum, 
-  double* spectrum_bands, 
+  float* spectrum,
+  float* spectrum_bands,
   const bool is_flux,
   const bool use_filter_transmission)
 {

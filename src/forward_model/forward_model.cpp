@@ -77,33 +77,43 @@ ForwardModelOutput ForwardModel::calcModel(
 
   if (config->use_gpu)
   {
-    double* spectrum = nullptr;
-    
+    float* spectrum = nullptr;
+
     allocateOnDevice(
-      spectrum, 
+      spectrum,
       spectral_grid->nbSpectralPoints());
 
-    std::vector<double*> spectrum_obs{
-      observations.size(), 
+    std::vector<float*> spectrum_obs{
+      observations.size(),
       nullptr};
 
     for (size_t i=0; i<observations.size(); ++i)
       allocateOnDevice(
-        spectrum_obs[i], 
+        spectrum_obs[i],
         observations[i].nbPoints());
 
     output.neglect_model = calcModelGPU(
-      physical_parameters, 
-      spectrum, 
+      physical_parameters,
+      spectrum,
       spectrum_obs);
-    
+
     if (return_high_res_spectrum)
-      moveToHostAndDelete(spectrum, output.spectrum);
+    {
+      std::vector<float> spectrum_float(spectral_grid->nbSpectralPoints());
+      moveToHost(spectrum, spectrum_float);
+      deleteFromDevice(spectrum);
+      output.spectrum.assign(spectrum_float.begin(), spectrum_float.end());
+    }
     else
       deleteFromDevice(spectrum);
 
     for (size_t i=0; i<observations.size(); ++i)
-      moveToHostAndDelete(spectrum_obs[i], output.spectrum_obs[i]);
+    {
+      std::vector<float> obs_float(observations[i].nbPoints());
+      moveToHost(spectrum_obs[i], obs_float);
+      deleteFromDevice(spectrum_obs[i]);
+      output.spectrum_obs[i].assign(obs_float.begin(), obs_float.end());
+    }
   }
   else
   {
@@ -139,9 +149,9 @@ void ForwardModel::convertSpectrumToObservation(
 
 
 void ForwardModel::convertSpectrumToObservationGPU(
-  double* spectrum, 
+  float* spectrum,
   const bool is_flux,
-  std::vector<double*>& spectrum_obs)
+  std::vector<float*>& spectrum_obs)
 {
   unsigned int start_index = 0;
 
@@ -183,7 +193,7 @@ void ForwardModel::applyObservationModifier(
 
 void ForwardModel::applyObservationModifierGPU(
   const std::vector<double>& spectrum_modifier_param,
-  std::vector<double*>& spectrum_obs)
+  std::vector<float*>& spectrum_obs)
 {
   auto param_it = spectrum_modifier_param.begin();
   
@@ -248,25 +258,29 @@ void ForwardModel::calcPostProcessSpectrum(
 
   if (config->use_gpu)
   {
-    double* spectrum_gpu = nullptr;
+    float* spectrum_gpu = nullptr;
     allocateOnDevice(spectrum_gpu, nb_spectral_points);
 
-    std::vector<double*> spectrum_obs_gpu(observations.size(), nullptr);
-    
+    std::vector<float*> spectrum_obs_gpu(observations.size(), nullptr);
+
     for (size_t i=0; i<observations.size(); ++i)
       allocateOnDevice(spectrum_obs_gpu[i], observations[i].nbPoints());
 
     calcModelGPU(model_parameter, spectrum_gpu, spectrum_obs_gpu);
 
-    moveToHost(spectrum_gpu, spectrum);
-    deleteFromDevice(spectrum_gpu);
+    {
+      std::vector<float> spectrum_float(nb_spectral_points);
+      moveToHost(spectrum_gpu, spectrum_float);
+      deleteFromDevice(spectrum_gpu);
+      spectrum.assign(spectrum_float.begin(), spectrum_float.end());
+    }
 
     for (size_t i=0; i<observations.size(); ++i)
     {
-      spectrum_obs[i].assign(observations[i].nbPoints(), 0.0);
-
-      moveToHost(spectrum_obs_gpu[i], spectrum_obs[i]);
+      std::vector<float> obs_float(observations[i].nbPoints());
+      moveToHost(spectrum_obs_gpu[i], obs_float);
       deleteFromDevice(spectrum_obs_gpu[i]);
+      spectrum_obs[i].assign(obs_float.begin(), obs_float.end());
     }
   }
   else
@@ -342,29 +356,31 @@ bool ForwardModel::testCPUvsGPU(const std::vector<double>& parameters)
   //first we calculate the model on the GPU
   std::cout << "Start test on GPU\n";
 
-  double* spectrum_gpu_dev = nullptr;
+  float* spectrum_gpu_dev = nullptr;
   allocateOnDevice(spectrum_gpu_dev, spectral_grid->nbSpectralPoints());
 
-  std::vector<double*> spectrum_obs_gpu_dev{observations.size(), nullptr};
+  std::vector<float*> spectrum_obs_gpu_dev{observations.size(), nullptr};
 
   for (size_t i=0; i<observations.size(); ++i)
     allocateOnDevice(spectrum_obs_gpu_dev[i], observations[i].nbPoints());
 
   calcModelGPU(parameters, spectrum_gpu_dev, spectrum_obs_gpu_dev);
-  
-  std::vector<double> spectrum_gpu(spectral_grid->nbSpectralPoints(), 0);
-  moveToHost(spectrum_gpu_dev, spectrum_gpu);
+
+  std::vector<float> spectrum_gpu_float(spectral_grid->nbSpectralPoints(), 0);
+  moveToHost(spectrum_gpu_dev, spectrum_gpu_float);
   deleteFromDevice(spectrum_gpu_dev);
+  std::vector<double> spectrum_gpu(spectrum_gpu_float.begin(), spectrum_gpu_float.end());
 
   std::vector<std::vector<double>> spectrum_obs_gpu(
-    observations.size(), 
+    observations.size(),
     std::vector<double>{});
 
   for (size_t i=0; i<observations.size(); ++i)
   {
-    spectrum_obs_gpu[i].assign(observations[i].nbPoints(), 0.0);
-    moveToHost(spectrum_obs_gpu_dev[i], spectrum_obs_gpu[i]);
+    std::vector<float> obs_float(observations[i].nbPoints(), 0.0f);
+    moveToHost(spectrum_obs_gpu_dev[i], obs_float);
     deleteFromDevice(spectrum_obs_gpu_dev[i]);
+    spectrum_obs_gpu[i].assign(obs_float.begin(), obs_float.end());
   }
 
   //now we run it on the CPU

@@ -332,23 +332,24 @@ void EmissionModel::postProcessContributionFunctions(
 
   opacity_calc.calculateGPU(cloud_models, cloud_parameters);
 
-  double* contribution_functions_dev = nullptr;
+  float* contribution_functions_dev = nullptr;
   size_t nb_spectral_points = spectral_grid->nbSpectralPoints();
 
   allocateOnDevice(contribution_functions_dev, nb_spectral_points*nb_grid_points);
-  
+
   contributionFunctionGPU(
-    contribution_functions_dev, 
+    contribution_functions_dev,
     opacity_calc.absorption_coeff_gpu,
     spectral_grid->wavenumber_list_gpu,
-    atmosphere.temperature, 
+    atmosphere.temperature,
     atmosphere.altitude,
     nb_spectral_points);
 
-  std::vector<double> contribution_functions_all(nb_spectral_points*nb_grid_points, 0.0);
-
-  moveToHost(contribution_functions_dev, contribution_functions_all);
+  std::vector<float> contribution_functions_float(nb_spectral_points*nb_grid_points, 0.0f);
+  moveToHost(contribution_functions_dev, contribution_functions_float);
   deleteFromDevice(contribution_functions_dev);
+
+  std::vector<double> contribution_functions_all(contribution_functions_float.begin(), contribution_functions_float.end());
 
   std::vector< std::vector<double> > contribution_functions(nb_grid_points, std::vector<double>(nb_spectral_points, 0));
 

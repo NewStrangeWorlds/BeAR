@@ -12,7 +12,7 @@
 # You can specify the architecture with the SM variable:
 # $ cmake -DSM=30 ..
 
-cmake_minimum_required (VERSION 3.10 FATAL_ERROR)
+cmake_minimum_required (VERSION 3.15 FATAL_ERROR)
 
 OPTION(USE_PYTHON "Compile BeAR's Python Wrapper" OFF)
 OPTION(DEBUG_CUDA "Enable full CUDA synchronization for debugging" OFF)
@@ -114,8 +114,9 @@ set(SRC
   src/observations/observations.cpp
   src/observations/observations_load_data.cpp
   src/observations/observations_filter_response.cpp
-  src/radiative_transfer/discrete_ordinate.cpp
-  src/radiative_transfer/short_characteristics.cpp
+  src/radiative_transfer/disort/discrete_ordinate.cpp
+  src/radiative_transfer/adding_doubling/adding_doubling.cpp
+  src/radiative_transfer/short_characteristics/short_characteristics.cpp
   src/retrieval/multinest_parameter.cpp
   src/retrieval/multinest_loglike.cpp
   src/retrieval/post_process_spectra.cpp
@@ -149,9 +150,7 @@ set(SRC
   src/temperature/milne_solution_temperature.cpp
   src/temperature/guillot_temperature.cpp
   src/temperature/adiabate_cubic_spline.cpp
-  src/radiative_transfer/cdisort_src/cdisort.c
-  src/radiative_transfer/cdisort_src/locate.c)
-  
+)
 
 set(SRC_CUDA
   src/CUDA_kernels/band_integration_kernels.cu
@@ -163,7 +162,8 @@ set(SRC_CUDA
   src/CUDA_kernels/secondary_eclipse_kernels.cu
   src/CUDA_kernels/secondary_eclipse_bb.cu
   src/CUDA_kernels/transmission_spectrum_kernels.cu
-  src/CUDA_kernels/short_characteristics_kernels.cu
+  src/radiative_transfer/short_characteristics/short_characteristics_kernels.cu
+  src/radiative_transfer/adding_doubling/adding_doubling_kernels.cu
   src/CUDA_kernels/rayleigh_scattering_kernels.cu
   src/CUDA_kernels/cloud_model_kernels.cu
   src/CUDA_kernels/contribution_function_kernels.cu
@@ -220,6 +220,66 @@ endif()
 
 
 
+#download Eigen (shared dependency of DisORT and Adding-Doubling RT)
+FetchContent_Declare(
+  eigen
+  GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
+  GIT_TAG        3.4.0
+  GIT_SHALLOW    TRUE
+)
+
+set(EIGEN_BUILD_DOC OFF CACHE BOOL "" FORCE)
+set(EIGEN_BUILD_TESTING OFF CACHE BOOL "" FORCE)
+set(BUILD_TESTING OFF CACHE BOOL "" FORCE)
+
+FetchContent_GetProperties(eigen)
+
+if (NOT eigen_POPULATED)
+  FetchContent_Populate(eigen)
+  add_subdirectory(${eigen_SOURCE_DIR} ${eigen_BINARY_DIR} EXCLUDE_FROM_ALL)
+endif()
+
+
+
+#download DisORT C++ library
+FetchContent_Declare(
+  disortpp
+  GIT_REPOSITORY https://github.com/NewStrangeWorlds/DisORT
+  GIT_TAG        main
+  GIT_SHALLOW    TRUE
+)
+
+set(BUILD_PYTHON_BINDINGS OFF CACHE BOOL "" FORCE)
+set(DISORTPP_MARCH_NATIVE ON CACHE BOOL "" FORCE)
+
+FetchContent_GetProperties(disortpp)
+
+if (NOT disortpp_POPULATED)
+  FetchContent_Populate(disortpp)
+  add_subdirectory(${disortpp_SOURCE_DIR} ${disortpp_BINARY_DIR} EXCLUDE_FROM_ALL)
+endif()
+
+
+
+#download Adding-Doubling RT library
+FetchContent_Declare(
+  adding_doubling
+  GIT_REPOSITORY https://github.com/NewStrangeWorlds/AddingDoublingRT
+  GIT_TAG        main
+  GIT_SHALLOW    TRUE
+)
+
+set(ADRT_ENABLE_CUDA ON CACHE BOOL "" FORCE)
+
+FetchContent_GetProperties(adding_doubling)
+
+if (NOT adding_doubling_POPULATED)
+  FetchContent_Populate(adding_doubling)
+  add_subdirectory(${adding_doubling_SOURCE_DIR} ${adding_doubling_BINARY_DIR} EXCLUDE_FROM_ALL)
+endif()
+
+
+
 #download Multibnest if necessary
 FetchContent_Declare(
   multinest
@@ -271,6 +331,7 @@ find_package(LAPACK REQUIRED)
 #CUDA requires different compiler options, so it's compiled separately
 add_library(bear_cuda ${SRC_CUDA})
 target_include_directories(bear_cuda PUBLIC ${boost_math_SOURCE_DIR}/include/)
+target_link_libraries(bear_cuda PUBLIC adding_doubling_cuda)
 
 if(DEBUG_CUDA MATCHES ON)
   target_compile_definitions(bear_cuda PRIVATE DEBUG_CUDA)
@@ -304,6 +365,7 @@ if (USE_PYTHON MATCHES ON)
   
   add_library(bear_cuda_for_py ${SRC_CUDA})
   target_include_directories(bear_cuda_for_py PUBLIC ${boost_math_SOURCE_DIR}/include/)
+  target_link_libraries(bear_cuda_for_py PUBLIC adding_doubling_cuda)
 
   if(DEBUG_CUDA MATCHES ON)
     target_compile_definitions(bear_cuda_for_py PRIVATE DEBUG_CUDA)
@@ -319,7 +381,7 @@ if (USE_PYTHON MATCHES ON)
   
   set_target_properties(pybear PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python/lib")
   
-  target_link_libraries(pybear PUBLIC fastchem_lib_for_py bear_cuda_for_py bear_for_py multinest_shared OpenMP::OpenMP_CXX pybind11::module ${LAPACK_LIBRARIES})
+  target_link_libraries(pybear PUBLIC fastchem_lib_for_py bear_cuda_for_py bear_for_py multinest_shared disortpp adding_doubling OpenMP::OpenMP_CXX pybind11::module ${LAPACK_LIBRARIES})
 endif()
 
 
@@ -333,4 +395,4 @@ target_include_directories(bear PUBLIC ${boost_math_SOURCE_DIR}/include/)
 
 
 #link files for the final BeAR code
-target_link_libraries(bear PUBLIC fastchem_lib bear_cuda multinest_shared OpenMP::OpenMP_CXX ${LAPACK_LIBRARIES})
+target_link_libraries(bear PUBLIC fastchem_lib bear_cuda multinest_shared disortpp adding_doubling OpenMP::OpenMP_CXX ${LAPACK_LIBRARIES})

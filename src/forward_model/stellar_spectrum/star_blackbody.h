@@ -46,7 +46,7 @@ class StarBlackBody : public StellarSpectrumModel{
     
     virtual void calcFluxGPU(
       const std::vector<double>& parameter,
-      double* spectrum_gpu);
+      float* spectrum_gpu);
   protected:
     SpectralGrid* spectral_grid;
 };

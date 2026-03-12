@@ -36,40 +36,40 @@ __global__ void planetBlackBodyFlux(
   double* wavenumbers,
   int nb_wavenumbers,
   const double planet_temperature,
-  double* flux)
+  float* flux)
 {
   for (int tid = blockIdx.x * blockDim.x + threadIdx.x; tid < nb_wavenumbers; tid += blockDim.x * gridDim.x)
   {
-    flux[tid] = planckFunction(
+    flux[tid] = static_cast<float>(planckFunction(
       planet_temperature,
-      wavenumbers[tid]) * constants::pi * 1e-3;
+      wavenumbers[tid]) * constants::pi * 1e-3);
   }
 }
 
 
 
 __global__ void OccultationBBDevice(
-  double* secondary_eclipse,
-  double* planet_spectrum,
-  const double* stellar_spectrum,
+  float* secondary_eclipse,
+  float* planet_spectrum,
+  const float* stellar_spectrum,
   const int nb_points,
-  const double radius_ratio, 
-  const double* albedo_contribution)
+  const double radius_ratio,
+  const float* albedo_contribution)
 {
-  
+
   for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < nb_points; i += blockDim.x * gridDim.x)
   {
-    secondary_eclipse[i] = planet_spectrum[i]/stellar_spectrum[i] * radius_ratio*radius_ratio * 1e6; 
+    secondary_eclipse[i] = static_cast<float>(static_cast<double>(planet_spectrum[i])/static_cast<double>(stellar_spectrum[i]) * radius_ratio*radius_ratio * 1e6);
 
     if (albedo_contribution != nullptr)
-      secondary_eclipse[i] += albedo_contribution[i]*1e6;
+      secondary_eclipse[i] += static_cast<float>(static_cast<double>(albedo_contribution[i])*1e6);
   }
 }
 
 
 __host__ void OccultationBlackBodyModel::calcPlanetSpectrumGPU(
   const double planet_temperature,
-  double* spectrum_dev)
+  float* spectrum_dev)
 {
   size_t nb_spectral_points = spectral_grid->nbSpectralPoints();
 
@@ -88,12 +88,12 @@ __host__ void OccultationBlackBodyModel::calcPlanetSpectrumGPU(
 
 
 __host__ void OccultationBlackBodyModel::calcOccultationGPU(
-  double* secondary_eclipse,
-  double* planet_spectrum,
-  const double* stellar_spectrum,
+  float* secondary_eclipse,
+  float* planet_spectrum,
+  const float* stellar_spectrum,
   const int nb_points,
   const double radius_ratio,
-  const double* albedo_contribution)
+  const float* albedo_contribution)
 {
   int threads = 256;
 

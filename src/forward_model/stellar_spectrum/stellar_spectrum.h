@@ -35,7 +35,7 @@ class StellarSpectrumModel{
       const std::vector<double>& parameter) = 0;
     virtual void calcFluxGPU(
       const std::vector<double>& parameter,
-      double* spectrum_gpu) = 0;
+      float* spectrum_gpu) = 0;
     size_t nbParameters() {return nb_parameters;}
   protected:
     size_t nb_parameters {};

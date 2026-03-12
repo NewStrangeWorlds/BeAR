@@ -26,10 +26,10 @@
 #include <iostream>
 #include <cmath>
 
-#include "radiative_transfer.h"
+#include "../radiative_transfer.h"
 
-#include "../forward_model/atmosphere/atmosphere.h"
-#include "../spectral_grid/spectral_grid.h"
+#include "../../forward_model/atmosphere/atmosphere.h"
+#include "../../spectral_grid/spectral_grid.h"
 
 
 namespace bear {
@@ -59,7 +59,7 @@ class ShortCharacteristics : public RadiativeTransfer{
       float* cloud_single_scattering,
       float* cloud_asym_param,
       const double spectrum_scaling,
-      double* model_spectrum_dev);
+      float* model_spectrum_dev);
   private:
     const std::vector<double> gauss_nodes{0.211324865405187, 0.788675134594813};
     const std::vector<double> gauss_weights{0.5, 0.5};

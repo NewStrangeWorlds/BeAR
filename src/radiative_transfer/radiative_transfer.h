@@ -52,13 +52,13 @@ class RadiativeTransfer{
       float* cloud_single_scattering,
       float* cloud_asym_param,
       const double spectrum_scaling,
-      double* model_spectrum_dev) = 0;
+      float* model_spectrum_dev) = 0;
     
     //change units of high-res spectrum from cm to micron^-1
     void changeSpectrumUnits(std::vector<double>& spectrum) {
       for (size_t i=0; i<spectrum.size(); ++i)
         spectrum[i] = spectrum[i]/spectral_grid->wavelength_list[i]/spectral_grid->wavelength_list[i]*10000.0;};
-    void changeSpectrumUnitsGPU(double* spectrum);
+    void changeSpectrumUnitsGPU(float* spectrum);
   
   protected:
     SpectralGrid* spectral_grid = nullptr;
