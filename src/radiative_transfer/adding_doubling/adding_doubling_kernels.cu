@@ -28,6 +28,15 @@
 namespace bear{
 
 
+AddingDoubling::~AddingDoubling()
+{
+  if (phase_moments_dev != nullptr) deleteFromDevice(phase_moments_dev);
+
+  if (gpu_workspace_ptr != nullptr)
+    delete static_cast<adrt::cuda::SolverWorkspaceGPU*>(gpu_workspace_ptr);
+}
+
+
 void AddingDoubling::calcSpectrumGPU(
   const Atmosphere& atmosphere,
   float* absorption_coeff_dev,
@@ -84,8 +93,12 @@ void AddingDoubling::calcSpectrumGPU(
   }
   else
   {
-    gpu_workspace.allocate(nb_spectral_points, nb_layers);
-    adrt::cuda::solveBatchFromCoefficients(bcfg, data, gpu_workspace);
+    if (gpu_workspace_ptr == nullptr)
+      gpu_workspace_ptr = new adrt::cuda::SolverWorkspaceGPU();
+
+    auto& ws = *static_cast<adrt::cuda::SolverWorkspaceGPU*>(gpu_workspace_ptr);
+    ws.allocate(nb_spectral_points, nb_layers);
+    adrt::cuda::solveBatchFromCoefficients(bcfg, data, ws);
   }
 }
 

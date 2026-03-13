@@ -90,10 +90,8 @@ AddingDoubling::AddingDoubling(
 
 
 
-AddingDoubling::~AddingDoubling()
-{
-  if (phase_moments_dev != nullptr) deleteFromDevice(phase_moments_dev);
-}
+// Destructor is defined in adding_doubling_kernels.cu
+// because it needs to clean up CUDA resources
 
 
 

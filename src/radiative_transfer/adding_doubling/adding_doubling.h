@@ -32,7 +32,6 @@
 #include "../../spectral_grid/spectral_grid.h"
 
 #include <adding_doubling.hpp>
-#include <cuda_solver.cuh>
 
 
 namespace bear {
@@ -78,7 +77,7 @@ class AddingDoubling : public RadiativeTransfer{
     // CUDA batched solver data
     float* phase_moments_dev = nullptr;
     int nb_phase_moments = 0;
-    adrt::cuda::SolverWorkspaceGPU gpu_workspace;
+    void* gpu_workspace_ptr = nullptr;
 };
 
 

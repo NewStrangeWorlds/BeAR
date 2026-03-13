@@ -33,6 +33,7 @@
 #include "../../spectral_grid/spectral_grid.h"
 
 #include "stellar_contamination/stellar_contamination.h"
+#include "velocity_broadening/velocity_broadening.h"
 
 
 
@@ -41,8 +42,8 @@ namespace bear {
 //definition of the different chemistry modules with an
 //identifier, a keyword to be located in the config file and a short version of the keyword
 namespace modules{
-  enum id {stellar_contamination};
-  const std::vector<std::string> description {"stellar_contamination"};
+  enum id {stellar_contamination, velocity_broadening};
+  const std::vector<std::string> description {"stellar_contamination", "velocity_broadening"};
 }
 
 
@@ -83,6 +84,17 @@ inline std::unique_ptr<Module> selectModule(
         throw InvalidInput(std::string ("forward_model.config"), error_message);
       }
       return std::make_unique<StellarContamination>(
+          parameters,
+          spectral_grid);
+    
+    case modules::velocity_broadening :
+      if (parameters.size() < 1)
+      {
+        std::string error_message =
+          "Velocity broadening module requires at least one parameter!\n";
+        throw InvalidInput(std::string ("forward_model.config"), error_message);
+      }
+      return std::make_unique<VelocityBroadening>(
           parameters,
           spectral_grid);
   }
