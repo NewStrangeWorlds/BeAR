@@ -93,9 +93,6 @@ AddingDoubling::AddingDoubling(
 AddingDoubling::~AddingDoubling()
 {
   if (phase_moments_dev != nullptr) deleteFromDevice(phase_moments_dev);
-  if (delta_tau_dev != nullptr) deleteFromDevice(delta_tau_dev);
-  if (ssa_dev != nullptr) deleteFromDevice(ssa_dev);
-  if (planck_levels_dev != nullptr) deleteFromDevice(planck_levels_dev);
 }
 
 
