@@ -28,11 +28,11 @@
 
 #include "stellar_contamination.h"
 
-#include "../../spectral_grid/spectral_grid.h"
-#include "../../additional/physical_const.h"
-#include "../../additional/aux_functions.h"
-#include "../../additional/exceptions.h"
-#include "../stellar_spectrum/select_stellar_model.h"
+#include "../../../spectral_grid/spectral_grid.h"
+#include "../../../additional/physical_const.h"
+#include "../../../additional/aux_functions.h"
+#include "../../../additional/exceptions.h"
+#include "../../stellar_spectrum/select_stellar_model.h"
 
 
 namespace bear{

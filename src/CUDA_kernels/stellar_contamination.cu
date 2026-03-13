@@ -22,7 +22,7 @@
 #include <cmath>
 #include <stdio.h>
 
-#include "../forward_model/modules/stellar_contamination.h"
+#include "../forward_model/modules/stellar_contamination/stellar_contamination.h"
 
 #include "error_check.h"
 #include "planck_function.h"

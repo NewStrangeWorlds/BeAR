@@ -28,12 +28,12 @@
 #include <string>
 #include <memory>
 
-#include "module.h"
+#include "../module.h"
 
-#include "../../spectral_grid/spectral_grid.h"
-#include "../atmosphere/atmosphere.h"
-#include "../stellar_spectrum/stellar_spectrum.h"
-#include "../../CUDA_kernels/data_management_kernels.h"
+#include "../../../spectral_grid/spectral_grid.h"
+#include "../../atmosphere/atmosphere.h"
+#include "../../stellar_spectrum/stellar_spectrum.h"
+#include "../../../CUDA_kernels/data_management_kernels.h"
 
 namespace bear {
 

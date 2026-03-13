@@ -32,7 +32,7 @@
 #include "../../additional/exceptions.h"
 #include "../../spectral_grid/spectral_grid.h"
 
-#include "stellar_contamination.h"
+#include "stellar_contamination/stellar_contamination.h"
 
 
 
