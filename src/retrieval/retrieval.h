@@ -29,6 +29,7 @@
 
 #include "../spectral_grid/spectral_grid.h"
 #include "../observations/observations.h"
+#include "../observations/highres_observation.h"
 #include "../config/global_config.h"
 #include "priors.h"
 
@@ -62,10 +63,15 @@ class Retrieval{
     
     GlobalConfig* config = nullptr;
     SpectralGrid spectral_grid;
+    std::unique_ptr<SpectralGrid> spectral_grid_highres;
     std::vector<Observation> observations;
+    std::vector<HighResObservation> highres_observations;
     Priors priors;
-    
+
     size_t nb_observations = 0;
+    size_t nb_highres_observations = 0;
+    bool has_highres_observations = false;
+    bool use_free_alpha = false;  // when true, alpha is a free retrieval parameter
 
     virtual bool run();
 
@@ -103,9 +109,11 @@ class Retrieval{
       const std::vector<std::string>& file_list,
       const std::vector<std::string>& modifier_list);
     void loadObservationFileList(
-      const std::string file_folder, 
+      const std::string file_folder,
       std::vector<std::string>& file_list,
       std::vector<std::string>& modifier_list);
+    void loadHighResObservations(const std::string& file_folder);
+    std::vector<std::string> highres_file_list;
   private:
     double logLikelihood(
       std::vector<double>& parameters);
@@ -131,6 +139,11 @@ class Retrieval{
     double logLikeDev(
       std::vector<float*> model_spectrum,
       const double error_inflation_coefficient);
+    double logLikeHighResDev(
+      float* spectrum_hr_gpu,
+      double* model_wl_gpu,
+      size_t nb_hr_points,
+      double Kp, double Vsys, double alpha);
 
     float* spectrum_dev = nullptr;
     std::vector<float*> spectrum_obs_dev;

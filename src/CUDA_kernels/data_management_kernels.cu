@@ -155,4 +155,13 @@ template void allocateOnDevice<double>(double*&, size_t);
 template void allocateOnDevice<int>(int*&, size_t);
 template void allocateOnDevice<float>(float*&, size_t);
 template void allocateOnDevice<float*>(float**&, size_t);
+
+template <typename T>
+__host__ void copyOnDevice(T* dst, const T* src, size_t nb_elements)
+{
+  gpuErrchk(cudaMemcpy(dst, src, nb_elements * sizeof(T), cudaMemcpyDeviceToDevice));
+}
+
+template void copyOnDevice<float>(float*, const float*, size_t);
+template void copyOnDevice<double>(double*, const double*, size_t);
 }

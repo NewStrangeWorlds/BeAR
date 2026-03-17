@@ -51,7 +51,8 @@ struct GlobalConfig {
   
   unsigned int spectral_disecretisation = 0;
   double spectral_resolution = 0;
-  
+  double spectral_resolution_highres = 0;
+
   bool multinest_ins = false;
   bool multinest_mode_sep = false;
   unsigned int multinest_nb_living_points = 100;

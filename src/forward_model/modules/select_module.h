@@ -88,10 +88,10 @@ inline std::unique_ptr<Module> selectModule(
           spectral_grid);
     
     case modules::velocity_broadening :
-      if (parameters.size() < 1)
+      if (parameters.size() != 0)
       {
         std::string error_message =
-          "Velocity broadening module requires at least one parameter!\n";
+          "Velocity broadening module does not require any parameters!\n";
         throw InvalidInput(std::string ("forward_model.config"), error_message);
       }
       return std::make_unique<VelocityBroadening>(

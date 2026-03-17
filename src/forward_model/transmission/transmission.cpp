@@ -62,8 +62,10 @@ TransmissionModel::TransmissionModel (
         model_config.cloud_model.size() > 0)
 {
   nb_grid_points = model_config.nb_grid_points;
-  
-  std::cout << "Forward model selected: Transmission\n\n"; 
+  opacity_species_symbol_ = model_config.opacity_species_symbol;
+  opacity_species_folder_ = model_config.opacity_species_folder;
+
+  std::cout << "Forward model selected: Transmission\n\n";
 
   //this forward model has three free general parameters
   nb_general_param = 3;
@@ -74,7 +76,7 @@ TransmissionModel::TransmissionModel (
   fit_mean_molecular_weight = model_config.fit_mean_molecular_weight;
   fit_scale_height = model_config.fit_scale_height;
   use_variable_gravity = model_config.use_variable_gravity;
-
+  
   //select and set up the modules
   initModules(model_config);
 }
@@ -195,57 +197,101 @@ bool TransmissionModel::calcAtmosphereStructure(const std::vector<double>& param
 
 
 
+//Helper to get the parameter offset for module at given index
+static size_t moduleParamOffset(
+  const std::vector<std::unique_ptr<Module>>& modules, size_t idx)
+{
+  size_t offset = 0;
+  for (size_t k = 0; k < idx; ++k)
+    offset += modules[k]->nbParameters();
+  return offset;
+}
+
+
 //Runs the forward model on the CPU and calculates a high-resolution spectrum
 bool TransmissionModel::calcModelCPU(
-  const std::vector<double>& parameters, 
-  std::vector<double>& spectrum, 
+  const std::vector<double>& parameters,
+  std::vector<double>& spectrum,
   std::vector<std::vector<double>>& spectrum_obs)
 {
   extractParameters(parameters);
 
   bool neglect = calcAtmosphereStructure(parameters);
 
-
-  opacity_calc.calculate(cloud_models, cloud_parameters);
-
-  spectrum.assign(spectral_grid->nbSpectralPoints(), 0.0);
-  
-  cloud_extinction.assign(
-      spectral_grid->nbSpectralPoints(), 
-      std::vector<double>(nb_grid_points, 0.0));
-
-  if (cloud_models.size() > 0)
-  {
-    cloud_models[0]->convertOpticalDepth(
-      opacity_calc.cloud_optical_depths, 
-      cloud_extinction, 
-      atmosphere.altitude);
-  }
-  
-
   const double bottom_radius = parameters[1];
   const double star_radius = parameters[2];
-  
-  calcTransmissionSpectrum(bottom_radius, star_radius, spectrum);
 
-  
-  auto param_it = module_parameters.begin();
-  
-  for (auto & m : modules)
+  // === Low-res path (skip if no low-res spectral points) ===
+  if (spectral_grid->nbSpectralPoints() > 0)
   {
-    std::vector<double> single_module_parameters(
-      param_it,
-      param_it + m->nbParameters());
-  
-    m->modifySpectrum(single_module_parameters, &atmosphere, spectrum);
-    
-    param_it += m->nbParameters();
+    opacity_calc.calculate(cloud_models, cloud_parameters);
+
+    spectrum.assign(spectral_grid->nbSpectralPoints(), 0.0);
+
+    cloud_extinction.assign(
+        spectral_grid->nbSpectralPoints(),
+        std::vector<double>(nb_grid_points, 0.0));
+
+    if (cloud_models.size() > 0)
+    {
+      cloud_models[0]->convertOpticalDepth(
+        opacity_calc.cloud_optical_depths,
+        cloud_extinction,
+        atmosphere.altitude);
+    }
+
+    calcTransmissionSpectrum(bottom_radius, star_radius, spectrum);
+
+    if (modules_lowres_idx.empty() && modules_highres_idx.empty())
+    {
+      // No module classification (no high-res grid): apply all modules to low-res
+      auto param_it = module_parameters.begin();
+
+      for (auto & m : modules)
+      {
+        std::vector<double> p(param_it, param_it + m->nbParameters());
+        m->modifySpectrum(p, &atmosphere, spectrum);
+        param_it += m->nbParameters();
+      }
+    }
+    else
+    {
+      // Apply only low-res modules (e.g. stellar contamination)
+      for (size_t idx : modules_lowres_idx)
+      {
+        size_t offset = moduleParamOffset(modules, idx);
+        std::vector<double> p(
+          module_parameters.begin() + offset,
+          module_parameters.begin() + offset + modules[idx]->nbParameters());
+        modules[idx]->modifySpectrum(p, &atmosphere, spectrum);
+      }
+    }
+
+    convertSpectrumToObservation(spectrum, false, spectrum_obs);
+    applyObservationModifier(spectrum_modifier_parameters, spectrum_obs);
   }
 
+  // === High-res path ===
+  if (opacity_calc_highres)
+  {
+    const size_t nb_hr = spectral_grid_highres->nbSpectralPoints();
 
-  convertSpectrumToObservation(spectrum, false, spectrum_obs);
+    opacity_calc_highres->calculate(cloud_models, std::vector<double>{});
 
-  applyObservationModifier(spectrum_modifier_parameters, spectrum_obs);
+    spectrum_highres_.assign(nb_hr, 0.0);
+    calcTransmissionSpectrum(
+      bottom_radius, star_radius,
+      *opacity_calc_highres, nb_hr, spectrum_highres_);
+
+    for (size_t idx : modules_highres_idx)
+    {
+      size_t offset = moduleParamOffset(modules, idx);
+      std::vector<double> p(
+        module_parameters.begin() + offset,
+        module_parameters.begin() + offset + modules[idx]->nbParameters());
+      modules[idx]->modifySpectrum(p, &atmosphere, spectrum_highres_);
+    }
+  }
 
   return neglect;
 }
@@ -263,59 +309,116 @@ bool TransmissionModel::calcModelGPU(
 
   bool neglect = calcAtmosphereStructure(parameter);
 
-  opacity_calc.calculateGPU(cloud_models, cloud_parameters);
-
-  if (cloud_models.size() > 0)
-  { 
-    if (cloud_extinction_gpu == nullptr)
-      allocateOnDevice(
-        cloud_extinction_gpu, 
-        nb_grid_points*spectral_grid->nbSpectralPoints());
-
-    initializeOnDevice(
-      cloud_extinction_gpu, 
-      nb_grid_points*spectral_grid->nbSpectralPoints());
-
-    cloud_models[0]->convertOpticalDepthGPU(
-      opacity_calc.cloud_optical_depths_dev,
-      atmosphere.altitude_dev,
-      nb_grid_points,
-      spectral_grid->nbSpectralPoints(),
-      cloud_extinction_gpu);
-  }
-
-
   const double bottom_radius = parameter[1];
   const double star_radius = parameter[2];
 
-  calcTransitDepthGPU(
-    spectrum, 
-    opacity_calc.absorption_coeff_gpu, 
-    opacity_calc.scattering_coeff_dev, 
-    cloud_extinction_gpu,
-    atmosphere,
-    spectral_grid->nbSpectralPoints(), 
-    bottom_radius,
-    star_radius);
-
-
-  auto param_it = module_parameters.begin();
-  
-  for (auto & m : modules)
+  // === Low-res path (skip if no low-res spectral points) ===
+  if (spectral_grid->nbSpectralPoints() > 0)
   {
-    std::vector<double> single_module_parameters(
-      param_it,
-      param_it + m->nbParameters());
-  
-    m->modifySpectrumGPU(single_module_parameters, &atmosphere, spectrum);
-    
-    param_it += m->nbParameters();
+    opacity_calc.calculateGPU(cloud_models, cloud_parameters);
+
+    if (cloud_models.size() > 0)
+    {
+      if (cloud_extinction_gpu == nullptr)
+        allocateOnDevice(
+          cloud_extinction_gpu,
+          nb_grid_points*spectral_grid->nbSpectralPoints());
+
+      initializeOnDevice(
+        cloud_extinction_gpu,
+        nb_grid_points*spectral_grid->nbSpectralPoints());
+
+      cloud_models[0]->convertOpticalDepthGPU(
+        opacity_calc.cloud_optical_depths_dev,
+        atmosphere.altitude_dev,
+        nb_grid_points,
+        spectral_grid->nbSpectralPoints(),
+        cloud_extinction_gpu);
+    }
+
+    calcTransitDepthGPU(
+      spectrum,
+      opacity_calc.absorption_coeff_gpu,
+      opacity_calc.scattering_coeff_dev,
+      cloud_extinction_gpu,
+      atmosphere,
+      spectral_grid->nbSpectralPoints(),
+      bottom_radius,
+      star_radius);
+
+    if (modules_lowres_idx.empty() && modules_highres_idx.empty())
+    {
+      // No module classification: apply all modules to low-res
+      auto param_it = module_parameters.begin();
+
+      for (auto & m : modules)
+      {
+        std::vector<double> p(param_it, param_it + m->nbParameters());
+        m->modifySpectrumGPU(p, &atmosphere, spectrum);
+        param_it += m->nbParameters();
+      }
+    }
+    else
+    {
+      for (size_t idx : modules_lowres_idx)
+      {
+        size_t offset = moduleParamOffset(modules, idx);
+        std::vector<double> p(
+          module_parameters.begin() + offset,
+          module_parameters.begin() + offset + modules[idx]->nbParameters());
+        modules[idx]->modifySpectrumGPU(p, &atmosphere, spectrum);
+      }
+    }
+
+    convertSpectrumToObservationGPU(spectrum, false, spectrum_obs);
+    applyObservationModifierGPU(spectrum_modifier_parameters, spectrum_obs);
   }
 
+  // === High-res path ===
+  if (opacity_calc_highres)
+  {
+    const size_t nb_hr = spectral_grid_highres->nbSpectralPoints();
 
-  convertSpectrumToObservationGPU(spectrum, false, spectrum_obs);
+    opacity_calc_highres->calculateGPU(cloud_models, std::vector<double>{});
 
-  applyObservationModifierGPU(spectrum_modifier_parameters, spectrum_obs);
+    calcTransitDepthGPU(
+      spectrum_highres_gpu_,
+      opacity_calc_highres->absorption_coeff_gpu,
+      opacity_calc_highres->scattering_coeff_dev,
+      nullptr,
+      atmosphere,
+      nb_hr,
+      bottom_radius,
+      star_radius);
+
+    // Diagnostic: check spectrum after transit depth, before broadening
+    static bool first_gpu_call = true;
+    if (first_gpu_call)
+    {
+      std::vector<float> diag_spec(nb_hr);
+      float* ptr = spectrum_highres_gpu_;
+      moveToHost(ptr, diag_spec);
+      float dmin = diag_spec[0], dmax = diag_spec[0];
+      for (size_t i = 1; i < nb_hr; ++i)
+      {
+        if (diag_spec[i] < dmin) dmin = diag_spec[i];
+        if (diag_spec[i] > dmax) dmax = diag_spec[i];
+      }
+      std::cout << "[GPU diag] after calcTransitDepthGPU: nb_hr=" << nb_hr
+                << " min=" << dmin << " max=" << dmax
+                << " Rp=" << bottom_radius << " Rs=" << star_radius << "\n";
+      first_gpu_call = false;
+    }
+
+    for (size_t idx : modules_highres_idx)
+    {
+      size_t offset = moduleParamOffset(modules, idx);
+      std::vector<double> p(
+        module_parameters.begin() + offset,
+        module_parameters.begin() + offset + modules[idx]->nbParameters());
+      modules[idx]->modifySpectrumGPU(p, &atmosphere, spectrum_highres_gpu_);
+    }
+  }
 
   return neglect;
 }
@@ -468,6 +571,9 @@ TransmissionModel::~TransmissionModel()
 {
   if (cloud_extinction_gpu != nullptr)
     deleteFromDevice(cloud_extinction_gpu);
+
+  if (spectrum_highres_gpu_ != nullptr)
+    deleteFromDevice(spectrum_highres_gpu_);
 }
 
 

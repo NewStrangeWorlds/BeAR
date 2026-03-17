@@ -95,13 +95,24 @@ class ForwardModel{
       const size_t best_fit_model,
       bool& delete_unused_files) = 0;
     virtual size_t parametersNumber() = 0;
+    virtual void setHighResGrid(SpectralGrid* grid) {
+      spectral_grid_highres = grid; }
     //model-specific tests
     virtual bool testModel(
       const std::vector<double>& parameters) = 0;
+    const std::vector<double>& spectrumHighRes() const { return spectrum_highres_; }
+    float* spectrumHighResGPU() const { return spectrum_highres_gpu_; }
+    size_t nbSpectralPointsHighRes() const {
+      return spectral_grid_highres ? spectral_grid_highres->nbSpectralPoints() : 0; }
+
   protected:
     GlobalConfig* config;
     SpectralGrid* spectral_grid;
+    SpectralGrid* spectral_grid_highres = nullptr;
     std::vector<Observation>& observations;
+
+    std::vector<double> spectrum_highres_;
+    float* spectrum_highres_gpu_ = nullptr;
 
     size_t nb_observation_points = 0;
     size_t nb_spectrum_modifier_param = 0;

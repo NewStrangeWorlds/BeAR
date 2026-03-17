@@ -3,6 +3,7 @@ bear
 
 # build files from cmake
 build/*
+build_test/*
 CMakeFiles/*
 .vscode/
 

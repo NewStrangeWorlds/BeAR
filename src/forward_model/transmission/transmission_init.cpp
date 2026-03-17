@@ -30,6 +30,8 @@
 #include "../../temperature/select_temperature_profile.h"
 #include "../../cloud_model/select_cloud_model.h"
 #include "../modules/select_module.h"
+#include "../modules/velocity_broadening/velocity_broadening.h"
+#include "../../transport_coeff/opacity_calc.h"
 
 
 namespace bear{
@@ -37,7 +39,7 @@ namespace bear{
 
 //initialises the varous modules of the forward model
 void TransmissionModel::initModules(const TransmissionModelConfig& model_config)
-{
+{ 
   chemistry.resize(model_config.chemistry_model.size());
 
   for (size_t i=0; i<model_config.chemistry_model.size(); ++i)
@@ -96,6 +98,53 @@ void TransmissionModel::initModules(const TransmissionModelConfig& model_config)
     }
 }
 
+
+
+
+void TransmissionModel::setHighResGrid(SpectralGrid* grid)
+{
+  ForwardModel::setHighResGrid(grid);
+
+  if (!spectral_grid_highres) return;
+
+  std::cout << "Initialising high-res spectral grid for transmission model\n";
+
+  // Create a second OpacityCalculation on the high-res grid,
+  // sharing the same Atmosphere object
+  opacity_calc_highres = std::make_unique<OpacityCalculation>(
+    config,
+    spectral_grid_highres,
+    &atmosphere,
+    opacity_species_symbol_,
+    opacity_species_folder_,
+    config->use_gpu,
+    false);  // no clouds on high-res grid
+
+  // Classify modules: velocity broadening -> highres, everything else -> lowres
+  for (size_t i = 0; i < modules.size(); ++i)
+  {
+    auto* vb = dynamic_cast<VelocityBroadening*>(modules[i].get());
+
+    if (vb != nullptr)
+    {
+      modules_highres_idx.push_back(i);
+      vb->setSpectralGrid(spectral_grid_highres);
+    }
+    else
+      modules_lowres_idx.push_back(i);
+  }
+
+  // Allocate high-res spectrum GPU buffer
+  if (config->use_gpu)
+    allocateOnDevice(
+      spectrum_highres_gpu_,
+      spectral_grid_highres->nbSpectralPoints());
+
+  std::cout << "High-res grid: " << spectral_grid_highres->nbSpectralPoints()
+            << " spectral points\n";
+  std::cout << "Modules on low-res path: " << modules_lowres_idx.size()
+            << ", on high-res path: " << modules_highres_idx.size() << "\n";
+}
 
 
 }

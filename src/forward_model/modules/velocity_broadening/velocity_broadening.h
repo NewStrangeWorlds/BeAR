@@ -41,19 +41,32 @@ class VelocityBroadening : public Module{
     VelocityBroadening (
       const std::vector<std::string>& velocity_broadening_parameters,
       SpectralGrid* spectral_grid_);
-    virtual ~VelocityBroadening() {}
-    
+    virtual ~VelocityBroadening();
+
     virtual void modifySpectrum(
       const std::vector<double>& parameter,
       Atmosphere* atmosphere,
       std::vector<double>& spectrum);
-    
+
     virtual void modifySpectrumGPU(
       const std::vector<double>& parameter,
       Atmosphere* atmosphere,
       float* spectrum_gpu);
+
+    void setSpectralGrid(SpectralGrid* grid);
   protected:
     SpectralGrid* spectral_grid;
+    double delta_v_kms = 0;
+
+    float* temp_buffer_gpu = nullptr;
+    float* temp_buffer2_gpu = nullptr;
+
+    void convolveSpectrumCPU(
+      const std::vector<double>& spectrum_in,
+      std::vector<double>& spectrum_out,
+      double sigma_kms,
+      double vsini_kms,
+      double epsilon);
 };
 
 

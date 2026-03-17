@@ -105,4 +105,30 @@ __host__ double Retrieval::logLikeDev(
 }
 
 
+
+__host__ double Retrieval::logLikeHighResDev(
+  float* spectrum_hr_gpu,
+  double* model_wl_gpu,
+  size_t nb_hr_points,
+  double Kp, double Vsys, double alpha)
+{
+  gpuErrchk(cudaMemset(d_log_like_dev, 0, sizeof(double)));
+
+  for (size_t i = 0; i < nb_highres_observations; ++i)
+  {
+    highres_observations[i].computeLogLikelihoodGPU(
+      spectrum_hr_gpu,
+      model_wl_gpu,
+      nb_hr_points,
+      Kp, Vsys, alpha,
+      d_log_like_dev);
+  }
+
+  double h_log_like = 0;
+  gpuErrchk(cudaMemcpy(&h_log_like, d_log_like_dev, sizeof(double), cudaMemcpyDeviceToHost));
+
+  return h_log_like;
+}
+
+
 }

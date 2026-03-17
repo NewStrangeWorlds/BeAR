@@ -35,6 +35,7 @@ template <typename T> void moveToHost(T*& device_data, std::vector<T>& host_data
 template <typename T> void moveToHostAndDelete(T*& device_data, std::vector<T>& host_data);
 template <typename T> void deleteFromDevice(T*& device_data);
 template <typename T> void initializeOnDevice(T*& device_data, const size_t nb_points);
+template <typename T> void copyOnDevice(T* dst, const T* src, size_t nb_elements);
 
 
 

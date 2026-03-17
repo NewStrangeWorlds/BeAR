@@ -249,9 +249,28 @@ bool GlobalConfig::loadConfigFile(std::string retrieval_folder)
   
   
   std::cout << "\n";
-  
+
   multinest_output_path = retrieval_folder;
   post_output_path = retrieval_folder;
+
+
+  //Optional high-resolution spectral grid
+  while (std::getline(file, line))
+  {
+    if (line.empty() || line[0] == '#')
+      continue;
+
+    std::istringstream line_stream(line);
+    std::string keyword;
+    line_stream >> keyword;
+
+    if (keyword == "spectral_resolution_highres")
+    {
+      line_stream >> spectral_resolution_highres;
+      std::cout << "High-resolution spectral grid resolution: "
+                << spectral_resolution_highres << "\n";
+    }
+  }
 
   return true;
 }

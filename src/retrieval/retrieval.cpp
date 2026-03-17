@@ -147,19 +147,75 @@ Retrieval::Retrieval(
       }
     }
 
-    loadObservations(
-      observation_folder,
-      file_list,
-      modifier_list);
-  
-    std::cout << "\nTotal number of wavelength points: " 
-              << spectral_grid.nbSpectralPoints() << "\n\n";
+    if (!file_list.empty())
+    {
+      loadObservations(
+        observation_folder,
+        file_list,
+        modifier_list);
 
+      std::cout << "\nTotal number of low-res wavelength points: "
+                << spectral_grid.nbSpectralPoints() << "\n\n";
+    }
+
+    // Load high-res observations and create the high-res spectral grid
+    loadHighResObservations(observation_folder);
+    
     forward_model = selectForwardModel(config->forward_model_type, nullptr);
+    
+    // Set up dual spectral grid if high-res observations exist
+    if (has_highres_observations)
+      forward_model->setHighResGrid(spectral_grid_highres.get());
 
-    priors.init(config->retrieval_folder_path, forward_model->parametersNumber());
+    // High-res parameters: always Kp and Vsys; optionally alpha.
+    // Detect alpha by counting lines in priors.config vs expected model params.
+    size_t nb_highres_param = 0;
+
+    if (has_highres_observations)
+    {
+      nb_highres_param = 2;  // Kp and Vsys
+
+      // Peek at priors.config to check if alpha is included (3rd high-res param).
+      // Count lines the same way as Priors::readConfigFile: every non-empty line.
+      const std::string priors_file = config->retrieval_folder_path + "priors.config";
+      std::ifstream pf(priors_file);
+      size_t nb_prior_lines = 0;
+      std::string line;
+
+      while (std::getline(pf, line))
+      {
+        if (!line.empty())
+          ++nb_prior_lines;
+      }
+
+      if (nb_prior_lines == forward_model->parametersNumber() + 3)
+      {
+        use_free_alpha = true;
+        nb_highres_param = 3;
+
+        for (auto& obs : highres_observations)
+        {
+          if (obs.hasFluxUncertainties())
+          {
+            obs.likelihood_mode = HighResLikelihoodMode::gibson;
+            obs.precomputeGibsonStatistics();
+            std::cout << "  Using Gibson Eq. 4 likelihood (per-pixel uncertainties)\n";
+          }
+          else
+          {
+            obs.likelihood_mode = HighResLikelihoodMode::free_alpha;
+          }
+        }
+
+        std::cout << "  Alpha is a free retrieval parameter\n";
+      }
+    }
+
+    priors.init(
+      config->retrieval_folder_path,
+      forward_model->parametersNumber() + nb_highres_param);
   }
-  catch(std::runtime_error& e) 
+  catch(std::runtime_error& e)
   {
     std::cout << e.what() << std::endl;
     exit(1);
@@ -170,7 +226,12 @@ Retrieval::Retrieval(
   priors.printInfo();
 
   if (config->use_gpu)
+  {
+    for (auto& obs : highres_observations)
+      obs.initDeviceMemory();
+
     initGPUMemory();
+  }
 }
 
 
@@ -257,7 +318,7 @@ bool Retrieval::run()
 void Retrieval::setAdditionalPriors()
 {
   if (config->use_error_inflation)
-  { 
+  {
     //this creates the prior distribution for the error exponent
     //first, we need to find the minimum and maximum values of the observational data errors
     double error_max = 0;
@@ -265,21 +326,21 @@ void Retrieval::setAdditionalPriors()
     for (auto & obs : observations)
     {
       double obs_error_max = *std::max_element(
-        std::begin(obs.data_error), 
+        std::begin(obs.data_error),
         std::end(obs.data_error));
 
       if (obs_error_max > error_max)
         error_max = obs_error_max;
     }
- 
+
     double error_min = error_max;
-    
+
     for (auto & obs : observations)
     {
       double obs_error_min = *std::min_element(
-        std::begin(obs.data_error), 
+        std::begin(obs.data_error),
         std::end(obs.data_error));
-      
+
       if (obs_error_min < error_min)
         error_min = obs_error_min;
     }
@@ -290,8 +351,8 @@ void Retrieval::setAdditionalPriors()
     priors.add(
       std::vector<PriorConfig> {
         PriorConfig(
-          std::string("uniform"), 
-          std::string("error exponent"), 
+          std::string("uniform"),
+          std::string("error exponent"),
           std::vector<double>{error_min, error_max})});
   }
 }
@@ -321,17 +382,17 @@ double Retrieval::logLikelihood(
   std::vector<double>& physical_parameters)
 {
   std::vector<double> model_spectrum(
-    spectral_grid.nbSpectralPoints(), 
+    spectral_grid.nbSpectralPoints(),
     0.0);
-  
+
   std::vector<std::vector<double>> model_spectrum_obs(
-    nb_observations, 
+    nb_observations,
     std::vector<double>{});
 
 
   bool neglect = forward_model->calcModelCPU(
-    physical_parameters, 
-    model_spectrum, 
+    physical_parameters,
+    model_spectrum,
     model_spectrum_obs);
 
 
@@ -343,26 +404,45 @@ double Retrieval::logLikelihood(
 
   double log_like = 0;
 
+  // Low-res chi-square likelihood
   for (size_t i=0; i<observations.size(); ++i)
   {
     for (size_t j=0; j<observations[i].nbPoints(); ++j)
     {
       //Eq. 22 from Paper I
-      const double error_square = 
-        observations[i].data_error[j] 
-        * observations[i].data_error[j] 
+      const double error_square =
+        observations[i].data_error[j]
+        * observations[i].data_error[j]
         + error_inflation;
 
       const double obs_delta = observations[i].data[j] - model_spectrum_obs[i][j];
-      
+
       //Eq. 23 from Paper I
-      log_like += 
+      log_like +=
         (- 0.5 * std::log(error_square* 2.0 * constants::pi)
          - 0.5 * obs_delta*obs_delta / error_square)
          * observations[i].likelihood_weight[j];
     }
   }
-  
+
+  // High-res Brogi & Line 2019 likelihood
+  if (has_highres_observations)
+  {
+    const size_t kp_idx = forward_model->parametersNumber();
+    const double Kp = physical_parameters[kp_idx];
+    const double Vsys = physical_parameters[kp_idx + 1];
+    const double alpha = use_free_alpha ? physical_parameters[kp_idx + 2] : 1.0;
+
+    const auto& spectrum_hr = forward_model->spectrumHighRes();
+    const auto& wavelengths_hr = spectral_grid_highres->wavelength_list;
+
+    for (size_t i = 0; i < nb_highres_observations; ++i)
+    {
+      log_like += highres_observations[i].computeLogLikelihood(
+        spectrum_hr, wavelengths_hr, Kp, Vsys, alpha);
+    }
+  }
+
   //if the forward model tells us to neglect the current set of parameters,
   //set the likelihood to a low value
   if (neglect == true) log_like = -1e30;
@@ -380,9 +460,10 @@ double Retrieval::logLikelihood(
 double Retrieval::logLikelihoodGPU(
   std::vector<double>& physical_parameters)
 {
-  initializeOnDevice(
-    spectrum_dev,
-    spectral_grid.nbSpectralPoints());
+  if (spectral_grid.nbSpectralPoints() > 0)
+    initializeOnDevice(
+      spectrum_dev,
+      spectral_grid.nbSpectralPoints());
 
   for (size_t i=0; i<observations.size(); ++i)
     initializeOnDevice(
@@ -403,6 +484,21 @@ double Retrieval::logLikelihoodGPU(
 
 
   double log_like = logLikeDev(spectrum_obs_dev, error_inflation);
+
+  // High-res Brogi & Line 2019 likelihood (fully on GPU)
+  if (has_highres_observations)
+  {
+    const size_t kp_idx = forward_model->parametersNumber();
+    const double Kp = physical_parameters[kp_idx];
+    const double Vsys = physical_parameters[kp_idx + 1];
+    const double alpha = use_free_alpha ? physical_parameters[kp_idx + 2] : 1.0;
+
+    log_like += logLikeHighResDev(
+      forward_model->spectrumHighResGPU(),
+      spectral_grid_highres->wavelength_list_gpu,
+      forward_model->nbSpectralPointsHighRes(),
+      Kp, Vsys, alpha);
+  }
 
   //if the forward model tells us to neglect the current set of parameters,
   //set the likelihood to a low value
@@ -443,7 +539,8 @@ void Retrieval::initGPUMemory()
   if (gpu_memory_initialized)
     return;
 
-  allocateOnDevice(spectrum_dev, spectral_grid.nbSpectralPoints());
+  if (spectral_grid.nbSpectralPoints() > 0)
+    allocateOnDevice(spectrum_dev, spectral_grid.nbSpectralPoints());
 
   spectrum_obs_dev.resize(observations.size(), nullptr);
 
@@ -461,7 +558,8 @@ void Retrieval::freeGPUMemory()
   if (!gpu_memory_initialized)
     return;
 
-  deleteFromDevice(spectrum_dev);
+  if (spectrum_dev != nullptr)
+    deleteFromDevice(spectrum_dev);
 
   for (size_t i=0; i<spectrum_obs_dev.size(); ++i)
     deleteFromDevice(spectrum_obs_dev[i]);

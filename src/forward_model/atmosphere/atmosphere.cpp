@@ -50,7 +50,7 @@ Atmosphere::Atmosphere(
   scale_height.assign(nb_grid_points, 0.0);
   number_densities.assign(
     nb_grid_points, std::vector<double>(constants::species_data.size(), 0.0));
-
+  
   if (use_gpu)
   {
     allocateOnDevice(temperature_dev, nb_grid_points);

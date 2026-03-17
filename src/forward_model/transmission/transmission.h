@@ -190,14 +190,24 @@ class TransmissionModel : public ForwardModel{
       const std::vector<std::vector<double>>& cloud_optical_depth,
       const double use_variable_gravity);
 
+    virtual void setHighResGrid(SpectralGrid* grid) override;
+
   protected:
     Atmosphere atmosphere;
     OpacityCalculation opacity_calc;
+    std::unique_ptr<OpacityCalculation> opacity_calc_highres;
 
     std::unique_ptr<Temperature> temperature_profile;
     std::vector<std::unique_ptr<Chemistry>> chemistry;
     std::vector<std::unique_ptr<CloudModel>> cloud_models;
     std::vector<std::unique_ptr<Module>> modules;
+
+    std::vector<std::string> opacity_species_symbol_;
+    std::vector<std::string> opacity_species_folder_;
+
+    // Module routing: indices into the modules vector
+    std::vector<size_t> modules_lowres_idx;
+    std::vector<size_t> modules_highres_idx;
 
     size_t nb_general_param = 0;
     size_t nb_total_chemistry_param = 0;
@@ -267,8 +277,14 @@ class TransmissionModel : public ForwardModel{
       const double radius_star);
 
     void calcTransmissionSpectrum(
-      const double bottom_radius, 
-      const double star_radius, 
+      const double bottom_radius,
+      const double star_radius,
+      std::vector<double>& spectrum);
+    void calcTransmissionSpectrum(
+      const double bottom_radius,
+      const double star_radius,
+      OpacityCalculation& opacity,
+      const size_t nb_spectral_pts,
       std::vector<double>& spectrum);
     double calcTransitRadius(
       const unsigned int wavelength, 
