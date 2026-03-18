@@ -42,10 +42,20 @@ class BackgroundChemistry : public Chemistry{
       std::vector<std::vector<double>>& number_densities,
       std::vector<double>& mean_molecular_weight);
   protected:
-    const double solar_h2 = 0.5;
-    const double solar_he = 0.085114;
-
     bool h2he_background = false;
+    bool hhe_eq_background = false;
+
+    double mixingRatioBackground(const std::vector<double>& number_densities);
+
+    void backgroundH2He(
+      const double mixing_ratio_background, 
+      std::vector<double>& number_densities);
+
+    void equilibriumHHe(
+      const double pressure, 
+      const double temperature,
+      const double mixing_ratio_background, 
+      std::vector<double>& number_densities);
 };
 
 

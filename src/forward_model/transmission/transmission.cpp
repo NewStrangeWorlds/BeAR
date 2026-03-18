@@ -392,23 +392,23 @@ bool TransmissionModel::calcModelGPU(
       star_radius);
 
     // Diagnostic: check spectrum after transit depth, before broadening
-    static bool first_gpu_call = true;
-    if (first_gpu_call)
-    {
-      std::vector<float> diag_spec(nb_hr);
-      float* ptr = spectrum_highres_gpu_;
-      moveToHost(ptr, diag_spec);
-      float dmin = diag_spec[0], dmax = diag_spec[0];
-      for (size_t i = 1; i < nb_hr; ++i)
-      {
-        if (diag_spec[i] < dmin) dmin = diag_spec[i];
-        if (diag_spec[i] > dmax) dmax = diag_spec[i];
-      }
-      std::cout << "[GPU diag] after calcTransitDepthGPU: nb_hr=" << nb_hr
-                << " min=" << dmin << " max=" << dmax
-                << " Rp=" << bottom_radius << " Rs=" << star_radius << "\n";
-      first_gpu_call = false;
-    }
+    // static bool first_gpu_call = true;
+    // if (first_gpu_call)
+    // {
+    //   std::vector<float> diag_spec(nb_hr);
+    //   float* ptr = spectrum_highres_gpu_;
+    //   moveToHost(ptr, diag_spec);
+    //   float dmin = diag_spec[0], dmax = diag_spec[0];
+    //   for (size_t i = 1; i < nb_hr; ++i)
+    //   {
+    //     if (diag_spec[i] < dmin) dmin = diag_spec[i];
+    //     if (diag_spec[i] > dmax) dmax = diag_spec[i];
+    //   }
+    //   std::cout << "[GPU diag] after calcTransitDepthGPU: nb_hr=" << nb_hr
+    //             << " min=" << dmin << " max=" << dmax
+    //             << " Rp=" << bottom_radius << " Rs=" << star_radius << "\n";
+    //   first_gpu_call = false;
+    // }
 
     for (size_t idx : modules_highres_idx)
     {

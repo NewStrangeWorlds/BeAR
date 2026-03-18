@@ -118,9 +118,8 @@ bool FastChemChemistry::calcChemicalComposition(
   if (status != fastchem::FASTCHEM_SUCCESS)
     neglect_model = true;
 
-
+  
   mean_molecular_weight = output.mean_molecular_weight;
-
 
   for (size_t j=0; j<temperature.size(); ++j)
     for (size_t i=0; i<constants::species_data.size(); ++i)

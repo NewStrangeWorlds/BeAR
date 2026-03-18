@@ -107,6 +107,7 @@ set(SRC
   src/forward_model/stellar_spectrum/stellar_spectrum_grid.cpp
   src/forward_model/modules/stellar_contamination/stellar_contamination.cpp
   src/forward_model/modules/velocity_broadening/velocity_broadening.cpp
+  src/forward_model/modules/phase_resolved_broadening/phase_resolved_broadening.cpp
   src/observations/highres_observation.cpp
   src/observations/highres_observation_load_data.cpp
   src/cloud_model/grey_cloud_model.cpp
@@ -179,7 +180,8 @@ set(SRC_CUDA
   src/CUDA_kernels/batched_opacity_kernels.cu
   src/CUDA_kernels/doppler_shift_kernels.cu
   src/CUDA_kernels/highres_loglike_kernels.cu
-  src/forward_model/modules/velocity_broadening/convolution_kernels_highres.cu)
+  src/forward_model/modules/velocity_broadening/convolution_kernels_highres.cu
+  src/forward_model/modules/phase_resolved_broadening/convolution_kernels_phase_resolved.cu)
 
 
 set(SRC_PYTHON_WRAPPER

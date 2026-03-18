@@ -34,6 +34,7 @@
 
 #include "stellar_contamination/stellar_contamination.h"
 #include "velocity_broadening/velocity_broadening.h"
+#include "phase_resolved_broadening/phase_resolved_broadening.h"
 
 
 
@@ -42,8 +43,8 @@ namespace bear {
 //definition of the different chemistry modules with an
 //identifier, a keyword to be located in the config file and a short version of the keyword
 namespace modules{
-  enum id {stellar_contamination, velocity_broadening};
-  const std::vector<std::string> description {"stellar_contamination", "velocity_broadening"};
+  enum id {stellar_contamination, velocity_broadening, phase_resolved_broadening};
+  const std::vector<std::string> description {"stellar_contamination", "velocity_broadening", "phase_resolved_broadening"};
 }
 
 
@@ -95,6 +96,17 @@ inline std::unique_ptr<Module> selectModule(
         throw InvalidInput(std::string ("forward_model.config"), error_message);
       }
       return std::make_unique<VelocityBroadening>(
+          parameters,
+          spectral_grid);
+
+    case modules::phase_resolved_broadening :
+      if (parameters.size() != 0)
+      {
+        std::string error_message =
+          "Phase-resolved broadening module does not require any parameters!\n";
+        throw InvalidInput(std::string ("forward_model.config"), error_message);
+      }
+      return std::make_unique<PhaseResolvedBroadening>(
           parameters,
           spectral_grid);
   }

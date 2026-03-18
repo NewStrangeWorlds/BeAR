@@ -31,6 +31,7 @@
 #include "../../cloud_model/select_cloud_model.h"
 #include "../modules/select_module.h"
 #include "../modules/velocity_broadening/velocity_broadening.h"
+#include "../modules/phase_resolved_broadening/phase_resolved_broadening.h"
 #include "../../transport_coeff/opacity_calc.h"
 
 
@@ -120,15 +121,21 @@ void TransmissionModel::setHighResGrid(SpectralGrid* grid)
     config->use_gpu,
     false);  // no clouds on high-res grid
 
-  // Classify modules: velocity broadening -> highres, everything else -> lowres
+  // Classify modules: broadening modules -> highres, everything else -> lowres
   for (size_t i = 0; i < modules.size(); ++i)
   {
     auto* vb = dynamic_cast<VelocityBroadening*>(modules[i].get());
+    auto* prb = dynamic_cast<PhaseResolvedBroadening*>(modules[i].get());
 
     if (vb != nullptr)
     {
       modules_highres_idx.push_back(i);
       vb->setSpectralGrid(spectral_grid_highres);
+    }
+    else if (prb != nullptr)
+    {
+      modules_highres_idx.push_back(i);
+      prb->setSpectralGrid(spectral_grid_highres);
     }
     else
       modules_lowres_idx.push_back(i);
