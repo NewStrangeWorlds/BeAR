@@ -39,7 +39,6 @@ BackgroundChemistry::BackgroundChemistry(const std::string& chemical_species)
   
   nb_parameters = 0;
 
-
   if (chemical_species == "H2He")
   {
     h2he_background = true;
@@ -53,7 +52,6 @@ BackgroundChemistry::BackgroundChemistry(const std::string& chemical_species)
 
     return;
   }
-
 
   bool species_found = false;
 
@@ -191,9 +189,9 @@ void BackgroundChemistry::equilibriumHHe(
   
   const double pressure_background = pressure * mixing_ratio_background;
 
-  //lambda function for the equilibrium constant of the reaction H2 <-> 2H
+  //lambda function for the equilibrium constant of the reaction H2 -> 2H
    auto Kp_bar = [](double t) {
-    constexpr double a1 =  5.1909637142380554e+04; //FastChem fit 
+    constexpr double a1 =  5.1909637142380554e+04; //FastChem fit coefficients
     constexpr double a2 = -1.8011701211306956e+00;
     constexpr double a3 =  8.7224583233705744e-02;
     constexpr double a4 =  2.5613890164973008e-04;
@@ -203,11 +201,11 @@ void BackgroundChemistry::equilibriumHHe(
     return std::exp(-ln_Kbar_form);
   };
 
-  const double f  = HE_H;
+  const double f = HE_H;
   const double Kp = Kp_bar(temperature);
  
-  const double A =  2.0*pressure_background + 0.5*Kp;
-  const double B =  Kp*(f + 0.5);
+  const double A = 2.0*pressure_background + 0.5*Kp;
+  const double B = Kp*(f + 0.5);
   const double C = -Kp*(f + 1.0);
  
   double disc = B*B - 4.0*A*C;
