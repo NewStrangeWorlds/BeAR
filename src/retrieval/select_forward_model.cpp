@@ -29,6 +29,7 @@
 #include "../forward_model/transmission/transmission.h"
 #include "../forward_model/flat_line/flat_line.h"
 #include "../forward_model/secondary_eclipse_bb/secondary_eclipse_bb.h"
+#include "../forward_model/phase_curve/phase_curve.h"
 
 #include <memory>
 
@@ -133,6 +134,29 @@ std::unique_ptr<ForwardModel> Retrieval::selectForwardModel(
       OccultationBlackBodyConfig* c = dynamic_cast<OccultationBlackBodyConfig*>(model_config);
 
       return std::make_unique<OccultationBlackBodyModel>(
+        *c,
+        config,
+        &spectral_grid,
+        observations);
+    }
+  }
+
+
+  if (model_description == "phase_curve" || model_description == "Phase_curve" || model_description == "pc")
+  {
+    if (model_config == nullptr)
+    {
+      return std::make_unique<PhaseCurveModel>(
+        PhaseCurveConfig(config->retrieval_folder_path),
+        config,
+        &spectral_grid,
+        observations);
+    }
+    else
+    {
+      PhaseCurveConfig* c = dynamic_cast<PhaseCurveConfig*>(model_config);
+
+      return std::make_unique<PhaseCurveModel>(
         *c,
         config,
         &spectral_grid,

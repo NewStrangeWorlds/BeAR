@@ -585,15 +585,18 @@ double HighResObservation::computeLogLikelihood(
 
           if (likelihood_mode == HighResLikelihoodMode::marginalized_alpha)
           {
-            // Analytically marginalized: ln L = -N/2 * ln(sf2 - R_xf^2 / (N * R_ff))
-            arg = sf2 - (R_xf * R_xf) / (dN * R_ff);
+            // Normalized: ln L = -N/2 * ln((sf2 - R_xf^2/(N*R_ff)) / sf2)
+            // = -N/2 * ln(1 - r^2), r = cross-correlation coefficient.
+            // Dividing by sf2 removes the data-scale constant -N/2*ln(sf2),
+            // which is ~1e8 for PCA-filtered data and breaks nested sampling.
+            arg = (sf2 - (R_xf * R_xf) / (dN * R_ff)) / sf2;
           }
           else
           {
-            // Explicit alpha: ln L = -N/2 * ln(sf2 + alpha^2 * sg2 - 2*alpha*R)
+            // Explicit alpha: normalized by sg2 for the same reason.
             const double sg2 = R_ff / dN;
             const double R = R_xf / dN;
-            arg = sf2 + alpha * alpha * sg2 - 2.0 * alpha * R;
+            arg = (sf2 + alpha * alpha * sg2 - 2.0 * alpha * R) / sf2;
           }
 
           if (arg > 0)

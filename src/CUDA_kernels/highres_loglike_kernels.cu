@@ -176,16 +176,17 @@ void highResLogLikeKernel(
 
       if (alpha < 0.0f)
       {
-        // Marginalized alpha: ln L = -N/2 * ln(sf2 - R_xf^2 / (N * R_ff))
-        arg = sf2 - (local_rxf * local_rxf) / (dN * local_rff);
+        // Normalized: ln L = -N/2 * ln(1 - r^2), r = cross-correlation coefficient.
+        // Dividing by sf2 removes the constant -N/2*ln(sf2) that otherwise
+        // reaches ~1e8 for PCA-filtered data and breaks nested sampling convergence.
+        arg = (sf2 - (local_rxf * local_rxf) / (dN * local_rff)) / sf2;
       }
       else
       {
-        // Explicit alpha: ln L = -N/2 * ln(sf2 + alpha^2*sg2 - 2*alpha*R)
         const double a = (double)alpha;
         const double sg2 = local_rff / dN;
         const double R = local_rxf / dN;
-        arg = sf2 + a * a * sg2 - 2.0 * a * R;
+        arg = (sf2 + a * a * sg2 - 2.0 * a * R) / sf2;
       }
 
       if (arg > 0.0)
@@ -396,14 +397,14 @@ void highResLogLikeFromFilteredKernel(
 
       if (alpha < 0.0f)
       {
-        arg = sf2 - (local_rxf * local_rxf) / (dN * local_rff);
+        arg = (sf2 - (local_rxf * local_rxf) / (dN * local_rff)) / sf2;
       }
       else
       {
         const double a = (double)alpha;
         const double sg2 = local_rff / dN;
         const double R = local_rxf / dN;
-        arg = sf2 + a * a * sg2 - 2.0 * a * R;
+        arg = (sf2 + a * a * sg2 - 2.0 * a * R) / sf2;
       }
 
       if (arg > 0.0)

@@ -21,6 +21,9 @@ TransmissionTest/*
 EmissionTest/*
 SecondaryEclipseTest/*
 
+WASP-121b_test/*
+WASP-121b_em_test/*
+
 python/lib/pybear.cpython*
 python/lib/__pycache__/*
 python/__pycache__/*

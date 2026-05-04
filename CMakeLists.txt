@@ -88,6 +88,12 @@ set(SRC
   src/forward_model/secondary_eclipse_bb/secondary_eclipse_bb_init.cpp
   src/forward_model/secondary_eclipse_bb/secondary_eclipse_bb.cpp
   src/forward_model/secondary_eclipse_bb/secondary_eclipse_bb_test.cpp
+  src/forward_model/phase_curve/phase_curve.cpp
+  src/forward_model/phase_curve/phase_curve_init.cpp
+  src/forward_model/phase_curve/phase_curve_model_config.cpp
+  src/forward_model/phase_curve/phase_curve_priors.cpp
+  src/forward_model/phase_curve/phase_curve_post_process.cpp
+  src/forward_model/phase_curve/phase_curve_test.cpp
   src/forward_model/transmission/transmission_model_config.cpp
   src/forward_model/transmission/transmission_post_process.cpp
   src/forward_model/transmission/transmission_priors.cpp
@@ -164,6 +170,7 @@ set(SRC_CUDA
   src/CUDA_kernels/data_management_kernels.cu
   src/CUDA_kernels/log_like_kernels.cu
   src/CUDA_kernels/secondary_eclipse_kernels.cu
+  src/CUDA_kernels/phase_curve_kernels.cu
   src/CUDA_kernels/secondary_eclipse_bb.cu
   src/CUDA_kernels/transmission_spectrum_kernels.cu
   src/radiative_transfer/short_characteristics/short_characteristics_kernels.cu
@@ -347,6 +354,10 @@ endif()
 
 
 if (USE_PYTHON MATCHES ON)
+    set_target_properties(disortpp PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    set_target_properties(adding_doubling PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    set_target_properties(adding_doubling_cuda PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
     #find the python version
     find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
     
@@ -371,6 +382,7 @@ if (USE_PYTHON MATCHES ON)
   add_library(bear_for_py ${SRC})
   target_include_directories(bear_for_py PUBLIC ${boost_math_SOURCE_DIR}/include/)
   target_include_directories(bear_for_py PUBLIC ${eigen_SOURCE_DIR})
+  target_link_libraries(bear_for_py PUBLIC disortpp adding_doubling)
   
   add_library(bear_cuda_for_py ${SRC_CUDA})
   target_include_directories(bear_cuda_for_py PUBLIC ${boost_math_SOURCE_DIR}/include/)
