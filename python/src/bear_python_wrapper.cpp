@@ -122,9 +122,25 @@ PYBIND11_MODULE(pybear, m) {
         .def_readwrite("spectral_grid", &bear::Retrieval::spectral_grid)
         .def("run", &bear::Retrieval::run)
         .def("nbParameters", &bear::Retrieval::nbParameters)
-        .def("convertCubeParameters", &bear::Retrieval::convertCubeParameters)
+        .def("convertCubeParameters", [](bear::Retrieval& self, std::vector<double> cube) {
+            auto result = self.convertCubeParameters(cube);
+            const size_t n_total = self.priors.number();
+            const size_t n_free  = self.priors.numberFree();
+            std::vector<double> free_params(n_free), free_phys(n_free);
+            for (size_t i = 0; i < n_total; i++) {
+                int j = self.priors.free_cube_index[i];
+                if (j >= 0) {
+                    free_params[j] = result.first[i];
+                    free_phys[j]   = result.second[i];
+                }
+            }
+            return std::make_pair(free_params, free_phys);
+        })
         .def("convertToPhysicalParameters", &bear::Retrieval::convertToPhysicalParameters)
-        .def("computeLikelihood", &bear::Retrieval::computeLikelihood)
+        .def("computeLikelihood", [](bear::Retrieval& self, std::vector<double> free_phys) {
+            auto full = self.priors.expandFreeToFull(free_phys);
+            return self.computeLikelihood(full);
+        })
         .def("computeModel", &bear::Retrieval::computeModel)
         .def("computeAtmosphereStructure", &bear::PostProcess::computeAtmosphereStructure);
 

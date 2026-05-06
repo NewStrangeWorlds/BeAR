@@ -92,7 +92,7 @@ class Retrieval{
       const std::vector<std::string>& species_symbols);
     
     size_t nbParameters() {
-      return priors.number();}
+      return priors.numberFree();}
 
   protected:
     std::unique_ptr<ForwardModel> forward_model;
@@ -143,7 +143,7 @@ class Retrieval{
       float* spectrum_hr_gpu,
       double* model_wl_gpu,
       size_t nb_hr_points,
-      double Kp, double Vsys, double alpha);
+      double Kp, double Vsys, double dphi, double alpha);
 
     float* spectrum_dev = nullptr;
     std::vector<float*> spectrum_obs_dev;

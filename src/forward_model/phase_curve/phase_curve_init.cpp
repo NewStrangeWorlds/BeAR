@@ -28,6 +28,7 @@
 
 #include "../../additional/exceptions.h"
 #include "../../chemistry/select_chemistry.h"
+#include "../stellar_spectrum/select_stellar_model.h"
 #include "../../radiative_transfer/select_radiative_transfer.h"
 #include "../../temperature/select_temperature_profile.h"
 #include "../../cloud_model/select_cloud_model.h"
@@ -36,6 +37,7 @@
 #include "../modules/phase_resolved_broadening/phase_resolved_broadening.h"
 #include "../../transport_coeff/opacity_calc.h"
 #include "../../CUDA_kernels/data_management_kernels.h"
+#include "../stellar_spectrum/smoothed_stellar_spectrum.h"
 
 
 namespace bear{
@@ -50,6 +52,16 @@ void PhaseCurveModel::initModules(const PhaseCurveConfig& model_config)
     config,
     spectral_grid);
 
+  stellar_model = selectStellarModel(
+    model_config.stellar_spectrum_model,
+    model_config.stellar_model_parameters,
+    spectral_grid);
+
+  stellar_spectrum_model_name_     = model_config.stellar_spectrum_model;
+  stellar_model_parameters_names_  = model_config.stellar_model_parameters;
+  highres_stellar_smooth_sigma_    = model_config.highres_stellar_smooth_sigma;
+
+  nb_stellar_param = stellar_model->nbParameters();
 
   chemistry.resize(model_config.chemistry_model.size());
 
@@ -133,6 +145,17 @@ void PhaseCurveModel::setHighResGrid(SpectralGrid* grid)
     config,
     spectral_grid_highres);
 
+  stellar_model_highres_ = selectStellarModel(
+    stellar_spectrum_model_name_,
+    stellar_model_parameters_names_,
+    spectral_grid_highres);
+
+  if (highres_stellar_smooth_sigma_ > 0.0)
+    stellar_model_highres_ = std::make_unique<SmoothedStellarSpectrum>(
+      std::move(stellar_model_highres_),
+      highres_stellar_smooth_sigma_,
+      config->use_gpu);
+
   for (size_t i = 0; i < modules.size(); ++i)
   {
     auto* vb = dynamic_cast<VelocityBroadening*>(modules[i].get());
@@ -153,9 +176,14 @@ void PhaseCurveModel::setHighResGrid(SpectralGrid* grid)
   }
 
   if (config->use_gpu)
+  {
     allocateOnDevice(
       spectrum_highres_gpu_,
       spectral_grid_highres->nbSpectralPoints());
+    allocateOnDevice(
+      stellar_flux_highres_gpu_,
+      spectral_grid_highres->nbSpectralPoints());
+  }
 
   std::cout << "High-res grid: " << spectral_grid_highres->nbSpectralPoints()
             << " spectral points\n";

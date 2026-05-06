@@ -173,7 +173,7 @@ Retrieval::Retrieval(
 
     if (has_highres_observations)
     {
-      nb_highres_param = 2;  // Kp and Vsys
+      nb_highres_param = 3;  // Kp, Vsys, dphi
 
       // Peek at priors.config to check if alpha is included (3rd high-res param).
       // Count lines the same way as Priors::readConfigFile: every non-empty line.
@@ -188,10 +188,10 @@ Retrieval::Retrieval(
           ++nb_prior_lines;
       }
 
-      if (nb_prior_lines == forward_model->parametersNumber() + 3)
+      if (nb_prior_lines == forward_model->parametersNumber() + 4)
       {
         use_free_alpha = true;
-        nb_highres_param = 3;
+        nb_highres_param = 4;
 
         for (auto& obs : highres_observations)
         {
@@ -242,13 +242,13 @@ bool Retrieval::run()
   //Configure Multinest
   MultinestParameter param(config);
 
-  size_t nb_priors = priors.number();
+  size_t nb_free = priors.numberFree();
 
-  param.ndims = nb_priors;
-  param.nPar = nb_priors;
-  param.nClsPar = nb_priors;
+  param.ndims = nb_free;
+  param.nPar = nb_free;
+  param.nClsPar = nb_free;
 
-  for (size_t i = 0; i < nb_priors; ++i) 
+  for (size_t i = 0; i < nb_free; ++i)
     param.pWrap[i] = 0;
 
   //We give the MultiNest function a pointer to the retrieval class
@@ -429,9 +429,10 @@ double Retrieval::logLikelihood(
   if (has_highres_observations)
   {
     const size_t kp_idx = forward_model->parametersNumber();
-    const double Kp = physical_parameters[kp_idx];
+    const double Kp   = physical_parameters[kp_idx];
     const double Vsys = physical_parameters[kp_idx + 1];
-    const double alpha = use_free_alpha ? physical_parameters[kp_idx + 2] : 1.0;
+    const double dphi = physical_parameters[kp_idx + 2];
+    const double alpha = use_free_alpha ? physical_parameters[kp_idx + 3] : 1.0;
 
     const auto& spectrum_hr = forward_model->spectrumHighRes();
     const auto& wavelengths_hr = spectral_grid_highres->wavelength_list;
@@ -439,7 +440,7 @@ double Retrieval::logLikelihood(
     for (size_t i = 0; i < nb_highres_observations; ++i)
     {
       log_like += highres_observations[i].computeLogLikelihood(
-        spectrum_hr, wavelengths_hr, Kp, Vsys, alpha);
+        spectrum_hr, wavelengths_hr, Kp, Vsys, dphi, alpha);
     }
   }
 
@@ -489,15 +490,16 @@ double Retrieval::logLikelihoodGPU(
   if (has_highres_observations)
   {
     const size_t kp_idx = forward_model->parametersNumber();
-    const double Kp = physical_parameters[kp_idx];
+    const double Kp   = physical_parameters[kp_idx];
     const double Vsys = physical_parameters[kp_idx + 1];
-    const double alpha = use_free_alpha ? physical_parameters[kp_idx + 2] : 1.0;
+    const double dphi = physical_parameters[kp_idx + 2];
+    const double alpha = use_free_alpha ? physical_parameters[kp_idx + 3] : 1.0;
 
     log_like += logLikeHighResDev(
       forward_model->spectrumHighResGPU(),
       spectral_grid_highres->wavelength_list_gpu,
       forward_model->nbSpectralPointsHighRes(),
-      Kp, Vsys, alpha);
+      Kp, Vsys, dphi, alpha);
   }
 
   //if the forward model tells us to neglect the current set of parameters,

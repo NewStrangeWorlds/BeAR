@@ -42,6 +42,7 @@
 #include "../../transport_coeff/transport_coeff.h"
 #include "../../transport_coeff/opacity_calc.h"
 #include "../../radiative_transfer/radiative_transfer.h"
+#include "../stellar_spectrum/stellar_spectrum.h"
 
 
 namespace bear {
@@ -54,6 +55,9 @@ struct PhaseCurveConfig : public GenericConfig{
 
   std::string temperature_profile_model;
   std::vector<std::string> temperature_profile_parameters;
+
+  std::string stellar_spectrum_model;
+  std::vector<std::string> stellar_model_parameters;
 
   std::string radiative_transfer_model;
   std::vector<std::string> radiative_transfer_parameters;
@@ -69,6 +73,8 @@ struct PhaseCurveConfig : public GenericConfig{
 
   std::vector<std::string> opacity_species_symbol;
   std::vector<std::string> opacity_species_folder;
+
+  double highres_stellar_smooth_sigma = 0.0;
 
   PhaseCurveConfig (
     const std::string& folder_path);
@@ -178,6 +184,8 @@ class PhaseCurveModel : public ForwardModel{
     std::unique_ptr<RadiativeTransfer> radiative_transfer;
     std::unique_ptr<RadiativeTransfer> radiative_transfer_highres;
     std::unique_ptr<Temperature> temperature_profile;
+    std::unique_ptr<StellarSpectrumModel> stellar_model;
+    std::unique_ptr<StellarSpectrumModel> stellar_model_highres_;
     std::vector<std::unique_ptr<Chemistry>> chemistry;
     std::vector<std::unique_ptr<CloudModel>> cloud_models;
     std::vector<std::unique_ptr<Module>> modules;
@@ -186,12 +194,16 @@ class PhaseCurveModel : public ForwardModel{
     std::vector<std::string> opacity_species_folder_;
     std::string radiative_transfer_model_;
     std::vector<std::string> radiative_transfer_parameters_;
+    std::string stellar_spectrum_model_name_;
+    std::vector<std::string> stellar_model_parameters_names_;
+    double highres_stellar_smooth_sigma_ = 0.0;
 
     std::vector<size_t> modules_lowres_idx;
     std::vector<size_t> modules_highres_idx;
 
     size_t nb_grid_points = 0;
     size_t nb_general_param = 0;
+    size_t nb_stellar_param = 0;
     size_t nb_total_chemistry_param = 0;
     size_t nb_temperature_param = 0;
     size_t nb_total_cloud_param = 0;
@@ -199,6 +211,7 @@ class PhaseCurveModel : public ForwardModel{
 
     size_t nb_total_param() {
       return nb_general_param
+             + nb_stellar_param
              + nb_total_chemistry_param
              + nb_temperature_param
              + nb_total_cloud_param
@@ -208,7 +221,16 @@ class PhaseCurveModel : public ForwardModel{
 
     void initModules(const PhaseCurveConfig& model_config);
 
+    float* stellar_flux_highres_gpu_ = nullptr;
+
+    void normaliseFpFsGPU(
+      float*       planet_spectrum,
+      const float* stellar_spectrum,
+      const int    nb_points,
+      const float  radius_ratio_squared);
+
     std::vector<double> model_parameters;
+    std::vector<double> stellar_parameters;
     std::vector<double> chemistry_parameters;
     std::vector<double> cloud_parameters;
     std::vector<double> temperature_parameters;

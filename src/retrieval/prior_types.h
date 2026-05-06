@@ -47,6 +47,7 @@ class BasicPrior{
     std::string distributionType() {return distribution_type;}
     std::string parameterName() {return parameter_name;}
     virtual void printInfo() = 0;
+    virtual bool isFixed() const { return false; }
   protected:
     std::string distribution_type = "";
     std::string parameter_name = "";
@@ -217,6 +218,7 @@ class DeltaPrior : public BasicPrior {
     virtual ~DeltaPrior() {}
     virtual double parameterValue(const double& hypercube_value) {
       return const_value;}
+    virtual bool isFixed() const override { return true; }
     virtual void printInfo() {
       std::cout << std::setw(15) << std::left << parameter_name << "  "
                 << std::setw(20) << std::left << distribution_type

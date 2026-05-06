@@ -111,6 +111,7 @@ set(SRC
   src/forward_model/stellar_spectrum/star_blackbody.cpp
   src/forward_model/stellar_spectrum/star_file_spectrum.cpp
   src/forward_model/stellar_spectrum/stellar_spectrum_grid.cpp
+  src/forward_model/stellar_spectrum/smoothed_stellar_spectrum.cpp
   src/forward_model/modules/stellar_contamination/stellar_contamination.cpp
   src/forward_model/modules/velocity_broadening/velocity_broadening.cpp
   src/forward_model/modules/phase_resolved_broadening/phase_resolved_broadening.cpp
@@ -160,6 +161,7 @@ set(SRC
   src/temperature/milne_solution_temperature.cpp
   src/temperature/guillot_temperature.cpp
   src/temperature/adiabate_cubic_spline.cpp
+  src/temperature/madhusudhan_seager_temperature.cpp
 )
 
 set(SRC_CUDA

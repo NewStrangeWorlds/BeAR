@@ -37,6 +37,7 @@
 #include "../atmosphere/atmosphere.h"
 #include "../../radiative_transfer/select_radiative_transfer.h"
 #include "../../cloud_model/fixed_cloud_model.h"
+#include "../../CUDA_kernels/data_management_kernels.h"
 
 
 namespace bear{
@@ -69,7 +70,7 @@ PhaseCurveModel::PhaseCurveModel (
 
   std::cout << "Forward model selected: Phase Curve\n\n";
 
-  nb_general_param = 1;
+  nb_general_param = 2;  // log_g, radius_ratio
 
   initModules(model_config);
 }
@@ -84,6 +85,12 @@ void PhaseCurveModel::extractParameters(
     parameters.begin() + nb_general_param);
 
   size_t nb_previous_param = nb_general_param;
+
+  stellar_parameters = std::vector<double>(
+    parameters.begin() + nb_previous_param,
+    parameters.begin() + nb_previous_param + nb_stellar_param);
+
+  nb_previous_param += nb_stellar_param;
 
   chemistry_parameters = std::vector<double>(
     parameters.begin() + nb_previous_param,
@@ -225,6 +232,15 @@ bool PhaseCurveModel::calcModelCPU(
         module_parameters.begin() + offset + modules[idx]->nbParameters());
       modules[idx]->modifySpectrum(p, &atmosphere, spectrum_highres_);
     }
+
+    // Normalise to Fp/Fs using the stellar spectrum and radius ratio
+    {
+      const double radius_ratio = model_parameters[1];
+      const double rr2 = radius_ratio * radius_ratio;
+      std::vector<double> stellar_flux = stellar_model_highres_->calcFlux(stellar_parameters);
+      for (size_t i = 0; i < nb_hr; ++i)
+        spectrum_highres_[i] = spectrum_highres_[i] / stellar_flux[i] * rr2;
+    }
   }
 
   return neglect;
@@ -238,7 +254,7 @@ bool PhaseCurveModel::calcModelGPU(
   std::vector<float*>& spectrum_obs)
 {
   extractParameters(parameters);
-
+  
   bool neglect = calcAtmosphereStructure(parameters);
 
   neglect = false;
@@ -306,6 +322,18 @@ bool PhaseCurveModel::calcModelGPU(
         module_parameters.begin() + offset,
         module_parameters.begin() + offset + modules[idx]->nbParameters());
       modules[idx]->modifySpectrumGPU(p, &atmosphere, spectrum_highres_gpu_);
+    }
+
+    // Normalise to Fp/Fs using the stellar spectrum and radius ratio
+    {
+      const double radius_ratio = model_parameters[1];
+      const float  rr2          = static_cast<float>(radius_ratio * radius_ratio);
+      stellar_model_highres_->calcFluxGPU(stellar_parameters, stellar_flux_highres_gpu_);
+      normaliseFpFsGPU(
+        spectrum_highres_gpu_,
+        stellar_flux_highres_gpu_,
+        static_cast<int>(spectral_grid_highres->nbSpectralPoints()),
+        rr2);
     }
   }
 
@@ -417,6 +445,8 @@ std::vector<double> PhaseCurveModel::calcSpectrum(
 
 PhaseCurveModel::~PhaseCurveModel()
 {
+  if (stellar_flux_highres_gpu_ != nullptr)
+    deleteFromDevice(stellar_flux_highres_gpu_);
 }
 
 

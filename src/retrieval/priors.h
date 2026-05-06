@@ -65,10 +65,13 @@ class Priors{
       const std::vector<PriorConfig>& priors_config);
     
     size_t number() {return distributions.size();}
+    size_t numberFree() const;
+    std::vector<double> expandFreeToFull(const std::vector<double>& free_phys) const;
     void printInfo();
 
     std::vector<BasicPrior*> distributions;
     std::vector<size_t> prior_links;
+    std::vector<int> free_cube_index;
   protected:
     void readConfigFile(
       const std::string& file_path, 

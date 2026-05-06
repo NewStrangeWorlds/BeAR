@@ -37,6 +37,7 @@
 #include "cubic_b_spline_temperature.h"
 #include "guillot_temperature.h"
 #include "adiabate_cubic_spline.h"
+#include "madhusudhan_seager_temperature.h"
 
 
 namespace bear {
@@ -44,8 +45,8 @@ namespace bear {
 //definition of the different chemistry modules with an
 //identifier, a keyword to be located in the config file and a short version of the keyword
 namespace temp_profile_modules{
-  enum id {poly, milne, constant, cubicbspline, guillot, adspline};
-  const std::vector<std::string> description {"poly", "milne", "const", "cubicbspline", "guillot", "adiabate_spline"};
+  enum id {poly, milne, constant, cubicbspline, guillot, adspline, madhusudhan_seager};
+  const std::vector<std::string> description {"poly", "milne", "const", "cubicbspline", "guillot", "adiabate_spline", "madhusudhan_seager"};
 }
 
 
@@ -122,6 +123,9 @@ inline std::unique_ptr<Temperature> selectTemperatureProfile(
 
     case temp_profile_modules::constant :
       return std::make_unique<ConstantTemperature>();
+
+    case temp_profile_modules::madhusudhan_seager :
+      return std::make_unique<MadhusudhanSeagerTemperature>();
   }
 
 

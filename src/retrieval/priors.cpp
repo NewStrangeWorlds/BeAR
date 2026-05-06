@@ -294,6 +294,39 @@ void Priors::setupLinkedPriors(
       prior_links[i] = prior_index;
     }
   }
+
+  // Compute free_cube_index: maps each prior to its position in the compressed
+  // free-parameter cube, or -1 if the prior is fixed (delta).
+  free_cube_index.assign(distributions.size(), -1);
+  int j = 0;
+  for (size_t i = 0; i < distributions.size(); i++) {
+    if (!distributions[i]->isFixed() &&
+        distributions[i]->distributionType() != "Linked prior")
+      free_cube_index[i] = j++;
+  }
+  for (size_t i = 0; i < distributions.size(); i++) {
+    if (distributions[i]->distributionType() == "Linked prior")
+      free_cube_index[i] = free_cube_index[prior_links[i]];
+  }
+}
+
+
+size_t Priors::numberFree() const {
+  size_t n = 0;
+  for (int idx : free_cube_index) if (idx >= 0) n++;
+  return n;
+}
+
+
+std::vector<double> Priors::expandFreeToFull(const std::vector<double>& free_phys) const {
+  std::vector<double> full(distributions.size(), 0.0);
+  for (size_t i = 0; i < distributions.size(); i++) {
+    if (free_cube_index[i] < 0)
+      full[i] = distributions[i]->parameterPhysicalValue(0.0);
+    else
+      full[i] = free_phys[free_cube_index[i]];
+  }
+  return full;
 }
 
 

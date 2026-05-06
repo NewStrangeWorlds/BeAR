@@ -128,6 +128,33 @@ void PhaseCurveConfig::readConfigFile(const std::string& file_name)
 
   readTemperatureConfig(file, temperature_profile_model, temperature_profile_parameters);
 
+  // Stellar spectrum model
+  std::getline(file, line);
+  std::getline(file, line);
+  {
+    std::istringstream stellar_input(line);
+    stellar_input >> stellar_spectrum_model;
+    while (stellar_input >> input)
+      stellar_model_parameters.push_back(input);
+    std::cout << "- Stellar spectrum model: " << stellar_spectrum_model;
+    for (auto& p : stellar_model_parameters) std::cout << "  " << p;
+    std::cout << "\n";
+  }
+  // Optional: highres_stellar_smooth_sigma <value>
+  std::getline(file, line);
+  {
+    std::istringstream check(line);
+    std::string keyword;
+    if (check >> keyword && keyword == "highres_stellar_smooth_sigma")
+    {
+      check >> highres_stellar_smooth_sigma;
+      std::cout << "- High-res stellar smoothing sigma: "
+                << highres_stellar_smooth_sigma << " px\n";
+      std::getline(file, line);  // read blank separator
+    }
+    // if not the keyword, treat line as the blank separator (no action needed)
+  }
+
   readCloudConfig(file, cloud_model, cloud_model_parameters);
 
   std::getline(file, line);

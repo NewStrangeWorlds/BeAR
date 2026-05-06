@@ -81,7 +81,7 @@ class HighResObservation {
     double computeLogLikelihood(
       const std::vector<double>& broadened_spectrum,
       const std::vector<double>& model_wavelengths,
-      double Kp, double Vsys, double alpha = 1.0) const;
+      double Kp, double Vsys, double dphi, double alpha = 1.0) const;
 
     // Compute high-res log-likelihood (GPU)
     // Accumulates result into d_log_like_dev via atomicAdd
@@ -89,7 +89,7 @@ class HighResObservation {
       const float* broadened_spectrum_gpu,
       const double* model_wavelengths_gpu,
       size_t nb_model_points,
-      double Kp, double Vsys, double alpha,
+      double Kp, double Vsys, double dphi, double alpha,
       double* d_log_like_dev) const;
 
   private:
@@ -99,6 +99,16 @@ class HighResObservation {
     std::vector<SpectralOrder> spectral_orders;
     size_t nb_exposures = 0;
     size_t nb_orders = 0;
+
+    // Reference velocities: retrieved Kp/Vsys are offsets from these values.
+    // When absent from the data file both default to 0 (direct retrieval, old behaviour).
+    double kp_ref = 0.0;
+    double vsys_ref = 0.0;
+
+    // Per-exposure barycentric velocity corrections (km/s).
+    // If absent from the data file, all values default to 0 (i.e. user applied
+    // barycentric correction in pre-processing).
+    std::vector<double> barycentric_velocities;
 
     double wavelength_min = 0;
     double wavelength_max = 0;
@@ -115,6 +125,16 @@ class HighResObservation {
 
     // --- Model filtering (Gibson et al. 2022) ---
     bool has_filtering = false;
+    // When false, (I-P) is applied only to the data; the model is left unfiltered
+    // and only spectrally detrended per exposure.  Required when the planet velocity
+    // pattern correlates with the dominant SVD modes (e.g. WASP-77Ab/IGRINS where
+    // airmass tracks orbital phase over the 2-hour observation window).
+    bool filter_model = true;
+    // CHIMERA-style re-injection: if true, model_scale is computed in initFiltering()
+    // as P*raw_flux (the SVD-captured background).  The model (Fp/Fs) is then multiplied
+    // by this background before the (I-P) projection, embedding the planet signal in
+    // detector units.  Requires filter_model=true and a free alpha prior.
+    bool reinject_model = false;
     size_t nb_basis_vectors = 0;
 
     // Per-order (I - P) projection matrix, row-major [nb_exp x nb_exp]
@@ -132,6 +152,7 @@ class HighResObservation {
     std::vector<double> filtered_data_sf2;    // [nb_orders * nb_exposures]
 
     void loadFilteringBasis(const std::string& file_path);
+    void loadModelScale(const std::string& file_path);
     void initFiltering();
     void applyProjection(
       size_t ord,
@@ -152,6 +173,7 @@ class HighResObservation {
     int* order_offsets_dev = nullptr;       // pixel offset per order
     int* order_nb_pixels_dev = nullptr;     // pixels per order
     float* orbital_phases_dev = nullptr;
+    float* barycentric_velocities_dev = nullptr;
     float* data_mean_dev = nullptr;         // [nb_orders * nb_exposures]
     double* data_sf2_dev = nullptr;         // [nb_orders * nb_exposures]
     int max_pixels_per_order = 0;
@@ -160,6 +182,14 @@ class HighResObservation {
     float* projection_matrices_dev = nullptr;  // [nb_orders * nb_exp * nb_exp]
     float* model_filtered_dev = nullptr;       // workspace [total_pixels * nb_exposures]
     size_t total_pixels = 0;
+
+    // Optional per-pixel, per-exposure scale matrix for model re-injection
+    // (CHIMERA-style: model is multiplied by this matrix before (I-P) projection).
+    // Layout: same as all_flux_dev [order_offset * nb_exposures + exp * N + pixel].
+    // Null when absent.
+    bool has_model_scale = false;
+    std::vector<float> model_scale_host;  // flattened host copy
+    float* model_scale_dev = nullptr;
 
     // GPU buffers for Gibson likelihood (per-pixel uncertainties)
     float* flux_uncertainties_dev = nullptr;   // same layout as all_flux_dev

@@ -44,18 +44,30 @@ void launchHighResLogLike(
     const float* data_mean_dev,
     const double* data_sf2_dev,
     const float* orbital_phases_dev,
+    const float* v_bary_dev,
     int nb_orders,
     int nb_exposures,
     int max_pixels_per_order,
-    float Kp, float Vsys,
+    float Kp, float Vsys, float dphi,
     float alpha,
     double* d_log_like_dev);
 
 
 // Filtered variant: Gibson et al. 2022 fast model filtering.
 // Two-kernel pipeline:
-//   Kernel 1 (interpFilter): Interpolate model at all Doppler shifts, apply (I-P)
+//   Kernel 1 (interpFilter): Interpolate model at all Doppler shifts, optionally
+//     multiply by model_scale_dev (re-injection), then apply (I-P)
 //   Kernel 2 (logLikeFromFiltered): Cross-correlation likelihood from precomputed model
+//
+// model_scale_dev: if non-null, element-wise multiply the raw model spectrum by this
+//   matrix before applying (I-P).  Same layout as order_flux_dev:
+//   model_scale_dev[order_offset * nb_exposures + exp * N + pixel].
+//   Pass nullptr to skip multiplication (original behaviour).
+// apply_model_projection: when false, the (I-P) projection is skipped and the raw
+//   Doppler-interpolated model is stored directly.  Use this when the data has already
+//   been filtered externally (e.g. CHIMERA PCA) and the model should NOT be projected
+//   into the same temporal subspace (which would destroy the planet signal when the
+//   planet velocity correlates with the dominant SVD modes).
 void launchHighResLogLikeFiltered(
     const float* broadened_spectrum_dev,
     const double* model_wavelengths_dev,
@@ -67,14 +79,17 @@ void launchHighResLogLikeFiltered(
     const float* data_mean_dev,
     const double* data_sf2_dev,
     const float* orbital_phases_dev,
+    const float* v_bary_dev,
     const float* projection_matrices_dev,
     float* model_filtered_dev,
     int nb_orders,
     int nb_exposures,
     int max_pixels_per_order,
-    float Kp, float Vsys,
+    float Kp, float Vsys, float dphi,
     float alpha,
-    double* d_log_like_dev);
+    double* d_log_like_dev,
+    const float* model_scale_dev = nullptr,
+    bool apply_model_projection = true);
 
 
 // Gibson et al. 2022 Eq. 4: per-pixel uncertainty weighting, beta marginalized.
@@ -92,10 +107,11 @@ void launchHighResLogLikeGibson(
     const double* gibson_Sf_dev,
     const double* gibson_Sff_dev,
     const float* orbital_phases_dev,
+    const float* v_bary_dev,
     int nb_orders,
     int nb_exposures,
     int max_pixels_per_order,
-    float Kp, float Vsys,
+    float Kp, float Vsys, float dphi,
     float alpha,
     double* d_log_like_dev);
 
@@ -111,6 +127,7 @@ void launchHighResLogLikeFilteredGibson(
     const int* order_offsets_dev,
     const int* order_nb_pixels_dev,
     const float* orbital_phases_dev,
+    const float* v_bary_dev,
     const float* projection_matrices_dev,
     float* model_filtered_dev,
     const float* flux_uncertainties_dev,
@@ -120,7 +137,7 @@ void launchHighResLogLikeFilteredGibson(
     int nb_orders,
     int nb_exposures,
     int max_pixels_per_order,
-    float Kp, float Vsys,
+    float Kp, float Vsys, float dphi,
     float alpha,
     double* d_log_like_dev);
 
