@@ -89,7 +89,8 @@ void launchHighResLogLikeFiltered(
     float alpha,
     double* d_log_like_dev,
     const float* model_scale_dev = nullptr,
-    bool apply_model_projection = true);
+    bool apply_model_projection = true,
+    bool use_phase_function = false);
 
 
 // Gibson et al. 2022 Eq. 4: per-pixel uncertainty weighting, beta marginalized.

@@ -20,6 +20,7 @@
 
 #include "highres_observation.h"
 
+#include <cmath>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -170,6 +171,13 @@ void HighResObservation::loadDataFile(const std::string& file_path)
       int val;
       file >> val;
       reinject_model = (val != 0);
+      std::getline(file, line);
+    }
+    else if (line == "#phase_function")
+    {
+      int val;
+      file >> val;
+      use_phase_function = (val != 0);
       std::getline(file, line);
     }
     else if (line == "#filtering_basis")

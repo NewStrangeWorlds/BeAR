@@ -66,8 +66,8 @@ bool CubicBSplineTemperature::calcProfile(
   temperature_control_point[0] = parameters[0];
 
   for (size_t i=1; i<nb_parameters; ++i)
-    //temperature_control_point[i] = parameters[i];
-    temperature_control_point[i] = temperature_control_point[i-1] * parameters[i];
+    temperature_control_point[i] = parameters[i];
+    //temperature_control_point[i] = temperature_control_point[i-1] * parameters[i];
 
   std::reverse(temperature_control_point.begin(), temperature_control_point.end());
 

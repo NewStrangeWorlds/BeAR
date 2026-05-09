@@ -135,6 +135,10 @@ class HighResObservation {
     // by this background before the (I-P) projection, embedding the planet signal in
     // detector units.  Requires filter_model=true and a free alpha prior.
     bool reinject_model = false;
+    // Lambertian dayside phase function 0.5*(1+cos(2*pi*phase-pi))^2 applied
+    // per-exposure to the model before (I-P) projection.  Enabled by
+    // #phase_function 1 in the observation data file.
+    bool use_phase_function = false;
     size_t nb_basis_vectors = 0;
 
     // Per-order (I - P) projection matrix, row-major [nb_exp x nb_exp]

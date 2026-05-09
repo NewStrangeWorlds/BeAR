@@ -300,7 +300,8 @@ void highResInterpFilterKernel(
   const float                Vsys,
   const float                dphi,
   const float*               model_scale = nullptr,
-  const bool                 apply_projection = true)
+  const bool                 apply_projection = true,
+  const bool                 use_phase_function = false)
 {
   const int ord = blockIdx.x;
   const int tid = threadIdx.x;
@@ -337,13 +338,20 @@ void highResInterpFilterKernel(
 
     for (int exp = 0; exp < nb_exposures; ++exp)
     {
-      const float phase = orbital_phases[exp];
-      const float v_rad = Kp * sinf(2.0f * (float)M_PI * (phase + dphi)) + Vsys + v_bary[exp];
-      const double inv_doppler = 1.0 / (1.0 + (double)v_rad / (double)c_kms);
-      const double wl_shifted = wl_nm * 1e-3 * inv_doppler;
+      const float phase   = orbital_phases[exp];
+      const float v_rad   = Kp * sinf(2.0f * (float)M_PI * (phase + dphi))
+                          + Vsys + v_bary[exp];
+      const double inv_dop = 1.0 / (1.0 + (double)v_rad / (double)c_kms);
+      raw_model[exp] = interpolateModelRaw(broadened_spectrum, model_wavelengths, n_model,
+                                           wl_nm * 1e-3 * inv_dop);
 
-      raw_model[exp] = interpolateModelRaw(
-        broadened_spectrum, model_wavelengths, n_model, wl_shifted);
+      // Lambertian dayside phase function: 0.5*(1+cos(2*pi*phase-pi))^2
+      // (Pelletier et al. 2025 §3.3 step 4, Herman et al. 2022)
+      if (use_phase_function)
+      {
+        const float pf = 1.0f + cosf(2.0f * (float)M_PI * phase - (float)M_PI);
+        raw_model[exp] *= 0.5f * pf * pf;
+      }
 
       // Re-injection: multiply by per-exposure scale factor if provided.
       // This implements CHIMERA's "model × data_scale" approach (Line et al. 2021):
@@ -619,7 +627,8 @@ void launchHighResLogLikeFiltered(
     float alpha,
     double* d_log_like_dev,
     const float* model_scale_dev,
-    bool apply_model_projection)
+    bool apply_model_projection,
+    bool use_phase_function)
 {
   // Kernel 1: Interpolate + filter, one block per order
   {
@@ -642,7 +651,8 @@ void launchHighResLogLikeFiltered(
       nb_exposures,
       Kp, Vsys, dphi,
       model_scale_dev,
-      apply_model_projection);
+      apply_model_projection,
+      use_phase_function);
 
     CUDA_CHECK_AFTER_KERNEL();
   }
@@ -771,12 +781,13 @@ void highResLogLikeGibsonKernel(
     const double a = (double)alpha;
     const double dN = (double)N;
 
-    const double chi2 = (Sff - Sf * Sf / S1)
+    const double chi2_data = Sff - Sf * Sf / S1;
+    const double chi2 = chi2_data
                        + a * a * (local_Smm - local_Sm * local_Sm / S1)
                        - 2.0 * a * (local_Sfm - Sf * local_Sm / S1);
 
-    if (chi2 > 0.0)
-      atomicAdd(d_log_like, -0.5 * dN * log(chi2 / dN));
+    if (chi2 > 0.0 && chi2_data > 0.0)
+      atomicAdd(d_log_like, -0.5 * dN * log(chi2 / chi2_data));
     else
       atomicAdd(d_log_like, -1e30);
   }
@@ -888,12 +899,13 @@ void highResLogLikeFromFilteredGibsonKernel(
     const double a = (double)alpha;
     const double dN = (double)N;
 
-    const double chi2 = (Sff - Sf * Sf / S1)
+    const double chi2_data = Sff - Sf * Sf / S1;
+    const double chi2 = chi2_data
                        + a * a * (local_Smm - local_Sm * local_Sm / S1)
                        - 2.0 * a * (local_Sfm - Sf * local_Sm / S1);
 
-    if (chi2 > 0.0)
-      atomicAdd(d_log_like, -0.5 * dN * log(chi2 / dN));
+    if (chi2 > 0.0 && chi2_data > 0.0)
+      atomicAdd(d_log_like, -0.5 * dN * log(chi2 / chi2_data));
     else
       atomicAdd(d_log_like, -1e30);
   }

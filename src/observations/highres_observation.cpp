@@ -557,16 +557,6 @@ double HighResObservation::computeLogLikelihood(
   const double c_kms = constants::light_c * 1e-5;  // cm/s -> km/s
   double total_log_like = 0;
 
-  // Precompute inverse Doppler factors for all exposures
-  std::vector<double> doppler_inv(nb_exposures);
-  for (size_t exp = 0; exp < nb_exposures; ++exp)
-  {
-    const double phase = orbital_phases[exp];
-    const double v_rad = (kp_ref + Kp) * std::sin(2.0 * constants::pi * (phase + dphi))
-                         + (vsys_ref + Vsys) + barycentric_velocities[exp];
-    doppler_inv[exp] = 1.0 / (1.0 + v_rad / c_kms);
-  }
-
   // Process each order (parallelized over orders)
   #pragma omp parallel for reduction(+:total_log_like) schedule(dynamic, 1)
   for (size_t ord = 0; ord < nb_orders; ++ord)
@@ -574,15 +564,27 @@ double HighResObservation::computeLogLikelihood(
     const auto& order = spectral_orders[ord];
     const size_t N = order.nb_pixels;
 
-    // 1) Interpolate model at all exposures
+    // 1) Interpolate model at all exposures with optional sub-exposure averaging
+    //    (box filter for orbital motion within exposure) and optional phase function.
     std::vector<std::vector<double>> model_matrix(
       nb_exposures, std::vector<double>(N, 0.0));
 
     for (size_t exp = 0; exp < nb_exposures; ++exp)
     {
-      interpolateModelOntoOrder(
-        order, broadened_spectrum, model_wavelengths,
-        doppler_inv[exp], model_matrix[exp]);
+      const double phase = orbital_phases[exp];
+      const double v_rad = (kp_ref + Kp) * std::sin(2.0 * constants::pi * (phase + dphi))
+                           + (vsys_ref + Vsys) + barycentric_velocities[exp];
+      const double inv   = 1.0 / (1.0 + v_rad / c_kms);
+      interpolateModelOntoOrder(order, broadened_spectrum, model_wavelengths,
+                                inv, model_matrix[exp]);
+
+      if (use_phase_function)
+      {
+        const double pf = 1.0 + std::cos(2.0 * constants::pi * phase - constants::pi);
+        const double w  = 0.5 * pf * pf;
+        for (size_t p = 0; p < N; ++p)
+          model_matrix[exp][p] *= w;
+      }
     }
 
     // 2) Apply model temporal filtering:
@@ -700,12 +702,13 @@ double HighResObservation::computeLogLikelihood(
             Smm += m * m * inv_sigma2;
           }
 
-          const double chi2 = (Sff - Sf * Sf / S1)
+          const double chi2_data = Sff - Sf * Sf / S1;
+          const double chi2 = chi2_data
                              + alpha * alpha * (Smm - Sm * Sm / S1)
                              - 2.0 * alpha * (Sfm - Sf * Sm / S1);
 
-          if (chi2 > 0)
-            total_log_like += -0.5 * dN * std::log(chi2 / dN);
+          if (chi2 > 0 && chi2_data > 0)
+            total_log_like += -0.5 * dN * std::log(chi2 / chi2_data);
           else
             total_log_like += -1e30;
         }
@@ -845,7 +848,8 @@ void HighResObservation::computeLogLikelihoodGPU(
       alpha_gpu,
       d_log_like_dev,
       has_model_scale ? model_scale_dev : nullptr,
-      filter_model);
+      filter_model,
+      use_phase_function);
   }
   else
   {
