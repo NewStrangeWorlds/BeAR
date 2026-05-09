@@ -27,7 +27,7 @@
 #include <cmath>
 #include <string>
 
-#include "../../_deps/boost_math-src/include/boost/math/interpolators/cardinal_cubic_b_spline.hpp"
+#include "../../_deps/boost_math-src/include/boost/math/interpolators/pchip.hpp"
 
 
 namespace bear {
@@ -36,9 +36,9 @@ namespace bear {
 AdiabateSplineTemperature::AdiabateSplineTemperature(const size_t nb_control_points_)
  : nb_control_points{nb_control_points_}
 {
-  if (nb_control_points < 5)
+  if (nb_control_points < 4)
   {
-    std::string error_message = "Adiabatate & Cubic B spline temperature profile requires at least 5 control points!";
+    std::string error_message = "Adiabatate & Spline temperature profile requires at least 4 control points!";
     throw InvalidInput(std::string ("AdiabateSplineTemperature::AdiabateSplineTemperature"), error_message);
   }
 
@@ -47,8 +47,9 @@ AdiabateSplineTemperature::AdiabateSplineTemperature(const size_t nb_control_poi
 
 
 
-//calculate the temperature by using an adiabate and a cubic B spline
-//uses the spline routine from the Boost library
+//calculate the temperature by using an adiabate and a 
+//piecewise hermite interpolating spline
+//uses the PCHIP routine from the Boost library
 bool AdiabateSplineTemperature::calcProfile(
   const std::vector<double>& parameters,
   const double surface_gravity,
@@ -151,18 +152,17 @@ void AdiabateSplineTemperature::addCubicSpline(
 
   std::vector<double> temperature_control_point(nb_control_points, 0.0);
 
-  temperature_control_point[0] = temperature_rcb;
-
-  for (size_t i=1; i<nb_control_points; ++i)
-    temperature_control_point[i] = temperature_control_point[i-1] * parameters[i-1];
+  for (size_t i=0; i<nb_control_points; ++i)
+    temperature_control_point[i] = parameters[i];
 
   std::reverse(temperature_control_point.begin(), temperature_control_point.end());
 
-  boost::math::interpolators::cardinal_cubic_b_spline<double> temperature_profile (
-    temperature_control_point.data(), 
-    temperature_control_point.size(), 
-    std::log10(pressure.back()), 
-    control_points_step);
+  std::vector<double> x_knots(nb_control_points);
+  for (size_t i = 0; i < nb_control_points; ++i)
+    x_knots[i] = std::log10(pressure.back()) + i * control_points_step;
+
+  auto temperature_profile = boost::math::interpolators::pchip<std::vector<double>>(
+    std::move(x_knots), std::move(temperature_control_point));
 
   for (size_t i=rcb_idx; i<pressure.size(); ++i)
     temperature[i] = temperature_profile(std::log10(pressure[i]));

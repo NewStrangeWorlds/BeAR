@@ -154,10 +154,12 @@ set(SRC
   src/chemistry/fastchem_chemistry.cpp
   src/chemistry/free_chemistry.cpp
   src/chemistry/free_cbspline_chemistry.cpp
+  src/chemistry/free_pchip_chemistry.cpp
   src/chemistry/fixed_chemistry.cpp
   src/chemistry/step_function_chemistry.cpp
   src/temperature/piecewise_poly_temperature.cpp
   src/temperature/cubic_b_spline_temperature.cpp
+  src/temperature/pchip_temperature.cpp
   src/temperature/milne_solution_temperature.cpp
   src/temperature/guillot_temperature.cpp
   src/temperature/adiabate_cubic_spline.cpp
