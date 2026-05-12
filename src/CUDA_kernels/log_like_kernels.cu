@@ -110,7 +110,8 @@ __host__ double Retrieval::logLikeHighResDev(
   float* spectrum_hr_gpu,
   double* model_wl_gpu,
   size_t nb_hr_points,
-  double Kp, double Vsys, double dphi, double alpha)
+  double Kp, double Vsys, double dphi, double alpha,
+  const float* stellar_spectrum_gpu)
 {
   gpuErrchk(cudaMemset(d_log_like_dev, 0, sizeof(double)));
 
@@ -121,7 +122,8 @@ __host__ double Retrieval::logLikeHighResDev(
       model_wl_gpu,
       nb_hr_points,
       Kp, Vsys, dphi, alpha,
-      d_log_like_dev);
+      d_log_like_dev,
+      stellar_spectrum_gpu);
   }
 
   double h_log_like = 0;

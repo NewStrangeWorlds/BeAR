@@ -223,6 +223,14 @@ class PhaseCurveModel : public ForwardModel{
 
     float* stellar_flux_highres_gpu_ = nullptr;
 
+    // Cached stellar spectrum for per-pixel Doppler correction in high-res kernels.
+    std::vector<double> stellar_spectrum_cpu_;
+
+    const std::vector<double>& stellarSpectrumCPU() const override
+      { return stellar_spectrum_cpu_; }
+    const float* stellarSpectrumGPU() const override
+      { return stellar_flux_highres_gpu_; }
+
     void normaliseFpFsGPU(
       float*       planet_spectrum,
       const float* stellar_spectrum,

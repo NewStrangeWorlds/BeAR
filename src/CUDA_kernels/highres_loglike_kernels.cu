@@ -105,6 +105,53 @@ float interpolateModelRaw(
 }
 
 
+// Like interpolateModelRaw but also returns the bracket index via out_idx,
+// so the same index can be reused to interpolate a second spectrum at the
+// same wavelength without a second binary search.
+__device__ __forceinline__
+float interpolateModelRawIdx(
+  const float*  __restrict__ spectrum,
+  const double* __restrict__ model_wavelengths,
+  int n_model,
+  double wl,
+  int& out_idx)
+{
+  int idx = binarySearchDescending(model_wavelengths, n_model, wl);
+  out_idx = idx;
+
+  if (idx < 1 || idx >= n_model)
+    return 0.0f;
+
+  double w1 = model_wavelengths[idx - 1];
+  double w2 = model_wavelengths[idx];
+  float t = (float)((wl - w1) / (w2 - w1));
+
+  return (1.0f - t) * spectrum[idx - 1] + t * spectrum[idx];
+}
+
+
+// Interpolate a spectrum at a pre-computed bracket index (no binary search).
+// Use when the index was already found by interpolateModelRawIdx for another
+// spectrum at the same wavelength.
+__device__ __forceinline__
+float interpolateAtIdx(
+  const float*  __restrict__ spectrum,
+  const double* __restrict__ model_wavelengths,
+  int n_model,
+  int idx,
+  double wl)
+{
+  if (idx < 1 || idx >= n_model)
+    return 0.0f;
+
+  double w1 = model_wavelengths[idx - 1];
+  double w2 = model_wavelengths[idx];
+  float t = (float)((wl - w1) / (w2 - w1));
+
+  return (1.0f - t) * spectrum[idx - 1] + t * spectrum[idx];
+}
+
+
 // Each block handles one (order, exposure) pair.
 // No shared memory required — the model is interpolated twice (cheap ALU)
 // to avoid storing per-pixel values.
@@ -245,7 +292,8 @@ void launchHighResLogLike(
     int max_pixels_per_order,
     float Kp, float Vsys, float dphi,
     float alpha,
-    double* d_log_like_dev)
+    double* d_log_like_dev,
+    const float* stellar_spectrum_dev)
 {
   const int threads = 256;
   const int blocks = nb_orders * nb_exposures;
@@ -301,7 +349,8 @@ void highResInterpFilterKernel(
   const float                dphi,
   const float*               model_scale = nullptr,
   const bool                 apply_projection = true,
-  const bool                 use_phase_function = false)
+  const bool                 use_phase_function = false,
+  const float*               stellar_spectrum = nullptr)
 {
   const int ord = blockIdx.x;
   const int tid = threadIdx.x;
@@ -329,21 +378,44 @@ void highResInterpFilterKernel(
   // Process pixels in stride
   for (int p = tid; p < N; p += blockDim.x)
   {
-    const double wl_nm = (double)wl_order[p];
+    const double wl_um_rest = (double)wl_order[p] * 1e-3;
 
     // Interpolate model at all exposures for this pixel
     // Store raw (unfiltered) model values in local array.
     // For nb_exposures up to ~64, this fits in registers/local memory.
     float raw_model[128];  // max exposures supported
 
+    // Fs(λ_rest) is constant across all exposures for this pixel — compute it once.
+    // Correction factor Fs(λ·v_dop)/Fs(λ_rest) requires only one search per exposure
+    // (for the Doppler-shifted wavelength), whose index is also reused for broadened_spectrum.
+    int   idx_rest = 0;
+    float fs_rest  = 0.0f;
+    if (stellar_spectrum != nullptr)
+      fs_rest = interpolateModelRawIdx(stellar_spectrum, model_wavelengths, n_model,
+                                       wl_um_rest, idx_rest);
+
     for (int exp = 0; exp < nb_exposures; ++exp)
     {
       const float phase   = orbital_phases[exp];
       const float v_rad   = Kp * sinf(2.0f * (float)M_PI * (phase + dphi))
                           + Vsys + v_bary[exp];
-      const double inv_dop = 1.0 / (1.0 + (double)v_rad / (double)c_kms);
-      raw_model[exp] = interpolateModelRaw(broadened_spectrum, model_wavelengths, n_model,
-                                           wl_nm * 1e-3 * inv_dop);
+      const double inv_dop   = 1.0 / (1.0 + (double)v_rad / (double)c_kms);
+      const double wl_um_dop = wl_um_rest * inv_dop;
+
+      // One binary search for the Doppler-shifted wavelength; index reused for
+      // both broadened_spectrum and stellar_spectrum at the same position.
+      int idx_dop;
+      raw_model[exp] = interpolateModelRawIdx(broadened_spectrum, model_wavelengths, n_model,
+                                              wl_um_dop, idx_dop);
+
+      // Per-pixel correction: Fs(λ·v_dop)/Fs(λ_rest) undoes the erroneous Doppler
+      // shift of the stellar template. fs_rest already computed outside the exp loop.
+      if (stellar_spectrum != nullptr && fs_rest > 0.0f)
+      {
+        const float fs_dop = interpolateAtIdx(stellar_spectrum, model_wavelengths, n_model,
+                                              idx_dop, wl_um_dop);
+        raw_model[exp] *= fs_dop / fs_rest;
+      }
 
       // Lambertian dayside phase function: 0.5*(1+cos(2*pi*phase-pi))^2
       // (Pelletier et al. 2025 §3.3 step 4, Herman et al. 2022)
@@ -628,7 +700,8 @@ void launchHighResLogLikeFiltered(
     double* d_log_like_dev,
     const float* model_scale_dev,
     bool apply_model_projection,
-    bool use_phase_function)
+    bool use_phase_function,
+    const float* stellar_spectrum_dev)
 {
   // Kernel 1: Interpolate + filter, one block per order
   {
@@ -652,7 +725,8 @@ void launchHighResLogLikeFiltered(
       Kp, Vsys, dphi,
       model_scale_dev,
       apply_model_projection,
-      use_phase_function);
+      use_phase_function,
+      stellar_spectrum_dev);
 
     CUDA_CHECK_AFTER_KERNEL();
   }
@@ -814,7 +888,8 @@ void launchHighResLogLikeGibson(
     int max_pixels_per_order,
     float Kp, float Vsys, float dphi,
     float alpha,
-    double* d_log_like_dev)
+    double* d_log_like_dev,
+    const float* stellar_spectrum_dev)
 {
   const int threads = 256;
   const int blocks = nb_orders * nb_exposures;
@@ -934,7 +1009,8 @@ void launchHighResLogLikeFilteredGibson(
     int max_pixels_per_order,
     float Kp, float Vsys, float dphi,
     float alpha,
-    double* d_log_like_dev)
+    double* d_log_like_dev,
+    const float* stellar_spectrum_dev)
 {
   // Kernel 1: Interpolate + filter (reuse existing kernel)
   {
@@ -955,7 +1031,11 @@ void launchHighResLogLikeFilteredGibson(
       model_filtered_dev,
       nb_orders,
       nb_exposures,
-      Kp, Vsys, dphi);
+      Kp, Vsys, dphi,
+      nullptr,   // model_scale
+      true,      // apply_projection
+      false,     // use_phase_function
+      stellar_spectrum_dev);
 
     CUDA_CHECK_AFTER_KERNEL();
   }

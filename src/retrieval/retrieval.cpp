@@ -436,11 +436,14 @@ double Retrieval::logLikelihood(
 
     const auto& spectrum_hr = forward_model->spectrumHighRes();
     const auto& wavelengths_hr = spectral_grid_highres->wavelength_list;
+    const auto& stellar_cpu = forward_model->stellarSpectrumCPU();
+    const double* stellar_ptr = stellar_cpu.empty() ? nullptr : stellar_cpu.data();
 
     for (size_t i = 0; i < nb_highres_observations; ++i)
     {
       log_like += highres_observations[i].computeLogLikelihood(
-        spectrum_hr, wavelengths_hr, Kp, Vsys, dphi, alpha);
+        spectrum_hr, wavelengths_hr, Kp, Vsys, dphi, alpha,
+        stellar_ptr, stellar_cpu.size());
     }
   }
 
@@ -499,7 +502,8 @@ double Retrieval::logLikelihoodGPU(
       forward_model->spectrumHighResGPU(),
       spectral_grid_highres->wavelength_list_gpu,
       forward_model->nbSpectralPointsHighRes(),
-      Kp, Vsys, dphi, alpha);
+      Kp, Vsys, dphi, alpha,
+      forward_model->stellarSpectrumGPU());
   }
 
   //if the forward model tells us to neglect the current set of parameters,

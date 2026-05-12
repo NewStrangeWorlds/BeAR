@@ -238,6 +238,7 @@ bool PhaseCurveModel::calcModelCPU(
       const double radius_ratio = model_parameters[1];
       const double rr2 = radius_ratio * radius_ratio;
       std::vector<double> stellar_flux = stellar_model_highres_->calcFlux(stellar_parameters);
+      stellar_spectrum_cpu_ = stellar_flux;
       for (size_t i = 0; i < nb_hr; ++i)
         spectrum_highres_[i] = spectrum_highres_[i] / stellar_flux[i] * rr2;
     }

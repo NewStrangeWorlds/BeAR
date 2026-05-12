@@ -143,7 +143,8 @@ class Retrieval{
       float* spectrum_hr_gpu,
       double* model_wl_gpu,
       size_t nb_hr_points,
-      double Kp, double Vsys, double dphi, double alpha);
+      double Kp, double Vsys, double dphi, double alpha,
+      const float* stellar_spectrum_gpu = nullptr);
 
     float* spectrum_dev = nullptr;
     std::vector<float*> spectrum_obs_dev;

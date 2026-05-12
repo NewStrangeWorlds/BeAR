@@ -50,7 +50,8 @@ void launchHighResLogLike(
     int max_pixels_per_order,
     float Kp, float Vsys, float dphi,
     float alpha,
-    double* d_log_like_dev);
+    double* d_log_like_dev,
+    const float* stellar_spectrum_dev = nullptr);
 
 
 // Filtered variant: Gibson et al. 2022 fast model filtering.
@@ -90,7 +91,8 @@ void launchHighResLogLikeFiltered(
     double* d_log_like_dev,
     const float* model_scale_dev = nullptr,
     bool apply_model_projection = true,
-    bool use_phase_function = false);
+    bool use_phase_function = false,
+    const float* stellar_spectrum_dev = nullptr);
 
 
 // Gibson et al. 2022 Eq. 4: per-pixel uncertainty weighting, beta marginalized.
@@ -114,7 +116,8 @@ void launchHighResLogLikeGibson(
     int max_pixels_per_order,
     float Kp, float Vsys, float dphi,
     float alpha,
-    double* d_log_like_dev);
+    double* d_log_like_dev,
+    const float* stellar_spectrum_dev = nullptr);
 
 
 // Gibson Eq. 4 filtered variant: uses existing interp+filter kernel (Kernel 1),
@@ -140,7 +143,8 @@ void launchHighResLogLikeFilteredGibson(
     int max_pixels_per_order,
     float Kp, float Vsys, float dphi,
     float alpha,
-    double* d_log_like_dev);
+    double* d_log_like_dev,
+    const float* stellar_spectrum_dev = nullptr);
 
 
 }

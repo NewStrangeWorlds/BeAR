@@ -552,7 +552,9 @@ void HighResObservation::freeDeviceMemory()
 double HighResObservation::computeLogLikelihood(
   const std::vector<double>& broadened_spectrum,
   const std::vector<double>& model_wavelengths,
-  double Kp, double Vsys, double dphi, double alpha) const
+  double Kp, double Vsys, double dphi, double alpha,
+  const double* stellar_spectrum,
+  size_t nb_stellar_points) const
 {
   const double c_kms = constants::light_c * 1e-5;  // cm/s -> km/s
   double total_log_like = 0;
@@ -584,6 +586,37 @@ double HighResObservation::computeLogLikelihood(
         const double w  = 0.5 * pf * pf;
         for (size_t p = 0; p < N; ++p)
           model_matrix[exp][p] *= w;
+      }
+
+      if (stellar_spectrum != nullptr && nb_stellar_points > 0)
+      {
+        // Per-pixel correction: Fs(λ·inv_dop) / Fs(λ_rest) undoes the erroneous
+        // Doppler shift of the stellar template introduced by interpolating Fp/Fs at
+        // the Doppler-shifted wavelength. Only Fp should be shifted; Fs must stay at
+        // rest wavelengths (data is in the stellar rest frame).
+        for (size_t p = 0; p < N; ++p)
+        {
+          const double wl_dop  = order.wavelengths[p] * 1e-3 * inv;
+          const double wl_rest = order.wavelengths[p] * 1e-3;
+
+          auto interp_stellar = [&](double wl) -> double {
+            auto it = std::lower_bound(
+              model_wavelengths.begin(), model_wavelengths.end(),
+              wl, std::greater<double>());
+            const size_t idx = static_cast<size_t>(
+              std::distance(model_wavelengths.begin(), it));
+            if (idx < 1 || idx >= nb_stellar_points) return 0.0;
+            const double t = (wl - model_wavelengths[idx-1])
+                           / (model_wavelengths[idx] - model_wavelengths[idx-1]);
+            return (1.0 - t) * stellar_spectrum[idx-1] + t * stellar_spectrum[idx];
+          };
+
+          const double fs_dop  = interp_stellar(wl_dop);
+          const double fs_rest = interp_stellar(wl_rest);
+
+          if (fs_rest > 0.0)
+            model_matrix[exp][p] *= fs_dop / fs_rest;
+        }
       }
     }
 
@@ -759,7 +792,8 @@ void HighResObservation::computeLogLikelihoodGPU(
   const double* model_wavelengths_gpu,
   size_t nb_model_points,
   double Kp, double Vsys, double dphi, double alpha,
-  double* d_log_like_dev) const
+  double* d_log_like_dev,
+  const float* stellar_spectrum_gpu) const
 {
   // Fold in reference offsets so CUDA kernels receive the total velocity
   Kp   += kp_ref;
@@ -795,7 +829,8 @@ void HighResObservation::computeLogLikelihoodGPU(
         static_cast<float>(Vsys),
         static_cast<float>(dphi),
         static_cast<float>(alpha),
-        d_log_like_dev);
+        d_log_like_dev,
+        stellar_spectrum_gpu);
     }
     else
     {
@@ -820,7 +855,8 @@ void HighResObservation::computeLogLikelihoodGPU(
         static_cast<float>(Vsys),
         static_cast<float>(dphi),
         static_cast<float>(alpha),
-        d_log_like_dev);
+        d_log_like_dev,
+        stellar_spectrum_gpu);
     }
   }
   else if (has_filtering)
@@ -849,7 +885,8 @@ void HighResObservation::computeLogLikelihoodGPU(
       d_log_like_dev,
       has_model_scale ? model_scale_dev : nullptr,
       filter_model,
-      use_phase_function);
+      use_phase_function,
+      stellar_spectrum_gpu);
   }
   else
   {
@@ -872,7 +909,8 @@ void HighResObservation::computeLogLikelihoodGPU(
       static_cast<float>(Vsys),
       static_cast<float>(dphi),
       alpha_gpu,
-      d_log_like_dev);
+      d_log_like_dev,
+      stellar_spectrum_gpu);
   }
 }
 

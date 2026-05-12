@@ -104,6 +104,14 @@ class ForwardModel{
     float* spectrumHighResGPU() const { return spectrum_highres_gpu_; }
     size_t nbSpectralPointsHighRes() const {
       return spectral_grid_highres ? spectral_grid_highres->nbSpectralPoints() : 0; }
+    // Stellar spectrum cached after each calcModel call, used for the per-pixel
+    // Doppler correction in high-res kernels (Fs stays at rest; only Fp is shifted).
+    // Default returns empty/nullptr for forward models without a stellar spectrum.
+    virtual const std::vector<double>& stellarSpectrumCPU() const {
+      static const std::vector<double> empty;
+      return empty;
+    }
+    virtual const float* stellarSpectrumGPU() const { return nullptr; }
 
   protected:
     GlobalConfig* config;

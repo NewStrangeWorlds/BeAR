@@ -78,19 +78,26 @@ class HighResObservation {
 
     // Compute high-res log-likelihood (CPU)
     // In marginalized_alpha mode, the alpha parameter is ignored.
+    // stellar_spectrum / nb_stellar_points: optional cached Fs (same wavelength grid as
+    // model_wavelengths, units µm).  When non-null, a per-pixel correction factor
+    // Fs(λ·v_dop)/Fs(λ_rest) is applied to undo the erroneous Fs Doppler shift.
     double computeLogLikelihood(
       const std::vector<double>& broadened_spectrum,
       const std::vector<double>& model_wavelengths,
-      double Kp, double Vsys, double dphi, double alpha = 1.0) const;
+      double Kp, double Vsys, double dphi, double alpha = 1.0,
+      const double* stellar_spectrum = nullptr,
+      size_t nb_stellar_points = 0) const;
 
     // Compute high-res log-likelihood (GPU)
-    // Accumulates result into d_log_like_dev via atomicAdd
+    // Accumulates result into d_log_like_dev via atomicAdd.
+    // stellar_spectrum_gpu: optional cached Fs on device (same grid as model), µm.
     void computeLogLikelihoodGPU(
       const float* broadened_spectrum_gpu,
       const double* model_wavelengths_gpu,
       size_t nb_model_points,
       double Kp, double Vsys, double dphi, double alpha,
-      double* d_log_like_dev) const;
+      double* d_log_like_dev,
+      const float* stellar_spectrum_gpu = nullptr) const;
 
   private:
     std::string observation_name;
