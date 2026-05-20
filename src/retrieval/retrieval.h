@@ -73,8 +73,6 @@ class Retrieval{
     bool has_highres_observations = false;
     bool use_free_alpha = false;  // when true, alpha is a free retrieval parameter
 
-    virtual bool run();
-
     std::pair<std::vector<double>, std::vector<double>> convertCubeParameters(
       std::vector<double>& cube);
     std::vector<double> convertToPhysicalParameters(
@@ -124,18 +122,6 @@ class Retrieval{
       const size_t nb_param,
       std::vector<double>& parameter,
       std::vector<double>& physical_parameter);
-    static void multinestLogLike(
-      double *Cube, 
-      int &ndim, 
-      int &npars, 
-      double &lnew, 
-      void *context);
-    static void multinestLogLikeGPU(
-      double *cube, 
-      int &nb_dim, 
-      int &nb_param, 
-      double &new_log_like, 
-      void *context);
     double logLikeDev(
       std::vector<float*> model_spectrum,
       const double error_inflation_coefficient);
@@ -154,18 +140,7 @@ class Retrieval{
     void initGPUMemory();
     void freeGPUMemory();
 
-    static void multinestDumper(
-      int &nSamples, 
-      int &nlive, 
-      int &nPar, 
-      double **physLive, 
-      double **posterior,
-      double **paramConstr, 
-      double &maxLogLike, 
-      double &logZ, 
-      double &INSlogZ, 
-      double &logZerr, 
-      void *context);
+
 };
 
 

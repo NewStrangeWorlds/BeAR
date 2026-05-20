@@ -5,8 +5,11 @@ current_directory = os.path.dirname(os.path.realpath(__file__))
 parent_directory = os.path.dirname(current_directory)
 sys.path.append(parent_directory)
 
-from lib import pybear
+from lib import bear
 import numpy as np
+from lib.bear_multinest_path import MULTINEST_LIB_DIR
+import ctypes as _ctypes
+_ctypes.CDLL(MULTINEST_LIB_DIR + '/libmultinest.so', mode=_ctypes.RTLD_GLOBAL)
 import pymultinest
 
 
@@ -23,7 +26,7 @@ multinest_output_folder = "FlatLineExample/"
 post_output_folder = "FlatLineExample/"
 
 #create the general model config
-model_config = pybear.Config(
+model_config = bear.Config(
   use_gpu, 
   model_type, 
   cross_section_file_path, 
@@ -33,17 +36,13 @@ model_config = pybear.Config(
   post_output_folder)
 
 #configure additional parameters
-model_config.multinest_efficiency = 0.8 
-model_config.multinest_nb_living_points = 800
-model_config.multinest_nb_iterations = 0
-model_config.multinest_feedback = True
 model_config.nb_omp_processes = nb_omp_threads
 
 
 #read in the observation data and the filter response functions where requried
 obs = np.loadtxt(retrieval_folder+"55Cnce_V5.dat", skiprows=11)
 
-nircam = pybear.Observation(
+nircam = bear.Observation(
   "NIRCAM", "spectroscopy", obs[:,0], obs[:,1], obs[:,2])
 
 #create a list of all observations
@@ -52,7 +51,7 @@ observations = list([nircam])
 
 #create the list of priors
 priors_config = list([
-  pybear.Prior("uniform", "eclipse_depth", [0, 200])])
+  bear.Prior("uniform", "eclipse_depth", [0, 200])])
 
 
 #Create the configuration of the forward model
@@ -61,7 +60,7 @@ forward_model_config = None
 
 
 #Now, we can create the BeAR retrieval object
-model = pybear.Retrieval(
+model = bear.Retrieval(
   model_config, 
   forward_model_config, 
   observations,
@@ -109,23 +108,23 @@ pymultinest.run(
   priors, 
   model.nbParameters(), 
 	resume = False, 
-  verbose = model_config.multinest_feedback, 
+  verbose = True, 
   importance_nested_sampling = True, 
-  sampling_efficiency = model_config.multinest_efficiency, 
-  n_live_points = model_config.multinest_nb_living_points, 
-  max_iter = model_config.multinest_nb_iterations,
+  sampling_efficiency = 0.8, 
+  n_live_points = 800, 
+  max_iter = 0,
   outputfiles_basename=multinest_output_folder)
 
 
 #Define the post process configuration
 save_post_spectra = True
 
-postprocess_config = pybear.FlatLinePostProcessConfig(
+postprocess_config = bear.FlatLinePostProcessConfig(
   save_post_spectra)
 
 
 #create a pyBeAR retrieval post process object
-post_process = pybear.PostProcess(
+post_process = bear.PostProcess(
   model_config, 
   forward_model_config, 
   postprocess_config,

@@ -5,7 +5,7 @@ current_directory = os.path.dirname(os.path.realpath(__file__))
 parent_directory = os.path.dirname(current_directory)
 sys.path.append(parent_directory)
 
-from lib import pybear
+from lib import bear
 import numpy as np
 import pickle
 from dynesty import DynamicNestedSampler, NestedSampler
@@ -15,10 +15,10 @@ from dynesty import DynamicNestedSampler, NestedSampler
 retrieval_folder = "trappist-1e_python/"
 
 #load the retrieval configuration file
-model_config = pybear.Config(retrieval_folder)
+model_config = bear.Config(retrieval_folder)
 
 #create a pyBeAR retrieval object
-model = pybear.Retrieval(model_config)
+model = bear.Retrieval(model_config)
 
 
 #Define the priors and likelihood functions for MultiNest

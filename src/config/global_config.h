@@ -36,7 +36,7 @@ struct GlobalConfig {
     const std::string cross_section_file_path_,
     const std::string spectral_disecretisation_,
     const double resolution_,
-    const std::string multinest_output_path_,
+    const std::string output_path_,
     const std::string post_output_path_);
 
   bool loadConfigFile(std::string retrieval_folder);
@@ -46,21 +46,12 @@ struct GlobalConfig {
   std::string cross_section_file_path = "";
   std::string wavenumber_file_path = "";
   std::string retrieval_folder_path = "";
-  std::string multinest_output_path = "";
+  std::string output_path = "";
   std::string post_output_path = "";
-  
+
   unsigned int spectral_disecretisation = 0;
   double spectral_resolution = 0;
   double spectral_resolution_highres = 0;
-
-  bool multinest_ins = false;
-  bool multinest_mode_sep = false;
-  unsigned int multinest_nb_living_points = 100;
-  double multinest_efficiency = 0.8;
-  unsigned int multinest_nb_iterations = 0;
-  bool multinest_resume = false;
-  bool multinest_feedback = false;
-  bool multinest_print_iter_values = false;
 
   unsigned int nb_mpi_processes = 1;
   unsigned int nb_omp_processes = 0;

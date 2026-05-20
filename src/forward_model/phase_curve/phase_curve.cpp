@@ -258,8 +258,6 @@ bool PhaseCurveModel::calcModelGPU(
   
   bool neglect = calcAtmosphereStructure(parameters);
 
-  neglect = false;
-
   // === Low-res path ===
   if (spectral_grid->nbSpectralPoints() > 0)
   {

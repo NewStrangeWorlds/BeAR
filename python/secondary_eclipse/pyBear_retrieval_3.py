@@ -5,8 +5,11 @@ current_directory = os.path.dirname(os.path.realpath(__file__))
 parent_directory = os.path.dirname(current_directory)
 sys.path.append(parent_directory)
 
-from lib import pybear
+from lib import bear
 import numpy as np
+from lib.bear_multinest_path import MULTINEST_LIB_DIR
+import ctypes as _ctypes
+_ctypes.CDLL(MULTINEST_LIB_DIR + '/libmultinest.so', mode=_ctypes.RTLD_GLOBAL)
 import pymultinest
 
 
@@ -23,7 +26,7 @@ multinest_output_folder = "SecondaryEclipseExample/"
 post_output_folder = "SecondaryEclipseExample/"
 
 #create the general model config
-model_config = pybear.Config(
+model_config = bear.Config(
   use_gpu, 
   model_type, 
   cross_section_file_path, 
@@ -33,10 +36,6 @@ model_config = pybear.Config(
   post_output_folder)
 
 #configure additional parameters
-model_config.multinest_efficiency = 0.8 
-model_config.multinest_nb_living_points = 800
-model_config.multinest_nb_iterations = 0
-model_config.multinest_feedback = True
 model_config.nb_omp_processes = nb_omp_threads
 
 
@@ -65,40 +64,40 @@ obs8 = np.atleast_2d(np.loadtxt(retrieval_folder+"wasp-43b_spitzer_2.dat", skipr
 resp8 = np.loadtxt(retrieval_folder+"../telescope_data/Spitzer_irac2_bandpass.dat", skiprows=6)
 
 #and create the pyBeAR observation inputs
-wfc3_obs = pybear.Observation(
+wfc3_obs = bear.Observation(
   "WFC3", "band-spectroscopy", obs1[:,0:2], obs1[:,2], obs1[:,3])
 
-grond_k_obs = pybear.Observation(
+grond_k_obs = bear.Observation(
   "GROND_K", "photometry", obs2[:,0:2], obs2[:,2], obs2[:,3])
 grond_k_obs.filter_response = np.transpose(resp2)
 grond_k_obs.filter_detector_type = "energy"
 
-hawki_1_obs = pybear.Observation(
+hawki_1_obs = bear.Observation(
   "HAWKI_NB1190", "photometry", obs3[:,0:2], obs3[:,2], obs3[:,3])
 hawki_1_obs.filter_response = np.transpose(resp3)
 hawki_1_obs.filter_detector_type = "energy"
 
-hawki_2_obs = pybear.Observation(
+hawki_2_obs = bear.Observation(
   "HAWKI_NB2090", "photometry", obs4[:,0:2], obs4[:,2], obs4[:,3])
 hawki_2_obs.filter_response = np.transpose(resp4)
 hawki_2_obs.filter_detector_type = "energy"
 
-wircam_h_obs = pybear.Observation(
+wircam_h_obs = bear.Observation(
   "Wircam_H", "photometry", obs5[:,0:2], obs5[:,2], obs5[:,3])
 wircam_h_obs.filter_response = np.transpose(resp5)
 wircam_h_obs.filter_detector_type = "energy"
 
-wircam_ks_obs = pybear.Observation(
+wircam_ks_obs = bear.Observation(
   "Wircam_Ks", "photometry", obs6[:,0:2], obs6[:,2], obs6[:,3])
 wircam_ks_obs.filter_response = np.transpose(resp6)
 wircam_ks_obs.filter_detector_type = "energy"
 
-spitzer_1_obs = pybear.Observation(
+spitzer_1_obs = bear.Observation(
   "Spitzer_1", "photometry", obs7[:,0:2], obs7[:,2], obs7[:,3])
 spitzer_1_obs.filter_response = np.transpose(resp7)
 spitzer_1_obs.filter_detector_type = "photon"
 
-spitzer_2_obs = pybear.Observation(
+spitzer_2_obs = bear.Observation(
   "Spitzer_2", "photometry", obs8[:,0:2], obs8[:,2], obs8[:,3])
 spitzer_2_obs.filter_response = np.transpose(resp8)
 spitzer_2_obs.filter_detector_type = "photon"
@@ -118,17 +117,17 @@ observations = list([
 
 #create the list of priors
 priors_config = list([
-  pybear.Prior("delta", "log_g", [3.64464]),
-  pybear.Prior("delta", "Rp/Rs", [0.151271]),
-  pybear.Prior("uniform", "M/H", [0.1, 2.45]),
-  pybear.Prior("delta", "C/O", [0.55]),
-  pybear.Prior("uniform", "temperature1", [5000, 1000]),
-  pybear.Prior("uniform", "temperature2", [0.1, 1.0]),
-  pybear.Prior("uniform", "temperature3", [0.1, 2.0]),
-  pybear.Prior("uniform", "temperature4", [0.1, 2.0]),
-  pybear.Prior("uniform", "temperature5", [0.1, 2.0]),
-  pybear.Prior("uniform", "temperature6", [0.1, 2.0]),
-  pybear.Prior("uniform", "temperature7", [0.1, 2.0])])
+  bear.Prior("delta", "log_g", [3.64464]),
+  bear.Prior("delta", "Rp/Rs", [0.151271]),
+  bear.Prior("uniform", "M/H", [0.1, 2.45]),
+  bear.Prior("delta", "C/O", [0.55]),
+  bear.Prior("uniform", "temperature1", [5000, 1000]),
+  bear.Prior("uniform", "temperature2", [0.1, 1.0]),
+  bear.Prior("uniform", "temperature3", [0.1, 2.0]),
+  bear.Prior("uniform", "temperature4", [0.1, 2.0]),
+  bear.Prior("uniform", "temperature5", [0.1, 2.0]),
+  bear.Prior("uniform", "temperature6", [0.1, 2.0]),
+  bear.Prior("uniform", "temperature7", [0.1, 2.0])])
 
 
 #Now we configure the forward model
@@ -183,7 +182,7 @@ opacity_species_symbols = opacity_species_data[:, 0]
 opacity_species_folders = opacity_species_data[:, 1]
 
 #Create the configuration of the forward model
-forward_model_config = pybear.OccultationConfig(
+forward_model_config = bear.OccultationConfig(
   nb_grid_points,
   bottom_pressure,
   top_pressure,
@@ -202,7 +201,7 @@ forward_model_config = pybear.OccultationConfig(
 
 
 #Now, we can create the BeAR retrieval object
-model = pybear.Retrieval(
+model = bear.Retrieval(
   model_config, 
   forward_model_config, 
   observations,
@@ -250,11 +249,11 @@ pymultinest.run(
   priors, 
   model.nbParameters(), 
 	resume = False, 
-  verbose = model_config.multinest_feedback, 
+  verbose = True, 
   importance_nested_sampling = True, 
-  sampling_efficiency = model_config.multinest_efficiency, 
-  n_live_points = model_config.multinest_nb_living_points, 
-  max_iter = model_config.multinest_nb_iterations,
+  sampling_efficiency = 0.8, 
+  n_live_points = 800, 
+  max_iter = 0,
   outputfiles_basename=multinest_output_folder)
 
 
@@ -264,7 +263,7 @@ save_post_spectra = True
 save_contribution_functions = True
 save_post_chemistry = ['H2O', 'CO', 'CO2', 'CH4', 'NH3']
 
-postprocess_config = pybear.OccultationPostProcessConfig(
+postprocess_config = bear.OccultationPostProcessConfig(
   save_post_temperatures,
   save_post_spectra,
   save_contribution_functions,
@@ -272,7 +271,7 @@ postprocess_config = pybear.OccultationPostProcessConfig(
 
 
 #create a pyBeAR retrieval post process object
-post_process = pybear.PostProcess(
+post_process = bear.PostProcess(
   model_config, 
   forward_model_config, 
   postprocess_config,

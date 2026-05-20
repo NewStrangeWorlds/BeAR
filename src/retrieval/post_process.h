@@ -28,7 +28,6 @@
 #include "../spectral_grid/spectral_grid.h"
 #include "../observations/observations.h"
 #include "../config/global_config.h"
-#include "multinest_parameter.h"
 #include "retrieval.h"
 
 

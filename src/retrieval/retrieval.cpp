@@ -31,13 +31,11 @@
 #include <cstdlib>
 
 
-#include "multinest_parameter.h"
 #include "priors.h"
 #include "../observations/observations.h"
 #include "../forward_model/forward_model.h"
 #include "../forward_model/generic_config.h"
 
-#include "../../_deps/multinest-src/MultiNest_v3.12_CMake/multinest/include/multinest.h"
 #include "../CUDA_kernels/data_management_kernels.h"
 #include "../additional/exceptions.h"
 
@@ -237,84 +235,6 @@ Retrieval::Retrieval(
 
 
 
-bool Retrieval::run()
-{
-  //Configure Multinest
-  MultinestParameter param(config);
-
-  size_t nb_free = priors.numberFree();
-
-  param.ndims = nb_free;
-  param.nPar = nb_free;
-  param.nClsPar = nb_free;
-
-  for (size_t i = 0; i < nb_free; ++i)
-    param.pWrap[i] = 0;
-
-  //We give the MultiNest function a pointer to the retrieval class
-  //That way, we can access the current retrieval object and its static member routines
-  param.context = this;
-
-
-  //Call MultiNest
-  if (config->use_gpu == false)
-    nested::run(
-      param.is,
-      param.mmodal,
-      param.ceff,
-      param.nlive,
-      param.tol,
-      param.efr,
-      param.ndims,
-      param.nPar,
-      param.nClsPar,
-      param.maxModes,
-      param.updInt,
-      param.Ztol,
-      param.root,
-      param.seed,
-      param.pWrap,
-      param.fb,
-      param.resume,
-      param.outfile,
-      param.initMPI,
-      param.logZero,
-      param.maxiter,
-      Retrieval::multinestLogLike,
-      Retrieval::multinestDumper,
-      param.context);
-  else
-    nested::run(
-      param.is,
-      param.mmodal,
-      param.ceff,
-      param.nlive,
-      param.tol,
-      param.efr,
-      param.ndims,
-      param.nPar,
-      param.nClsPar,
-      param.maxModes,
-      param.updInt,
-      param.Ztol,
-      param.root,
-      param.seed,
-      param.pWrap,
-      param.fb,
-      param.resume,
-      param.outfile,
-      param.initMPI,
-      param.logZero,
-      param.maxiter,
-      Retrieval::multinestLogLikeGPU,
-      Retrieval::multinestDumper,
-      param.context);
-
-  return true;
-}
-
-
-
 void Retrieval::setAdditionalPriors()
 {
   if (config->use_error_inflation)
@@ -452,9 +372,6 @@ double Retrieval::logLikelihood(
   if (neglect == true) log_like = -1e30;
 
 
-  if (config->multinest_print_iter_values)
-    std::cout << log_like << "\n";
-
   return log_like;
 }
 
@@ -510,9 +427,6 @@ double Retrieval::logLikelihoodGPU(
   //set the likelihood to a low value
   if (neglect == true) log_like = -1e30;
 
-
-  if (config->multinest_print_iter_values)
-    std::cout << log_like << "\n";
 
   return log_like;
 }
@@ -581,6 +495,90 @@ void Retrieval::freeGPUMemory()
 Retrieval::~Retrieval()
 {
   freeGPUMemory();
+}
+
+
+
+std::pair<std::vector<double>, std::vector<double>> Retrieval::convertCubeParameters(
+  std::vector<double>& cube)
+{
+  std::vector<double> parameter;
+  std::vector<double> physical_parameter;
+
+  convertHypercubeParameters(
+    cube.data(),
+    cube.size(),
+    parameter,
+    physical_parameter);
+
+  return std::make_pair(parameter, physical_parameter);
+}
+
+
+void Retrieval::convertHypercubeParameters(
+  double *cube,
+  const size_t /*nb_free*/,
+  std::vector<double>& parameter,
+  std::vector<double>& physical_parameter)
+{
+  const size_t nb_total = priors.number();
+  parameter.assign(nb_total, 0.0);
+  physical_parameter.assign(nb_total, 0.0);
+
+  for (size_t i = 0; i < nb_total; i++)
+  {
+    const int j = priors.free_cube_index[i];
+    double cube_val;
+
+    if (j < 0)
+    {
+      cube_val = 0.0;
+    }
+    else if (priors.distributions[i]->distributionType() == "Linked prior")
+    {
+      const int src_j = priors.free_cube_index[priors.prior_links[i]];
+      cube_val = (src_j >= 0) ? cube[src_j] : 0.0;
+    }
+    else
+    {
+      cube_val = cube[j];
+    }
+
+    parameter[i]          = priors.distributions[i]->parameterValue(cube_val);
+    physical_parameter[i] = priors.distributions[i]->parameterPhysicalValue(cube_val);
+  }
+
+  for (size_t i = 0; i < nb_total; i++)
+  {
+    const int j = priors.free_cube_index[i];
+    if (j >= 0) cube[j] = parameter[i];
+  }
+}
+
+
+std::vector<double> Retrieval::convertToPhysicalParameters(
+  const std::vector<double>& parameters)
+{
+  if (parameters.size() != priors.numberFree())
+  {
+    std::string error_message =
+      "Number of posterior parameters not equal to the number of free parameters of the forward model.\n";
+    throw InvalidInput(std::string ("Retrieval::convertToPhysicalParameters"), error_message);
+  }
+
+  const size_t nb_total = priors.number();
+  std::vector<double> physical_parameters(nb_total, 0.0);
+
+  for (size_t i = 0; i < nb_total; ++i)
+  {
+    const int j = priors.free_cube_index[i];
+    if (j < 0)
+      physical_parameters[i] = priors.distributions[i]->parameterPhysicalValue(0.0);
+    else
+      physical_parameters[i] = priors.distributions[i]->applyParameterUnit(parameters[j]);
+  }
+
+  return physical_parameters;
 }
 
 

@@ -5,8 +5,11 @@ current_directory = os.path.dirname(os.path.realpath(__file__))
 parent_directory = os.path.dirname(current_directory)
 sys.path.append(parent_directory)
 
-from lib import pybear
+from lib import bear
 import numpy as np
+from lib.bear_multinest_path import MULTINEST_LIB_DIR
+import ctypes as _ctypes
+_ctypes.CDLL(MULTINEST_LIB_DIR + '/libmultinest.so', mode=_ctypes.RTLD_GLOBAL)
 import pymultinest
 
 
@@ -14,10 +17,10 @@ import pymultinest
 retrieval_folder = "TransmissionExample/"
 
 #load the retrieval configuration file
-model_config = pybear.Config(retrieval_folder)
+model_config = bear.Config(retrieval_folder)
 
 #create a pyBeAR retrieval object
-model = pybear.Retrieval(model_config)
+model = bear.Retrieval(model_config)
 
 
 #load the observation data to compute the likelihood
@@ -82,14 +85,14 @@ pymultinest.run(
   resume = False, 
   verbose = True, 
   importance_nested_sampling = True, 
-  sampling_efficiency = model_config.multinest_efficiency, 
-  n_live_points = model_config.multinest_nb_living_points, 
-  max_iter = model_config.multinest_nb_iterations,
+  sampling_efficiency = 0.8, 
+  n_live_points = 800, 
+  max_iter = 0,
   outputfiles_basename=retrieval_folder)
 
 
 #create a pyBeAR retrieval post process object
-post_process = pybear.PostProcess(model_config)
+post_process = bear.PostProcess(model_config)
 
 print("Starting post process\n")
 post_process.run()

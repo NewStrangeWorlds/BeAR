@@ -5,8 +5,11 @@ current_directory = os.path.dirname(os.path.realpath(__file__))
 parent_directory = os.path.dirname(current_directory)
 sys.path.append(parent_directory)
 
-from lib import pybear
+from lib import bear
 import numpy as np
+from lib.bear_multinest_path import MULTINEST_LIB_DIR
+import ctypes as _ctypes
+_ctypes.CDLL(MULTINEST_LIB_DIR + '/libmultinest.so', mode=_ctypes.RTLD_GLOBAL)
 import pymultinest
 
 #For simplicity, we use the configuration files from the example
@@ -17,10 +20,10 @@ import pymultinest
 retrieval_folder = "SecondaryEclipseExample/"
 
 #load the retrieval configuration file
-model_config = pybear.Config(retrieval_folder)
+model_config = bear.Config(retrieval_folder)
 
 #create a pyBeAR retrieval post process object
-post_process = pybear.PostProcess(model_config)
+post_process = bear.PostProcess(model_config)
 
 
 #we manually load the posteriors from the example

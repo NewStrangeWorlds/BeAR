@@ -70,7 +70,7 @@ bool PostProcess::run()
 
   try
   {
-    std::string file_path = config->multinest_output_path.c_str();
+    std::string file_path = config->output_path.c_str();
     file_path += "post_equal_weights.dat";
     
     readPosteriorData(file_path);
@@ -95,12 +95,6 @@ bool PostProcess::run()
     return false;
   }
   
-  if (delete_sampler_files)
-  {
-    MultinestParameter param(config);
-    deleteSamplerFiles(param.unused_posterior_files);
-  }
-
   return true;
 }
 
@@ -134,12 +128,6 @@ bool PostProcess::run(const std::string posterior_file_path)
     return false;
   }
   
-  if (delete_sampler_files)
-  {
-    MultinestParameter param(config);
-    deleteSamplerFiles(param.unused_posterior_files);
-  }
-
   return true;
 }
 
@@ -176,12 +164,6 @@ bool PostProcess::run(
     return false;
   }
   
-  if (delete_sampler_files)
-  {
-    MultinestParameter param(config);
-    deleteSamplerFiles(param.unused_posterior_files);
-  }
-
   return true;
 }
 
@@ -222,7 +204,7 @@ void PostProcess::deleteSamplerFiles(const std::vector<std::string>& file_list)
   
   for (auto & f : file_list)
   {
-    std::string file_name = config->multinest_output_path + f;
+    std::string file_name = config->output_path + f;
     std::remove(file_name.c_str());
   }
 

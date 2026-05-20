@@ -5,8 +5,11 @@ current_directory = os.path.dirname(os.path.realpath(__file__))
 parent_directory = os.path.dirname(current_directory)
 sys.path.append(parent_directory)
 
-from lib import pybear
+from lib import bear
 import numpy as np
+from lib.bear_multinest_path import MULTINEST_LIB_DIR
+import ctypes as _ctypes
+_ctypes.CDLL(MULTINEST_LIB_DIR + '/libmultinest.so', mode=_ctypes.RTLD_GLOBAL)
 import pymultinest
 
 
@@ -24,7 +27,7 @@ post_output_folder = "EmissionExample/"
 
 
 #create the general model config
-model_config = pybear.Config(
+model_config = bear.Config(
   use_gpu, 
   model_type, 
   cross_section_file_path, 
@@ -35,10 +38,6 @@ model_config = pybear.Config(
 
 #configure additional parameters
 model_config.use_error_inflation = True
-model_config.multinest_efficiency = 0.8 
-model_config.multinest_nb_living_points = 4000
-model_config.multinest_nb_iterations = 0
-model_config.multinest_feedback = True
 model_config.nb_omp_processes = nb_omp_threads
 
 
@@ -51,7 +50,7 @@ obs_line_spread = obs[:,3]
 log_like_weight = obs[:,4]
 
 #and create the pyBeAR observation inputs
-spex = pybear.Observation(
+spex = bear.Observation(
   "GJ570D SpeX", "spectroscopy", obs_wavelengths, obs_data, obs_error)
 
 spex.likelihood_weight = log_like_weight
@@ -63,23 +62,23 @@ observations = list([spex])
 
 #create the list of priors
 priors_config = list([
-  pybear.Prior("uniform", "log_g", [4.0, 6.0]),
-  pybear.Prior("uniform", "scaling_factor", [0.1, 5.0]),
-  pybear.Prior("gaussian", "distance", [5.8819, 0.0029], "pc"),
-  pybear.Prior("log_uniform", "MR_H2O", [1e-12, 0.01]),
-  pybear.Prior("log_uniform", "MR_CH4", [1e-12, 0.01]),
-  pybear.Prior("log_uniform", "MR_NH3", [1e-12, 0.01]),
-  pybear.Prior("log_uniform", "MR_K", [1e-12, 0.01]),
-  pybear.Prior("log_uniform", "MR_H2S", [1e-12, 0.01]),
-  pybear.Prior("log_uniform", "MR_CO2", [1e-12, 0.01]),
-  pybear.Prior("log_uniform", "MR_CO", [1e-12, 0.01]),
-  pybear.Prior("uniform", "temperature1", [5000, 1000]),
-  pybear.Prior("uniform", "temperature2", [0.3, 0.95]),
-  pybear.Prior("uniform", "temperature3", [0.3, 0.95]),
-  pybear.Prior("uniform", "temperature4", [0.4, 0.95]),
-  pybear.Prior("uniform", "temperature5", [0.4, 0.95]),
-  pybear.Prior("uniform", "temperature6", [0.4, 0.95]),
-  pybear.Prior("uniform", "temperature7", [0.4, 0.95])])
+  bear.Prior("uniform", "log_g", [4.0, 6.0]),
+  bear.Prior("uniform", "scaling_factor", [0.1, 5.0]),
+  bear.Prior("gaussian", "distance", [5.8819, 0.0029], "pc"),
+  bear.Prior("log_uniform", "MR_H2O", [1e-12, 0.01]),
+  bear.Prior("log_uniform", "MR_CH4", [1e-12, 0.01]),
+  bear.Prior("log_uniform", "MR_NH3", [1e-12, 0.01]),
+  bear.Prior("log_uniform", "MR_K", [1e-12, 0.01]),
+  bear.Prior("log_uniform", "MR_H2S", [1e-12, 0.01]),
+  bear.Prior("log_uniform", "MR_CO2", [1e-12, 0.01]),
+  bear.Prior("log_uniform", "MR_CO", [1e-12, 0.01]),
+  bear.Prior("uniform", "temperature1", [5000, 1000]),
+  bear.Prior("uniform", "temperature2", [0.3, 0.95]),
+  bear.Prior("uniform", "temperature3", [0.3, 0.95]),
+  bear.Prior("uniform", "temperature4", [0.4, 0.95]),
+  bear.Prior("uniform", "temperature5", [0.4, 0.95]),
+  bear.Prior("uniform", "temperature6", [0.4, 0.95]),
+  bear.Prior("uniform", "temperature7", [0.4, 0.95])])
 
 #since we use error inflation here, we need to add an additional prior
 max_error = np.max(obs_error)
@@ -89,7 +88,7 @@ max_error = np.log10(100.0 * max_error * max_error)
 min_error = np.log10(0.1 * min_error * min_error)
 
 priors_config.append(
-  pybear.Prior("uniform", "error_exponent", [min_error, max_error]))
+  bear.Prior("uniform", "error_exponent", [min_error, max_error]))
 
 
 #Now we configure the forward model
@@ -131,7 +130,7 @@ opacity_species_symbols = opacity_species_data[:, 0]
 opacity_species_folders = opacity_species_data[:, 1]
 
 #Create the configuration of the forward model
-forward_model_config = pybear.EmissionModelConfig(
+forward_model_config = bear.EmissionModelConfig(
   nb_grid_points,
   bottom_pressure,
   top_pressure,
@@ -146,7 +145,7 @@ forward_model_config = pybear.EmissionModelConfig(
 
 
 #Now, we can create the BeAR retrieval object
-model = pybear.Retrieval(
+model = bear.Retrieval(
   model_config, 
   forward_model_config, 
   observations,
@@ -194,11 +193,11 @@ pymultinest.run(
   priors, 
   model.nbParameters(), 
 	resume = False, 
-  verbose = model_config.multinest_feedback, 
+  verbose = True, 
   importance_nested_sampling = True, 
-  sampling_efficiency = model_config.multinest_efficiency, 
-  n_live_points = model_config.multinest_nb_living_points, 
-  max_iter = model_config.multinest_nb_iterations,
+  sampling_efficiency = 0.8, 
+  n_live_points = 4000, 
+  max_iter = 0,
   outputfiles_basename=multinest_output_folder)
 
 
@@ -209,7 +208,7 @@ save_post_spectra = True
 save_contribution_functions = True
 save_post_chemistry = []
 
-postprocess_config = pybear.EmissionPostProcessConfig(
+postprocess_config = bear.EmissionPostProcessConfig(
   save_post_temperatures,
   save_effective_temperatures,
   save_post_spectra,
@@ -220,13 +219,13 @@ postprocess_config = pybear.EmissionPostProcessConfig(
 #in order to compute effective temperatures, we need an
 #additional "observation" that provides the retrieval with
 #a wider wavelength range than the orginal observation
-obs_add = pybear.Observation(
+obs_add = bear.Observation(
   "Postprocess_Spectrum", "band-spectroscopy", [[0.5, 20.0]], [1.0], [1.0])
 
 observations.append(obs_add)
 
 #create a pyBeAR retrieval post process object
-post_process = pybear.PostProcess(
+post_process = bear.PostProcess(
   model_config, 
   forward_model_config, 
   postprocess_config,

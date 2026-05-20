@@ -40,12 +40,12 @@ GlobalConfig::GlobalConfig(
   const std::string cross_section_file_path_,
   const std::string spectral_disecretisation_,
   const double resolution_,
-  const std::string multinest_output_path_,
+  const std::string output_path_,
   const std::string post_output_path_)
   : use_gpu(use_gpu_),
     forward_model_type(forward_model_type_),
     cross_section_file_path(cross_section_file_path_),
-    multinest_output_path(multinest_output_path_),
+    output_path(output_path_),
     post_output_path(post_output_path_)
 {
   if (spectral_disecretisation_ != "const_wavenumber" 
@@ -189,68 +189,9 @@ bool GlobalConfig::loadConfigFile(std::string retrieval_folder)
   std::cout << "- Use error inflation prior: " << use_error_inflation << "\n";
 
 
-  //Header Multinest
-  std::getline(file, line);
-  std::getline(file, line);
-  std::getline(file, line);
-  std::cout << "\n" <<  "Multinest Parameters\n";
-  
-  std::getline(file, line);
-
-  file >> input >> line;
-  if (input == "Y" || input == "1") multinest_ins = true;
-  std::cout << "- Importance Nested Sampling: " << multinest_ins << "\n";
-
-
-  std::getline(file, line);
-
-  file >> input >> line;
-  if (input == "Y" || input == "1") multinest_mode_sep = true;
-  std::cout << "- Mode separation: " << multinest_mode_sep << "\n";
-
-
-  std::getline(file, line);
-
-  file >> multinest_nb_living_points >> line;
-  std::cout << "- #Living points: " << multinest_nb_living_points << "\n";
-
-
-  std::getline(file, line);
-
-  file >> multinest_efficiency >> line;
-  std::cout << "- Efficiency: " << multinest_efficiency << "\n";
-
-  
-  std::getline(file, line);
-
-  file >> multinest_nb_iterations >> line;
-  std::cout << "- #Iterations: " << multinest_nb_iterations << "\n";
-
-
-  std::getline(file, line);
-
-  file >> input >> line;
-  if (input == "Y" || input == "1") multinest_resume = true;
-  std::cout << "- Resume: " << multinest_resume << "\n";
-
-
-  std::getline(file, line);
-
-  file >> input >> line;
-  if (input == "Y" || input == "1") multinest_feedback = true;
-  std::cout << "- Console feedback: " << multinest_feedback << "\n";
-
-
-  std::getline(file, line);
-
-  file >> input >> line;
-  if (input == "Y" || input == "1") multinest_print_iter_values = true;
-  std::cout << "- Print iteration values: " << multinest_print_iter_values << "\n";
-  
-  
   std::cout << "\n";
 
-  multinest_output_path = retrieval_folder;
+  output_path = retrieval_folder;
   post_output_path = retrieval_folder;
 
 

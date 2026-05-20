@@ -24,32 +24,27 @@
 
 namespace py = pybind11;
 
-PYBIND11_MODULE(pybear, m) {
+PYBIND11_MODULE(bear, m) {
     py::class_<bear::GlobalConfig>(m, "Config")
         .def(py::init<>())
         .def(py::init<const std::string>())
         .def(py::init<
-            const bool, 
-            const std::string, 
-            const std::string, 
-            const std::string, 
+            const bool,
+            const std::string,
+            const std::string,
+            const std::string,
             const double,
-            const std::string, 
+            const std::string,
             const std::string>())
         .def("loadConfigFile", &bear::GlobalConfig::loadConfigFile)
         .def_readwrite("forward_model_type", &bear::GlobalConfig::forward_model_type)
         .def_readwrite("retrieval_folder_path", &bear::GlobalConfig::retrieval_folder_path)
-        .def_readwrite("multinest_output_path", &bear::GlobalConfig::multinest_output_path)
+        .def_readwrite("output_path", &bear::GlobalConfig::output_path)
         .def_readwrite("post_output_path", &bear::GlobalConfig::post_output_path)
         .def_readwrite("wavenumber_file_path", &bear::GlobalConfig::wavenumber_file_path)
         .def_readwrite("cross_section_file_path", &bear::GlobalConfig::cross_section_file_path)
         .def_readwrite("spectral_disecretisation", &bear::GlobalConfig::spectral_disecretisation)
         .def_readwrite("spectral_resolution", &bear::GlobalConfig::spectral_resolution)
-        .def_readwrite("multinest_print_iter_values", &bear::GlobalConfig::multinest_print_iter_values)
-        .def_readwrite("multinest_efficiency", &bear::GlobalConfig::multinest_efficiency)
-        .def_readwrite("multinest_nb_living_points", &bear::GlobalConfig::multinest_nb_living_points)
-        .def_readwrite("multinest_nb_iterations", &bear::GlobalConfig::multinest_nb_iterations)
-        .def_readwrite("multinest_feedback", &bear::GlobalConfig::multinest_feedback)
         .def_readwrite("use_error_inflation", &bear::GlobalConfig::use_error_inflation)
         .def_readwrite("use_gpu", &bear::GlobalConfig::use_gpu)
         .def_readwrite("nb_omp_processes", &bear::GlobalConfig::nb_omp_processes);
@@ -120,7 +115,6 @@ PYBIND11_MODULE(pybear, m) {
           const std::vector<bear::ObservationInput>&,
           const std::vector<bear::PriorConfig>&>())
         .def_readwrite("spectral_grid", &bear::Retrieval::spectral_grid)
-        .def("run", &bear::Retrieval::run)
         .def("nbParameters", &bear::Retrieval::nbParameters)
         .def("convertCubeParameters", [](bear::Retrieval& self, std::vector<double> cube) {
             auto result = self.convertCubeParameters(cube);
