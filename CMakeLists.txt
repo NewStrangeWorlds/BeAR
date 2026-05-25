@@ -219,15 +219,15 @@ endif()
 
 
 
-#download FastChem 3, if necessary
+#download FastChem 4, if necessary
 FetchContent_Declare(
   fastchem
   GIT_REPOSITORY https://github.com/newstrangeworlds/fastchem
-  GIT_TAG        0979ebe637de51241c77e73071b0a3da5a16c8f2
+  GIT_TAG        v4.0.1
 )
 
 FetchContent_GetProperties(fastchem)
-set(FASTCHEM_ONLY_LIBRARY ON)
+set(FASTCHEM_ONLY_PYTHON_LIBRARY ON)
 
 if (NOT fastchem_POPULATED)
   FetchContent_Populate(fastchem)

@@ -131,6 +131,7 @@ PYBIND11_MODULE(bear, m) {
             return std::make_pair(free_params, free_phys);
         })
         .def("convertToPhysicalParameters", &bear::Retrieval::convertToPhysicalParameters)
+        .def("convertToParameterUnits", &bear::Retrieval::convertToParameterUnits)
         .def("computeLikelihood", [](bear::Retrieval& self, std::vector<double> free_phys) {
             auto full = self.priors.expandFreeToFull(free_phys);
             return self.computeLikelihood(full);
@@ -148,6 +149,7 @@ PYBIND11_MODULE(bear, m) {
           const std::vector<bear::PriorConfig>&>())
         .def_readwrite("spectral_grid", &bear::PostProcess::spectral_grid)
         .def("convertToPhysicalParameters", &bear::PostProcess::convertToPhysicalParameters)
+        .def("convertToParameterUnits", &bear::PostProcess::convertToParameterUnits)
         .def("computeModel", &bear::PostProcess::computeModel)
         .def("computeAtmosphereStructure", &bear::PostProcess::computeAtmosphereStructure)
         .def("run", static_cast<bool (bear::PostProcess::*)()>(&bear::PostProcess::run))

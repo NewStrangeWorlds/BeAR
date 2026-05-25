@@ -77,6 +77,8 @@ class Retrieval{
       std::vector<double>& cube);
     std::vector<double> convertToPhysicalParameters(
       const std::vector<double>& parameters);
+    std::vector<double> convertToParameterUnits(
+      const std::vector<double>& physical_parameters);
     
     double computeLikelihood(
       std::vector<double>& parameters);

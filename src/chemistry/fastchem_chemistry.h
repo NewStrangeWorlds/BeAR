@@ -48,7 +48,7 @@ class FastChemChemistry : public Chemistry{
       std::vector<std::vector<double>>& number_densities,
       std::vector<double>& mean_molecular_weight);
   private:
-    fastchem::FastChem<long double> fastchem;
+    fastchem::FastChem fastchem;
     const size_t nb_processes = 0;
 
     std::vector<double> reference_element_abundances;

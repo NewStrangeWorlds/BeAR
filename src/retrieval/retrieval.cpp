@@ -582,4 +582,28 @@ std::vector<double> Retrieval::convertToPhysicalParameters(
 }
 
 
+std::vector<double> Retrieval::convertToParameterUnits(
+  const std::vector<double>& physical_parameters)
+{
+  if (physical_parameters.size() != priors.numberFree())
+  {
+    std::string error_message =
+      "Number of physical parameters not equal to the number of free parameters of the forward model.\n";
+    throw InvalidInput(std::string ("Retrieval::convertToParameterUnits"), error_message);
+  }
+
+  const size_t nb_total = priors.number();
+  std::vector<double> parameters(priors.numberFree(), 0.0);
+
+  for (size_t i = 0; i < nb_total; ++i)
+  {
+    const int j = priors.free_cube_index[i];
+    if (j >= 0 && priors.distributions[i]->distributionType() != "Linked prior")
+      parameters[j] = priors.distributions[i]->invertParameterUnit(physical_parameters[j]);
+  }
+
+  return parameters;
+}
+
+
 }

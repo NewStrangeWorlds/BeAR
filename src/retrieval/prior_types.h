@@ -43,6 +43,8 @@ class BasicPrior{
       return parameterValue(hypercube_parameter) * unit;};
     virtual double applyParameterUnit(const double& parameter) {
       return parameter * unit;};
+    virtual double invertParameterUnit(const double& physical_value) const {
+      return physical_value / unit;};
     virtual ~BasicPrior() {}
     std::string distributionType() {return distribution_type;}
     std::string parameterName() {return parameter_name;}
@@ -247,6 +249,8 @@ class LinkedPrior : public BasicPrior {
       return linked_prior->parameterValue(hypercube_value);}
     virtual double applyParameterUnit(const double& parameter) {
       return linked_prior->applyParameterUnit(parameter);};
+    virtual double invertParameterUnit(const double& physical_value) const override {
+      return linked_prior->invertParameterUnit(physical_value);};
     virtual void printInfo() {
       std::cout << std::setw(15) << std::left << parameter_name << "  "
                 << std::setw(20) << std::left << distribution_type 

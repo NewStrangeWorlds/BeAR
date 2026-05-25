@@ -59,7 +59,7 @@ const std::vector<chemistry_data> species_data{ {_TOTAL, "Total", "Total",  0.0}
                                                 {_CO2,   "CO2",   "C1O2",   44.01},
                                                 {_CO,    "CO",    "C1O1",   28.0101},
                                                 {_CH4,   "CH4",   "C1H4",   16.04246},
-                                                {_HCN,   "HCN",   "C1H1N1_1", 27.0253},
+                                                {_HCN,   "HCN",   "C1H1N1_hcn", 27.0253},
                                                 {_NH3,   "NH3",   "H3N1",   17.03052},
                                                 {_C2H2,  "C2H2",  "C2H2",   26.04},
                                                 {_N2,    "N2",    "N2",     28.0134},
