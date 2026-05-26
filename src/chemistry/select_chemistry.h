@@ -93,13 +93,16 @@ inline std::unique_ptr<Chemistry> selectChemistryModule(
 
   if (module_id == chemistry_modules::eq)
   {
-    if (parameters.size() != 1) {
-        std::string error_message = "Equilibrium chemistry requires exactly one parameter!\n";
+    if (parameters.size() < 1) {
+        std::string error_message = "Equilibrium chemistry requires at least one parameter (the FastChem parameter file)!\n";
         throw InvalidInput(std::string ("forward_model.config"), error_message);}
+
+    const std::vector<std::string> ratio_specs(parameters.begin() + 1, parameters.end());
 
     return std::make_unique<FastChemChemistry>(
         config->retrieval_folder_path + parameters[0],
-        config->nb_omp_processes);
+        config->nb_omp_processes,
+        ratio_specs);
   }
 
   if (module_id == chemistry_modules::iso)
