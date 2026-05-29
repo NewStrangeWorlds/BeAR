@@ -198,13 +198,13 @@ void GenericConfig::readOpacityConfig(
   std::string line;
   std::getline(file, line); //parameter header
   
-  while(std::getline(file, line))
+  while(std::getline(file, line) && line.size() != 0)
   {
     std::istringstream input(line);
     std::string species, folder;
 
     input >> species >> folder;
-    
+
     if (species.length() > 0 && folder.length() > 0)
     {
       species_symbol.push_back(species);

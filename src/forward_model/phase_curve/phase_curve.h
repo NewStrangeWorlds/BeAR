@@ -74,6 +74,9 @@ struct PhaseCurveConfig : public GenericConfig{
   std::vector<std::string> opacity_species_symbol;
   std::vector<std::string> opacity_species_folder;
 
+  std::vector<std::string> opacity_species_symbol_highres;
+  std::vector<std::string> opacity_species_folder_highres;
+
   double highres_stellar_smooth_sigma = 0.0;
 
   PhaseCurveConfig (
@@ -192,6 +195,8 @@ class PhaseCurveModel : public ForwardModel{
 
     std::vector<std::string> opacity_species_symbol_;
     std::vector<std::string> opacity_species_folder_;
+    std::vector<std::string> opacity_species_symbol_highres_;
+    std::vector<std::string> opacity_species_folder_highres_;
     std::string radiative_transfer_model_;
     std::vector<std::string> radiative_transfer_parameters_;
     std::string stellar_spectrum_model_name_;
@@ -233,6 +238,13 @@ class PhaseCurveModel : public ForwardModel{
 
     void normaliseFpFsGPU(
       float*       planet_spectrum,
+      const float* stellar_spectrum,
+      const int    nb_points,
+      const float  radius_ratio_squared);
+
+    void calcOccultationLowResGPU(
+      float*       output,
+      const float* planet_spectrum,
       const float* stellar_spectrum,
       const int    nb_points,
       const float  radius_ratio_squared);

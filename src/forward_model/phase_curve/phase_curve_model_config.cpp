@@ -179,6 +179,16 @@ void PhaseCurveConfig::readConfigFile(const std::string& file_name)
 
   readOpacityConfig(file, opacity_species_symbol, opacity_species_folder);
 
+  // Optional high-res opacity section. readOpacityConfig consumes the section
+  // header itself, so call it directly; if we're at EOF it loads nothing.
+  readOpacityConfig(file, opacity_species_symbol_highres, opacity_species_folder_highres);
+
+  if (opacity_species_symbol_highres.empty())
+  {
+    opacity_species_symbol_highres = opacity_species_symbol;
+    opacity_species_folder_highres = opacity_species_folder;
+  }
+
   file.close();
 }
 

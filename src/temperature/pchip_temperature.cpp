@@ -69,13 +69,19 @@ bool PchipTemperature::calcProfile(
   for (size_t i = 0; i < nb_control_points; ++i)
     x_knots[i] = std::log10(pressure.back()) + i * control_points_step;
 
+  const double log_p_min = x_knots.front();
+  const double log_p_max = x_knots.back();
+
   auto temperature_profile = boost::math::interpolators::pchip<std::vector<double>>(
     std::move(x_knots), std::move(temperature_control_point));
 
   temperature.assign(pressure.size(), 0);
 
   for (size_t i = 0; i < pressure.size(); ++i)
-    temperature[i] = temperature_profile(std::log10(pressure[i]));
+  {
+    const double log_p = std::clamp(std::log10(pressure[i]), log_p_min, log_p_max);
+    temperature[i] = temperature_profile(log_p);
+  }
 
   bool neglect_model = false;
 

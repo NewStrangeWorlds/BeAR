@@ -65,6 +65,8 @@ PhaseCurveModel::PhaseCurveModel (
   nb_grid_points = model_config.nb_grid_points;
   opacity_species_symbol_ = model_config.opacity_species_symbol;
   opacity_species_folder_ = model_config.opacity_species_folder;
+  opacity_species_symbol_highres_ = model_config.opacity_species_symbol_highres;
+  opacity_species_folder_highres_ = model_config.opacity_species_folder_highres;
   radiative_transfer_model_ = model_config.radiative_transfer_model;
   radiative_transfer_parameters_ = model_config.radiative_transfer_parameters;
 
@@ -201,8 +203,30 @@ bool PhaseCurveModel::calcModelCPU(
       }
     }
 
-    convertSpectrumToObservation(spectrum, true, spectrum_obs);
+    std::vector<std::vector<double>> planet_spectrum_obs(
+      observations.size(), std::vector<double>{});
+    convertSpectrumToObservation(spectrum, true, planet_spectrum_obs);
+
+    std::vector<double> stellar_spectrum = stellar_model->calcFlux(stellar_parameters);
+    std::vector<std::vector<double>> stellar_spectrum_obs(
+      observations.size(), std::vector<double>{});
+    convertSpectrumToObservation(stellar_spectrum, true, stellar_spectrum_obs);
+
+    const double radius_ratio = model_parameters[1];
+    const double rr2 = radius_ratio * radius_ratio;
+
+    for (size_t i = 0; i < observations.size(); ++i)
+    {
+      spectrum_obs[i].assign(observations[i].nbPoints(), 0.0);
+      for (size_t j = 0; j < spectrum_obs[i].size(); ++j)
+        spectrum_obs[i][j] = planet_spectrum_obs[i][j] / stellar_spectrum_obs[i][j]
+                             * rr2 * 1e6;
+    }
+
     applyObservationModifier(spectrum_modifier_parameters, spectrum_obs);
+
+    for (size_t i = 0; i < spectral_grid->nbSpectralPoints(); ++i)
+      spectrum[i] = spectrum[i] / stellar_spectrum[i] * rr2 * 1e6;
   }
 
   // === High-res path ===
@@ -295,8 +319,45 @@ bool PhaseCurveModel::calcModelGPU(
       }
     }
 
-    convertSpectrumToObservationGPU(spectrum, true, spectrum_obs);
+    std::vector<float*> planet_spectrum_obs(observations.size(), nullptr);
+    std::vector<float*> stellar_spectrum_obs(observations.size(), nullptr);
+    for (size_t i = 0; i < observations.size(); ++i)
+    {
+      allocateOnDevice(planet_spectrum_obs[i], observations[i].nbPoints());
+      allocateOnDevice(stellar_spectrum_obs[i], observations[i].nbPoints());
+    }
+
+    convertSpectrumToObservationGPU(spectrum, true, planet_spectrum_obs);
+
+    float* stellar_spectrum = nullptr;
+    allocateOnDevice(stellar_spectrum, spectral_grid->nbSpectralPoints());
+    stellar_model->calcFluxGPU(stellar_parameters, stellar_spectrum);
+    convertSpectrumToObservationGPU(stellar_spectrum, true, stellar_spectrum_obs);
+
+    const float rr2 = static_cast<float>(model_parameters[1] * model_parameters[1]);
+    for (size_t i = 0; i < observations.size(); ++i)
+      calcOccultationLowResGPU(
+        spectrum_obs[i],
+        planet_spectrum_obs[i],
+        stellar_spectrum_obs[i],
+        static_cast<int>(observations[i].nbPoints()),
+        rr2);
+
     applyObservationModifierGPU(spectrum_modifier_parameters, spectrum_obs);
+
+    calcOccultationLowResGPU(
+      spectrum,
+      spectrum,
+      stellar_spectrum,
+      static_cast<int>(spectral_grid->nbSpectralPoints()),
+      rr2);
+
+    deleteFromDevice(stellar_spectrum);
+    for (size_t i = 0; i < observations.size(); ++i)
+    {
+      deleteFromDevice(planet_spectrum_obs[i]);
+      deleteFromDevice(stellar_spectrum_obs[i]);
+    }
   }
 
   // === High-res path ===

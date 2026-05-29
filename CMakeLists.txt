@@ -32,8 +32,8 @@ project(bear C CXX CUDA Fortran)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(CMAKE_CXX_FLAGS "-Wall -march=native -pedantic -MMD")
-set(CMAKE_C_FLAGS "-Wall -march=native -pedantic -MMD")
+set(CMAKE_CXX_FLAGS "-Wall -pedantic -MMD")
+set(CMAKE_C_FLAGS "-Wall -pedantic -MMD")
 
 
 set(CMAKE_BUILD_TYPE Release)
@@ -57,7 +57,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR})
 
 #set CUDA flags
 string(APPEND CMAKE_CUDA_FLAGS ${CUDA_ARCH_FLAGS})
-string(APPEND CMAKE_CUDA_FLAGS " -std=c++17 -march=native -lineinfo -Xptxas -v")
+string(APPEND CMAKE_CUDA_FLAGS " -std=c++17 -lineinfo -Xptxas -v")
 
 #string (APPEND CMAKE_CUDA_FLAGS " -cudart shared" )
 
@@ -223,7 +223,7 @@ endif()
 FetchContent_Declare(
   fastchem
   GIT_REPOSITORY https://github.com/newstrangeworlds/fastchem
-  GIT_TAG        v4.0.1
+  GIT_TAG        v4.0.2
 )
 
 FetchContent_GetProperties(fastchem)
@@ -395,7 +395,7 @@ if (USE_PYTHON MATCHES ON)
   endif()
   
   
-  target_compile_options(bear_for_py PRIVATE "${OpenMP_CXX_FLAGS}" PRIVATE "-O3" PRIVATE "-fPIC")
+  target_compile_options(bear_for_py PRIVATE "${OpenMP_CXX_FLAGS}" PRIVATE "-O3" PRIVATE "-march=native" PRIVATE "-fPIC")
   target_compile_options(bear_cuda_for_py PRIVATE "-fPIC")
 
   

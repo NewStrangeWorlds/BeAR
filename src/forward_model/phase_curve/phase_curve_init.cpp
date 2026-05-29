@@ -133,8 +133,8 @@ void PhaseCurveModel::setHighResGrid(SpectralGrid* grid)
     config,
     spectral_grid_highres,
     &atmosphere,
-    opacity_species_symbol_,
-    opacity_species_folder_,
+    opacity_species_symbol_highres_,
+    opacity_species_folder_highres_,
     config->use_gpu,
     false);
 

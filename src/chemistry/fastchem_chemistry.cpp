@@ -49,10 +49,10 @@ FastChemChemistry::FastChemChemistry(
   std::cout << "  - Parameter file: " << fastchen_parameter_file << "\n";
 
   reference_element_abundances = fastchem.getElementAbundances();
-  //std::cout << fastchem.getGasSpeciesIndex("H2O1888") << "\n"; exit(0);
+  
   // Build reverse lookup: FastChem species symbol -> FastChem index.
-  // We iterate by index rather than calling getGasSpeciesIndex (which uses
-  // find_if over a pointer vector and triggers an optimizer crash at -O3).
+  // We iterate by index rather than calling getGasSpeciesIndex, whose
+  // find_if loop triggers a GCC -O3 relocation bug in the unrolled tail.
   const unsigned int nb_fc_species = fastchem.getGasSpeciesNumber();
   std::unordered_map<std::string, size_t> fc_index_map;
   for (unsigned int j = 0; j < nb_fc_species; ++j)
@@ -66,11 +66,9 @@ FastChemChemistry::FastChemChemistry(
       fastchem_species_indices[i] = it->second;
   }
 
-  if (fastchem_species_indices[_H] == fastchem::FASTCHEM_UNKNOWN_SPECIES
-      || fastchem_species_indices[_O] == fastchem::FASTCHEM_UNKNOWN_SPECIES
-      || fastchem_species_indices[_C] == fastchem::FASTCHEM_UNKNOWN_SPECIES)
+  if (fastchem_species_indices[_H] == fastchem::FASTCHEM_UNKNOWN_SPECIES)
   {
-    std::string error_message = "Critical elements (H, C, or O) not found in FastChem\n";
+    std::string error_message = "Critical element (H) not found in FastChem\n";
     throw InvalidInput(std::string ("FastChemChemistry::FastChemChemistry"), error_message);
   }
 
