@@ -395,7 +395,7 @@ if (USE_PYTHON MATCHES ON)
   endif()
   
   
-  target_compile_options(bear_for_py PRIVATE "${OpenMP_CXX_FLAGS}" PRIVATE "-O3" PRIVATE "-march=native" PRIVATE "-fPIC")
+  target_compile_options(bear_for_py PRIVATE "${OpenMP_CXX_FLAGS}" PRIVATE "-O3" PRIVATE "-fPIC")
   target_compile_options(bear_cuda_for_py PRIVATE "-fPIC")
 
   

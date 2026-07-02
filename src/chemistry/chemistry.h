@@ -68,7 +68,7 @@ class Chemistry{
             if (j.id != _TOTAL)
               sum += number_densities[i][j.id]/number_densities[i][_TOTAL];
 
-          if (sum > 1+1e-10)
+          if (sum > 1.1+1e-10)
             return false;
         }
 

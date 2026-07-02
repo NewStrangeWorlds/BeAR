@@ -30,7 +30,7 @@ namespace bear{
 enum chemical_species_id {
   _TOTAL, _H, _He, _C, _O, _Fe, _Fep, _Ca, _Ti, _Tip, _H2, _H2O, _CO2, _CO, _CH4, _HCN, _NH3, _C2H2, 
   _N2, _Na, _K, _H2S, _Hm, _TiO, _VO, _FeH, _SH, _MgO, _AlO, _CaO, _CrH, _MgH, _CaH, _TiH, _OH, _e, 
-  _V, _Vp, _Mn, _Si, _Cr, _Crp, _SiO, _SiO2, _SO2, _CS2, _Co, _Ni, _Mg};
+  _V, _Vp, _Mn, _Si, _Cr, _Crp, _SiO, _SiO2, _SO2, _CS2, _Co, _Ni, _Mg, _13C16O};
 
 
 struct chemistry_data{
@@ -92,7 +92,8 @@ const std::vector<chemistry_data> species_data{ {_TOTAL, "Total", "Total",  0.0}
                                                 {_CS2,   "CS2",   "C1S2",   76.139},
                                                 {_Co,    "Co",    "Co",     58.9332},
                                                 {_Ni,    "Ni",    "Ni",     58.6934},
-                                                {_Mg,    "Mg",    "Mg",     24.3050}
+                                                {_Mg,    "Mg",    "Mg",     24.3050},
+                                                {_13C16O, "13C16O", "C1O1",   28.9982}
                                               };
 }
 }
