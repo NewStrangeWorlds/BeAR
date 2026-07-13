@@ -68,6 +68,19 @@ void HighResObservation::init(const std::string& file_path)
   if (barycentric_velocities.empty())
     barycentric_velocities.assign(nb_exposures, 0.0);
 
+  // Enable exposure (velocity) blurring only when both the orbital period and the
+  // per-exposure integration times are available.
+  exposure_blurring = (orbital_period > 0.0 && exposure_times.size() == nb_exposures);
+
+  if (orbital_period > 0.0 && exposure_times.size() != nb_exposures
+                           && !exposure_times.empty())
+    std::cout << "  WARNING: #exposure_times count (" << exposure_times.size()
+              << ") != nb_exposures (" << nb_exposures
+              << "); exposure blurring disabled\n";
+
+  if (exposure_blurring)
+    std::cout << "  Exposure blurring enabled\n";
+
   loadModelScale(file_path);
 
   if (has_filtering)
@@ -368,6 +381,90 @@ void HighResObservation::interpolateModelOntoOrder(
 }
 
 
+// Exposure (boxcar) blurring via a precomputed cumulative integral.
+// The mean of the model over a wavelength interval [wl_lo, wl_hi] equals
+// (I(wl_hi) - I(wl_lo)) / (wl_hi - wl_lo), where I is the cumulative integral.
+// Cost is O(1) per pixel, independent of the box width.  In the limit delta_v -> 0
+// this reduces exactly to the linear point interpolation of interpolateModelOntoOrder.
+void HighResObservation::interpolateModelOntoOrderBlurred(
+  const SpectralOrder& order,
+  const std::vector<double>& broadened_spectrum,
+  const std::vector<double>& model_cumulative_integral,
+  const std::vector<double>& model_wavelengths,
+  double v_rad,
+  double delta_v,
+  std::vector<double>& model_on_order) const
+{
+  const double c_kms = constants::light_c * 1e-5;  // cm/s -> km/s
+  const size_t N = order.nb_pixels;
+  const size_t n_model = model_wavelengths.size();
+
+  model_on_order.assign(N, 0.0);
+
+  // Box edges in velocity map to Doppler factors.  A higher velocity is a larger
+  // redshift (smaller rest wavelength), so inv_lo (from v_rad + half) < inv_hi.
+  const double half   = 0.5 * std::abs(delta_v);
+  const double inv_lo = 1.0 / (1.0 + (v_rad + half) / c_kms);
+  const double inv_hi = 1.0 / (1.0 + (v_rad - half) / c_kms);
+
+  // Cumulative integral I(wl) evaluated with a running descending bracket.
+  // model_wavelengths is sorted in DESCENDING order (µm).  Returns NaN when wl
+  // falls outside the model grid so the caller can skip that pixel.
+  auto integral_at = [&](double wl, size_t& idx) -> double {
+    if (wl >= model_wavelengths[0] || wl <= model_wavelengths[n_model - 1])
+      return std::nan("");
+
+    // model_wavelengths[idx] <= wl < model_wavelengths[idx-1]
+    while (idx > 1 && model_wavelengths[idx - 1] <= wl) --idx;
+    while (idx < n_model - 1 && model_wavelengths[idx] > wl) ++idx;
+
+    const double w1 = model_wavelengths[idx - 1];  // larger
+    const double w2 = model_wavelengths[idx];      // smaller
+    const double f1 = broadened_spectrum[idx - 1];
+    const double f2 = broadened_spectrum[idx];
+
+    const double d    = w1 - wl;         // >= 0
+    const double f_wl = f1 + (f2 - f1) * (d / (w1 - w2));
+
+    return model_cumulative_integral[idx - 1] + 0.5 * (f1 + f_wl) * d;
+  };
+
+  // Seed the running brackets with a binary search at the first pixel's box edges.
+  // The order spans only a small sub-range of the model grid, so starting from the
+  // array end would force an O(n_model) linear scan on the first pixel (per order,
+  // per exposure).  Subsequent pixels then advance the brackets in O(1).
+  auto seed_bracket = [&](double wl) -> size_t {
+    auto it = std::lower_bound(model_wavelengths.begin(), model_wavelengths.end(),
+                               wl, std::greater<double>());
+    size_t idx = static_cast<size_t>(std::distance(model_wavelengths.begin(), it));
+    if (idx < 1) idx = 1;
+    if (idx > n_model - 1) idx = n_model - 1;
+    return idx;
+  };
+
+  const double wl0 = order.wavelengths[0] * 1e-3;
+  size_t idx_lo = seed_bracket(wl0 * inv_lo);
+  size_t idx_hi = seed_bracket(wl0 * inv_hi);
+
+  for (size_t p = 0; p < N; ++p)
+  {
+    const double wl_base = order.wavelengths[p] * 1e-3;  // nm -> µm
+    const double wl_lo   = wl_base * inv_lo;             // smaller rest wl
+    const double wl_hi   = wl_base * inv_hi;             // larger rest wl
+
+    const double i_lo = integral_at(wl_lo, idx_lo);
+    const double i_hi = integral_at(wl_hi, idx_hi);
+
+    if (std::isnan(i_lo) || std::isnan(i_hi))
+      continue;  // box extends beyond the model grid: leave 0
+
+    // integral_at returns I(wl) = ∫_wl^{λmax} S dλ (integrated *above* wl), so the
+    // box integral ∫_{wl_lo}^{wl_hi} = I(wl_lo) - I(wl_hi) = i_lo - i_hi.
+    model_on_order[p] = (i_lo - i_hi) / (wl_hi - wl_lo);
+  }
+}
+
+
 void HighResObservation::initDeviceMemory()
 {
   // Compute total pixels across all orders and max pixels per order
@@ -434,6 +531,17 @@ void HighResObservation::initDeviceMemory()
 
   std::vector<float> vbary_float(barycentric_velocities.begin(), barycentric_velocities.end());
   moveToDevice(barycentric_velocities_dev, vbary_float);
+
+  // Upload the per-exposure exposure-blur coefficient (2*pi/P)*t_exp.  Kept null
+  // when blurring is disabled so the kernels fall back to point interpolation.
+  if (exposure_blurring)
+  {
+    std::vector<float> blur_coeff(nb_exposures);
+    for (size_t e = 0; e < nb_exposures; ++e)
+      blur_coeff[e] = static_cast<float>(
+        (2.0 * constants::pi / orbital_period) * exposure_times[e]);
+    moveToDevice(exposure_blur_coeff_dev, blur_coeff);
+  }
 
   // Precompute per-order-per-exposure data mean and sf2 (variance)
   std::vector<float> data_mean_h(nb_orders * nb_exposures);
@@ -534,6 +642,8 @@ void HighResObservation::freeDeviceMemory()
   if (order_nb_pixels_dev != nullptr) deleteFromDevice(order_nb_pixels_dev);
   if (orbital_phases_dev != nullptr) deleteFromDevice(orbital_phases_dev);
   if (barycentric_velocities_dev != nullptr) deleteFromDevice(barycentric_velocities_dev);
+  if (exposure_blur_coeff_dev != nullptr) deleteFromDevice(exposure_blur_coeff_dev);
+  if (blurred_model_dev != nullptr) { deleteFromDevice(blurred_model_dev); blurred_model_dev = nullptr; blurred_model_size = 0; }
   if (data_mean_dev != nullptr) deleteFromDevice(data_mean_dev);
   if (data_sf2_dev != nullptr) deleteFromDevice(data_sf2_dev);
   if (projection_matrices_dev != nullptr) deleteFromDevice(projection_matrices_dev);
@@ -559,6 +669,21 @@ double HighResObservation::computeLogLikelihood(
   const double c_kms = constants::light_c * 1e-5;  // cm/s -> km/s
   double total_log_like = 0;
 
+  // Exposure blurring: precompute the cumulative trapezoidal integral of the model
+  // once (shared by all orders and exposures).  model_wavelengths is descending, so
+  // (lambda[k-1] - lambda[k]) > 0 and the integral increases with index.  Kept in
+  // double for precision over the full high-res grid.
+  std::vector<double> model_cumint;
+  if (exposure_blurring)
+  {
+    const size_t n_model = model_wavelengths.size();
+    model_cumint.assign(n_model, 0.0);
+    for (size_t k = 1; k < n_model; ++k)
+      model_cumint[k] = model_cumint[k-1]
+        + 0.5 * (broadened_spectrum[k-1] + broadened_spectrum[k])
+              * (model_wavelengths[k-1] - model_wavelengths[k]);
+  }
+
   // Process each order (parallelized over orders)
   #pragma omp parallel for reduction(+:total_log_like) schedule(dynamic, 1)
   for (size_t ord = 0; ord < nb_orders; ++ord)
@@ -566,8 +691,10 @@ double HighResObservation::computeLogLikelihood(
     const auto& order = spectral_orders[ord];
     const size_t N = order.nb_pixels;
 
-    // 1) Interpolate model at all exposures with optional sub-exposure averaging
-    //    (box filter for orbital motion within exposure) and optional phase function.
+    // 1) Interpolate the model at all exposures.  When exposure blurring is active,
+    //    the model is box-averaged over the intra-exposure velocity drift (a running
+    //    mean via the precomputed cumulative integral, O(1) per pixel) instead of
+    //    point-sampled.  Optional Lambertian phase function applied afterwards.
     std::vector<std::vector<double>> model_matrix(
       nb_exposures, std::vector<double>(N, 0.0));
 
@@ -577,8 +704,25 @@ double HighResObservation::computeLogLikelihood(
       const double v_rad = (kp_ref + Kp) * std::sin(2.0 * constants::pi * (phase + dphi))
                            + (vsys_ref + Vsys) + barycentric_velocities[exp];
       const double inv   = 1.0 / (1.0 + v_rad / c_kms);
-      interpolateModelOntoOrder(order, broadened_spectrum, model_wavelengths,
-                                inv, model_matrix[exp]);
+
+      // Full width of the intra-exposure velocity smear (km/s).  Only the planet's
+      // orbital term accelerates over an exposure; Vsys and v_bary are ~constant.
+      double delta_v = 0.0;
+      if (exposure_blurring)
+        delta_v = (kp_ref + Kp)
+                * std::cos(2.0 * constants::pi * (phase + dphi))
+                * (2.0 * constants::pi / orbital_period)
+                * exposure_times[exp];
+
+      // Box-average the model when the smear is non-negligible (near conjunction);
+      // otherwise (near quadrature, or blurring disabled) point-interpolate.
+      if (exposure_blurring && std::abs(delta_v) > 1.0e-3)
+        interpolateModelOntoOrderBlurred(order, broadened_spectrum, model_cumint,
+                                         model_wavelengths, v_rad, delta_v,
+                                         model_matrix[exp]);
+      else
+        interpolateModelOntoOrder(order, broadened_spectrum, model_wavelengths,
+                                  inv, model_matrix[exp]);
 
       if (use_phase_function)
       {
@@ -802,6 +946,36 @@ void HighResObservation::computeLogLikelihoodGPU(
   const float alpha_gpu = (likelihood_mode == HighResLikelihoodMode::marginalized_alpha)
     ? -1.0f : static_cast<float>(alpha);
 
+  // Exposure blurring: pre-convolve the model with the per-exposure boxcar once, then
+  // let the likelihood kernels point-interpolate the blurred copy.  This keeps the box
+  // averaging out of the (memory-bound) interpolation hot loops.
+  const float* per_exposure_model_dev = nullptr;
+
+  if (exposure_blurring)
+  {
+    const size_t needed = nb_exposures * nb_model_points;
+
+    if (blurred_model_dev == nullptr || blurred_model_size != needed)
+    {
+      if (blurred_model_dev != nullptr) deleteFromDevice(blurred_model_dev);
+      allocateOnDevice(blurred_model_dev, needed);
+      blurred_model_size = needed;
+    }
+
+    launchBoxBlurModel(
+      broadened_spectrum_gpu,
+      model_wavelengths_gpu,
+      static_cast<int>(nb_model_points),
+      orbital_phases_dev,
+      exposure_blur_coeff_dev,
+      static_cast<int>(nb_exposures),
+      static_cast<float>(Kp),
+      static_cast<float>(dphi),
+      blurred_model_dev);
+
+    per_exposure_model_dev = blurred_model_dev;
+  }
+
   if (likelihood_mode == HighResLikelihoodMode::gibson)
   {
     if (has_filtering)
@@ -816,6 +990,7 @@ void HighResObservation::computeLogLikelihoodGPU(
         order_nb_pixels_dev,
         orbital_phases_dev,
         barycentric_velocities_dev,
+        per_exposure_model_dev,
         projection_matrices_dev,
         model_filtered_dev,
         flux_uncertainties_dev,
@@ -848,6 +1023,7 @@ void HighResObservation::computeLogLikelihoodGPU(
         gibson_Sff_dev,
         orbital_phases_dev,
         barycentric_velocities_dev,
+        per_exposure_model_dev,
         static_cast<int>(nb_orders),
         static_cast<int>(nb_exposures),
         max_pixels_per_order,
@@ -873,6 +1049,7 @@ void HighResObservation::computeLogLikelihoodGPU(
       data_sf2_dev,
       orbital_phases_dev,
       barycentric_velocities_dev,
+      per_exposure_model_dev,
       projection_matrices_dev,
       model_filtered_dev,
       static_cast<int>(nb_orders),
@@ -902,6 +1079,7 @@ void HighResObservation::computeLogLikelihoodGPU(
       data_sf2_dev,
       orbital_phases_dev,
       barycentric_velocities_dev,
+      per_exposure_model_dev,
       static_cast<int>(nb_orders),
       static_cast<int>(nb_exposures),
       max_pixels_per_order,

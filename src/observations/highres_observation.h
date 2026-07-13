@@ -117,6 +117,18 @@ class HighResObservation {
     // barycentric correction in pre-processing).
     std::vector<double> barycentric_velocities;
 
+    // --- Exposure (velocity) blurring ---
+    // During a finite exposure the planet's line-of-sight velocity drifts, so the
+    // observed spectrum is the time-average of the instantaneous Doppler-shifted
+    // spectrum: a top-hat (boxcar) in velocity of full width
+    //   dV(phi) = (kp_ref+Kp) * cos(2*pi*(phi+dphi)) * (2*pi/P) * t_exp   [km/s]
+    // maximal at conjunction, zero at quadrature.  Applied as a running-mean of the
+    // model via a precomputed cumulative integral (O(1) per pixel, width-independent).
+    // Enabled when both orbital_period and exposure_times are present in the data file.
+    bool exposure_blurring = false;
+    double orbital_period = 0.0;             // orbital period in seconds
+    std::vector<double> exposure_times;      // per-exposure integration time in seconds
+
     double wavelength_min = 0;
     double wavelength_max = 0;
 
@@ -177,6 +189,21 @@ class HighResObservation {
       double doppler_inv,
       std::vector<double>& model_on_order) const;
 
+    // Interpolate model onto an order's grid with exposure (boxcar) blurring.
+    // model_cumulative_integral is the cumulative trapezoidal integral of
+    // broadened_spectrum over model_wavelengths (built once per likelihood call).
+    // The value at each pixel is the mean of the model over the velocity interval
+    // [v_rad - |delta_v|/2, v_rad + |delta_v|/2], evaluated as the difference of the
+    // cumulative integral at the two box edges divided by their wavelength span.
+    void interpolateModelOntoOrderBlurred(
+      const SpectralOrder& order,
+      const std::vector<double>& broadened_spectrum,
+      const std::vector<double>& model_cumulative_integral,
+      const std::vector<double>& model_wavelengths,
+      double v_rad,
+      double delta_v,
+      std::vector<double>& model_on_order) const;
+
     // --- GPU buffers ---
     // Flattened GPU buffers for the unfiltered kernel
     float* all_wavelengths_dev = nullptr;   // flattened order wavelengths (nm)
@@ -185,6 +212,15 @@ class HighResObservation {
     int* order_nb_pixels_dev = nullptr;     // pixels per order
     float* orbital_phases_dev = nullptr;
     float* barycentric_velocities_dev = nullptr;
+    // Per-exposure exposure-blur coefficient (2*pi/P) * t_exp [dimensionless];
+    // delta_v = Kp * cos(2*pi*(phi+dphi)) * coeff.  Null when blurring is disabled.
+    float* exposure_blur_coeff_dev = nullptr;
+    // Per-exposure boxcar-blurred model, [nb_exposures * nb_model_points].  Rebuilt
+    // each likelihood call by launchBoxBlurModel; allocated lazily (nb_model_points
+    // is only known at call time) inside the const GPU likelihood method.  Null when
+    // blurring is disabled.
+    mutable float* blurred_model_dev = nullptr;
+    mutable size_t blurred_model_size = 0;
     float* data_mean_dev = nullptr;         // [nb_orders * nb_exposures]
     double* data_sf2_dev = nullptr;         // [nb_orders * nb_exposures]
     int max_pixels_per_order = 0;

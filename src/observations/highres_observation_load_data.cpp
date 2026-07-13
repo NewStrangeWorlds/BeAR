@@ -99,6 +99,25 @@ void HighResObservation::loadDataFile(const std::string& file_path)
       std::cout << "  Barycentric velocities loaded: "
                 << nb_exposures << " values\n";
     }
+    else if (line == "#orbital_period")
+    {
+      // Orbital period given in days; stored internally in seconds.
+      double period_days = 0.0;
+      file >> period_days;
+      orbital_period = period_days * 86400.0;
+      std::getline(file, line);
+      std::cout << "  Orbital period: " << period_days << " days "
+                << "(exposure blurring)\n";
+    }
+    else if (line == "#exposure_times")
+    {
+      // Per-exposure integration time in seconds.
+      exposure_times.resize(nb_exposures);
+      for (size_t i = 0; i < nb_exposures; ++i)
+        file >> exposure_times[i];
+      std::getline(file, line);
+      std::cout << "  Exposure times loaded: " << nb_exposures << " values\n";
+    }
     else if (line.substr(0, 6) == "#order")
     {
       // Parse order index (not strictly needed, read sequentially)

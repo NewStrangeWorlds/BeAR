@@ -25,6 +25,21 @@
 namespace bear {
 
 
+// Exposure blurring, pre-convolution stage.  Builds a per-exposure boxcar-blurred
+// copy of the model (blurred_model_dev, layout [exposure * n_model + k]) so the
+// likelihood kernels can point-interpolate it with no per-pixel box averaging.
+// Kp must already include kp_ref.  Launch only when blurring is active.
+void launchBoxBlurModel(
+    const float* broadened_spectrum_dev,
+    const double* model_wavelengths_dev,
+    int n_model,
+    const float* orbital_phases_dev,
+    const float* exposure_blur_coeff_dev,
+    int nb_exposures,
+    float Kp, float dphi,
+    float* blurred_model_dev);
+
+
 // Launch the GPU kernel for Brogi & Line 2019 high-res log-likelihood.
 // Computes Doppler-shifted interpolation of the broadened model onto each
 // spectral order's wavelength grid, then evaluates the B&L cross-correlation
@@ -45,6 +60,7 @@ void launchHighResLogLike(
     const double* data_sf2_dev,
     const float* orbital_phases_dev,
     const float* v_bary_dev,
+    const float* per_exposure_model_dev,
     int nb_orders,
     int nb_exposures,
     int max_pixels_per_order,
@@ -81,6 +97,7 @@ void launchHighResLogLikeFiltered(
     const double* data_sf2_dev,
     const float* orbital_phases_dev,
     const float* v_bary_dev,
+    const float* per_exposure_model_dev,
     const float* projection_matrices_dev,
     float* model_filtered_dev,
     int nb_orders,
@@ -111,6 +128,7 @@ void launchHighResLogLikeGibson(
     const double* gibson_Sff_dev,
     const float* orbital_phases_dev,
     const float* v_bary_dev,
+    const float* per_exposure_model_dev,
     int nb_orders,
     int nb_exposures,
     int max_pixels_per_order,
@@ -132,6 +150,7 @@ void launchHighResLogLikeFilteredGibson(
     const int* order_nb_pixels_dev,
     const float* orbital_phases_dev,
     const float* v_bary_dev,
+    const float* per_exposure_model_dev,
     const float* projection_matrices_dev,
     float* model_filtered_dev,
     const float* flux_uncertainties_dev,
