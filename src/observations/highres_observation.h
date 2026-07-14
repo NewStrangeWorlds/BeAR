@@ -206,7 +206,7 @@ class HighResObservation {
 
     // --- GPU buffers ---
     // Flattened GPU buffers for the unfiltered kernel
-    float* all_wavelengths_dev = nullptr;   // flattened order wavelengths (nm)
+    double* all_wavelengths_dev = nullptr;   // flattened order wavelengths (nm)
     float* all_flux_dev = nullptr;          // flattened flux [per order: nb_exp * nb_pix]
     int* order_offsets_dev = nullptr;       // pixel offset per order
     int* order_nb_pixels_dev = nullptr;     // pixels per order
@@ -215,12 +215,6 @@ class HighResObservation {
     // Per-exposure exposure-blur coefficient (2*pi/P) * t_exp [dimensionless];
     // delta_v = Kp * cos(2*pi*(phi+dphi)) * coeff.  Null when blurring is disabled.
     float* exposure_blur_coeff_dev = nullptr;
-    // Per-exposure boxcar-blurred model, [nb_exposures * nb_model_points].  Rebuilt
-    // each likelihood call by launchBoxBlurModel; allocated lazily (nb_model_points
-    // is only known at call time) inside the const GPU likelihood method.  Null when
-    // blurring is disabled.
-    mutable float* blurred_model_dev = nullptr;
-    mutable size_t blurred_model_size = 0;
     float* data_mean_dev = nullptr;         // [nb_orders * nb_exposures]
     double* data_sf2_dev = nullptr;         // [nb_orders * nb_exposures]
     int max_pixels_per_order = 0;

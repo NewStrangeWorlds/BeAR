@@ -25,21 +25,6 @@
 namespace bear {
 
 
-// Exposure blurring, pre-convolution stage.  Builds a per-exposure boxcar-blurred
-// copy of the model (blurred_model_dev, layout [exposure * n_model + k]) so the
-// likelihood kernels can point-interpolate it with no per-pixel box averaging.
-// Kp must already include kp_ref.  Launch only when blurring is active.
-void launchBoxBlurModel(
-    const float* broadened_spectrum_dev,
-    const double* model_wavelengths_dev,
-    int n_model,
-    const float* orbital_phases_dev,
-    const float* exposure_blur_coeff_dev,
-    int nb_exposures,
-    float Kp, float dphi,
-    float* blurred_model_dev);
-
-
 // Launch the GPU kernel for Brogi & Line 2019 high-res log-likelihood.
 // Computes Doppler-shifted interpolation of the broadened model onto each
 // spectral order's wavelength grid, then evaluates the B&L cross-correlation
@@ -52,7 +37,7 @@ void launchHighResLogLike(
     const float* broadened_spectrum_dev,
     const double* model_wavelengths_dev,
     int n_model,
-    const float* order_wavelengths_dev,
+    const double* order_wavelengths_dev,
     const float* order_flux_dev,
     const int* order_offsets_dev,
     const int* order_nb_pixels_dev,
@@ -60,14 +45,15 @@ void launchHighResLogLike(
     const double* data_sf2_dev,
     const float* orbital_phases_dev,
     const float* v_bary_dev,
-    const float* per_exposure_model_dev,
+    const float* exposure_blur_coeff_dev,
     int nb_orders,
     int nb_exposures,
     int max_pixels_per_order,
     float Kp, float Vsys, float dphi,
     float alpha,
     double* d_log_like_dev,
-    const float* stellar_spectrum_dev = nullptr);
+    const float* stellar_spectrum_dev = nullptr,
+    bool use_phase_function = false);
 
 
 // Filtered variant: Gibson et al. 2022 fast model filtering.
@@ -89,7 +75,7 @@ void launchHighResLogLikeFiltered(
     const float* broadened_spectrum_dev,
     const double* model_wavelengths_dev,
     int n_model,
-    const float* order_wavelengths_dev,
+    const double* order_wavelengths_dev,
     const float* order_flux_dev,
     const int* order_offsets_dev,
     const int* order_nb_pixels_dev,
@@ -97,7 +83,7 @@ void launchHighResLogLikeFiltered(
     const double* data_sf2_dev,
     const float* orbital_phases_dev,
     const float* v_bary_dev,
-    const float* per_exposure_model_dev,
+    const float* exposure_blur_coeff_dev,
     const float* projection_matrices_dev,
     float* model_filtered_dev,
     int nb_orders,
@@ -118,7 +104,7 @@ void launchHighResLogLikeGibson(
     const float* broadened_spectrum_dev,
     const double* model_wavelengths_dev,
     int n_model,
-    const float* order_wavelengths_dev,
+    const double* order_wavelengths_dev,
     const float* order_flux_dev,
     const int* order_offsets_dev,
     const int* order_nb_pixels_dev,
@@ -128,14 +114,15 @@ void launchHighResLogLikeGibson(
     const double* gibson_Sff_dev,
     const float* orbital_phases_dev,
     const float* v_bary_dev,
-    const float* per_exposure_model_dev,
+    const float* exposure_blur_coeff_dev,
     int nb_orders,
     int nb_exposures,
     int max_pixels_per_order,
     float Kp, float Vsys, float dphi,
     float alpha,
     double* d_log_like_dev,
-    const float* stellar_spectrum_dev = nullptr);
+    const float* stellar_spectrum_dev = nullptr,
+    bool use_phase_function = false);
 
 
 // Gibson Eq. 4 filtered variant: uses existing interp+filter kernel (Kernel 1),
@@ -144,13 +131,13 @@ void launchHighResLogLikeFilteredGibson(
     const float* broadened_spectrum_dev,
     const double* model_wavelengths_dev,
     int n_model,
-    const float* order_wavelengths_dev,
+    const double* order_wavelengths_dev,
     const float* order_flux_dev,
     const int* order_offsets_dev,
     const int* order_nb_pixels_dev,
     const float* orbital_phases_dev,
     const float* v_bary_dev,
-    const float* per_exposure_model_dev,
+    const float* exposure_blur_coeff_dev,
     const float* projection_matrices_dev,
     float* model_filtered_dev,
     const float* flux_uncertainties_dev,
@@ -163,7 +150,8 @@ void launchHighResLogLikeFilteredGibson(
     float Kp, float Vsys, float dphi,
     float alpha,
     double* d_log_like_dev,
-    const float* stellar_spectrum_dev = nullptr);
+    const float* stellar_spectrum_dev = nullptr,
+    bool use_phase_function = false);
 
 
 }
