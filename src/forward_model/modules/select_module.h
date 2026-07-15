@@ -65,7 +65,7 @@ inline std::unique_ptr<Module> selectModule(
   if (it == modules::description.end())
   {
     std::string error_message = "Module " + model_type + " unknown!\n";
-    throw InvalidInput(std::string ("forward_model.config"), error_message);
+    throw InvalidInput(std::string ("forward_model.toml"), error_message);
   }
 
 
@@ -82,7 +82,7 @@ inline std::unique_ptr<Module> selectModule(
       {
         std::string error_message =
           "Stellar activity module requires at least one parameter!\n";
-        throw InvalidInput(std::string ("forward_model.config"), error_message);
+        throw InvalidInput(std::string ("forward_model.toml"), error_message);
       }
       return std::make_unique<StellarContamination>(
           parameters,
@@ -93,7 +93,7 @@ inline std::unique_ptr<Module> selectModule(
       {
         std::string error_message =
           "Velocity broadening module does not require any parameters!\n";
-        throw InvalidInput(std::string ("forward_model.config"), error_message);
+        throw InvalidInput(std::string ("forward_model.toml"), error_message);
       }
       return std::make_unique<VelocityBroadening>(
           parameters,
@@ -104,7 +104,7 @@ inline std::unique_ptr<Module> selectModule(
       {
         std::string error_message =
           "Phase-resolved broadening module does not require any parameters!\n";
-        throw InvalidInput(std::string ("forward_model.config"), error_message);
+        throw InvalidInput(std::string ("forward_model.toml"), error_message);
       }
       return std::make_unique<PhaseResolvedBroadening>(
           parameters,

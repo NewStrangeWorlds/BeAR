@@ -1,0 +1,6 @@
+delete_sampler_files = true
+save_spectra = true
+save_temperatures = true
+save_effective_temperatures = true
+save_contribution_functions = false
+species_to_save = []

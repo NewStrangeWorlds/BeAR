@@ -68,7 +68,7 @@ inline std::unique_ptr<Temperature> selectTemperatureProfile(
   if (it == temp_profile_modules::description.end())
   {
     std::string error_message = "Temperature profile type " + profile_type + " unknown!\n";
-    throw InvalidInput(std::string ("forward_model.config"), error_message);
+    throw InvalidInput(std::string ("forward_model.toml"), error_message);
   }
 
 
@@ -85,7 +85,7 @@ inline std::unique_ptr<Temperature> selectTemperatureProfile(
       {
         std::string error_message =
           "Piesewise polynomial temperature profile requires exactly two parameters!\n";
-        throw InvalidInput(std::string ("forward_model.config"), error_message);
+        throw InvalidInput(std::string ("forward_model.toml"), error_message);
       }
       return std::make_unique<PiecewisePolynomialTemperature>(
           std::stoi(parameters[0]),
@@ -100,7 +100,7 @@ inline std::unique_ptr<Temperature> selectTemperatureProfile(
       {
         std::string error_message =
           "Cubic B spline temperature profile requires exactly one parameter!\n";
-        throw InvalidInput(std::string ("forward_model.config"), error_message);
+        throw InvalidInput(std::string ("forward_model.toml"), error_message);
       }
       return std::make_unique<CubicBSplineTemperature>(std::stoi(parameters[0]));
 
@@ -109,7 +109,7 @@ inline std::unique_ptr<Temperature> selectTemperatureProfile(
       {
         std::string error_message =
           "Guillot temperature profile requires exactly one parameter!\n";
-        throw InvalidInput(std::string ("forward_model.config"), error_message);
+        throw InvalidInput(std::string ("forward_model.toml"), error_message);
       }
       return std::make_unique<GuillotTemperature>(parameters[0]);
 
@@ -118,7 +118,7 @@ inline std::unique_ptr<Temperature> selectTemperatureProfile(
       {
         std::string error_message =
           "Adiabate Cubic B spline temperature profile requires exactly one parameter!\n";
-        throw InvalidInput(std::string ("forward_model.config"), error_message);
+        throw InvalidInput(std::string ("forward_model.toml"), error_message);
       }
       return std::make_unique<AdiabateSplineTemperature>(std::stoi(parameters[0]));
 
@@ -133,7 +133,7 @@ inline std::unique_ptr<Temperature> selectTemperatureProfile(
       {
         std::string error_message =
           "PCHIP temperature profile requires exactly one parameter!\n";
-        throw InvalidInput(std::string ("forward_model.config"), error_message);
+        throw InvalidInput(std::string ("forward_model.toml"), error_message);
       }
       return std::make_unique<PchipTemperature>(std::stoi(parameters[0]));
   }

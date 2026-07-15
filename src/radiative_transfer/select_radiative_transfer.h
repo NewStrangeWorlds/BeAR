@@ -64,7 +64,7 @@ inline std::unique_ptr<RadiativeTransfer> selectRadiativeTransfer(
   if (it == rt_modules::description.end())
   {
     std::string error_message = "Radiative transfer type " + rt_type + " unknown!\n";
-    throw InvalidInput(std::string ("forward_model.config"), error_message);
+    throw InvalidInput(std::string ("forward_model.toml"), error_message);
   }
 
 
@@ -84,7 +84,7 @@ inline std::unique_ptr<RadiativeTransfer> selectRadiativeTransfer(
       if (parameters.size() != 1)
       {
         std::string error_message = "Discrete ordinate radiative transfer requires exactly one parameter (number of streams)!\n";
-        throw InvalidInput(std::string ("forward_model.config"), error_message);
+        throw InvalidInput(std::string ("forward_model.toml"), error_message);
       }
       return std::make_unique<DiscreteOrdinates>(
           spectral_grid,
@@ -96,7 +96,7 @@ inline std::unique_ptr<RadiativeTransfer> selectRadiativeTransfer(
       if (parameters.size() != 1)
       {
         std::string error_message = "Adding-doubling radiative transfer requires exactly one parameter (number of quadrature points)!\n";
-        throw InvalidInput(std::string ("forward_model.config"), error_message);
+        throw InvalidInput(std::string ("forward_model.toml"), error_message);
       }
       return std::make_unique<AddingDoubling>(
           spectral_grid,

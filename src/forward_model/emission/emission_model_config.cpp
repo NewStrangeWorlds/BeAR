@@ -32,11 +32,11 @@
 namespace bear{
 
 
-EmissionModelConfig::EmissionModelConfig (const std::string& folder_path)
+EmissionModelConfig::EmissionModelConfig (
+  const std::string& folder_path,
+  const std::string& file_name)
 {
-  const std::string config_file_name = folder_path + "forward_model.config";
-
-  readConfigFile(config_file_name);
+  readConfigFile(folder_path + file_name);
 }
 
 
@@ -107,48 +107,30 @@ EmissionModelConfig::EmissionModelConfig (
 
 void EmissionModelConfig::readConfigFile(const std::string& file_name)
 {
-  std::fstream file;
-  file.open(file_name.c_str(), std::ios::in);
+  std::cout << "Parameters read from " << file_name << " :\n";
 
-  if (file.fail())
-    throw FileNotFound(std::string ("EmissionModelConfig::readConfigFile"), file_name);
-
-  std::string line;
-  std::string input;
+  toml::table cfg = parseConfigFile(file_name);
 
   std::vector<double> pressure_boundaries;
-  
-  readAtmosphereConfig(file, nb_grid_points, pressure_boundaries);
+
+  readAtmosphereConfig(cfg, nb_grid_points, pressure_boundaries);
   atmos_boundaries[0] = pressure_boundaries[0];
   atmos_boundaries[1] = pressure_boundaries[1];
 
-  readTemperatureConfig(file, temperature_profile_model, temperature_profile_parameters);
+  readModelBlock(cfg, "temperature",
+    temperature_profile_model, temperature_profile_parameters, "Temperature profile");
 
-  readCloudConfig(file, cloud_model, cloud_model_parameters);
+  readModelList(cfg, "clouds",
+    cloud_model, cloud_model_parameters, /*skip_none=*/true, /*required=*/false, "Cloud model");
 
-  //the radiative transfer input
-  std::getline(file, line);
-  std::getline(file, line);
-  
-  std::istringstream input_stream(line);
-  input_stream.str(line); input_stream.clear();
+  readModelBlock(cfg, "radiative_transfer",
+    radiative_transfer_model, radiative_transfer_parameters, "Radiative transfer model");
 
-  input_stream >> radiative_transfer_model;
+  readModelList(cfg, "chemistry",
+    chemistry_model, chemistry_parameters, /*skip_none=*/false, /*required=*/true, "Chemistry model");
 
-  while (input_stream >> input)
-    radiative_transfer_parameters.push_back(input);
-
-  std::cout << "- Radiative transfer model: " << radiative_transfer_model;
-  for (auto & i : radiative_transfer_parameters) std::cout << "  " << i;
-  std::cout << "\n";
-
-  std::getline(file, line);
-
-  readChemistryConfig(file, chemistry_model, chemistry_parameters);
-  
-  readOpacityConfig(file, opacity_species_symbol, opacity_species_folder);
-
-  file.close();
+  readOpacityConfig(cfg, "opacity",
+    opacity_species_symbol, opacity_species_folder, /*required=*/true);
 }
 
 

@@ -80,7 +80,8 @@ struct PhaseCurveConfig : public GenericConfig{
   double highres_stellar_smooth_sigma = 0.0;
 
   PhaseCurveConfig (
-    const std::string& folder_path);
+    const std::string& folder_path,
+    const std::string& file_name = "forward_model.toml");
   PhaseCurveConfig (
     const int nb_grid_points_,
     const double atmos_bottom_pressure_,
@@ -122,7 +123,8 @@ class PhaseCurvePostProcessConfig : public GenericConfig{
     std::vector<chemical_species_id> species_to_save;
 
     PhaseCurvePostProcessConfig (
-      const std::string& folder_path);
+      const std::string& folder_path,
+      const std::string& file_name = "post_process.toml");
     PhaseCurvePostProcessConfig (
       const bool save_temperatures_,
       const bool save_spectra_,

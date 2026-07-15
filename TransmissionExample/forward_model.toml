@@ -1,0 +1,27 @@
+fit_mode = "no"
+use_variable_gravity = false
+
+atmosphere = { nb_grid_points = 150, bottom_pressure = 10, top_pressure = 1e-6 }
+
+temperature = { model = "const", params = [] }
+
+clouds = []
+
+modules = []
+
+chemistry = [
+  { model = "iso", params = ["H2O", "TiO", "VO", "K"] },
+  { model = "bg", params = ["H2He"] },
+]
+
+opacity = [
+  { species = "CIA-H2-H2", folder = "CIA/H2-H2" },
+  { species = "CIA-H2-He", folder = "CIA/H2-He" },
+  { species = "H2", folder = "Rayleigh" },
+  { species = "He", folder = "Rayleigh" },
+  { species = "H2O", folder = "Molecules/1H2-16O__POKAZATEL_e2b" },
+  { species = "TiO", folder = "Molecules/48Ti-16O__Toto" },
+  { species = "VO", folder = "Molecules/51V-16O__VOMYT_e2b" },
+  { species = "K", folder = "Alkali_Allard/K" },
+  { species = "Na", folder = "Alkali_Allard/Na" },
+]

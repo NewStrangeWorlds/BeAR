@@ -50,7 +50,8 @@ class OccultationBlackBodyConfig : public GenericConfig{
     std::vector<std::string> stellar_model_parameters;
 
     OccultationBlackBodyConfig (
-      const std::string& folder_path);
+      const std::string& folder_path,
+      const std::string& file_name = "forward_model.toml");
     OccultationBlackBodyConfig (
       const std::string stellar_spectrum_model_,
       const std::vector<std::string>& stellar_model_parameters_);
@@ -66,7 +67,8 @@ class OccultationBlackBodyPostConfig : public GenericConfig{
     bool delete_sampler_files = false;
 
     OccultationBlackBodyPostConfig (
-      const std::string& folder_path);
+      const std::string& folder_path,
+      const std::string& file_name = "post_process.toml");
     OccultationBlackBodyPostConfig (
       const bool save_spectra_)
       : save_spectra(save_spectra_) {};

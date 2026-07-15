@@ -82,7 +82,9 @@ class TransmissionModelConfig : public GenericConfig{
     std::vector<std::string> opacity_species_symbol;
     std::vector<std::string> opacity_species_folder;
     
-    TransmissionModelConfig (const std::string& folder_path);
+    TransmissionModelConfig (
+      const std::string& folder_path,
+      const std::string& file_name = "forward_model.toml");
     TransmissionModelConfig (
       const int nb_grid_points_,
       const double atmos_bottom_pressure_,
@@ -122,7 +124,8 @@ class TransmissionPostProcessConfig : public GenericConfig{
     std::vector<chemical_species_id> species_to_save;
     
     TransmissionPostProcessConfig (
-      const std::string& folder_path);
+      const std::string& folder_path,
+      const std::string& file_name = "post_process.toml");
     TransmissionPostProcessConfig (
       const bool save_temperatures_, 
       const bool save_spectra_, 

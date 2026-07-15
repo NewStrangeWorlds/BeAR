@@ -57,7 +57,7 @@ inline std::unique_ptr<CloudModel> selectCloudModel(const std::string type, cons
   if (it == cloud_modules::description.end())
   {
     std::string error_message = "Cloud module type " + type + " unknown!\n";
-    throw InvalidInput(std::string ("forward_model.config"), error_message);
+    throw InvalidInput(std::string ("forward_model.toml"), error_message);
   }
 
 

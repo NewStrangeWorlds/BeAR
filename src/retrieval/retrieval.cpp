@@ -167,11 +167,12 @@ Retrieval::Retrieval(
     if (has_highres_observations)
       forward_model->setHighResGrid(spectral_grid_highres.get());
 
-    // Parse priors.config into a name-keyed map. The parameter *ordering* is
-    // defined by the forward model, not by the file layout, so the user may list
-    // priors in any order.
+    // Parse the priors file (name defaults to priors.config, overridable via
+    // retrieval.toml) into a name-keyed map. The parameter *ordering* is defined
+    // by the forward model, not by the file layout, so priors may be listed in
+    // any order.
     auto prior_map = Priors::parseConfigToMap(
-      config->retrieval_folder_path + "priors.config");
+      config->retrieval_folder_path + config->priors_config_file);
 
     // Canonical order: the forward model's own parameter block, followed by the
     // retrieval-layer high-res tail (Kp, Vsys, dphi, and optionally alpha).

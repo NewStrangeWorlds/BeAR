@@ -219,6 +219,21 @@ endif()
 
 
 
+#download the toml++ library if necessary (header-only, for config parsing)
+FetchContent_Declare(
+  tomlplusplus
+  GIT_REPOSITORY https://github.com/marzer/tomlplusplus
+  GIT_TAG        v3.4.0
+)
+
+FetchContent_GetProperties(tomlplusplus)
+
+if (NOT tomlplusplus_POPULATED)
+  FetchContent_Populate(tomlplusplus)
+endif()
+
+
+
 #download FastChem 4, if necessary
 FetchContent_Declare(
   fastchem
@@ -384,6 +399,7 @@ if (USE_PYTHON MATCHES ON)
   add_library(bear_for_py ${SRC})
   target_include_directories(bear_for_py PUBLIC ${boost_math_SOURCE_DIR}/include/)
   target_include_directories(bear_for_py PUBLIC ${eigen_SOURCE_DIR})
+  target_include_directories(bear_for_py PUBLIC ${tomlplusplus_SOURCE_DIR}/include/)
   target_link_libraries(bear_for_py PUBLIC disortpp adding_doubling)
   
   add_library(bear_cuda_for_py ${SRC_CUDA})

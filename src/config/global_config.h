@@ -49,6 +49,12 @@ struct GlobalConfig {
   std::string output_path = "";
   std::string post_output_path = "";
 
+  //optional overrides for the per-run config file names (see retrieval.toml);
+  //let alternate setups live in one directory without renaming
+  std::string forward_model_config_file = "forward_model.toml";
+  std::string priors_config_file = "priors.config";
+  std::string post_process_config_file = "post_process.toml";
+
   unsigned int spectral_disecretisation = 0;
   double spectral_resolution = 0;
   double spectral_resolution_highres = 0;

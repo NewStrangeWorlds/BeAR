@@ -64,7 +64,7 @@ inline std::unique_ptr<StellarSpectrumModel> selectStellarModel(
   if (it == stellar_modules::description.end())
   {
     std::string error_message = "Stellar model " + model_type + " unknown!\n";
-    throw InvalidInput(std::string ("forward_model.config"), error_message);
+    throw InvalidInput(std::string ("forward_model.toml"), error_message);
   }
 
 
@@ -81,7 +81,7 @@ inline std::unique_ptr<StellarSpectrumModel> selectStellarModel(
       {
         std::string error_message =
           "Stellar blackbody model requires no parameters!\n";
-        throw InvalidInput(std::string ("forward_model.config"), error_message);
+        throw InvalidInput(std::string ("forward_model.toml"), error_message);
       }
       return std::make_unique<StarBlackBody>(spectral_grid);
 
@@ -90,7 +90,7 @@ inline std::unique_ptr<StellarSpectrumModel> selectStellarModel(
       {
         std::string error_message =
           "Stellar model requires one parameter (the file path)!\n";
-        throw InvalidInput(std::string ("forward_model.config"), error_message);
+        throw InvalidInput(std::string ("forward_model.toml"), error_message);
       }
       return std::make_unique<StarSpectrumFile>(
           parameters[0],
@@ -101,7 +101,7 @@ inline std::unique_ptr<StellarSpectrumModel> selectStellarModel(
       {
         std::string error_message =
           "Stellar grid model requires one parameter (the parameter file path)!\n";
-        throw InvalidInput(std::string ("forward_model.config"), error_message);
+        throw InvalidInput(std::string ("forward_model.toml"), error_message);
       }
       return std::make_unique<StellarSpectrumGrid>(
           parameters[0],

@@ -71,7 +71,8 @@ class EmissionModelConfig : public GenericConfig {
     std::vector<std::string> opacity_species_folder;
 
     EmissionModelConfig (
-      const std::string& folder_path);
+      const std::string& folder_path,
+      const std::string& file_name = "forward_model.toml");
     EmissionModelConfig (
       const int nb_grid_points_,
       const double atmos_bottom_pressure_,
@@ -113,7 +114,8 @@ class EmissionPostProcessConfig : public GenericConfig{
     std::vector<chemical_species_id> species_to_save;
 
     EmissionPostProcessConfig (
-      const std::string& folder_path);
+      const std::string& folder_path,
+      const std::string& file_name = "post_process.toml");
     EmissionPostProcessConfig (
       const bool save_temperatures_, 
       const bool save_effective_temperatures_, 

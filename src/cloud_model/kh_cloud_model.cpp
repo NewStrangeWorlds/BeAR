@@ -46,7 +46,7 @@ KHCloudModel::KHCloudModel(const std::vector<std::string>& parameters)
     std::string error_message =
       "Expected at least one parameter for the KH non-grey cloud model, but only found "
       + std::to_string(parameters.size()) + "\n";
-    throw InvalidInput(std::string ("forward_model.config"), error_message);
+    throw InvalidInput(std::string ("forward_model.toml"), error_message);
   }
 
   reference_wavelength = std::stod(parameters[0]);

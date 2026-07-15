@@ -74,7 +74,7 @@ inline std::unique_ptr<Chemistry> selectChemistryModule(
   if (it == chemistry_modules::description.end() && it_short == chemistry_modules::description_short.end())
   {
     std::string error_message = "Chemistry type " + chemistry_type + " unknown!\n";
-    throw InvalidInput(std::string ("forward_model.config"), error_message);
+    throw InvalidInput(std::string ("forward_model.toml"), error_message);
   }
 
 
@@ -95,7 +95,7 @@ inline std::unique_ptr<Chemistry> selectChemistryModule(
   {
     if (parameters.size() < 1) {
         std::string error_message = "Equilibrium chemistry requires at least one parameter (the FastChem parameter file)!\n";
-        throw InvalidInput(std::string ("forward_model.config"), error_message);}
+        throw InvalidInput(std::string ("forward_model.toml"), error_message);}
 
     const std::vector<std::string> ratio_specs(parameters.begin() + 1, parameters.end());
 
@@ -114,7 +114,7 @@ inline std::unique_ptr<Chemistry> selectChemistryModule(
   {
     if (parameters.size() != 3) {
         std::string error_message = "Free chemistry requires exactly three parameters!\n";
-        throw InvalidInput(std::string ("forward_model.config"), error_message);}
+        throw InvalidInput(std::string ("forward_model.toml"), error_message);}
 
     return std::make_unique<FreeChemistry>(
         parameters[0],
@@ -127,7 +127,7 @@ inline std::unique_ptr<Chemistry> selectChemistryModule(
   {
     if (parameters.size() != 2) {
         std::string error_message = "Free cubic spline chemistry requires exactly two parameters!\n";
-        throw InvalidInput(std::string ("forward_model.config"), error_message);}
+        throw InvalidInput(std::string ("forward_model.toml"), error_message);}
 
     return std::make_unique<FreeCBSplineChemistry>(
         parameters[0],
@@ -143,7 +143,7 @@ inline std::unique_ptr<Chemistry> selectChemistryModule(
   {
     if (parameters.size() != 1) {
         std::string error_message = "Background chemistry requires exactly one parameter!\n";
-        throw InvalidInput(std::string ("forward_model.config"), error_message);}
+        throw InvalidInput(std::string ("forward_model.toml"), error_message);}
 
     return std::make_unique<BackgroundChemistry>(parameters[0]);
   }
@@ -152,7 +152,7 @@ inline std::unique_ptr<Chemistry> selectChemistryModule(
   {
     if (parameters.size() != 1) {
         std::string error_message = "Step function chemistry requires exactly one parameter!\n";
-        throw InvalidInput(std::string ("forward_model.config"), error_message);}
+        throw InvalidInput(std::string ("forward_model.toml"), error_message);}
 
     return std::make_unique<StepFunctionChemistry>(parameters[0]);
   }
@@ -161,7 +161,7 @@ inline std::unique_ptr<Chemistry> selectChemistryModule(
   {
     if (parameters.size() != 2) {
         std::string error_message = "Free PCHIP chemistry requires exactly two parameters!\n";
-        throw InvalidInput(std::string ("forward_model.config"), error_message);}
+        throw InvalidInput(std::string ("forward_model.toml"), error_message);}
 
     return std::make_unique<FreePchipChemistry>(
         parameters[0],

@@ -36,33 +36,32 @@
 
 namespace bear{
 
-OccultationBlackBodyPostConfig::OccultationBlackBodyPostConfig (const std::string& folder_path)
+OccultationBlackBodyPostConfig::OccultationBlackBodyPostConfig (
+  const std::string& folder_path,
+  const std::string& file_name)
 {
-  const std::string config_file_name = folder_path + "post_process.config";
-
-  readConfigFile(config_file_name);
+  readConfigFile(folder_path + file_name);
 }
 
 
 void OccultationBlackBodyPostConfig::readConfigFile(const std::string& file_name)
 {
-  std::fstream file;
-  file.open(file_name.c_str(), std::ios::in);
+  std::ifstream test_file(file_name.c_str());
 
-  if (file.fail())
+  if (!test_file.good())
   {
     std::cout << "\n Post-process config file not found. Using default options!\n\n";
 
     return;
   }
+  test_file.close();
 
   std::cout << "\nParameters read from " << file_name << " :\n";
 
-  delete_sampler_files = readBooleanParameter(file, "Delete sampler files");
+  toml::table cfg = parseConfigFile(file_name);
 
-  save_spectra = readBooleanParameter(file, "Save posterior spectra");
-
-  file.close();
+  delete_sampler_files = readBooleanParameter(cfg, "delete_sampler_files", delete_sampler_files);
+  save_spectra = readBooleanParameter(cfg, "save_spectra", save_spectra);
 }
 
 
@@ -72,7 +71,8 @@ void OccultationBlackBodyModel::postProcess(
   const size_t best_fit_model,
   bool& delete_unused_files)
 {
-  OccultationBlackBodyPostConfig post_process_config(config->retrieval_folder_path);
+  OccultationBlackBodyPostConfig post_process_config(
+    config->retrieval_folder_path, config->post_process_config_file);
 
   if (post_process_config.delete_sampler_files)
     delete_unused_files = true;

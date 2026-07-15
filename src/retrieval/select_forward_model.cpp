@@ -47,7 +47,7 @@ std::unique_ptr<ForwardModel> Retrieval::selectForwardModel(
     if (model_config == nullptr)
     {
       return std::make_unique<EmissionModel>(
-        EmissionModelConfig (config->retrieval_folder_path),
+        EmissionModelConfig (config->retrieval_folder_path, config->forward_model_config_file),
         config,
         &spectral_grid,
         observations);
@@ -70,7 +70,7 @@ std::unique_ptr<ForwardModel> Retrieval::selectForwardModel(
     if (model_config == nullptr)
     {
       return std::make_unique<OccultationModel>(
-        OccultationConfig (config->retrieval_folder_path),
+        OccultationConfig (config->retrieval_folder_path, config->forward_model_config_file),
         config,
         &spectral_grid,
         observations);
@@ -92,7 +92,7 @@ std::unique_ptr<ForwardModel> Retrieval::selectForwardModel(
     if (model_config == nullptr)
     {
       return std::make_unique<TransmissionModel>(
-        TransmissionModelConfig (config->retrieval_folder_path),
+        TransmissionModelConfig (config->retrieval_folder_path, config->forward_model_config_file),
         config,
         &spectral_grid,
         observations);
@@ -124,7 +124,7 @@ std::unique_ptr<ForwardModel> Retrieval::selectForwardModel(
     if (model_config == nullptr)
     {
       return std::make_unique<OccultationBlackBodyModel>(
-        OccultationBlackBodyConfig (config->retrieval_folder_path),
+        OccultationBlackBodyConfig (config->retrieval_folder_path, config->forward_model_config_file),
         config,
         &spectral_grid,
         observations);
@@ -147,7 +147,7 @@ std::unique_ptr<ForwardModel> Retrieval::selectForwardModel(
     if (model_config == nullptr)
     {
       return std::make_unique<PhaseCurveModel>(
-        PhaseCurveConfig(config->retrieval_folder_path),
+        PhaseCurveConfig(config->retrieval_folder_path, config->forward_model_config_file),
         config,
         &spectral_grid,
         observations);
@@ -166,7 +166,7 @@ std::unique_ptr<ForwardModel> Retrieval::selectForwardModel(
 
 
   std::string error_message = "Unkown forward model found in retrieval config file: " + model_description + "\n";
-  throw InvalidInput(std::string ("retrieval.config"), error_message);
+  throw InvalidInput(std::string ("retrieval.toml"), error_message);
 
   return nullptr;
 }

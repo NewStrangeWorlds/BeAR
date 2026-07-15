@@ -32,11 +32,11 @@
 namespace bear{
 
 
-OccultationBlackBodyConfig::OccultationBlackBodyConfig (const std::string& folder_path)
+OccultationBlackBodyConfig::OccultationBlackBodyConfig (
+  const std::string& folder_path,
+  const std::string& file_name)
 {
-  const std::string config_file_name = folder_path + "forward_model.config";
-
-  readConfigFile(config_file_name);
+  readConfigFile(folder_path + file_name);
 }
 
 
@@ -52,32 +52,12 @@ OccultationBlackBodyConfig::OccultationBlackBodyConfig (
 
 void OccultationBlackBodyConfig::readConfigFile(const std::string& file_name)
 {
-  std::fstream file;
-  file.open(file_name.c_str(), std::ios::in);
+  std::cout << "Parameters read from " << file_name << " :\n";
 
-  
-  if (file.fail())  
-    throw FileNotFound(std::string ("OccultationBlackBodyConfig::readConfigFile"), file_name);
+  toml::table cfg = parseConfigFile(file_name);
 
-  
-  std::string line;
-  std::string input;
-
-  //the stellar spectrum model
-  std::getline(file, line);
-  std::getline(file, line);
-  std::istringstream stellar_input(line);
-
-  stellar_input >> stellar_spectrum_model;
-
-  while (stellar_input >> input)
-    stellar_model_parameters.push_back(input);
-
-  std::cout << "- Stellar spectrum model: " << stellar_spectrum_model;
-  for (auto & i : stellar_model_parameters) std::cout << "  " << i;
-  std::cout << "\n";
-
-  file.close();
+  readModelBlock(cfg, "stellar_spectrum",
+    stellar_spectrum_model, stellar_model_parameters, "Stellar spectrum model");
 }
 
 

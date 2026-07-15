@@ -44,7 +44,8 @@ class FlatLinePostProcessConfig : public GenericConfig{
     bool delete_sampler_files = false;
 
     FlatLinePostProcessConfig (
-      const std::string& folder_path);
+      const std::string& folder_path,
+      const std::string& file_name = "post_process.toml");
     FlatLinePostProcessConfig (
       const bool save_spectra_)
       : save_spectra(save_spectra_) {};
