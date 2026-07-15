@@ -25,6 +25,7 @@
 #include <algorithm>
 #include <vector>
 #include <cmath>
+#include <string>
 
 
 namespace bear {
@@ -37,9 +38,14 @@ PiecewisePolynomialTemperature::PiecewisePolynomialTemperature(
  : temperature_profile(nb_elements_in, polynomial_degree_in, atmos_boundaries)
  , nb_elements{nb_elements_in}, polynomial_degree{polynomial_degree_in}
 {
+  //parameter_names is the source of truth for the parameter count.
+  //param[0] is the bottom temperature; the rest are multiplicative factors.
+  const size_t nb_dof = nb_elements*polynomial_degree + 1;
 
-  nb_parameters = nb_elements*polynomial_degree + 1; //total number of temperature parameters
+  parameter_names.push_back("temp_bottom");
 
+  for (size_t i=1; i<nb_dof; ++i)
+    parameter_names.push_back("temp_b" + std::to_string(i));
 }
 
 
@@ -55,11 +61,11 @@ bool PiecewisePolynomialTemperature::calcProfile(
   temperature.assign(pressure.size(), 0);
 
   //the temperature values at the degrees of freedom
-  std::vector<double> temperature_dof(nb_parameters, 0.0);
+  std::vector<double> temperature_dof(parameters.size(), 0.0);
 
   temperature_dof[0] = parameters[0];
 
-  for (size_t i=1; i<nb_parameters; ++i)
+  for (size_t i=1; i<parameters.size(); ++i)
     temperature_dof[i] = temperature_dof[i-1] * parameters[i];
 
   temperature_profile.setDOFvalues(temperature_dof);

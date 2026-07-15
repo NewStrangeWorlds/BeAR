@@ -32,17 +32,19 @@ namespace bear {
 
 GuillotTemperature::GuillotTemperature(const std::string profile_type)
 {
-  nb_parameters = 5;
+  parameter_names = {"temp_kappa_ir", "temp_irr", "temp_int", "temp_gamma"}; 
 
   std::cout << "\n- Temperature profile: Guillot profile\n\n";
   
   if (profile_type == "beam")
   {
     profile = 0;
+    parameter_names.push_back( "temp_mu");
   }
   else if (profile_type == "isotropic")
   {
     profile = 1;
+    parameter_names.push_back( "temp_f");
   }
   else
   {

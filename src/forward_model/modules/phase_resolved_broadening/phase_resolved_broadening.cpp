@@ -51,7 +51,18 @@ PhaseResolvedBroadening::PhaseResolvedBroadening(
   SpectralGrid* spectral_grid_)
   : spectral_grid(spectral_grid_)
 {
-  nb_parameters = 7;
+  // 7 parameters for the Brogi et al. (2016) transit geometry / broadening.
+  //parameter_names is the source of truth and must match the read order in
+  //modifySpectrum / modifySpectrumGPU (parameter[0..6]):
+  //  [0] v_eq       -> equatorial rotation velocity (km/s)
+  //  [1] v_wind     -> equatorial super-rotation wind velocity (km/s)
+  //  [2] sigma_inst -> instrumental Gaussian width (km/s)
+  //  [3] u1         -> linear quadratic-limb-darkening coefficient
+  //  [4] u2         -> quadratic quadratic-limb-darkening coefficient
+  //  [5] Rp_Rs      -> planet-to-star radius ratio
+  //  [6] impact_b   -> transit impact parameter (stellar radii)
+  parameter_names = {
+    "v_eq", "v_wind", "sigma_inst", "u1", "u2", "rp_rs", "impact_b"};
 
   const size_t n = spectral_grid->wavelength_list.size();
 

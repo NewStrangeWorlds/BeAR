@@ -95,6 +95,12 @@ class ForwardModel{
       const size_t best_fit_model,
       bool& delete_unused_files) = 0;
     virtual size_t parametersNumber() = 0;
+    //Ordered list of retrieval parameter names for this model's own parameter
+    //block (general + module segments), matching the layout of extractParameters.
+    //The retrieval layer appends its own tail (high-res Kp/Vsys/dphi/alpha,
+    //error inflation) on top of this.
+    virtual const std::vector<std::string>& parameterNames() const {
+      return parameter_names;}
     virtual void setHighResGrid(SpectralGrid* grid) {
       spectral_grid_highres = grid; }
     //model-specific tests
@@ -125,6 +131,22 @@ class ForwardModel{
     size_t nb_observation_points = 0;
     size_t nb_spectrum_modifier_param = 0;
     size_t nb_spectral_points = 0;
+
+    //Assembled by the derived model (see e.g. EmissionModel::initModules) in the
+    //exact order that extractParameters slices the parameter vector.
+    std::vector<std::string> parameter_names;
+
+    //Append a sub-module's ordered parameter names to parameter_names. For module
+    //types that can be stacked (e.g. multiple cloud layers), pass total>1 to
+    //suffix each name with a 1-based instance index so names stay unique across
+    //the stack; a single instance keeps its bare name.
+    void appendParameterNames(
+      const std::vector<std::string>& names, size_t index, size_t total)
+    {
+      for (const auto& name : names)
+        parameter_names.push_back(
+          total > 1 ? name + "_" + std::to_string(index + 1) : name);
+    }
 
     virtual void convertSpectrumToObservation(
       const std::vector<double>& spectrum, 

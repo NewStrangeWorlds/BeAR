@@ -32,7 +32,7 @@ namespace bear {
 
 MadhusudhanSeagerTemperature::MadhusudhanSeagerTemperature()
 {
-  nb_parameters = 6;
+  parameter_names = {"temp_t0", "temp_log_p1", "temp_log_p2", "temp_log_p3", "temp_alpha1", "temp_alpha2"};
 
   std::cout << "\n- Temperature profile: Madhusudhan & Seager (2009)\n\n";
 }

@@ -22,6 +22,7 @@
 #define _module_h
 
 #include <vector>
+#include <string>
 #include <iostream>
 #include "../../CUDA_kernels/data_management_kernels.h"
 
@@ -42,9 +43,10 @@ class Module{
       const std::vector<double>& parameter,
       Atmosphere* atmosphere,
       float* spectrum_gpu) = 0;
-    size_t nbParameters() {return nb_parameters;}
+    size_t nbParameters() {return parameter_names.size();}
+    const std::vector<std::string>& parameterNames() const {return parameter_names;}
   protected:
-    size_t nb_parameters {};
+    std::vector<std::string> parameter_names;
 };
 
 }

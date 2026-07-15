@@ -38,7 +38,8 @@ SmoothedStellarSpectrum::SmoothedStellarSpectrum(
   , sigma_px_(sigma_px)
   , use_gpu_(use_gpu)
 {
-  nb_parameters = inner_->nbParameters();
+  //forward the wrapped model's parameter names (and hence its count)
+  parameter_names = inner_->parameterNames();
   std::cout << "  Stellar spectrum smoothing enabled: sigma = "
             << sigma_px_ << " px\n";
 }
@@ -98,7 +99,7 @@ std::vector<double> SmoothedStellarSpectrum::calcFlux(
   std::vector<double> raw = inner_->calcFlux(parameter);
   std::vector<double> smoothed = smooth(raw);
 
-  if (nb_parameters == 0)
+  if (parameter_names.empty())
   {
     cpu_cache_   = smoothed;
     cache_valid_ = true;
@@ -129,7 +130,7 @@ void SmoothedStellarSpectrum::calcFluxGPU(
   moveToDevice(out_ptr, smoothed);
 
   // Cache the GPU result for parameter-free models so subsequent calls are instant.
-  if (nb_parameters == 0 && gpu_cache_ == nullptr)
+  if (parameter_names.empty() && gpu_cache_ == nullptr)
     moveToDevice(gpu_cache_, smoothed);  // gpu_cache_ is null → allocates and copies
 }
 

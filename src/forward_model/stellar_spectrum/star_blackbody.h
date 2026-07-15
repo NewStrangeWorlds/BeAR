@@ -38,7 +38,7 @@ class StarBlackBody : public StellarSpectrumModel{
   public:
     StarBlackBody (SpectralGrid* spectral_grid_) 
       : spectral_grid(spectral_grid_)
-      {nb_parameters = 1;}
+      {parameter_names = {"star_t_eff"};}
     virtual ~StarBlackBody() {}
     
     virtual std::vector<double> calcFlux(

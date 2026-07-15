@@ -45,6 +45,21 @@ void OccultationBlackBodyModel::initModules(
     spectral_grid);
 
   nb_stellar_param = stellar_model->nbParameters();
+
+
+  //Assemble the ordered list of parameter names. The order here MUST match the
+  //slicing in OccultationBlackBodyModel::extractParameters:
+  //  general | stellar | spectrum modifier
+  parameter_names.clear();
+
+  parameter_names.push_back("planet_temperature");
+  parameter_names.push_back("radius_ratio");
+
+  for (auto & name : stellar_model->parameterNames())
+    parameter_names.push_back(name);
+
+  for (size_t i=0; i<nb_spectrum_modifier_param; ++i)
+    parameter_names.push_back("spectrum_shift_" + std::to_string(i+1));
 }
 
 

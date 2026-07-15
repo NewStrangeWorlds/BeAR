@@ -70,7 +70,17 @@ IsoprofileCLRChemistry::IsoprofileCLRChemistry(const std::vector<std::string>& c
     std::cout << constants::species_data[i].symbol << "  ";
   std::cout << "\n";*/
 
-  nb_parameters = chemical_species.size() - 1;
+  //parameter_names is the source of truth for the parameter count:
+  //the centred-log-ratio prior uses one fewer parameter than the number of
+  //species (the last species is determined by the constraint that the mixing
+  //ratios sum to one). Names follow the isoprofile mr_<species> convention,
+  //using the first (nb_species - 1) species in the listed order.
+  for (size_t i=0; i<chemical_species.size()-1; ++i)
+  {
+    std::string name = chemical_species[i];
+    std::transform(name.begin(), name.end(), name.begin(), ::tolower);
+    parameter_names.push_back("mr_" + name);
+  }
 }
 
 

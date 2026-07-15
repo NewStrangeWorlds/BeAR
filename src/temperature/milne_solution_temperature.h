@@ -33,7 +33,7 @@ namespace bear {
 class MilneTemperature : public Temperature{
   public:
     MilneTemperature() {
-        nb_parameters = 2;
+        parameter_names = {"temp_kappa_ross", "temp_eff"};
         std::cout << "\n- Temperature profile: Milne's solution\n\n";
       }
     virtual ~MilneTemperature() {}

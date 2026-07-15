@@ -36,8 +36,8 @@ BackgroundChemistry::BackgroundChemistry(const std::string& chemical_species)
 { 
   std::cout << "- Chemistry model: " << "background" << "\n";
   std::cout << "  - Species for this model: " << chemical_species << "\n";
-  
-  nb_parameters = 0;
+
+  //no free parameters (parameter_names stays empty -> nbParameters() == 0)
 
   if (chemical_species == "H2He")
   {

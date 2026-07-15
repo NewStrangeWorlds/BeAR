@@ -108,7 +108,20 @@ FastChemChemistry::FastChemChemistry(
 
   std::cout << "\n";
 
-  nb_parameters = 1 + element_ratios.size();
+  //parameter_names is the source of truth for the parameter count:
+  //parameters[0] is the metallicity scaling factor applied to all elements
+  //except H and He; parameters[1..] are the element abundance ratios, one per
+  //requested X/Y specification, in the order they were supplied.
+  parameter_names.push_back("fc_metallicity");
+
+  for (const auto& ratio : element_ratios)
+  {
+    //turn a spec like "C/O" into a snake_case name "c_o_ratio"
+    std::string name = ratio.label;
+    std::replace(name.begin(), name.end(), '/', '_');
+    std::transform(name.begin(), name.end(), name.begin(), ::tolower);
+    parameter_names.push_back("fc_" + name + "_ratio");
+  }
 }
 
 

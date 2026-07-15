@@ -101,6 +101,7 @@ class Retrieval{
        const std::string model_description,
        GenericConfig* model_config);
     void setAdditionalPriors();
+    void writeParameterLegend();
     
     void setObservations(
       const std::vector<ObservationInput>& observation_input);

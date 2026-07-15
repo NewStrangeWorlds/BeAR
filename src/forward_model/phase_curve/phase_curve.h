@@ -146,7 +146,9 @@ class PhaseCurveModel : public ForwardModel{
     virtual ~PhaseCurveModel();
 
     virtual size_t parametersNumber() {
-      return nb_total_param();};
+      //parameter_names is the source of truth once assembled in initModules;
+      //the lightweight test constructor leaves it empty and falls back.
+      return parameter_names.empty() ? nb_total_param() : parameter_names.size();};
 
     virtual bool calcModelCPU(
       const std::vector<double>& parameter,

@@ -47,8 +47,11 @@ FlatLine::FlatLine (
 {
   std::cout << "Forward model selected: Flat line\n\n"; 
 
-  //this forward model has three free general parameters
+  //this forward model has a single free general parameter
   nb_general_param = 1;
+
+  //parameter_names is the source of truth; the flat line has one parameter
+  parameter_names = {"spectrum_value"};
 }
 
 

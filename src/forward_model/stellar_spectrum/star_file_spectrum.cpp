@@ -43,8 +43,8 @@ StarSpectrumFile::StarSpectrumFile(
   SpectralGrid* spectral_grid_)
   : spectral_grid(spectral_grid_)
 {
-  nb_parameters = 0;
-  
+  //no free parameters (parameter_names stays empty -> nbParameters() == 0)
+
   std::vector<double> spectrum_file;
   std::vector<double> wavelength_file;
 
@@ -60,8 +60,8 @@ StarSpectrumFile::StarSpectrumFile(
   SpectralGrid* spectral_grid_)
   : spectral_grid(spectral_grid_)
 {
-  nb_parameters = 0;
-  
+  //no free parameters (parameter_names stays empty -> nbParameters() == 0)
+
   std::vector<double> flux = flux_;
 
   //convert from W m-2 mu-1 to W m-2 cm

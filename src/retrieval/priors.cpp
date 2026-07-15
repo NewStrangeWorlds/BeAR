@@ -24,6 +24,9 @@
 #include <cmath>
 #include <vector>
 #include <algorithm>
+#include <map>
+#include <set>
+#include <sstream>
 
 #include "priors.h"
 
@@ -106,6 +109,73 @@ void Priors::printInfo()
 
 
 
+//Writes a small legend that maps each column of the posterior file to the prior
+//it corresponds to. The posterior rows are laid out as
+//  p_0  p_1  ...  p_(numberFree()-1)  log_likelihood
+//with the parameter columns in the order of the compressed sampling cube.
+void Priors::writeParameterList(const std::string& file_path)
+{
+  std::fstream file(file_path.c_str(), std::ios::out);
+
+  if (file.fail())
+  {
+    std::cout << "Warning: could not write parameter list to " << file_path << "\n";
+    return;
+  }
+
+  const size_t nb_free = numberFree();
+
+  file << "# BeAR posterior parameter legend\n";
+  file << "# Each sampled parameter below is one column of the posterior file,\n";
+  file << "# in this order:  p_0  p_1  ...  p_" << (nb_free == 0 ? 0 : nb_free - 1)
+       << "  log_likelihood\n";
+  file << "# (the final posterior column is the log-likelihood and is not listed here)\n";
+  file << "#\n";
+  file << "# column\tparameter\n";
+
+  size_t column = 0;
+
+  for (size_t i=0; i<distributions.size(); ++i)
+  {
+    //fixed (delta) priors have free_cube_index < 0; linked priors share their
+    //target's column and do not add one of their own
+    if (free_cube_index[i] >= 0
+        && distributions[i]->distributionType() != "Linked prior")
+    {
+      file << column << "\t" << distributions[i]->parameterName() << "\n";
+      ++column;
+    }
+  }
+
+  //for completeness, note the priors that do not get their own posterior column
+  bool has_non_sampled = false;
+
+  for (size_t i=0; i<distributions.size(); ++i)
+    if (distributions[i]->isFixed()
+        || distributions[i]->distributionType() == "Linked prior")
+      has_non_sampled = true;
+
+  if (has_non_sampled)
+  {
+    file << "#\n# not sampled (no posterior column of their own):\n";
+
+    for (size_t i=0; i<distributions.size(); ++i)
+    {
+      if (distributions[i]->distributionType() == "Linked prior")
+        file << "#   " << distributions[i]->parameterName()
+             << "\tlinked (shares column " << free_cube_index[i] << ")\n";
+      else if (distributions[i]->isFixed())
+        file << "#   " << distributions[i]->parameterName() << "\tfixed\n";
+    }
+  }
+
+  file.close();
+
+  std::cout << "Wrote posterior parameter legend to " << file_path << "\n";
+}
+
+
+
 void Priors::add(
   const std::vector<PriorConfig>& priors_config)
 {
@@ -113,7 +183,8 @@ void Priors::add(
   std::vector<std::string> description(priors_config.size(), "");
   std::vector<std::vector<double>> parameter(priors_config.size(), std::vector<double>());
   std::vector<std::string> unit(priors_config.size(), "");
-  
+  std::vector<std::string> link_target(priors_config.size(), "");
+
   for (size_t i=0; i<priors_config.size(); ++i)
   {
     type[i] = priors_config[i].type;
@@ -121,14 +192,15 @@ void Priors::add(
 
     for (size_t j=0; j<priors_config[i].parameter.size(); ++j)
       parameter[i].push_back(priors_config[i].parameter[j]);
-    
+
     unit[i] = priors_config[i].unit;
+    link_target[i] = priors_config[i].link_target;
   }
-  
+
   for (size_t i=0; i<priors_config.size(); ++i)
     addSingle(type[i], description[i], parameter[i], unit[i]);
 
-  setupLinkedPriors(type, description, parameter);
+  setupLinkedPriors(type, description, link_target);
 }
 
 
@@ -241,14 +313,10 @@ void Priors::addSingle(
 
   if (type == "linked")
   {
-    if (parameter.size() != 1)
-    {
-      std::string error_message = "linked prior " + description + " requires one parameter!\n";
-      throw InvalidInput(std::string ("pirors.config"), error_message);
-    }
-    
-    DeltaPrior* delta_prior = new DeltaPrior(
-      description, parameter[0], "");
+    //Placeholder only; the real LinkedPrior is created in setupLinkedPriors once
+    //every distribution exists and the target name can be resolved. The value
+    //here is irrelevant since the placeholder is deleted there.
+    DeltaPrior* delta_prior = new DeltaPrior(description, 0.0, "");
     distributions.push_back(delta_prior);
 
     return;
@@ -264,31 +332,53 @@ void Priors::addSingle(
 void Priors::setupLinkedPriors(
   const std::vector<std::string>& type,
   const std::vector<std::string>& description,
-  const std::vector<std::vector<double>>& parameter)
+  const std::vector<std::string>& link_target)
 {
-  prior_links.assign(type.size(), 0);
+  //add() may run more than once (model parameters, then the error-inflation
+  //prior). Grow prior_links to cover all distributions while preserving earlier
+  //entries — assigning to type.size() here would truncate a previous batch's
+  //links and corrupt the free_cube_index lookup below. Linked priors only ever
+  //occur in the first batch, where the batch index equals the global index.
+  prior_links.resize(distributions.size(), 0);
 
   for (size_t i=0; i<type.size(); ++i)
   {
     if (type[i] == "linked")
     {
-      //delete the place holder
-      delete(distributions[i]);
-      
-      size_t prior_index = static_cast<int>(parameter[i][0]) - 1;
+      //resolve the link target by NAME to its position in the canonical order
+      size_t prior_index = 0;
+      bool found = false;
 
-      if (prior_index > type.size())
+      for (size_t j=0; j<description.size(); ++j)
+        if (description[j] == link_target[i])
+        {
+          prior_index = j;
+          found = true;
+          break;
+        }
+
+      if (!found)
       {
-        std::string error_message = "Linked prior " + description[i] + " wrong index for link!\n";
-        throw InvalidInput(std::string ("pirors.config"), error_message);
+        std::string error_message = "Linked prior '" + description[i]
+          + "' references unknown target parameter '" + link_target[i] + "'!\n";
+        throw InvalidInput(std::string ("priors.config"), error_message);
       }
-      
+
+      if (prior_index == i)
+      {
+        std::string error_message = "Linked prior '" + description[i] + "' cannot link to itself!\n";
+        throw InvalidInput(std::string ("priors.config"), error_message);
+      }
+
       if (type[prior_index] == "linked")
       {
-        std::string error_message = "Linked prior " + description[i] + " Can not link prior to another linked prior!\n";
-        throw InvalidInput(std::string ("pirors.config"), error_message);
+        std::string error_message = "Linked prior '" + description[i] + "' cannot link to another linked prior!\n";
+        throw InvalidInput(std::string ("priors.config"), error_message);
       }
- 
+
+      //delete the place holder now that the target is validated
+      delete(distributions[i]);
+
       LinkedPrior* linked_prior = new LinkedPrior(description[i], distributions[prior_index]);
       distributions[i] = linked_prior;
       prior_links[i] = prior_index;
@@ -312,9 +402,14 @@ void Priors::setupLinkedPriors(
 
 
 size_t Priors::numberFree() const {
-  size_t n = 0;
-  for (int idx : free_cube_index) if (idx >= 0) n++;
-  return n;
+  //Number of distinct slots in the compressed free-parameter cube. Linked priors
+  //share their target's slot, so counting every free_cube_index >= 0 would
+  //over-count them as extra dimensions; take (max index + 1) instead. With no
+  //linked priors this is identical to counting the non-fixed distributions.
+  int max_index = -1;
+  for (int idx : free_cube_index)
+    if (idx > max_index) max_index = idx;
+  return static_cast<size_t>(max_index + 1);
 }
 
 
@@ -327,6 +422,154 @@ std::vector<double> Priors::expandFreeToFull(const std::vector<double>& free_phy
       full[i] = free_phys[free_cube_index[i]];
   }
   return full;
+}
+
+
+
+//Parse priors.config into a name-keyed map. Unlike readConfigFile this is
+//order-independent: the "description" column is used as the parameter name/key.
+//Blank lines and lines starting with '#' are skipped.
+std::map<std::string, PriorConfig> Priors::parseConfigToMap(
+  const std::string& file_path)
+{
+  std::fstream file;
+  file.open(file_path.c_str(), std::ios::in);
+
+  if (file.fail())
+    throw FileNotFound(std::string ("Priors::parseConfigToMap"), file_path);
+
+  auto is_number = [](const std::string& s){
+    std::istringstream iss(s);
+    double d;
+    return iss >> std::noskipws >> d && iss.eof();};
+
+  std::map<std::string, PriorConfig> prior_map;
+  std::string line;
+
+  while (std::getline(file, line))
+  {
+    std::istringstream input(line);
+
+    std::string type, description;
+    input >> type >> description;
+
+    if (type.empty() || type[0] == '#')
+      continue;
+
+    if (prior_map.count(description))
+    {
+      std::string error_message = "Duplicate prior name '" + description + "' in priors.config!\n";
+      throw InvalidInput(std::string ("priors.config"), error_message);
+    }
+
+    //A linked prior carries the NAME of the parameter it links to (not numbers).
+    //Resolution to a slot happens later against the canonical parameter order.
+    if (type == "linked")
+    {
+      std::string target;
+      input >> target;
+
+      if (target.empty())
+      {
+        std::string error_message = "linked prior '" + description
+          + "' requires a target parameter name!\n";
+        throw InvalidInput(std::string ("priors.config"), error_message);
+      }
+
+      PriorConfig config(type, description, std::vector<double>{}, "");
+      config.link_target = target;
+      prior_map.emplace(description, config);
+
+      continue;
+    }
+
+    std::vector<std::string> parameter;
+    std::string single_parameter;
+
+    while (input >> single_parameter)
+      parameter.push_back(single_parameter);
+
+    if (parameter.empty())
+    {
+      std::string error_message = "Prior '" + description + "' has no parameters!\n";
+      throw InvalidInput(std::string ("priors.config"), error_message);
+    }
+
+    std::vector<double> double_parameter;
+    std::string unit = "";
+
+    const size_t nb_numbers = is_number(parameter.back())
+      ? parameter.size() : parameter.size() - 1;
+
+    for (size_t i=0; i<nb_numbers; ++i)
+    {
+      if (is_number(parameter[i]) == false)
+      {
+        std::string error_message = "Prior value " + parameter[i] + " cannot be converted into a number!\n";
+        throw InvalidInput(std::string ("priors.config"), error_message);
+      }
+
+      double_parameter.push_back(std::stod(parameter[i]));
+    }
+
+    if (nb_numbers < parameter.size())
+      unit = parameter.back();
+
+    prior_map.emplace(
+      description,
+      PriorConfig(type, description, double_parameter, unit));
+  }
+
+  file.close();
+
+  return prior_map;
+}
+
+
+
+//Build the prior distributions in the canonical order given by ordered_names,
+//looking each up by name in the parsed map. Missing or stray priors are hard
+//errors with a descriptive message - replacing the old positional count check.
+void Priors::initFromMap(
+  const std::map<std::string, PriorConfig>& prior_map,
+  const std::vector<std::string>& ordered_names)
+{
+  std::vector<PriorConfig> priors_config;
+  priors_config.reserve(ordered_names.size());
+
+  for (const auto& name : ordered_names)
+  {
+    auto it = prior_map.find(name);
+
+    if (it == prior_map.end())
+    {
+      std::string error_message =
+        "No prior found in priors.config for required parameter '" + name + "'.\n"
+        "Expected parameters (in canonical order):\n";
+
+      for (const auto& n : ordered_names)
+        error_message += "  " + n + "\n";
+
+      throw InvalidInput(std::string ("Priors::initFromMap"), error_message);
+    }
+
+    priors_config.push_back(it->second);
+  }
+
+  //flag any priors in the file that don't correspond to a model parameter
+  //(typo guard - this was silently impossible to detect with positional parsing)
+  const std::set<std::string> expected(ordered_names.begin(), ordered_names.end());
+
+  for (const auto& entry : prior_map)
+    if (expected.count(entry.first) == 0)
+    {
+      std::string error_message =
+        "Prior '" + entry.first + "' in priors.config matches no model parameter.\n";
+
+      throw InvalidInput(std::string ("Priors::initFromMap"), error_message);
+    }
+
+  add(priors_config);
 }
 
 

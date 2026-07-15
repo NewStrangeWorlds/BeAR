@@ -83,9 +83,32 @@ void EmissionModel::initModules(const EmissionModelConfig& model_config)
   
   //count the total number of free parameters for the cloud modules
   nb_total_cloud_param = 0;
-  
+
   for (auto & i : cloud_models)
     nb_total_cloud_param += i->nbParameters();
+
+
+  //Assemble the ordered list of parameter names for this model's parameter
+  //block. The order here MUST match the slicing in EmissionModel::extractParameters:
+  //  general | chemistry | temperature | cloud | spectrum modifier
+  parameter_names.clear();
+
+  parameter_names.push_back("log_g");
+  parameter_names.push_back("scaling_factor");
+  parameter_names.push_back("distance");
+
+  for (auto & i : chemistry)
+    for (auto & name : i->parameterNames())
+      parameter_names.push_back(name);
+
+  for (auto & name : temperature_profile->parameterNames())
+    parameter_names.push_back(name);
+
+  for (size_t c=0; c<cloud_models.size(); ++c)
+    appendParameterNames(cloud_models[c]->parameterNames(), c, cloud_models.size());
+
+  for (size_t i=0; i<nb_spectrum_modifier_param; ++i)
+    parameter_names.push_back("spectrum_shift_" + std::to_string(i+1));
 }
 
 

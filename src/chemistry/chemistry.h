@@ -22,6 +22,7 @@
 #define _chemistry_h
 
 #include <vector>
+#include <string>
 
 
 #include "chem_species.h"
@@ -39,9 +40,10 @@ class Chemistry{
       const std::vector<double>& pressure,
       std::vector<std::vector<double>>& number_densities,
       std::vector<double>& mean_molecular_weight) = 0;
-    size_t nbParameters() {return nb_parameters;}
+    size_t nbParameters() {return parameter_names.size();}
+    const std::vector<std::string>& parameterNames() const {return parameter_names;}
   protected:
-    size_t nb_parameters {};
+    std::vector<std::string> parameter_names;
     std::vector<chemical_species_id> species;
 
     void meanMolecularWeight(

@@ -22,6 +22,7 @@
 #define _cloud_model_h
 
 #include <vector>
+#include <string>
 
 #include "../forward_model/atmosphere/atmosphere.h"
 #include "../spectral_grid/spectral_grid.h"
@@ -57,9 +58,10 @@ class CloudModel{
       const size_t nb_grid_points,
       const size_t nb_spectral_points,
       float* extinction_coeff_dev);
-    size_t nbParameters() {return nb_parameters;}
+    size_t nbParameters() {return parameter_names.size();}
+    const std::vector<std::string>& parameterNames() const {return parameter_names;}
   protected:
-    size_t nb_parameters {};
+    std::vector<std::string> parameter_names;
 };
 
 

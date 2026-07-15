@@ -42,7 +42,10 @@ PchipTemperature::PchipTemperature(const size_t nb_control_points_)
     throw InvalidInput(std::string ("PchipTemperature::PchipTemperature"), error_message);
   }
 
-  nb_parameters = nb_control_points;
+  //parameter_names is the source of truth for the parameter count.
+  //param[0] is the bottom (deepest, highest-pressure) control-point temperature.
+  for (size_t i=0; i<nb_control_points; ++i)
+    parameter_names.push_back("temp_t" + std::to_string(i));
 }
 
 
@@ -60,7 +63,7 @@ bool PchipTemperature::calcProfile(
 
   std::vector<double> temperature_control_point(nb_control_points, 0.0);
 
-  for (size_t i = 0; i < nb_parameters; ++i)
+  for (size_t i = 0; i < nb_control_points; ++i)
     temperature_control_point[i] = parameters[i];
 
   std::reverse(temperature_control_point.begin(), temperature_control_point.end());

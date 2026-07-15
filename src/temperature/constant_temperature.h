@@ -33,7 +33,7 @@ namespace bear {
 
 class ConstantTemperature : public Temperature{
   public:
-    ConstantTemperature() {nb_parameters = 1;}
+    ConstantTemperature() {parameter_names = {"temperature"};}
     virtual ~ConstantTemperature() {}
     virtual bool calcProfile(
       const std::vector<double>& parameters,

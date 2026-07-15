@@ -100,6 +100,8 @@ Retrieval::Retrieval(
 
   priors.printInfo();
 
+  writeParameterLegend();
+
   if (config->use_gpu)
     initGPUMemory();
 }
@@ -165,31 +167,29 @@ Retrieval::Retrieval(
     if (has_highres_observations)
       forward_model->setHighResGrid(spectral_grid_highres.get());
 
-    // High-res parameters: always Kp and Vsys; optionally alpha.
-    // Detect alpha by counting lines in priors.config vs expected model params.
-    size_t nb_highres_param = 0;
+    // Parse priors.config into a name-keyed map. The parameter *ordering* is
+    // defined by the forward model, not by the file layout, so the user may list
+    // priors in any order.
+    auto prior_map = Priors::parseConfigToMap(
+      config->retrieval_folder_path + "priors.config");
+
+    // Canonical order: the forward model's own parameter block, followed by the
+    // retrieval-layer high-res tail (Kp, Vsys, dphi, and optionally alpha).
+    std::vector<std::string> ordered_names = forward_model->parameterNames();
 
     if (has_highres_observations)
     {
-      nb_highres_param = 3;  // Kp, Vsys, dphi
+      ordered_names.push_back("kp");
+      ordered_names.push_back("vsys");
+      ordered_names.push_back("dphi");
 
-      // Peek at priors.config to check if alpha is included (3rd high-res param).
-      // Count lines the same way as Priors::readConfigFile: every non-empty line.
-      const std::string priors_file = config->retrieval_folder_path + "priors.config";
-      std::ifstream pf(priors_file);
-      size_t nb_prior_lines = 0;
-      std::string line;
+      // alpha is a free parameter iff the user supplied a prior named "alpha".
+      // This replaces the old heuristic of counting lines in priors.config.
+      use_free_alpha = prior_map.count("alpha") > 0;
 
-      while (std::getline(pf, line))
+      if (use_free_alpha)
       {
-        if (!line.empty())
-          ++nb_prior_lines;
-      }
-
-      if (nb_prior_lines == forward_model->parametersNumber() + 4)
-      {
-        use_free_alpha = true;
-        nb_highres_param = 4;
+        ordered_names.push_back("alpha");
 
         for (auto& obs : highres_observations)
         {
@@ -209,9 +209,7 @@ Retrieval::Retrieval(
       }
     }
 
-    priors.init(
-      config->retrieval_folder_path,
-      forward_model->parametersNumber() + nb_highres_param);
+    priors.initFromMap(prior_map, ordered_names);
   }
   catch(std::runtime_error& e)
   {
@@ -222,6 +220,8 @@ Retrieval::Retrieval(
   setAdditionalPriors();
 
   priors.printInfo();
+
+  writeParameterLegend();
 
   if (config->use_gpu)
   {
@@ -275,6 +275,21 @@ void Retrieval::setAdditionalPriors()
           std::string("error exponent"),
           std::vector<double>{error_min, error_max})});
   }
+}
+
+
+
+//Writes the legend that maps posterior columns to prior names next to the other
+//retrieval output, once all priors (including any additional ones) are set up.
+void Retrieval::writeParameterLegend()
+{
+  std::string output_folder = config->output_path.empty()
+    ? config->retrieval_folder_path : config->output_path;
+
+  if (!output_folder.empty() && output_folder.back() != '/')
+    output_folder += '/';
+
+  priors.writeParameterList(output_folder + "cube_parameters.dat");
 }
 
 

@@ -42,7 +42,15 @@ AdiabateSplineTemperature::AdiabateSplineTemperature(const size_t nb_control_poi
     throw InvalidInput(std::string ("AdiabateSplineTemperature::AdiabateSplineTemperature"), error_message);
   }
 
-  nb_parameters = nb_control_points + 2;
+  //parameter_names is the source of truth for the parameter count:
+  //radiative-convective boundary pressure, adiabatic index and bottom
+  //temperature, followed by the spline control points above the boundary.
+  parameter_names.push_back("temp_pressure_rcb");
+  parameter_names.push_back("temp_conv_gamma");
+  parameter_names.push_back("temp_bottom");
+
+  for (size_t i=1; i<nb_control_points; ++i)
+    parameter_names.push_back("temp_t" + std::to_string(i));
 }
 
 
@@ -56,7 +64,7 @@ bool AdiabateSplineTemperature::calcProfile(
   const std::vector<double>& pressure,
   std::vector<double>& temperature)
 {
-  if (parameters.size() != nb_parameters)
+  if (parameters.size() != parameter_names.size())
     std::cout << "The number of free parameters is not equal to the number of control points + 2!\n";
   
   temperature.assign(pressure.size(), 0);

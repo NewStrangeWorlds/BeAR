@@ -63,7 +63,7 @@ class FlatLine : public ForwardModel{
     virtual ~FlatLine();
 
     virtual size_t parametersNumber() {
-      return nb_total_param();};
+      return parameter_names.empty() ? nb_total_param() : parameter_names.size();};
     
     virtual bool calcModelCPU(
       const std::vector<double>& parameter, 

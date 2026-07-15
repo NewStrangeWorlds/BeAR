@@ -42,7 +42,7 @@ FixedCloudModel::FixedCloudModel(
   const std::vector<std::vector<double>>& single_scattering_albedo,
   const std::vector<std::vector<double>>& asymmetry_parameter)
 {
-  nb_parameters = 0;
+  //no free parameters (parameter_names stays empty -> nbParameters() == 0)
 
   size_t nb_spectral_points = optical_depth[0].size();
   size_t nb_layers = optical_depth.size();

@@ -79,7 +79,14 @@ IsoprofileChemistry::IsoprofileChemistry(const std::vector<std::string>& chemica
     sodium_free_parameter = true;
 
   
-  nb_parameters = chemical_species.size();
+  //parameter_names is the source of truth for the parameter count:
+  //one isoprofile mixing ratio per listed species, named mr_<species>
+  for (auto & i : chemical_species)
+  {
+    std::string name = i;
+    std::transform(name.begin(), name.end(), name.begin(), ::tolower);
+    parameter_names.push_back("mr_" + name);
+  }
 }
 
 

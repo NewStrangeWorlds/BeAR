@@ -117,6 +117,35 @@ void PhaseCurveModel::initModules(const PhaseCurveConfig& model_config)
 
   for (auto & i : modules)
     nb_total_modules_param += i->nbParameters();
+
+
+  //Assemble the ordered list of parameter names for this model's parameter
+  //block. The order here MUST match the slicing in PhaseCurveModel::extractParameters:
+  //  general | stellar | chemistry | temperature | cloud | modules | spectrum modifier
+  parameter_names.clear();
+
+  parameter_names.push_back("log_g");
+  parameter_names.push_back("radius_ratio");
+
+  for (auto & name : stellar_model->parameterNames())
+    parameter_names.push_back(name);
+
+  for (auto & i : chemistry)
+    for (auto & name : i->parameterNames())
+      parameter_names.push_back(name);
+
+  for (auto & name : temperature_profile->parameterNames())
+    parameter_names.push_back(name);
+
+  for (size_t c=0; c<cloud_models.size(); ++c)
+    appendParameterNames(cloud_models[c]->parameterNames(), c, cloud_models.size());
+
+  for (auto & i : modules)
+    for (auto & name : i->parameterNames())
+      parameter_names.push_back(name);
+
+  for (size_t i=0; i<nb_spectrum_modifier_param; ++i)
+    parameter_names.push_back("spectrum_shift_" + std::to_string(i+1));
 }
 
 

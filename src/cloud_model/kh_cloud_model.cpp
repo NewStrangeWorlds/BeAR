@@ -41,13 +41,10 @@ namespace bear{
 KHCloudModel::KHCloudModel(const std::vector<std::string>& parameters)
  : GreyCloudModel(parameters)
 {
-  //general case
-  nb_parameters = 6;
-
   if (parameters.size() < 1)
   {
-    std::string error_message = 
-      "Expected at least one parameter for the KH non-grey cloud model, but only found " 
+    std::string error_message =
+      "Expected at least one parameter for the KH non-grey cloud model, but only found "
       + std::to_string(parameters.size()) + "\n";
     throw InvalidInput(std::string ("forward_model.config"), error_message);
   }
@@ -55,11 +52,19 @@ KHCloudModel::KHCloudModel(const std::vector<std::string>& parameters)
   reference_wavelength = std::stod(parameters[0]);
 
   //fixed bottom case
-  if (parameters.size() == 2 && parameters[1] == "fb") 
-  {
+  if (parameters.size() == 2 && parameters[1] == "fb")
     fixed_bottom = true;
-    nb_parameters = 5;
-  }
+
+  //populate the parameter names in the same order opticalProperties() reads them
+  parameter_names = {
+    "cloud_optical_depth",
+    "cloud_q0",
+    "cloud_a0",
+    "cloud_particle_size",
+    "cloud_top_pressure"};
+
+  if (fixed_bottom == false)
+    parameter_names.push_back("cloud_bottom_fraction");
 
 }
 

@@ -44,7 +44,7 @@ StellarSpectrumGrid::StellarSpectrumGrid(
   SpectralGrid* spectral_grid_)
   : spectral_grid(spectral_grid_)
 {
-  nb_parameters = 3;
+  parameter_names = {"star_t_eff", "star_log_g", "star_metallicity"};
 
   std::string file_name = "grid_parameters.dat";
   

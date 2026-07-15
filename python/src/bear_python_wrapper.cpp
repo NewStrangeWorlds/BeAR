@@ -89,7 +89,8 @@ PYBIND11_MODULE(bear, m) {
         .def_readwrite("type", &bear::PriorConfig::type)
         .def_readwrite("description", &bear::PriorConfig::description)
         .def_readwrite("parameter", &bear::PriorConfig::parameter)
-        .def_readwrite("unit", &bear::PriorConfig::unit);
+        .def_readwrite("unit", &bear::PriorConfig::unit)
+        .def_readwrite("link_target", &bear::PriorConfig::link_target);
 
     py::class_<bear::ForwardModelOutput>(m, "ForwardModelOutput")
         .def(py::init<>())

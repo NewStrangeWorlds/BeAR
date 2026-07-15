@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <vector>
 #include <cmath>
+#include <string>
 
 #include "step_function_chemistry.h"
 
@@ -56,7 +57,17 @@ StepFunctionChemistry::StepFunctionChemistry(
     throw InvalidInput(std::string ("StepFunctionChemistry::StepFunctionChemistry"), error_message);
   }
 
-  nb_parameters = 3;
+  //parameter_names is the source of truth for the parameter count:
+  //three parameters in order: the mixing ratio applied at pressures >=
+  //the transition pressure (parameters[0], deep atmosphere), the mixing ratio
+  //applied at pressures < the transition pressure (parameters[1], upper
+  //atmosphere), and the transition pressure itself (parameters[2]).
+  std::string species_name = chemical_species;
+  std::transform(species_name.begin(), species_name.end(), species_name.begin(), ::tolower);
+
+  parameter_names.push_back("mr_" + species_name + "_deep");
+  parameter_names.push_back("mr_" + species_name + "_upper");
+  parameter_names.push_back("p_transition_" + species_name);
 }
 
 

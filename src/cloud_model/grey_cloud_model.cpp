@@ -39,15 +39,17 @@ namespace bear{
 
 GreyCloudModel::GreyCloudModel(const std::vector<std::string>& parameters)
 {
-  //general case
-  nb_parameters = 3;
-
   //fixed bottom case
-  if (parameters.size() == 1 && parameters[0] == "fb") 
-  {
+  if (parameters.size() == 1 && parameters[0] == "fb")
     fixed_bottom = true;
-    nb_parameters = 2;
-  }
+
+  //populate the parameter names in the same order opticalProperties() reads them
+  parameter_names = {
+    "cloud_optical_depth",
+    "cloud_top_pressure"};
+
+  if (fixed_bottom == false)
+    parameter_names.push_back("cloud_bottom_fraction");
 
 }
 

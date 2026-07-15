@@ -51,7 +51,40 @@ StellarContamination::StellarContamination (
     spectral_grid);
   
   nb_stellar_model_param = stellar_model->nbParameters();
-  nb_parameters = nb_stellar_model_param + 4;
+
+  //parameter_names is the source of truth and always equals the true count:
+  //the stellar model's own parameters (each mirrored with a "tls_" prefix)
+  //followed by the 4 contamination params. These must match the read order in
+  //modifySpectrum():
+  //  [0 .. nb_stellar_model_param-1] -> stellar model parameters
+  //  [nb_stellar_model_param + 0]    -> faculae temperature offset (added)
+  //  [nb_stellar_model_param + 1]    -> spot temperature offset (subtracted)
+  //  [nb_stellar_model_param + 2]    -> faculae covering fraction
+  //  [nb_stellar_model_param + 3]    -> spot covering fraction
+  const std::vector<std::string>& stellar_names = stellar_model->parameterNames();
+
+  //mirror the stellar model's own parameter names, each with a "tls_" prefix
+  //(transit light source effect), so they never collide with a stellar model
+  //used directly by the forward model.
+  if (stellar_names.size() == nb_stellar_model_param)
+  {
+    for (const auto& name : stellar_names)
+      parameter_names.push_back("tls_" + name);
+  }
+  else
+  {
+    //stellar model not yet migrated: fall back to generic names so the total
+    //count still matches nbParameters() in all cases
+    parameter_names.push_back("tls_star_t_eff");
+
+    for (size_t i=1; i<nb_stellar_model_param; ++i)
+      parameter_names.push_back("tls_star_param_" + std::to_string(i));
+  }
+
+  parameter_names.push_back("tls_delta_t_faculae");
+  parameter_names.push_back("tls_delta_t_spot");
+  parameter_names.push_back("tls_fraction_faculae");
+  parameter_names.push_back("tls_fraction_spot");
 }
 
 

@@ -97,6 +97,39 @@ void TransmissionModel::initModules(const TransmissionModelConfig& model_config)
     for (auto & i : modules)
       nb_total_modules_param += i->nbParameters();
     }
+
+
+  //Assemble the ordered list of parameter names. The order here MUST match the
+  //slicing in TransmissionModel::extractParameters:
+  //  general | chemistry | temperature | cloud | modules | spectrum modifier
+  parameter_names.clear();
+
+  parameter_names.push_back("log_g");
+  parameter_names.push_back("bottom_radius");
+  parameter_names.push_back("star_radius");
+
+  //optional 4th general parameter (see nb_general_param in the constructor)
+  if (fit_mean_molecular_weight)
+    parameter_names.push_back("mean_molecular_weight");
+  else if (fit_scale_height)
+    parameter_names.push_back("scale_height");
+
+  for (auto & i : chemistry)
+    for (auto & name : i->parameterNames())
+      parameter_names.push_back(name);
+
+  for (auto & name : temperature_profile->parameterNames())
+    parameter_names.push_back(name);
+
+  for (size_t c=0; c<cloud_models.size(); ++c)
+    appendParameterNames(cloud_models[c]->parameterNames(), c, cloud_models.size());
+
+  for (auto & i : modules)
+    for (auto & name : i->parameterNames())
+      parameter_names.push_back(name);
+
+  for (size_t i=0; i<nb_spectrum_modifier_param; ++i)
+    parameter_names.push_back("spectrum_shift_" + std::to_string(i+1));
 }
 
 

@@ -22,6 +22,7 @@
 #define _temperature_h
 
 #include <vector>
+#include <string>
 #include <cstddef>
 
 
@@ -36,9 +37,10 @@ class Temperature{
       const double surface_gravity,
       const std::vector<double>& pressure,
       std::vector<double>& temperature_profile) = 0;
-    size_t nbParameters() {return nb_parameters;}
+    size_t nbParameters() {return parameter_names.size();}
+    const std::vector<std::string>& parameterNames() const {return parameter_names;}
   protected:
-    size_t nb_parameters {};
+    std::vector<std::string> parameter_names;
     
     bool checkProfile(std::vector<double>& temperature) {
       for (auto & i : temperature)

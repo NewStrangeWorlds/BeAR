@@ -41,8 +41,12 @@ CubicBSplineTemperature::CubicBSplineTemperature(const size_t nb_control_points_
     std::string error_message = "Cubic B spline temperature profile requires at least 5 control points!";
     throw InvalidInput(std::string ("CubicBSplineTemperature::CubicBSplineTemperature"), error_message);
   }
-
-  nb_parameters = nb_control_points;
+  
+  //parameter_names is the source of truth for the parameter count
+  parameter_names.push_back("temp_bottom");
+  
+  for (size_t i=1; i<nb_control_points; ++i)
+    parameter_names.push_back("temp_b" + std::to_string(i));
 }
 
 
@@ -65,7 +69,7 @@ bool CubicBSplineTemperature::calcProfile(
 
   temperature_control_point[0] = parameters[0];
 
-  for (size_t i=1; i<nb_parameters; ++i)
+  for (size_t i=1; i<nb_control_points; ++i)
     temperature_control_point[i] = temperature_control_point[i-1] * parameters[i];
 
   std::reverse(temperature_control_point.begin(), temperature_control_point.end());

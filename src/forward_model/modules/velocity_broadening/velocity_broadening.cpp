@@ -44,7 +44,9 @@ VelocityBroadening::VelocityBroadening (
   : spectral_grid(spectral_grid_)
 {
   // 4 parameters: vsini (km/s), sigma_inst (km/s), epsilon, v_wind (km/s)
-  nb_parameters = 4;
+  //parameter_names is the source of truth and must match the read order in
+  //modifySpectrum (parameter[0..3]).
+  parameter_names = {"vsini", "sigma_inst", "epsilon", "v_wind"};
 
   // Compute velocity spacing from spectral grid.
   // On a log-lambda grid: delta_v = c * (lambda[i+1] - lambda[i]) / lambda[i]

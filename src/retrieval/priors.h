@@ -22,6 +22,7 @@
 
 #include <vector>
 #include <string>
+#include <map>
 #include <iostream>
 #include "prior_types.h"
 
@@ -46,6 +47,10 @@ struct PriorConfig{
   std::string description = "";
   std::vector<double> parameter;
   std::string unit = "";
+  //for type=="linked": the name (description) of the prior to link to.
+  //Order-independent — resolved against the canonical parameter names, not a
+  //file line number.
+  std::string link_target = "";
 };
 
 
@@ -61,6 +66,14 @@ class Priors{
       const std::vector<PriorConfig>& priors_config,
       const size_t nb_total_param);
 
+    //Name-keyed setup: the file layout is order-independent; the canonical
+    //parameter order is supplied by the caller (from the forward model).
+    static std::map<std::string, PriorConfig> parseConfigToMap(
+      const std::string& file_path);
+    void initFromMap(
+      const std::map<std::string, PriorConfig>& prior_map,
+      const std::vector<std::string>& ordered_names);
+
     void add(
       const std::vector<PriorConfig>& priors_config);
     
@@ -68,6 +81,8 @@ class Priors{
     size_t numberFree() const;
     std::vector<double> expandFreeToFull(const std::vector<double>& free_phys) const;
     void printInfo();
+    //writes a legend mapping each posterior parameter column to its prior name
+    void writeParameterList(const std::string& file_path);
 
     std::vector<BasicPrior*> distributions;
     std::vector<size_t> prior_links;
@@ -87,7 +102,7 @@ class Priors{
     void setupLinkedPriors(
       const std::vector<std::string>& type,
       const std::vector<std::string>& description,
-      const std::vector<std::vector<double>>& parameter);
+      const std::vector<std::string>& link_target);
 };
 
 
