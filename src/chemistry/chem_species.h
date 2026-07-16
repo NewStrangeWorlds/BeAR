@@ -30,7 +30,7 @@ namespace bear{
 enum chemical_species_id {
   _TOTAL, _H, _He, _C, _O, _Fe, _Fep, _Ca, _Ti, _Tip, _H2, _H2O, _CO2, _CO, _CH4, _HCN, _NH3, _C2H2, 
   _N2, _Na, _K, _H2S, _Hm, _TiO, _VO, _FeH, _SH, _MgO, _AlO, _CaO, _CrH, _MgH, _CaH, _TiH, _OH, _e, 
-  _V, _Vp, _Mn, _Si, _Cr, _Crp, _SiO, _SiO2, _SO2, _CS2, _Co, _Ni, _Mg, _13C16O};
+  _V, _Vp, _Mn, _Si, _Cr, _Crp, _SiO, _SiO2, _SO2, _CS2, _Co, _Ni, _Mg, _13C16O, _SiS, _SiH, _CH, _HCl, _ScH};
 
 
 struct chemistry_data{
@@ -50,10 +50,10 @@ const std::vector<chemistry_data> species_data{ {_TOTAL, "Total", "Total",  0.0}
                                                 {_C,     "C",     "C",      12.0107},
                                                 {_O,     "O",     "O",      15.999},
                                                 {_Fe,    "Fe",    "Fe",     55.845},
-                                                {_Fep,   "Fe+",   "Fe+",    55.845},
+                                                {_Fep,   "Fe+",   "Fe1+",   55.845},
                                                 {_Ca,    "Ca",    "Ca",     40.078},
                                                 {_Ti,    "Ti",    "Ti",     47.867},
-                                                {_Tip,   "Ti+",   "Ti+",    47.867},
+                                                {_Tip,   "Ti+",   "Ti1+",   47.867},
                                                 {_H2,    "H2",    "H2",     2.01588},
                                                 {_H2O,   "H2O",   "H2O1",   18.01528},
                                                 {_CO2,   "CO2",   "C1O2",   44.01},
@@ -93,7 +93,12 @@ const std::vector<chemistry_data> species_data{ {_TOTAL, "Total", "Total",  0.0}
                                                 {_Co,    "Co",    "Co",     58.9332},
                                                 {_Ni,    "Ni",    "Ni",     58.6934},
                                                 {_Mg,    "Mg",    "Mg",     24.3050},
-                                                {_13C16O, "13C16O", "C1O1",   28.9982}
+                                                {_13C16O, "13C16O", "C1O1",   28.9982},
+                                                {_SiS,   "SiS",   "S1Si1",  60.150},
+                                                {_SiH,   "SiH",   "H1Si1",  29.093},
+                                                {_CH,    "CH",    "C1H1",   13.01},
+                                                {_HCl,   "HCl",   "Cl1H1",  36.46},
+                                                {_ScH,   "ScH",   "H1Sc1",  47.98},
                                               };
 }
 }
