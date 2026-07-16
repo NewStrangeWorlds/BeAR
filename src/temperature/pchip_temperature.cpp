@@ -33,7 +33,9 @@
 namespace bear {
 
 
-PchipTemperature::PchipTemperature(const size_t nb_control_points_)
+PchipTemperature::PchipTemperature(
+  const size_t nb_control_points_,
+  const Parametrisation parametrisation_)
  : nb_control_points{nb_control_points_}
 {
   if (nb_control_points < 4)
@@ -42,10 +44,11 @@ PchipTemperature::PchipTemperature(const size_t nb_control_points_)
     throw InvalidInput(std::string ("PchipTemperature::PchipTemperature"), error_message);
   }
 
+  parametrisation = parametrisation_;
+
   //parameter_names is the source of truth for the parameter count.
   //param[0] is the bottom (deepest, highest-pressure) control-point temperature.
-  for (size_t i=0; i<nb_control_points; ++i)
-    parameter_names.push_back("temp_t" + std::to_string(i));
+  setControlPointNames(nb_control_points);
 }
 
 
@@ -61,10 +64,7 @@ bool PchipTemperature::calcProfile(
 
   double control_points_step = (std::log10(pressure[0]) - std::log10(pressure.back())) / (nb_control_points - 1.0);
 
-  std::vector<double> temperature_control_point(nb_control_points, 0.0);
-
-  for (size_t i = 0; i < nb_control_points; ++i)
-    temperature_control_point[i] = parameters[i];
+  std::vector<double> temperature_control_point = controlTemperatures(parameters);
 
   std::reverse(temperature_control_point.begin(), temperature_control_point.end());
 

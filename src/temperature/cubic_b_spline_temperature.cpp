@@ -33,7 +33,9 @@
 namespace bear {
 
 
-CubicBSplineTemperature::CubicBSplineTemperature(const size_t nb_control_points_)
+CubicBSplineTemperature::CubicBSplineTemperature(
+  const size_t nb_control_points_,
+  const Parametrisation parametrisation_)
  : nb_control_points{nb_control_points_}
 {
   if (nb_control_points < 5)
@@ -41,12 +43,11 @@ CubicBSplineTemperature::CubicBSplineTemperature(const size_t nb_control_points_
     std::string error_message = "Cubic B spline temperature profile requires at least 5 control points!";
     throw InvalidInput(std::string ("CubicBSplineTemperature::CubicBSplineTemperature"), error_message);
   }
-  
+
+  parametrisation = parametrisation_;
+
   //parameter_names is the source of truth for the parameter count
-  parameter_names.push_back("temp_bottom");
-  
-  for (size_t i=1; i<nb_control_points; ++i)
-    parameter_names.push_back("temp_b" + std::to_string(i));
+  setControlPointNames(nb_control_points);
 }
 
 
@@ -65,12 +66,7 @@ bool CubicBSplineTemperature::calcProfile(
   double control_points_step = (std::log10(pressure[0]) - std::log10(pressure.back())) / (nb_control_points - 1.0);
 
 
-  std::vector<double> temperature_control_point(nb_control_points, 0.0);
-
-  temperature_control_point[0] = parameters[0];
-
-  for (size_t i=1; i<nb_control_points; ++i)
-    temperature_control_point[i] = temperature_control_point[i-1] * parameters[i];
+  std::vector<double> temperature_control_point = controlTemperatures(parameters);
 
   std::reverse(temperature_control_point.begin(), temperature_control_point.end());
 

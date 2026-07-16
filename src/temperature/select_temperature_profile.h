@@ -51,6 +51,22 @@ namespace temp_profile_modules{
 }
 
 
+//parse the optional parametrisation keyword ("absolute"/"relative") of a
+//control-point temperature profile; an empty keyword falls back to default_mode
+inline Parametrisation parseParametrisation(
+  const std::string& keyword,
+  const Parametrisation default_mode)
+{
+  if (keyword.empty()) return default_mode;
+  if (keyword == "absolute") return Parametrisation::absolute;
+  if (keyword == "relative") return Parametrisation::relative;
+
+  std::string error_message = "Temperature parametrisation '" + keyword
+    + "' unknown (expected 'absolute' or 'relative')!\n";
+  throw InvalidInput(std::string ("forward_model.toml"), error_message);
+}
+
+
 
 inline std::unique_ptr<Temperature> selectTemperatureProfile(
   const std::string profile_type,
@@ -81,28 +97,35 @@ inline std::unique_ptr<Temperature> selectTemperatureProfile(
   switch (module_id)
   {
     case temp_profile_modules::poly :
-      if (parameters.size() != 2)
+      if (parameters.size() != 2 && parameters.size() != 3)
       {
         std::string error_message =
-          "Piesewise polynomial temperature profile requires exactly two parameters!\n";
+          "Piecewise polynomial temperature profile requires two parameters "
+          "(elements, degree) and an optional parametrisation!\n";
         throw InvalidInput(std::string ("forward_model.toml"), error_message);
       }
       return std::make_unique<PiecewisePolynomialTemperature>(
           std::stoi(parameters[0]),
           std::stoi(parameters[1]),
-          atmos_boundaries);
+          atmos_boundaries,
+          parseParametrisation(
+            parameters.size() > 2 ? parameters[2] : "", Parametrisation::relative));
 
     case temp_profile_modules::milne :
       return std::make_unique<MilneTemperature>();
 
     case temp_profile_modules::cubicbspline :
-      if (parameters.size() != 1)
+      if (parameters.size() != 1 && parameters.size() != 2)
       {
         std::string error_message =
-          "Cubic B spline temperature profile requires exactly one parameter!\n";
+          "Cubic B spline temperature profile requires one parameter "
+          "(control points) and an optional parametrisation!\n";
         throw InvalidInput(std::string ("forward_model.toml"), error_message);
       }
-      return std::make_unique<CubicBSplineTemperature>(std::stoi(parameters[0]));
+      return std::make_unique<CubicBSplineTemperature>(
+          std::stoi(parameters[0]),
+          parseParametrisation(
+            parameters.size() > 1 ? parameters[1] : "", Parametrisation::relative));
 
     case temp_profile_modules::guillot :
       if (parameters.size() != 1)
@@ -129,13 +152,17 @@ inline std::unique_ptr<Temperature> selectTemperatureProfile(
       return std::make_unique<MadhusudhanSeagerTemperature>();
 
     case temp_profile_modules::pchip :
-      if (parameters.size() != 1)
+      if (parameters.size() != 1 && parameters.size() != 2)
       {
         std::string error_message =
-          "PCHIP temperature profile requires exactly one parameter!\n";
+          "PCHIP temperature profile requires one parameter "
+          "(control points) and an optional parametrisation!\n";
         throw InvalidInput(std::string ("forward_model.toml"), error_message);
       }
-      return std::make_unique<PchipTemperature>(std::stoi(parameters[0]));
+      return std::make_unique<PchipTemperature>(
+          std::stoi(parameters[0]),
+          parseParametrisation(
+            parameters.size() > 1 ? parameters[1] : "", Parametrisation::absolute));
   }
 
 

@@ -31,7 +31,9 @@ namespace bear {
 
 class PchipTemperature : public Temperature{
   public:
-    PchipTemperature(const size_t nb_control_points_);
+    PchipTemperature(
+      const size_t nb_control_points_,
+      const Parametrisation parametrisation_);
     virtual ~PchipTemperature() {}
     virtual bool calcProfile(
       const std::vector<double>& parameters,

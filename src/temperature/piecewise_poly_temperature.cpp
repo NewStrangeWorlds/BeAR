@@ -34,18 +34,17 @@ namespace bear {
 PiecewisePolynomialTemperature::PiecewisePolynomialTemperature(
   const size_t nb_elements_in,
   const size_t polynomial_degree_in,
-  const std::vector<double>& atmos_boundaries)
+  const std::vector<double>& atmos_boundaries,
+  const Parametrisation parametrisation_)
  : temperature_profile(nb_elements_in, polynomial_degree_in, atmos_boundaries)
  , nb_elements{nb_elements_in}, polynomial_degree{polynomial_degree_in}
 {
+  parametrisation = parametrisation_;
+
   //parameter_names is the source of truth for the parameter count.
-  //param[0] is the bottom temperature; the rest are multiplicative factors.
   const size_t nb_dof = nb_elements*polynomial_degree + 1;
 
-  parameter_names.push_back("temp_bottom");
-
-  for (size_t i=1; i<nb_dof; ++i)
-    parameter_names.push_back("temp_b" + std::to_string(i));
+  setControlPointNames(nb_dof);
 }
 
 
@@ -61,12 +60,7 @@ bool PiecewisePolynomialTemperature::calcProfile(
   temperature.assign(pressure.size(), 0);
 
   //the temperature values at the degrees of freedom
-  std::vector<double> temperature_dof(parameters.size(), 0.0);
-
-  temperature_dof[0] = parameters[0];
-
-  for (size_t i=1; i<parameters.size(); ++i)
-    temperature_dof[i] = temperature_dof[i-1] * parameters[i];
+  std::vector<double> temperature_dof = controlTemperatures(parameters);
 
   temperature_profile.setDOFvalues(temperature_dof);
 

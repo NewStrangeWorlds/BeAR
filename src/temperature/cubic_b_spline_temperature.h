@@ -31,7 +31,9 @@ namespace bear {
 
 class CubicBSplineTemperature : public Temperature{
   public:
-    CubicBSplineTemperature(const size_t nb_control_points_);
+    CubicBSplineTemperature(
+      const size_t nb_control_points_,
+      const Parametrisation parametrisation_);
     virtual ~CubicBSplineTemperature() {}
     virtual bool calcProfile(
       const std::vector<double>& parameters,
