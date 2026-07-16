@@ -65,9 +65,9 @@ StepFunctionChemistry::StepFunctionChemistry(
   std::string species_name = chemical_species;
   std::transform(species_name.begin(), species_name.end(), species_name.begin(), ::tolower);
 
-  parameter_names.push_back("mr_" + species_name + "_deep");
-  parameter_names.push_back("mr_" + species_name + "_upper");
-  parameter_names.push_back("p_transition_" + species_name);
+  parameter_names.push_back("chem_" + species_name + "_mr_deep");
+  parameter_names.push_back("chem_" + species_name + "_mr_upper");
+  parameter_names.push_back("chem_" + species_name + "_p_transition");
 }
 
 

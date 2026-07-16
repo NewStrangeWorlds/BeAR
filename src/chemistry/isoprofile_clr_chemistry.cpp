@@ -79,7 +79,7 @@ IsoprofileCLRChemistry::IsoprofileCLRChemistry(const std::vector<std::string>& c
   {
     std::string name = chemical_species[i];
     std::transform(name.begin(), name.end(), name.begin(), ::tolower);
-    parameter_names.push_back("mr_" + name);
+    parameter_names.push_back("chem_" + name + "_clr");
   }
 }
 

@@ -82,14 +82,15 @@ FreeChemistry::FreeChemistry(
   //parameter_names is the source of truth for the parameter count:
   //the piecewise polynomial has (nb_elements*polynomial_degree + 1) degrees of
   //freedom. Each parameter is the ABSOLUTE (log) mixing ratio at a DOF node
-  //(parameters[i] is assigned directly to the DOF value), hence the _t suffix.
+  //(parameters[i] is assigned directly to the DOF value), named
+  //chem_<species>_mr_<i> (0-based, absolute log mixing ratio at each DOF).
   const size_t nb_dof = nb_elements*polynomial_degree + 1;
 
   std::string species_name = chemical_species;
   std::transform(species_name.begin(), species_name.end(), species_name.begin(), ::tolower);
 
   for (size_t i=0; i<nb_dof; ++i)
-    parameter_names.push_back("mr_" + species_name + "_t" + std::to_string(i));
+    parameter_names.push_back("chem_" + species_name + "_mr_" + std::to_string(i));
 }
 
 

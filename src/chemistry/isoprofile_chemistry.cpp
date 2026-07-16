@@ -80,12 +80,12 @@ IsoprofileChemistry::IsoprofileChemistry(const std::vector<std::string>& chemica
 
   
   //parameter_names is the source of truth for the parameter count:
-  //one isoprofile mixing ratio per listed species, named mr_<species>
+  //one isoprofile mixing ratio per listed species, named chem_<species>_mr
   for (auto & i : chemical_species)
   {
     std::string name = i;
     std::transform(name.begin(), name.end(), name.begin(), ::tolower);
-    parameter_names.push_back("mr_" + name);
+    parameter_names.push_back("chem_" + name + "_mr");
   }
 }
 
