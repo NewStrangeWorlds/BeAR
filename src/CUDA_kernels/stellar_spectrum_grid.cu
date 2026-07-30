@@ -32,32 +32,6 @@
 namespace bear{
 
 
-__global__ void stellarSpectrumInterpolationOld(
-  const double xd, const double yd, const double zd,
-  const double* c000, const double* c100,
-  const double* c010, const double* c110,
-  const double* c001, const double* c101,
-  const double* c011, const double* c111,
-  const int nb_wavenumbers,
-  double* spectrum_dev)
-{
-  for (int tid = blockIdx.x * blockDim.x + threadIdx.x; tid < nb_wavenumbers; tid += blockDim.x * gridDim.x)
-  {
-    const double c00 = c000[tid] * (1. - xd) + c100[tid]*xd;
-    const double c01 = c001[tid] * (1. - xd) + c101[tid]*xd;
-    const double c10 = c010[tid] * (1. - xd) + c110[tid]*xd;
-    const double c11 = c011[tid] * (1. - xd) + c111[tid]*xd;
-
-    const double c0 = c00 * (1. - yd) + c10*yd;
-    const double c1 = c01 * (1. - yd) + c11*yd;
-
-    const double c = c0 * (1. - zd) + c1 * zd;
-
-    spectrum_dev[tid] = c0 * (1. - zd) + c1 * zd;
-  }
-}
-
-
 __global__ 
 void stellarSpectrumInterpolation(
   const double xd, const double yd, const double zd,

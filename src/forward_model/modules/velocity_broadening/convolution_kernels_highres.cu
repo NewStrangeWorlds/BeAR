@@ -41,6 +41,11 @@
 namespace bear {
 
 
+// One thread per output pixel.  The convolution windows are only a few to a
+// few tens of pixels wide (5 sigma of the instrumental profile, or vsini, in
+// pixel units), so a serial loop per thread is far more efficient than a
+// block-wide reduction: no idle threads, no reduction overhead, and adjacent
+// threads read adjacent windows so the loads stay coalesced.
 __global__
 void convolveGaussianHRKernel(
   const float* __restrict__ spectrum_in,
@@ -49,8 +54,7 @@ void convolveGaussianHRKernel(
   const float               sigma_pixels,
   const int                 half_width)
 {
-  const int i   = blockIdx.x;
-  const int tid = threadIdx.x;
+  const int i = blockIdx.x * blockDim.x + threadIdx.x;
 
   if (i >= n_pixels) return;
 
@@ -62,16 +66,13 @@ void convolveGaussianHRKernel(
 
   float local_sum = 0.0f;
 
-  for (int j = j_start + tid; j <= j_end; j += blockDim.x)
+  for (int j = j_start; j <= j_end; ++j)
   {
     float dx = (float)(j - i);
     local_sum += gaussianKernelHR(dx, inv_2sig2, norm) * spectrum_in[j];
   }
 
-  local_sum = blockReduceSum(local_sum);
-
-  if (tid == 0)
-    spectrum_out[i] = local_sum;
+  spectrum_out[i] = local_sum;
 }
 
 
@@ -83,8 +84,7 @@ void convolveRotationalHRKernel(
   const float               vsini_pixels,
   const float               epsilon)
 {
-  const int i   = blockIdx.x;
-  const int tid = threadIdx.x;
+  const int i = blockIdx.x * blockDim.x + threadIdx.x;
 
   if (i >= n_pixels) return;
 
@@ -94,16 +94,13 @@ void convolveRotationalHRKernel(
 
   float local_sum = 0.0f;
 
-  for (int j = j_start + tid; j <= j_end; j += blockDim.x)
+  for (int j = j_start; j <= j_end; ++j)
   {
     float dx = (float)(j - i);
     local_sum += rotationalKernelHR(dx, vsini_pixels, epsilon) * spectrum_in[j];
   }
 
-  local_sum = blockReduceSum(local_sum);
-
-  if (tid == 0)
-    spectrum_out[i] = local_sum;
+  spectrum_out[i] = local_sum;
 }
 
 
@@ -121,7 +118,7 @@ void applyHighResConvolutionGPU(
   cudaGetLastError();
 
   const int threads = HIGHRES_BLOCK_SIZE;
-  const int blocks  = n_pixels;
+  const int blocks  = (n_pixels + threads - 1) / threads;
 
   const float sigma_pixels = (float)(sigma_kms / delta_v_kms);
   const int   half_width   = (int)ceil(5.0 * sigma_kms / delta_v_kms);

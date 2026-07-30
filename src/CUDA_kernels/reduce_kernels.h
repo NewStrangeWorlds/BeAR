@@ -53,6 +53,9 @@ double blockReduceSum(double val)
   // Each warp performs partial reduction
   val = warpReduceSum(val);
 
+  // Make sure no warp is still reading `shared` from a previous
+  // blockReduceSum call before it is overwritten below
+  __syncthreads();
 
   // Write reduced value to shared memory
   if (lane==0) shared[wid]=val;
@@ -95,6 +98,9 @@ float blockReduceSum(float val)
   // Each warp performs partial reduction
   val = warpReduceSum(val);
 
+  // Make sure no warp is still reading `shared` from a previous
+  // blockReduceSum call before it is overwritten below
+  __syncthreads();
 
   // Write reduced value to shared memory
   if (lane==0) shared[wid]=val;

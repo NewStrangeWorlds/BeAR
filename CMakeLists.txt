@@ -186,7 +186,6 @@ set(SRC_CUDA
   src/CUDA_kernels/observation_kernels.cu
   src/CUDA_kernels/radiative_transfer_kernels.cu
   src/CUDA_kernels/batched_opacity_kernels.cu
-  src/CUDA_kernels/doppler_shift_kernels.cu
   src/CUDA_kernels/highres_loglike_kernels.cu
   src/forward_model/modules/velocity_broadening/convolution_kernels_highres.cu
   src/forward_model/modules/phase_resolved_broadening/convolution_kernels_phase_resolved.cu)

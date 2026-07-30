@@ -518,6 +518,17 @@ Retrieval::~Retrieval()
 std::pair<std::vector<double>, std::vector<double>> Retrieval::convertCubeParameters(
   std::vector<double>& cube)
 {
+  //convertHypercubeParameters writes the converted values back into the cube,
+  //so a too-short cube would corrupt the heap
+  if (cube.size() != priors.numberFree())
+  {
+    std::string error_message =
+      "Number of cube parameters ("  + std::to_string(cube.size())
+      + ") not equal to the number of free parameters of the forward model ("
+      + std::to_string(priors.numberFree()) + ").\n";
+    throw InvalidInput(std::string ("Retrieval::convertCubeParameters"), error_message);
+  }
+
   std::vector<double> parameter;
   std::vector<double> physical_parameter;
 

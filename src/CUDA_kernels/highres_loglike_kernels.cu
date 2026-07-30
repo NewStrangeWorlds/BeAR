@@ -399,53 +399,43 @@ void highResLogLikeKernel(
     phase_w = 0.5f * pf * pf;
   }
 
-  // ---- Pass 1: Interpolate model, accumulate model_sum ----
-  float model_sum = 0.0f;
+  // ---- Single pass: interpolate model, accumulate raw sums ----
+  // The mean-subtracted cross-correlation sums follow algebraically:
+  //   R_xf = sum(d*m) - dmean*sum(m) - mmean*sum(d) + N*dmean*mmean
+  //   R_ff = sum(m^2) - N*mmean^2
+  // so the model does not need to be interpolated a second time.
+  double sum_m = 0.0, sum_m2 = 0.0, sum_dm = 0.0, sum_d = 0.0;
 
   for (int p = tid; p < N; p += blockDim.x)
   {
     const double wl_base = (double)wl_order[p] * 1e-3;
-    model_sum += phase_w * interpolateModelBlurStellar(broadened_spectrum, model_wavelengths,
-                              n_model, wl_base, inv_doppler, delta_v, stellar_spectrum);
+    const double m = (double)(phase_w * interpolateModelBlurStellar(broadened_spectrum,
+                       model_wavelengths, n_model, wl_base, inv_doppler, delta_v,
+                       stellar_spectrum));
+    const double d = (double)flux[p];
+
+    sum_m  += m;
+    sum_m2 += m * m;
+    sum_dm += d * m;
+    sum_d  += d;
   }
 
-  model_sum = blockReduceSum(model_sum);
-
-  __shared__ float s_model_mean;
-
-  if (tid == 0)
-    s_model_mean = model_sum / (float)N;
-
-  __syncthreads();
-
-  // ---- Pass 2: Re-interpolate, mean-subtract, cross-correlation sums ----
-  const float mmean = s_model_mean;
-  const float dmean = data_mean[ord * nb_exposures + exp];
-
-  double local_rxf = 0.0;
-  double local_rff = 0.0;
-
-  for (int p = tid; p < N; p += blockDim.x)
-  {
-    const double wl_base = (double)wl_order[p] * 1e-3;
-    const float model_val = phase_w * interpolateModelBlurStellar(broadened_spectrum,
-                              model_wavelengths, n_model, wl_base, inv_doppler, delta_v,
-                              stellar_spectrum);
-
-    double d = (double)flux[p] - (double)dmean;
-    double m = (double)model_val - (double)mmean;
-    local_rxf += d * m;
-    local_rff += m * m;
-  }
-
-  local_rxf = blockReduceSum(local_rxf);
-  local_rff = blockReduceSum(local_rff);
+  sum_m  = blockReduceSum(sum_m);
+  sum_m2 = blockReduceSum(sum_m2);
+  sum_dm = blockReduceSum(sum_dm);
+  sum_d  = blockReduceSum(sum_d);
 
   // ---- Thread 0: Compute log-likelihood ----
   if (tid == 0)
   {
     const double dN = (double)N;
     const double sf2 = data_sf2[ord * nb_exposures + exp];
+
+    const double mmean = sum_m / dN;
+    const double dmean = (double)data_mean[ord * nb_exposures + exp];
+
+    const double local_rxf = sum_dm - dmean * sum_m - mmean * sum_d + dN * dmean * mmean;
+    const double local_rff = sum_m2 - dN * mmean * mmean;
 
     if (local_rff > 0.0)
     {
@@ -532,8 +522,13 @@ void launchHighResLogLike(
 
 
 // Kernel 1: Interpolate model at all Doppler shifts, then apply (I-P) per order.
-// One block per order. Each thread processes a pixel, looping over all exposures.
-// (I-P) matrix is loaded into shared memory (nb_exp * nb_exp floats).
+// 2D grid: blockIdx.x = order, blockIdx.y = pixel chunk, so the GPU is saturated
+// even for a small number of orders. Each thread processes a pixel, looping over
+// all exposures.
+//
+// Shared memory holds the (I-P) matrix plus the per-exposure Doppler factors,
+// velocity smears and phase-function weights, which are computed once per block
+// instead of once per (pixel, exposure) pair.
 //
 // Output: model_filtered[ord_offset * nb_exp + exp * N + p]
 __global__
@@ -568,8 +563,13 @@ void highResInterpFilterKernel(
   const int offset = order_offsets[ord];
   const double* wl_order = order_wavelengths + offset;
 
-  // Load (I-P) matrix for this order into shared memory
-  extern __shared__ float s_IminusP[];
+  // Shared memory layout: doubles first (for alignment), then floats.
+  //   s_inv_dop[nb_exp], s_delta_v[nb_exp], s_IminusP[nb_exp^2], s_phase_w[nb_exp]
+  extern __shared__ double s_shared_raw[];
+  double* s_inv_dop = s_shared_raw;
+  double* s_delta_v = s_shared_raw + nb_exposures;
+  float*  s_IminusP = (float*)(s_shared_raw + 2 * nb_exposures);
+  float*  s_phase_w = s_IminusP + nb_exposures * nb_exposures;
 
   const int mat_size = nb_exposures * nb_exposures;
   const float* proj_ptr = projection_matrices + ord * mat_size;
@@ -577,13 +577,34 @@ void highResInterpFilterKernel(
   for (int i = tid; i < mat_size; i += blockDim.x)
     s_IminusP[i] = proj_ptr[i];
 
-  __syncthreads();
-
-  // Precompute Doppler factors
+  // Per-exposure Doppler factor, velocity smear and phase weight,
+  // computed once per block instead of once per (pixel, exposure)
   const float c_kms = (float)(constants::light_c * 1e-5);
 
-  // Process pixels in stride
-  for (int p = tid; p < N; p += blockDim.x)
+  for (int e = tid; e < nb_exposures; e += blockDim.x)
+  {
+    const float phase = orbital_phases[e];
+    const float v_rad = Kp * sinf(2.0f * (float)M_PI * (phase + dphi))
+                      + Vsys + v_bary[e];
+    s_inv_dop[e] = 1.0 / (1.0 + (double)v_rad / (double)c_kms);
+
+    s_delta_v[e] = (exposure_blur_coeff != nullptr)
+      ? (double)Kp * cos(2.0 * M_PI * ((double)phase + (double)dphi)) * exposure_blur_coeff[e]
+      : 0.0;
+
+    if (use_phase_function)
+    {
+      const float pf = 1.0f + cosf(2.0f * (float)M_PI * phase - (float)M_PI);
+      s_phase_w[e] = 0.5f * pf * pf;
+    }
+    else
+      s_phase_w[e] = 1.0f;
+  }
+
+  __syncthreads();
+
+  // Process pixels in stride, chunked over blockIdx.y
+  for (int p = blockIdx.y * blockDim.x + tid; p < N; p += blockDim.x * gridDim.y)
   {
     const double wl_um_rest = (double)wl_order[p] * 1e-3;
 
@@ -603,19 +624,14 @@ void highResInterpFilterKernel(
 
     for (int exp = 0; exp < nb_exposures; ++exp)
     {
-      const float phase   = orbital_phases[exp];
-      const float v_rad   = Kp * sinf(2.0f * (float)M_PI * (phase + dphi))
-                          + Vsys + v_bary[exp];
-      const double inv_dop   = 1.0 / (1.0 + (double)v_rad / (double)c_kms);
+      const double inv_dop   = s_inv_dop[exp];
       const double wl_um_dop = wl_um_rest * inv_dop;
 
       // Full intra-exposure velocity smear (km/s).  One binary search locates the
       // target bracket (reused for the box hint, the point fallback, and the stellar
       // Fs).  The model is box-averaged directly at the Doppler target (matching the
       // CPU); point interpolation is used only for negligible smear.
-      const double delta_v = (exposure_blur_coeff != nullptr)
-        ? (double)Kp * cos(2.0 * M_PI * ((double)phase + (double)dphi)) * exposure_blur_coeff[exp]
-        : 0.0;
+      const double delta_v = s_delta_v[exp];
 
       const int idx_dop = binarySearchDescending(model_wavelengths, n_model, wl_um_dop);
 
@@ -646,11 +662,7 @@ void highResInterpFilterKernel(
 
       // Lambertian dayside phase function: 0.5*(1+cos(2*pi*phase-pi))^2
       // (Pelletier et al. 2025 §3.3 step 4, Herman et al. 2022)
-      if (use_phase_function)
-      {
-        const float pf = 1.0f + cosf(2.0f * (float)M_PI * phase - (float)M_PI);
-        raw_model[exp] *= 0.5f * pf * pf;
-      }
+      raw_model[exp] *= s_phase_w[exp];
 
       // Re-injection: multiply by per-exposure scale factor if provided.
       // This implements CHIMERA's "model × data_scale" approach (Line et al. 2021):
@@ -849,38 +861,39 @@ void highResLogLikeFromFilteredKernel(
 // This cancellation only holds when the sum is taken over ALL exposures; a
 // per-exposure correlation would have a non-zero CIA contribution for each
 // individual exposure.
+// One block per (order, exposure) pair — same grid shape as the other likelihood
+// kernels, so the GPU stays saturated even for a handful of orders.  Each block
+// reduces its exposure's sums and atomically accumulates them into a per-order
+// partials buffer [ord*3 + {0,1,2}] = {R_xf, R_ff, sf2}.
 __global__
-void highResLogLikeTotalCCFKernel(
+void highResTotalCCFSumsKernel(
   const float*  __restrict__ model_filtered,   // raw Fp, [ord_offset*nb_exp + exp*N + p]
   const float*  __restrict__ order_flux,       // (I-P)-filtered data, same layout
   const int*    __restrict__ order_offsets,
   const int*    __restrict__ order_nb_pixels,
   const int                  nb_orders,
   const int                  nb_exposures,
-  double*       __restrict__ d_log_like)
+  double*       __restrict__ order_partials)
 {
-  const int ord = blockIdx.x;
-  const int tid = threadIdx.x;
-
-  if (ord >= nb_orders) return;
+  const int task = blockIdx.x;
+  const int exp  = task / nb_orders;
+  const int ord  = task % nb_orders;
+  const int tid  = threadIdx.x;
 
   const int N      = order_nb_pixels[ord];
   const int offset = order_offsets[ord];
 
-  const int total = N * nb_exposures;
+  const float* flux  = order_flux + offset * nb_exposures + exp * N;
+  const float* model = model_filtered + offset * nb_exposures + exp * N;
 
   double local_rxf = 0.0;
   double local_rff = 0.0;
   double local_sf2 = 0.0;
 
-  for (int idx = tid; idx < total; idx += blockDim.x)
+  for (int p = tid; p < N; p += blockDim.x)
   {
-    const int exp = idx / N;
-    const int p   = idx % N;
-    const int base = offset * nb_exposures + exp * N + p;
-
-    const double d = (double)order_flux[base];
-    const double m = (double)model_filtered[base];
+    const double d = (double)flux[p];
+    const double m = (double)model[p];
 
     local_rxf += d * m;
     local_rff += m * m;
@@ -891,15 +904,40 @@ void highResLogLikeTotalCCFKernel(
   local_rff = blockReduceSum(local_rff);
   local_sf2 = blockReduceSum(local_sf2);
 
-  if (tid == 0 && local_rff > 0.0 && local_sf2 > 0.0)
+  if (tid == 0)
   {
-    const double dN = (double)(N * nb_exposures);
-    const double r2 = (local_rxf * local_rxf) / (local_sf2 * local_rff);
+    atomicAdd(&order_partials[ord * 3 + 0], local_rxf);
+    atomicAdd(&order_partials[ord * 3 + 1], local_rff);
+    atomicAdd(&order_partials[ord * 3 + 2], local_sf2);
+  }
+}
 
-    if (r2 < 1.0)
-      atomicAdd(d_log_like, -0.5 * dN * log(1.0 - r2));
-    else
-      atomicAdd(d_log_like, -1e30);
+
+// Combine the per-order partial sums into the total-CCF log-likelihood.
+__global__
+void highResTotalCCFLogLikeKernel(
+  const double* __restrict__ order_partials,
+  const int*    __restrict__ order_nb_pixels,
+  const int                  nb_orders,
+  const int                  nb_exposures,
+  double*       __restrict__ d_log_like)
+{
+  for (int ord = blockIdx.x * blockDim.x + threadIdx.x; ord < nb_orders; ord += blockDim.x * gridDim.x)
+  {
+    const double rxf = order_partials[ord * 3 + 0];
+    const double rff = order_partials[ord * 3 + 1];
+    const double sf2 = order_partials[ord * 3 + 2];
+
+    if (rff > 0.0 && sf2 > 0.0)
+    {
+      const double dN = (double)(order_nb_pixels[ord] * nb_exposures);
+      const double r2 = (rxf * rxf) / (sf2 * rff);
+
+      if (r2 < 1.0)
+        atomicAdd(d_log_like, -0.5 * dN * log(1.0 - r2));
+      else
+        atomicAdd(d_log_like, -1e30);
+    }
   }
 }
 
@@ -931,11 +969,12 @@ void launchHighResLogLikeFiltered(
     bool use_phase_function,
     const float* stellar_spectrum_dev)
 {
-  // Kernel 1: Interpolate + filter, one block per order
+  // Kernel 1: Interpolate + filter, 2D grid (order, pixel chunk)
   {
     const int threads = 256;
-    const int blocks = nb_orders;
-    const size_t shared_mem = nb_exposures * nb_exposures * sizeof(float);
+    const dim3 blocks(nb_orders, (max_pixels_per_order + threads - 1) / threads);
+    const size_t shared_mem = 2 * nb_exposures * sizeof(double)
+      + (nb_exposures * nb_exposures + nb_exposures) * sizeof(float);
 
     highResInterpFilterKernel<<<blocks, threads, shared_mem>>>(
       broadened_spectrum_dev,
@@ -985,13 +1024,37 @@ void launchHighResLogLikeFiltered(
   {
     // filter_model=false: total CCF per order (sum over all exposures).
     // CIA cancels because data has zero temporal mean per pixel.
-    const int threads = 256;
-    const int blocks = nb_orders;
+    // Two stages: per-(order,exposure) partial sums, then per-order logL.
+    // The small per-order partials buffer is cached between calls.
+    static double* order_partials_dev = nullptr;
+    static int order_partials_capacity = 0;
 
-    highResLogLikeTotalCCFKernel<<<blocks, threads>>>(
+    if (order_partials_capacity < nb_orders)
+    {
+      if (order_partials_dev != nullptr)
+        gpuErrchk(cudaFree(order_partials_dev));
+
+      gpuErrchk(cudaMalloc(&order_partials_dev, nb_orders * 3 * sizeof(double)));
+      order_partials_capacity = nb_orders;
+    }
+
+    gpuErrchk(cudaMemset(order_partials_dev, 0, nb_orders * 3 * sizeof(double)));
+
+    const int threads = 256;
+
+    highResTotalCCFSumsKernel<<<nb_orders * nb_exposures, threads>>>(
       model_filtered_dev,
       order_flux_dev,
       order_offsets_dev,
+      order_nb_pixels_dev,
+      nb_orders,
+      nb_exposures,
+      order_partials_dev);
+
+    CUDA_CHECK_AFTER_KERNEL();
+
+    highResTotalCCFLogLikeKernel<<<1, 128>>>(
+      order_partials_dev,
       order_nb_pixels_dev,
       nb_orders,
       nb_exposures,
@@ -1267,8 +1330,9 @@ void launchHighResLogLikeFilteredGibson(
   // Kernel 1: Interpolate + filter (reuse existing kernel)
   {
     const int threads = 256;
-    const int blocks = nb_orders;
-    const size_t shared_mem = nb_exposures * nb_exposures * sizeof(float);
+    const dim3 blocks(nb_orders, (max_pixels_per_order + threads - 1) / threads);
+    const size_t shared_mem = 2 * nb_exposures * sizeof(double)
+      + (nb_exposures * nb_exposures + nb_exposures) * sizeof(float);
 
     highResInterpFilterKernel<<<blocks, threads, shared_mem>>>(
       broadened_spectrum_dev,

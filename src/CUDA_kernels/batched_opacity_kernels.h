@@ -27,22 +27,22 @@
 namespace bear{
 
 
+//the per-work-item metadata of a batch is packed into a single blob so that it
+//can be uploaded with one memcpy from pinned host memory instead of many small
+//pageable transfers; the launchers compute the typed array pointers per call
 struct BatchedDeviceBuffers {
-  float** cs1_ptrs_dev = nullptr;
-  float** cs2_ptrs_dev = nullptr;
-  float** cs3_ptrs_dev = nullptr;
-  float** cs4_ptrs_dev = nullptr;
-  float* temp_factors_dev = nullptr;
-  float* pres_factors_dev = nullptr;
-  float* cs_log_number_densities_dev = nullptr;
-  int* cs_grid_points_dev = nullptr;
+  char* cs_blob_dev = nullptr;
+  char* cs_blob_host = nullptr;   //pinned host staging buffer
 
-  float** ray_ptrs_dev = nullptr;
-  double* ray_number_densities_dev = nullptr;
-  int* ray_grid_points_dev = nullptr;
+  char* ray_blob_dev = nullptr;
+  char* ray_blob_host = nullptr;  //pinned host staging buffer
 
   size_t capacity = 0;
 };
+
+//bytes per work item in the packed blobs
+constexpr size_t batch_cs_item_bytes = 4*sizeof(float*) + 3*sizeof(float) + sizeof(int);
+constexpr size_t batch_ray_item_bytes = sizeof(float*) + sizeof(double) + sizeof(int);
 
 
 void allocateBatchBuffers(BatchedDeviceBuffers& buffers, size_t capacity);

@@ -35,33 +35,26 @@ void contributionFunctionDevice(
   for (int tid = blockIdx.x * blockDim.x + threadIdx.x; tid < nb_spectral_points; tid += blockDim.x * gridDim.x)
   {
 
-    double cumulative_optical_depth = 0;
     double cumulative_transmission = 1.0;
 
+    //the absorption coefficient of the lower level of each layer is carried
+    //over to the next iteration to avoid reading it from global memory twice
+    double abs_upper = absorption_coeff_dev[(nb_grid_points-1)*nb_spectral_points + tid];
 
     for (int i=nb_grid_points-1; i>0; i--)
     {
+      const double abs_lower = absorption_coeff_dev[(i-1)*nb_spectral_points + tid];
+
       const double delta_z = (vertical_grid_dev[i] - vertical_grid_dev[i-1]);
-      const double optical_depth_layer = delta_z * ( absorption_coeff_dev[i*nb_spectral_points + tid ] + absorption_coeff_dev[(i-1)*nb_spectral_points + tid])/2.;
+      const double optical_depth_layer = delta_z * (abs_upper + abs_lower)/2.;
 
       const double layer_transmission = exp(-optical_depth_layer);
 
       contribution_function_gpu[i*nb_spectral_points + tid] = static_cast<float>(2 * constants::pi * planckFunction(temperature_dev[i], wavenumber_list_dev[tid]) * (1.0 - layer_transmission) * cumulative_transmission);
 
       cumulative_transmission *= layer_transmission;
-      //printf("%d  %d  %f  %f  %f  %f\n", tid, i, optical_depth_layer, layer_transmission, cumulative_transmission, contribution_function_gpu[i*nb_spectral_points + tid]);
 
-      /*const double delta_z = (vertical_grid_dev[i] - vertical_grid_dev[i-1]);
-
-      const double optical_depth_layer = delta_z * ( absorption_coeff_dev[i*nb_spectral_points + tid ] + absorption_coeff_dev[(i-1)*nb_spectral_points + tid])/2.;
-
-      const double cumulative_optical_depth_layer = cumulative_optical_depth + optical_depth_layer;
-
-      const double weighting_function = (-exp(-cumulative_optical_depth_layer) + exp(-cumulative_optical_depth)) / delta_z;
-
-      cumulative_optical_depth = cumulative_optical_depth_layer;
-      
-      contribution_function_gpu[i*nb_spectral_points + tid] = planckFunction(temperature_dev[i], wavenumber_list_dev[tid]) * weighting_function;*/
+      abs_upper = abs_lower;
     }
   }
 

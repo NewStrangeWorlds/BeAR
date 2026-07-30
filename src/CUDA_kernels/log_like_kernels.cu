@@ -70,12 +70,12 @@ __host__ double Retrieval::logLikeDev(
   std::vector<float*> model_spectrum,
   const double error_inflation_coefficient)
 {
-  double log_like = 0;
+  //all observations accumulate into the same device scalar via atomicAdd,
+  //so only one memset and one readback are needed for the whole set
+  gpuErrchk(cudaMemset(d_log_like_dev, 0, sizeof(double)));
 
   for (size_t i=0; i<nb_observations; ++i)
   {
-    gpuErrchk(cudaMemset(d_log_like_dev, 0, sizeof(double)));
-
     const int threads = 128;
     const int nb_points = observations[i].nbPoints();
 
@@ -94,12 +94,10 @@ __host__ double Retrieval::logLikeDev(
 
 
     CUDA_CHECK_AFTER_KERNEL();
-
-    double h_log_like = 0;
-    gpuErrchk(cudaMemcpy(&h_log_like, d_log_like_dev, sizeof(double), cudaMemcpyDeviceToHost));
-
-    log_like += h_log_like;
   }
+
+  double log_like = 0;
+  gpuErrchk(cudaMemcpy(&log_like, d_log_like_dev, sizeof(double), cudaMemcpyDeviceToHost));
 
   return log_like;
 }

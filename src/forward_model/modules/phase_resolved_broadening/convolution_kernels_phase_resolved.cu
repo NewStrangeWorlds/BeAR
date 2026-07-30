@@ -40,8 +40,9 @@ namespace bear {
 static constexpr int PHASE_BLOCK_SIZE = 128;
 
 
-// One block per output pixel.  Each thread handles a subset of the
-// kernel window and the block reduces to the final sum.
+// One thread per output pixel.  The kernel window is narrow (a few tens of
+// pixels), so a serial loop per thread avoids idle threads and reduction
+// overhead; adjacent threads read adjacent windows, keeping loads coalesced.
 __global__
 void convolveWithPrecomputedKernel(
   const float* __restrict__ spectrum_in,
@@ -50,8 +51,7 @@ void convolveWithPrecomputedKernel(
   const int                 kernel_hw,
   const int                 n_pixels)
 {
-  const int i   = blockIdx.x;
-  const int tid = threadIdx.x;
+  const int i = blockIdx.x * blockDim.x + threadIdx.x;
 
   if (i >= n_pixels) return;
 
@@ -60,13 +60,10 @@ void convolveWithPrecomputedKernel(
 
   float local_sum = 0.0f;
 
-  for (int j = j_start + tid; j <= j_end; j += blockDim.x)
+  for (int j = j_start; j <= j_end; ++j)
     local_sum += kernel_data[j - i + kernel_hw] * spectrum_in[j];
 
-  local_sum = blockReduceSum(local_sum);
-
-  if (tid == 0)
-    spectrum_out[i] = local_sum;
+  spectrum_out[i] = local_sum;
 }
 
 
@@ -80,7 +77,9 @@ void applyPrecomputedConvolutionGPU(
 {
   cudaGetLastError();
 
-  convolveWithPrecomputedKernel<<<n_pixels, PHASE_BLOCK_SIZE>>>(
+  const int blocks = (n_pixels + PHASE_BLOCK_SIZE - 1) / PHASE_BLOCK_SIZE;
+
+  convolveWithPrecomputedKernel<<<blocks, PHASE_BLOCK_SIZE>>>(
     spectrum_in_dev, spectrum_out_dev, kernel_dev, kernel_hw, n_pixels);
 
   CUDA_CHECK_AFTER_KERNEL();

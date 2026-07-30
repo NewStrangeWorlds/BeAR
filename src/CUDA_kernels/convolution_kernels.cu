@@ -70,97 +70,30 @@ void convolveSpectrumDeviceFl(
   }
 
   const float norm = normalFactorFl(sigma);
-  const float inv2sig2 = 1.0 / (2.0 * sigma * sigma);
+  const float inv2sig2 = 1.0f / (2.0f * sigma * sigma);
 
-  float local_sum = 0.0;
+  float local_sum = 0.0f;
 
-  //each thread integrates part of the trapezoids directly
-  for (int j = start + tid; j < end; j += blockDim.x)
+  //composite trapezoidal rule: each grid point is evaluated exactly once and
+  //weighted by the width of its adjacent intervals
+  //(the edge points only receive the width of their single interior interval)
+  for (int j = start + tid; j <= end; j += blockDim.x)
   {
-    float wl0 = wavelengths[j];
-    float wl1 = wavelengths[j + 1];
+    const float wl = wavelengths[j];
+    const float d = wl - mu;
+    const float g = __expf(-d * d * inv2sig2);
 
-    float d0 = wl0 - mu;
-    float d1 = wl1 - mu;
+    float weight = 0.0f;
+    if (j < end)   weight += (float)wavelengths[j + 1] - wl;
+    if (j > start) weight += wl - (float)wavelengths[j - 1];
 
-    float g0 = norm * exp(-d0 * d0 * inv2sig2);
-    float g1 = norm * exp(-d1 * d1 * inv2sig2);
-
-    float s0 = spectrum[j] * g0;
-    float s1 = spectrum[j + 1] * g1;
-
-    local_sum += (s0 + s1) * (wl1 - wl0);
+    local_sum += spectrum[j] * g * weight;
   }
 
   local_sum = blockReduceSum(local_sum);
 
   if (tid == 0)
-    convolved_spectrum[i + index_start] = fabs(0.5 * local_sum);
-}
-
-
-
-
-__device__ __forceinline__
-double normalFactor(double sigma)
-{
-  return rsqrt(2.0 * constants::pi) / sigma;  // 1/(σ√2π)
-}
-
-
-__global__ 
-void convolveSpectrumDevice(
-  const float* __restrict__ spectrum,
-  const int index_start,
-  const double* __restrict__ wavelengths,
-  const double* __restrict__ band_sigma,
-  const int* __restrict__ start_index,
-  const int* __restrict__ end_index,
-  float* __restrict__ convolved_spectrum)
-{
-  const int i = blockIdx.x;
-  const int tid = threadIdx.x;
-
-  const double mu = wavelengths[i + index_start];
-  const double sigma = band_sigma[i + index_start];
-
-  const int start = start_index[i];
-  const int end   = end_index[i];
-
-  if (start == end || sigma == 0.0) 
-  {
-    if (tid == 0)
-      convolved_spectrum[i + index_start] = spectrum[i + index_start];
-    return;
-  }
-
-  const float norm = normalFactor(sigma);
-  const float inv2sig2 = 1.0 / (2.0 * sigma * sigma);
-
-  double local_sum = 0.0;
-
-  //each thread integrates part of the trapezoids directly
-  for (int j = start + tid; j < end; j += blockDim.x)
-  {
-    double wl0 = wavelengths[j];
-    double wl1 = wavelengths[j + 1];
-
-    double d0 = wl0 - mu;
-    double d1 = wl1 - mu;
-
-    double g0 = norm * exp(-d0 * d0 * inv2sig2);
-    double g1 = norm * exp(-d1 * d1 * inv2sig2);
-
-    double s0 = spectrum[j]     * g0;
-    double s1 = spectrum[j + 1] * g1;
-
-    local_sum += (s0 + s1) * (wl1 - wl0);
-  }
-
-  local_sum = blockReduceSum(local_sum);
-
-  if (tid == 0)
-    convolved_spectrum[i + index_start] = fabs(0.5 * local_sum);
+    convolved_spectrum[i + index_start] = fabs(0.5f * norm * local_sum);
 }
 
 

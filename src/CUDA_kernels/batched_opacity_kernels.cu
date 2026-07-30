@@ -23,6 +23,7 @@
 #include "data_management_kernels.h"
 
 #include <cstdio>
+#include <cstring>
 
 
 namespace bear{
@@ -84,18 +85,11 @@ void allocateBatchBuffers(BatchedDeviceBuffers& buffers, size_t capacity)
 
   freeBatchBuffers(buffers);
 
-  allocateOnDevice(buffers.cs1_ptrs_dev, capacity);
-  allocateOnDevice(buffers.cs2_ptrs_dev, capacity);
-  allocateOnDevice(buffers.cs3_ptrs_dev, capacity);
-  allocateOnDevice(buffers.cs4_ptrs_dev, capacity);
-  allocateOnDevice(buffers.temp_factors_dev, capacity);
-  allocateOnDevice(buffers.pres_factors_dev, capacity);
-  allocateOnDevice(buffers.cs_log_number_densities_dev, capacity);
-  allocateOnDevice(buffers.cs_grid_points_dev, capacity);
+  gpuErrchk(cudaMalloc(&buffers.cs_blob_dev, capacity * batch_cs_item_bytes));
+  gpuErrchk(cudaMallocHost(&buffers.cs_blob_host, capacity * batch_cs_item_bytes));
 
-  allocateOnDevice(buffers.ray_ptrs_dev, capacity);
-  allocateOnDevice(buffers.ray_number_densities_dev, capacity);
-  allocateOnDevice(buffers.ray_grid_points_dev, capacity);
+  gpuErrchk(cudaMalloc(&buffers.ray_blob_dev, capacity * batch_ray_item_bytes));
+  gpuErrchk(cudaMallocHost(&buffers.ray_blob_host, capacity * batch_ray_item_bytes));
 
   buffers.capacity = capacity;
 }
@@ -105,18 +99,15 @@ void freeBatchBuffers(BatchedDeviceBuffers& buffers)
 {
   if (buffers.capacity == 0) return;
 
-  deleteFromDevice(buffers.cs1_ptrs_dev);
-  deleteFromDevice(buffers.cs2_ptrs_dev);
-  deleteFromDevice(buffers.cs3_ptrs_dev);
-  deleteFromDevice(buffers.cs4_ptrs_dev);
-  deleteFromDevice(buffers.temp_factors_dev);
-  deleteFromDevice(buffers.pres_factors_dev);
-  deleteFromDevice(buffers.cs_log_number_densities_dev);
-  deleteFromDevice(buffers.cs_grid_points_dev);
+  gpuErrchk(cudaFree(buffers.cs_blob_dev));
+  gpuErrchk(cudaFreeHost(buffers.cs_blob_host));
+  gpuErrchk(cudaFree(buffers.ray_blob_dev));
+  gpuErrchk(cudaFreeHost(buffers.ray_blob_host));
 
-  deleteFromDevice(buffers.ray_ptrs_dev);
-  deleteFromDevice(buffers.ray_number_densities_dev);
-  deleteFromDevice(buffers.ray_grid_points_dev);
+  buffers.cs_blob_dev = nullptr;
+  buffers.cs_blob_host = nullptr;
+  buffers.ray_blob_dev = nullptr;
+  buffers.ray_blob_host = nullptr;
 
   buffers.capacity = 0;
 }
@@ -135,38 +126,47 @@ void launchBatchedCrossSections(
   int nb_spectral_points,
   float* absorption_coeff_device)
 {
-  const size_t nb_work_items = grid_points.size();
-  if (nb_work_items == 0) return;
+  const size_t n = grid_points.size();
+  if (n == 0) return;
 
-  gpuErrchk(cudaMemcpy(buffers.cs1_ptrs_dev, cs1_ptrs.data(),
-    nb_work_items * sizeof(float*), cudaMemcpyHostToDevice));
-  gpuErrchk(cudaMemcpy(buffers.cs2_ptrs_dev, cs2_ptrs.data(),
-    nb_work_items * sizeof(float*), cudaMemcpyHostToDevice));
-  gpuErrchk(cudaMemcpy(buffers.cs3_ptrs_dev, cs3_ptrs.data(),
-    nb_work_items * sizeof(float*), cudaMemcpyHostToDevice));
-  gpuErrchk(cudaMemcpy(buffers.cs4_ptrs_dev, cs4_ptrs.data(),
-    nb_work_items * sizeof(float*), cudaMemcpyHostToDevice));
-  gpuErrchk(cudaMemcpy(buffers.temp_factors_dev, temp_factors.data(),
-    nb_work_items * sizeof(float), cudaMemcpyHostToDevice));
-  gpuErrchk(cudaMemcpy(buffers.pres_factors_dev, pres_factors.data(),
-    nb_work_items * sizeof(float), cudaMemcpyHostToDevice));
-  gpuErrchk(cudaMemcpy(buffers.cs_log_number_densities_dev, log_number_densities.data(),
-    nb_work_items * sizeof(float), cudaMemcpyHostToDevice));
-  gpuErrchk(cudaMemcpy(buffers.cs_grid_points_dev, grid_points.data(),
-    nb_work_items * sizeof(int), cudaMemcpyHostToDevice));
+  //pack all metadata tightly into the pinned staging blob
+  //(pointer arrays first to keep 8-byte alignment)
+  const size_t off_cs2  = n * sizeof(float*);
+  const size_t off_cs3  = 2 * off_cs2;
+  const size_t off_cs4  = 3 * off_cs2;
+  const size_t off_temp = 4 * off_cs2;
+  const size_t off_pres = off_temp + n * sizeof(float);
+  const size_t off_logn = off_temp + 2 * n * sizeof(float);
+  const size_t off_grid = off_temp + 3 * n * sizeof(float);
+
+  char* host = buffers.cs_blob_host;
+  std::memcpy(host,            cs1_ptrs.data(), n * sizeof(float*));
+  std::memcpy(host + off_cs2,  cs2_ptrs.data(), n * sizeof(float*));
+  std::memcpy(host + off_cs3,  cs3_ptrs.data(), n * sizeof(float*));
+  std::memcpy(host + off_cs4,  cs4_ptrs.data(), n * sizeof(float*));
+  std::memcpy(host + off_temp, temp_factors.data(), n * sizeof(float));
+  std::memcpy(host + off_pres, pres_factors.data(), n * sizeof(float));
+  std::memcpy(host + off_logn, log_number_densities.data(), n * sizeof(float));
+  std::memcpy(host + off_grid, grid_points.data(), n * sizeof(int));
+
+  //single upload of the whole batch
+  gpuErrchk(cudaMemcpy(buffers.cs_blob_dev, host,
+    n * batch_cs_item_bytes, cudaMemcpyHostToDevice));
+
+  char* dev = buffers.cs_blob_dev;
 
   const int threads = 256;
-  dim3 blocks((nb_spectral_points + threads - 1) / threads, nb_work_items);
+  dim3 blocks((nb_spectral_points + threads - 1) / threads, n);
 
   batchedCrossSectionsDevice<<<blocks, threads>>>(
-    buffers.cs1_ptrs_dev,
-    buffers.cs2_ptrs_dev,
-    buffers.cs3_ptrs_dev,
-    buffers.cs4_ptrs_dev,
-    buffers.temp_factors_dev,
-    buffers.pres_factors_dev,
-    buffers.cs_log_number_densities_dev,
-    buffers.cs_grid_points_dev,
+    (float**)dev,
+    (float**)(dev + off_cs2),
+    (float**)(dev + off_cs3),
+    (float**)(dev + off_cs4),
+    (float*)(dev + off_temp),
+    (float*)(dev + off_pres),
+    (float*)(dev + off_logn),
+    (int*)(dev + off_grid),
     nb_spectral_points,
     absorption_coeff_device);
 
@@ -182,23 +182,32 @@ void launchBatchedRayleigh(
   int nb_spectral_points,
   float* scattering_coeff_device)
 {
-  const size_t nb_work_items = grid_points.size();
-  if (nb_work_items == 0) return;
+  const size_t n = grid_points.size();
+  if (n == 0) return;
 
-  gpuErrchk(cudaMemcpy(buffers.ray_ptrs_dev, rayleigh_ptrs.data(),
-    nb_work_items * sizeof(float*), cudaMemcpyHostToDevice));
-  gpuErrchk(cudaMemcpy(buffers.ray_number_densities_dev, number_densities.data(),
-    nb_work_items * sizeof(double), cudaMemcpyHostToDevice));
-  gpuErrchk(cudaMemcpy(buffers.ray_grid_points_dev, grid_points.data(),
-    nb_work_items * sizeof(int), cudaMemcpyHostToDevice));
+  //pack all metadata tightly into the pinned staging blob
+  //(8-byte members first to keep alignment)
+  const size_t off_dens = n * sizeof(float*);
+  const size_t off_grid = off_dens + n * sizeof(double);
+
+  char* host = buffers.ray_blob_host;
+  std::memcpy(host,            rayleigh_ptrs.data(), n * sizeof(float*));
+  std::memcpy(host + off_dens, number_densities.data(), n * sizeof(double));
+  std::memcpy(host + off_grid, grid_points.data(), n * sizeof(int));
+
+  //single upload of the whole batch
+  gpuErrchk(cudaMemcpy(buffers.ray_blob_dev, host,
+    n * batch_ray_item_bytes, cudaMemcpyHostToDevice));
+
+  char* dev = buffers.ray_blob_dev;
 
   const int threads = 256;
-  dim3 blocks((nb_spectral_points + threads - 1) / threads, nb_work_items);
+  dim3 blocks((nb_spectral_points + threads - 1) / threads, n);
 
   batchedRayleighDevice<<<blocks, threads>>>(
-    buffers.ray_ptrs_dev,
-    buffers.ray_number_densities_dev,
-    buffers.ray_grid_points_dev,
+    (float**)dev,
+    (double*)(dev + off_dens),
+    (int*)(dev + off_grid),
     nb_spectral_points,
     scattering_coeff_device);
 
