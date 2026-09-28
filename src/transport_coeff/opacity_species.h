@@ -61,15 +61,7 @@ class OpacitySpecies {
       const std::vector<double>& number_densities,
       std::vector<double>& absorption_coeff,
       std::vector<double>& scattering_coeff);
-    virtual void calcTransportCoefficientsGPU(
-      const double temperature,
-      const double pressure,
-      const std::vector<double>& number_densities,
-      const size_t nb_grid_points,
-      const size_t grid_point,
-      float* absorption_coeff_device,
-      float* scattering_coeff_device);
-    
+
     struct CrossSectionMetadata {
       float* cs1 = nullptr;
       float* cs2 = nullptr;
@@ -90,12 +82,12 @@ class OpacitySpecies {
     size_t getPressureReferenceSpecies() const { return pressure_reference_species; }
     const std::vector<size_t>& getCIACollisionPartners() const { return cia_collision_partner; }
 
-    void calcContinuumGPU(
-      const double temperature,
-      const std::vector<double>& number_densities,
-      const size_t nb_grid_points,
-      const size_t grid_point,
-      float* absorption_coeff_device);
+    //GPU continuum for all grid points at once; species with a continuum
+    //override this with a batched implementation (see GasHm)
+    virtual void calcContinuumBatchedGPU(
+      const std::vector<double>& temperature,
+      const std::vector<std::vector<double>>& number_densities,
+      float* absorption_coeff_device) {};
 
     const size_t species_index = 0;
     const std::string species_name = "";
@@ -127,24 +119,11 @@ class OpacitySpecies {
       const std::vector<double>& number_densities,
       std::vector<double>& absorption_coeff) {
         return false;};
-    virtual void calcContinuumAbsorptionGPU(
-      const double temperature, 
-      const std::vector<double>& number_densities,
-      const size_t nb_grid_points, 
-      const size_t grid_point,
-      float* absorption_coeff_device) {};
-    
     virtual bool calcRayleighCrossSections(
       std::vector<double>& cross_sections) {
       return false;};
 
     void tabulateRayleighCrossSections();
-
-    virtual void calcRayleighCrossSectionsGPU(
-      const double number_density,
-      const size_t nb_grid_points, 
-      const size_t grid_point,
-      float* scattering_coeff_dev);
 
     void readFileList(const std::string file_path);
     
@@ -161,31 +140,6 @@ class OpacitySpecies {
     bool calcScatteringCrossSections(
       std::vector<double>& cross_sections);
 
-    void calcAbsorptionCoefficientsGPU(
-      const double pressure,
-      const double temperature,
-      const double number_density,
-      const size_t nb_grid_points,
-      const size_t grid_point,
-      float* absorption_coeff_device);
-
-    void calcAbsorptionCoefficientsGPU(
-      float* cross_sections1, 
-      float* cross_sections2, 
-      float* cross_sections3, 
-      float* cross_sections4,
-      const double temperature1, 
-      const double temperature2,
-      const double log_pressure1, 
-      const double log_pressure2,
-      const double temperature, 
-      const double log_pressure, 
-      const double number_density,
-      const size_t nb_spectral_points, 
-      const size_t nb_grid_points, 
-      const size_t grid_point,
-      float* absorption_coeff_device);
-    
     double generalRayleighCrossSection(
       double reference_density,
       double refractive_index,

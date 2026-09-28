@@ -29,6 +29,10 @@
 namespace bear{
 
 
+//one block column per grid point (blockIdx.y indexes a group of work items that
+//share the same grid point); each thread sums all species of that grid point in
+//a register and performs a single non-atomic write, which makes the result
+//deterministic and avoids atomic traffic
 __global__ void batchedCrossSectionsDevice(
   float** __restrict__ cs1,
   float** __restrict__ cs2,
@@ -37,45 +41,61 @@ __global__ void batchedCrossSectionsDevice(
   const float* __restrict__ temp_factors,
   const float* __restrict__ pres_factors,
   const float* __restrict__ log_number_densities,
-  const int* __restrict__ grid_points,
+  const int* __restrict__ group_offsets,
+  const int* __restrict__ group_grid_points,
   const int nb_spectral_points,
   float* __restrict__ absorption_coeff)
 {
   const int tid = blockIdx.x * blockDim.x + threadIdx.x;
-  const int wi = blockIdx.y;
+  const int g = blockIdx.y;
 
   if (tid >= nb_spectral_points) return;
 
-  const float tf = temp_factors[wi];
-  const float pf = pres_factors[wi];
+  const int k_start = group_offsets[g];
+  const int k_end   = group_offsets[g + 1];
 
-  float c1 = cs1[wi][tid];
-  float c2 = cs2[wi][tid];
-  c1 = c1 + (c2 - c1) * pf;
-  c2 = cs3[wi][tid] + (cs4[wi][tid] - cs3[wi][tid]) * pf;
-  float sigma = c1 + (c2 - c1) * tf;
+  float sum = 0.0f;
 
-  atomicAdd(
-    &absorption_coeff[grid_points[wi] * nb_spectral_points + tid],
-    __exp10f(sigma + log_number_densities[wi]));
+  for (int k = k_start; k < k_end; ++k)
+  {
+    const float tf = temp_factors[k];
+    const float pf = pres_factors[k];
+
+    float c1 = cs1[k][tid];
+    float c2 = cs2[k][tid];
+    c1 = c1 + (c2 - c1) * pf;
+    c2 = cs3[k][tid] + (cs4[k][tid] - cs3[k][tid]) * pf;
+    const float sigma = c1 + (c2 - c1) * tf;
+
+    sum += __exp10f(sigma + log_number_densities[k]);
+  }
+
+  absorption_coeff[group_grid_points[g] * nb_spectral_points + tid] += sum;
 }
 
 
 __global__ void batchedRayleighDevice(
   float** __restrict__ rayleigh_cs,
   const double* __restrict__ number_densities,
-  const int* __restrict__ grid_points,
+  const int* __restrict__ group_offsets,
+  const int* __restrict__ group_grid_points,
   const int nb_spectral_points,
   float* __restrict__ scattering_coeff)
 {
   const int tid = blockIdx.x * blockDim.x + threadIdx.x;
-  const int wi = blockIdx.y;
+  const int g = blockIdx.y;
 
   if (tid >= nb_spectral_points) return;
 
-  atomicAdd(
-    &scattering_coeff[grid_points[wi] * nb_spectral_points + tid],
-    rayleigh_cs[wi][tid] * static_cast<float>(number_densities[wi]));
+  const int k_start = group_offsets[g];
+  const int k_end   = group_offsets[g + 1];
+
+  float sum = 0.0f;
+
+  for (int k = k_start; k < k_end; ++k)
+    sum += rayleigh_cs[k][tid] * static_cast<float>(number_densities[k]);
+
+  scattering_coeff[group_grid_points[g] * nb_spectral_points + tid] += sum;
 }
 
 
@@ -85,11 +105,15 @@ void allocateBatchBuffers(BatchedDeviceBuffers& buffers, size_t capacity)
 
   freeBatchBuffers(buffers);
 
-  gpuErrchk(cudaMalloc(&buffers.cs_blob_dev, capacity * batch_cs_item_bytes));
-  gpuErrchk(cudaMallocHost(&buffers.cs_blob_host, capacity * batch_cs_item_bytes));
+  gpuErrchk(cudaMalloc(&buffers.cs_blob_dev,
+    capacity * batch_cs_item_bytes + batch_blob_extra_bytes));
+  gpuErrchk(cudaMallocHost(&buffers.cs_blob_host,
+    capacity * batch_cs_item_bytes + batch_blob_extra_bytes));
 
-  gpuErrchk(cudaMalloc(&buffers.ray_blob_dev, capacity * batch_ray_item_bytes));
-  gpuErrchk(cudaMallocHost(&buffers.ray_blob_host, capacity * batch_ray_item_bytes));
+  gpuErrchk(cudaMalloc(&buffers.ray_blob_dev,
+    capacity * batch_ray_item_bytes + batch_blob_extra_bytes));
+  gpuErrchk(cudaMallocHost(&buffers.ray_blob_host,
+    capacity * batch_ray_item_bytes + batch_blob_extra_bytes));
 
   buffers.capacity = capacity;
 }
@@ -129,6 +153,23 @@ void launchBatchedCrossSections(
   const size_t n = grid_points.size();
   if (n == 0) return;
 
+  //group consecutive work items that share a grid point
+  //(prepareBatchedGPU emits items with the grid point as the outer loop,
+  //so equal grid points are always contiguous)
+  std::vector<int> group_offsets, group_grid;
+  group_offsets.reserve(n + 1);
+  group_grid.reserve(n);
+
+  for (size_t k = 0; k < n; ++k)
+    if (k == 0 || grid_points[k] != grid_points[k - 1])
+    {
+      group_offsets.push_back(static_cast<int>(k));
+      group_grid.push_back(grid_points[k]);
+    }
+
+  group_offsets.push_back(static_cast<int>(n));
+  const size_t nb_groups = group_grid.size();
+
   //pack all metadata tightly into the pinned staging blob
   //(pointer arrays first to keep 8-byte alignment)
   const size_t off_cs2  = n * sizeof(float*);
@@ -137,7 +178,9 @@ void launchBatchedCrossSections(
   const size_t off_temp = 4 * off_cs2;
   const size_t off_pres = off_temp + n * sizeof(float);
   const size_t off_logn = off_temp + 2 * n * sizeof(float);
-  const size_t off_grid = off_temp + 3 * n * sizeof(float);
+  const size_t off_goff = off_temp + 3 * n * sizeof(float);
+  const size_t off_ggrid = off_goff + (nb_groups + 1) * sizeof(int);
+  const size_t total_bytes = off_ggrid + nb_groups * sizeof(int);
 
   char* host = buffers.cs_blob_host;
   std::memcpy(host,            cs1_ptrs.data(), n * sizeof(float*));
@@ -147,16 +190,17 @@ void launchBatchedCrossSections(
   std::memcpy(host + off_temp, temp_factors.data(), n * sizeof(float));
   std::memcpy(host + off_pres, pres_factors.data(), n * sizeof(float));
   std::memcpy(host + off_logn, log_number_densities.data(), n * sizeof(float));
-  std::memcpy(host + off_grid, grid_points.data(), n * sizeof(int));
+  std::memcpy(host + off_goff, group_offsets.data(), (nb_groups + 1) * sizeof(int));
+  std::memcpy(host + off_ggrid, group_grid.data(), nb_groups * sizeof(int));
 
   //single upload of the whole batch
   gpuErrchk(cudaMemcpy(buffers.cs_blob_dev, host,
-    n * batch_cs_item_bytes, cudaMemcpyHostToDevice));
+    total_bytes, cudaMemcpyHostToDevice));
 
   char* dev = buffers.cs_blob_dev;
 
   const int threads = 256;
-  dim3 blocks((nb_spectral_points + threads - 1) / threads, n);
+  dim3 blocks((nb_spectral_points + threads - 1) / threads, nb_groups);
 
   batchedCrossSectionsDevice<<<blocks, threads>>>(
     (float**)dev,
@@ -166,7 +210,8 @@ void launchBatchedCrossSections(
     (float*)(dev + off_temp),
     (float*)(dev + off_pres),
     (float*)(dev + off_logn),
-    (int*)(dev + off_grid),
+    (int*)(dev + off_goff),
+    (int*)(dev + off_ggrid),
     nb_spectral_points,
     absorption_coeff_device);
 
@@ -185,29 +230,48 @@ void launchBatchedRayleigh(
   const size_t n = grid_points.size();
   if (n == 0) return;
 
+  //group consecutive work items that share a grid point (see cross-section launcher)
+  std::vector<int> group_offsets, group_grid;
+  group_offsets.reserve(n + 1);
+  group_grid.reserve(n);
+
+  for (size_t k = 0; k < n; ++k)
+    if (k == 0 || grid_points[k] != grid_points[k - 1])
+    {
+      group_offsets.push_back(static_cast<int>(k));
+      group_grid.push_back(grid_points[k]);
+    }
+
+  group_offsets.push_back(static_cast<int>(n));
+  const size_t nb_groups = group_grid.size();
+
   //pack all metadata tightly into the pinned staging blob
   //(8-byte members first to keep alignment)
   const size_t off_dens = n * sizeof(float*);
-  const size_t off_grid = off_dens + n * sizeof(double);
+  const size_t off_goff = off_dens + n * sizeof(double);
+  const size_t off_ggrid = off_goff + (nb_groups + 1) * sizeof(int);
+  const size_t total_bytes = off_ggrid + nb_groups * sizeof(int);
 
   char* host = buffers.ray_blob_host;
   std::memcpy(host,            rayleigh_ptrs.data(), n * sizeof(float*));
   std::memcpy(host + off_dens, number_densities.data(), n * sizeof(double));
-  std::memcpy(host + off_grid, grid_points.data(), n * sizeof(int));
+  std::memcpy(host + off_goff, group_offsets.data(), (nb_groups + 1) * sizeof(int));
+  std::memcpy(host + off_ggrid, group_grid.data(), nb_groups * sizeof(int));
 
   //single upload of the whole batch
   gpuErrchk(cudaMemcpy(buffers.ray_blob_dev, host,
-    n * batch_ray_item_bytes, cudaMemcpyHostToDevice));
+    total_bytes, cudaMemcpyHostToDevice));
 
   char* dev = buffers.ray_blob_dev;
 
   const int threads = 256;
-  dim3 blocks((nb_spectral_points + threads - 1) / threads, n);
+  dim3 blocks((nb_spectral_points + threads - 1) / threads, nb_groups);
 
   batchedRayleighDevice<<<blocks, threads>>>(
     (float**)dev,
     (double*)(dev + off_dens),
-    (int*)(dev + off_grid),
+    (int*)(dev + off_goff),
+    (int*)(dev + off_ggrid),
     nb_spectral_points,
     scattering_coeff_device);
 

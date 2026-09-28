@@ -53,6 +53,26 @@ int binarySearchDescending(
 }
 
 
+// Same bracket as binarySearchDescending, but found by a short linear scan
+// from a nearby hint index. Used when consecutive lookups target nearly
+// identical wavelengths (e.g. the same pixel at consecutive exposures, whose
+// Doppler shifts differ by only a few km/s ~ a few grid points).
+__device__ __forceinline__
+int bracketFromHint(
+  const double* __restrict__ arr,
+  int n,
+  double val,
+  int hint)
+{
+  int i = min(max(hint, 0), n - 1);
+
+  while (i > 0 && arr[i - 1] <= val) --i;
+  while (i < n - 1 && arr[i] > val) ++i;
+
+  return i;
+}
+
+
 // Interpolate the broadened model spectrum at a Doppler-shifted wavelength.
 // Returns the interpolated value, or 0 if outside the model range.
 // For the non-filtered (transmission) path: converts transit depth in ppm to
@@ -622,18 +642,27 @@ void highResInterpFilterKernel(
       fs_rest = interpolateModelRawIdx(stellar_spectrum, model_wavelengths, n_model,
                                        wl_um_rest, idx_rest);
 
+    // Bracket index of the previous exposure; consecutive exposures shift the
+    // wavelength by only a few grid points, so after the first (binary) search
+    // each subsequent bracket is found by a short scan from the previous one.
+    int idx_prev = (stellar_spectrum != nullptr) ? idx_rest : -1;
+
     for (int exp = 0; exp < nb_exposures; ++exp)
     {
       const double inv_dop   = s_inv_dop[exp];
       const double wl_um_dop = wl_um_rest * inv_dop;
 
-      // Full intra-exposure velocity smear (km/s).  One binary search locates the
-      // target bracket (reused for the box hint, the point fallback, and the stellar
-      // Fs).  The model is box-averaged directly at the Doppler target (matching the
+      // Full intra-exposure velocity smear (km/s).  One bracket search locates the
+      // target (reused for the box hint, the point fallback, and the stellar Fs).
+      // The model is box-averaged directly at the Doppler target (matching the
       // CPU); point interpolation is used only for negligible smear.
       const double delta_v = s_delta_v[exp];
 
-      const int idx_dop = binarySearchDescending(model_wavelengths, n_model, wl_um_dop);
+      const int idx_dop = (idx_prev < 0)
+        ? binarySearchDescending(model_wavelengths, n_model, wl_um_dop)
+        : bracketFromHint(model_wavelengths, n_model, wl_um_dop, idx_prev);
+
+      idx_prev = idx_dop;
 
       if (fabs(delta_v) > 1.0e-3)
       {

@@ -261,31 +261,6 @@ void TransportCoefficients::calculate(
 
 
 
-//calculates the transport coefficients on the GPU
-//calculations are stored on the GPU, nothing is returned
-//the layer coefficients are a temporary storage for a given p-T point
-void TransportCoefficients::calculateGPU(
-  const double temperature,
-  const double pressure,
-  const std::vector<double>& number_densities,
-  const size_t nb_grid_points,
-  const size_t grid_point,
-  float* absorption_coeff_device,
-  float* scattering_coeff_device)
-{
-  for (unsigned int i=0; i<gas_species.size(); i++)
-    gas_species[i]->calcTransportCoefficientsGPU(
-      temperature,
-      pressure,
-      number_densities,
-      nb_grid_points,
-      grid_point,
-      absorption_coeff_device,
-      scattering_coeff_device);
-}
-
-
-
 void TransportCoefficients::prepareBatchedGPU(
   const Atmosphere& atmosphere,
   std::vector<float*>& cs1_ptrs, std::vector<float*>& cs2_ptrs,
@@ -355,16 +330,13 @@ void TransportCoefficients::prepareBatchedGPU(
 
 
 void TransportCoefficients::calculateContinuumGPU(
-  const double temperature,
-  const double pressure,
-  const std::vector<double>& number_densities,
-  const size_t nb_grid_points,
-  const size_t grid_point,
+  const std::vector<double>& temperature,
+  const std::vector<std::vector<double>>& number_densities,
   float* absorption_coeff_device)
 {
   for (auto& species : gas_species)
-    species->calcContinuumGPU(
-      temperature, number_densities, nb_grid_points, grid_point, absorption_coeff_device);
+    species->calcContinuumBatchedGPU(
+      temperature, number_densities, absorption_coeff_device);
 }
 
 

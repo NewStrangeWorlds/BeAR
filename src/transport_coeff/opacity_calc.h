@@ -150,14 +150,11 @@ inline void OpacityCalculation::calculateGPU(
       batch_buffers, nb_spectral_points,
       scattering_coeff_dev);
   
-  //H- continuum (0-1 species, kept as per-layer launches)
-  for (size_t i=0; i<nb_grid_points; ++i)
-    transport_coeff.calculateContinuumGPU(
-      atmosphere->temperature[i],
-      atmosphere->pressure[i],
-      atmosphere->number_densities[i],
-      nb_grid_points, i,
-      absorption_coeff_gpu);
+  //H- continuum, all grid points in a single batched launch
+  transport_coeff.calculateContinuumGPU(
+    atmosphere->temperature,
+    atmosphere->number_densities,
+    absorption_coeff_gpu);
 
   if (use_cloud)
   {

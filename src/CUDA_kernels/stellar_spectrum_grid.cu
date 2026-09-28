@@ -32,40 +32,6 @@
 namespace bear{
 
 
-__global__ 
-void stellarSpectrumInterpolation(
-  const double xd, const double yd, const double zd,
-  const double* __restrict__ c000, const double* __restrict__ c100,
-  const double* __restrict__ c010, const double* __restrict__ c110,
-  const double* __restrict__ c001, const double* __restrict__ c101,
-  const double* __restrict__ c011, const double* __restrict__ c111,
-  const int nb_wavenumbers,
-  double* __restrict__ spectrum_dev)
-{
-  // Pre-calculate weights to save subtractions in the loop
-  const double omx = 1.0 - xd;
-  const double omy = 1.0 - yd;
-  const double omz = 1.0 - zd;
-
-  int tid = blockIdx.x * blockDim.x + threadIdx.x;
-  int stride = blockDim.x * gridDim.x;
-
-  for (; tid < nb_wavenumbers; tid += stride)
-  {
-    // Layer 0 (z=0)
-    double xy0 = omy * (c000[tid] * omx + c100[tid] * xd) + 
-                 yd  * (c010[tid] * omx + c110[tid] * xd);
-    
-    // Layer 1 (z=1)
-    double xy1 = omy * (c001[tid] * omx + c101[tid] * xd) + 
-                 yd  * (c011[tid] * omx + c111[tid] * xd);
-
-    // Final Interpolation
-    spectrum_dev[tid] = xy0 * omz + xy1 * zd;
-  }
-}
-
-
 __global__
 void stellarSpectrumInterpolationFl(
   const float xd, const float yd, const float zd,

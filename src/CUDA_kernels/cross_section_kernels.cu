@@ -31,6 +31,8 @@
 #include <iomanip>
 
 #include "error_check.h"
+#include "data_management_kernels.h"
+#include <cstring>
 #include "../additional/physical_const.h"
 #include "../transport_coeff/species_definition.h"
 #include "../transport_coeff/opacity_species.h"
@@ -59,62 +61,6 @@ __constant__ double d_E_n2[7] = {0.0, 93.1373, -178.9275, 101.7963, -21.9972, 0.
 __constant__ double d_F_n2[7] = {0.0, -6.4285, 12.3600, -7.0571, 1.5097, 0.0, 0.0};
 
 
-//calculates the cross sections for a given p-T pair based on tabulated data
-//uses a two-dimensional linar interpolation in log pressure and linear temperature based on the four closest tabulated p-T points
-//note that the cross-sections are given in log10 here
-__global__ void calcCrossSectionsDevice(
-  const float* __restrict__ cross_sections1, 
-  const float* __restrict__ cross_sections2, 
-  const float* __restrict__ cross_sections3, 
-  const float* __restrict__ cross_sections4,
-  const float temperature_interpol_factor,
-  const float pressure_interpol_factor,
-  const double number_density,
-  const int nb_spectral_points, 
-  const int grid_point,
-  float* __restrict__ absorption_coeff_device)
-{
-  //tid is the wavenumber index
-  int tid = blockIdx.x * blockDim.x + threadIdx.x;
-
-  if (tid < nb_spectral_points)
-  {
-    float c1 = cross_sections1[tid];
-    float c2 = cross_sections2[tid];
-    const float c3 = cross_sections3[tid];
-    const float c4 = cross_sections4[tid];
-    
-    c1 = c1 + (c2 - c1) * pressure_interpol_factor;
-    c2 = c3 + (c4 - c3) * pressure_interpol_factor;
-
-    double sigma = c1 + (c2 - c1) * temperature_interpol_factor;
-    
-    sigma = exp10(sigma) * number_density;
-
-    absorption_coeff_device[grid_point*nb_spectral_points + tid] += sigma;
-  }
-}
-
-
-//calculates the H- continuum
-__global__ void calcHmbfContinuumDevice(
-  const double hm_number_density,
-  const int nb_spectral_points,
-  const int grid_point,
-  float* __restrict__ cross_section_dev,
-  float* __restrict__ absorption_coeff_device)
-{
-  //tid is the wavenumber index
-  int tid = blockIdx.x * blockDim.x + threadIdx.x;
-
-  if (tid < nb_spectral_points)
-  { 
-    absorption_coeff_device[grid_point*nb_spectral_points + tid] += 
-      cross_section_dev[tid] * hm_number_density;
-  }
-}
-
-
 //tabulate the H- bound-free cross-section based on the formula from John (1988) 
 //and the coefficients from Bell & Berrington (1987)
 __global__ void calcHmbfCrossSectionDevice(
@@ -130,6 +76,10 @@ __global__ void calcHmbfCrossSectionDevice(
   if (tid < nb_spectral_points)
   {
     const double lambda = wavelengths_dev[tid];
+
+    //outside the photo-detachment range the cross-section is zero;
+    //without this, the caller would read uninitialised device memory
+    cross_section_dev[tid] = 0.0f;
 
     if (lambda <= lambda_0 && lambda >= 0.125)
     {
@@ -168,68 +118,73 @@ __global__ void calcHmbfCrossSectionDevice(
 
 
 
-//calculates the free-free H- continuum
-__global__ void calcHmffContinuumDevice(
-  const double h_number_density,
-  const double e_pressure,
-  const double temperature,
+//fused H- continuum for all grid points in one launch:
+//blockIdx.y indexes a grid-point work item; bound-free and free-free
+//contributions are combined into a single write per (grid point, wavelength)
+__global__ void calcHmContinuumBatchedDevice(
+  const float* __restrict__ bf_cross_sections,
+  const double* __restrict__ wavelengths_dev,
+  const double* __restrict__ hm_number_densities,
+  const double* __restrict__ h_e_products,        //h number density * e- pressure
+  const double* __restrict__ temperatures,
+  const int* __restrict__ grid_points,
   const int nb_spectral_points,
-  const int grid_point,
-  double* wavelengths_d,
   float* __restrict__ absorption_coeff_device)
 {
-  //tid is the wavenumber index
-  int tid = blockIdx.x * blockDim.x + threadIdx.x;
+  const int tid = blockIdx.x * blockDim.x + threadIdx.x;
+  const int wi = blockIdx.y;
 
-  if (tid < nb_spectral_points)
+  if (tid >= nb_spectral_points) return;
+
+  //bound-free contribution from the pre-tabulated cross-section
+  double sigma = bf_cross_sections[tid] * hm_number_densities[wi];
+
+  //free-free contribution (John 1988 / Bell & Berrington 1987)
+  const double lambda = wavelengths_dev[tid];
+
+  if (lambda >= 0.1823)
   {
-    const double lambda = wavelengths_d[tid];
+    const double inv_l = 1.0 / lambda;
+    const double l2 = lambda * lambda;
+    const double inv_l2 = inv_l * inv_l;
+    const double inv_l3 = inv_l2 * inv_l;
+    const double inv_l4 = inv_l2 * inv_l2;
+
+    const double theta = 5040.0 / temperatures[wi];
+    const double sqrt_theta = sqrt(theta);
+    double theta_power = theta;
+
+    const bool use_set1 = (lambda > 0.3645);
 
     double ff_sigma = 0;
 
-    if (lambda >= 0.1823)
+    #pragma unroll
+    for (unsigned int i=1; i<7; ++i)
     {
-      //precompute inverse lambda powers once instead of repeated divisions
-      const double inv_l = 1.0 / lambda;
-      const double l2 = lambda * lambda;
-      const double inv_l2 = inv_l * inv_l;
-      const double inv_l3 = inv_l2 * inv_l;
-      const double inv_l4 = inv_l2 * inv_l2;
+      const double A_i = use_set1 ? d_A_n1[i] : d_A_n2[i];
+      const double B_i = use_set1 ? d_B_n1[i] : d_B_n2[i];
+      const double C_i = use_set1 ? d_C_n1[i] : d_C_n2[i];
+      const double D_i = use_set1 ? d_D_n1[i] : d_D_n2[i];
+      const double E_i = use_set1 ? d_E_n1[i] : d_E_n2[i];
+      const double F_i = use_set1 ? d_F_n1[i] : d_F_n2[i];
 
-      //precompute theta powers incrementally: theta^1, theta^1.5, theta^2, ..., theta^3.5
-      //instead of calling pow() 6 times
-      const double theta = 5040.0 / temperature;
-      const double sqrt_theta = sqrt(theta);
-      double theta_power = theta;  // theta^1 for i=1: (i+1)/2 = 1
+      const double lambda_poly = l2 * A_i + B_i + C_i * inv_l + D_i * inv_l2
+                                 + E_i * inv_l3 + F_i * inv_l4;
 
-      //select correct coefficient set based on wavelength
-      const bool use_set1 = (lambda > 0.3645);
-
-      #pragma unroll
-      for (unsigned int i=1; i<7; ++i)
-      {
-        const double A_i = use_set1 ? d_A_n1[i] : d_A_n2[i];
-        const double B_i = use_set1 ? d_B_n1[i] : d_B_n2[i];
-        const double C_i = use_set1 ? d_C_n1[i] : d_C_n2[i];
-        const double D_i = use_set1 ? d_D_n1[i] : d_D_n2[i];
-        const double E_i = use_set1 ? d_E_n1[i] : d_E_n2[i];
-        const double F_i = use_set1 ? d_F_n1[i] : d_F_n2[i];
-
-        const double lambda_poly = l2 * A_i + B_i + C_i * inv_l + D_i * inv_l2
-                                   + E_i * inv_l3 + F_i * inv_l4;
-
-        ff_sigma += theta_power * lambda_poly;
-        theta_power *= sqrt_theta;  // next power: theta^1.5, theta^2, ...
-      }
-
-      ff_sigma *= 1e-29;
-      if (ff_sigma < 0) ff_sigma = 0;
-
-      absorption_coeff_device[grid_point*nb_spectral_points + tid] += ff_sigma * h_number_density * e_pressure;
+      ff_sigma += theta_power * lambda_poly;
+      theta_power *= sqrt_theta;
     }
-  }
-}
 
+    ff_sigma *= 1e-29;
+    if (ff_sigma < 0) ff_sigma = 0;
+
+    sigma += ff_sigma * h_e_products[wi];
+  }
+
+  //each grid point appears at most once in the work list,
+  //so this write needs no atomics
+  absorption_coeff_device[grid_points[wi]*nb_spectral_points + tid] += sigma;
+}
 
 
 //set all absorption coefficients to 0
@@ -314,104 +269,110 @@ __host__ void checkCrossSectionsHost(
 
 
 
-__host__ void OpacitySpecies::calcAbsorptionCoefficientsGPU(
-  float* cross_sections1, 
-  float* cross_sections2, 
-  float* cross_sections3, 
-  float* cross_sections4,
-  const double temperature1, 
-  const double temperature2,
-  const double log_pressure1, 
-  const double log_pressure2,
-  const double temperature, 
-  const double log_pressure, 
-  const double number_density,
-  const size_t nb_spectral_points, 
-  const size_t nb_grid_points, 
-  const size_t grid_point,
+__host__ void GasHm::calcContinuumBatchedGPU(
+  const std::vector<double>& temperature,
+  const std::vector<std::vector<double>>& number_densities,
   float* absorption_coeff_device)
 {
-  double log_pressure1_gpu = log_pressure1;
-  double log_pressure2_gpu = log_pressure2;
-  double temperature1_gpu = temperature1;
-  double temperature2_gpu = temperature2;
+  const int nb_spectral_points = spectral_grid->nbSpectralPoints();
 
-  //the linear interpolation in the CUDA kernel will fail if the two temperatures 
-  //or pressures are equal to avoid a bunch of if-statements in the CUDA kernel, 
-  //we here simply offset one of the temperatures or pressures by a bit
-  if (temperature1_gpu == temperature2_gpu) temperature2_gpu += 1;
-  if (log_pressure1_gpu == log_pressure2_gpu) log_pressure2_gpu += 0.001;
-  
   int threads = 256;
-  
   int blocks = nb_spectral_points / threads;
   if (nb_spectral_points % threads) blocks++;
-  
-  const double pressure_interpol_factor = 
-    (log_pressure - log_pressure1_gpu)/(log_pressure2_gpu - log_pressure1_gpu);
-  const double temperature_interpol_factor = 
-    (temperature - temperature1_gpu)/(temperature2_gpu - temperature1_gpu);
-  
-  calcCrossSectionsDevice<<<blocks,threads>>>(
-    cross_sections1, 
-    cross_sections2, 
-    cross_sections3, 
-    cross_sections4,
-    temperature_interpol_factor,
-    pressure_interpol_factor,
-    number_density,
+
+  //pre-tabulate the bound-free cross-section if not already done
+  if (bound_free_sigma_dev == nullptr)
+  {
+    allocateOnDevice(bound_free_sigma_dev, nb_spectral_points);
+
+    calcHmbfCrossSectionDevice<<<blocks,threads>>>(
+      nb_spectral_points,
+      spectral_grid->wavelength_list_gpu,
+      bound_free_sigma_dev);
+
+    CUDA_CHECK_AFTER_KERNEL();
+  }
+
+  //collect the per-layer scalars, skipping layers without any H-/H/e- content
+  const size_t nb_grid_points = temperature.size();
+
+  std::vector<double> hm_nd, h_e, temps;
+  std::vector<int> gps;
+  hm_nd.reserve(nb_grid_points); h_e.reserve(nb_grid_points);
+  temps.reserve(nb_grid_points); gps.reserve(nb_grid_points);
+
+  for (size_t i=0; i<nb_grid_points; ++i)
+  {
+    const double hm = number_densities[i][_Hm];
+    const double he = number_densities[i][_H] * number_densities[i][_e]
+                      * constants::boltzmann_k * temperature[i];
+
+    if (hm == 0 && he == 0) continue;
+
+    hm_nd.push_back(hm);
+    h_e.push_back(he);
+    temps.push_back(temperature[i]);
+    gps.push_back(static_cast<int>(i));
+  }
+
+  const size_t n = gps.size();
+  if (n == 0) return;
+
+  //grow the cached staging buffers on demand
+  constexpr size_t item_bytes = 3*sizeof(double) + sizeof(int);
+
+  if (hm_batch_capacity < n)
+  {
+    freeHmBatchBuffers();
+    gpuErrchk(cudaMalloc(&hm_batch_dev, n * item_bytes));
+    gpuErrchk(cudaMallocHost(&hm_batch_host, n * item_bytes));
+    hm_batch_capacity = n;
+  }
+
+  //pack everything into the pinned blob and upload with a single memcpy
+  const size_t off_he = n * sizeof(double);
+  const size_t off_t  = 2 * n * sizeof(double);
+  const size_t off_gp = 3 * n * sizeof(double);
+
+  std::memcpy(hm_batch_host,          hm_nd.data(), n * sizeof(double));
+  std::memcpy(hm_batch_host + off_he, h_e.data(),   n * sizeof(double));
+  std::memcpy(hm_batch_host + off_t,  temps.data(), n * sizeof(double));
+  std::memcpy(hm_batch_host + off_gp, gps.data(),   n * sizeof(int));
+
+  gpuErrchk(cudaMemcpy(hm_batch_dev, hm_batch_host,
+    n * item_bytes, cudaMemcpyHostToDevice));
+
+  dim3 blocks2(blocks, n);
+
+  calcHmContinuumBatchedDevice<<<blocks2,threads>>>(
+    bound_free_sigma_dev,
+    spectral_grid->wavelength_list_gpu,
+    (double*)hm_batch_dev,
+    (double*)(hm_batch_dev + off_he),
+    (double*)(hm_batch_dev + off_t),
+    (int*)(hm_batch_dev + off_gp),
     nb_spectral_points,
-    grid_point,
     absorption_coeff_device);
-  
+
   CUDA_CHECK_AFTER_KERNEL();
 }
 
 
-
-
-__host__ void GasHm::calcContinuumGPU(
-  const double hm_number_density,
-  const double h_number_density,
-  const double e_pressure,
-  const double temperature,
-  const int nb_spectral_points, 
-  const int grid_point,
-  double* wavelengths_device,
-  float* absorption_coeff_device)
+__host__ void GasHm::freeHmBatchBuffers()
 {
-  int threads = 256;
-  int blocks = nb_spectral_points / threads;
-  if (nb_spectral_points % threads) blocks++;
-  
-  //pre-tabulate the bound-free cross-section if not already done
-  if (bound_free_sigma_dev == nullptr)
+  if (hm_batch_dev != nullptr)
   {
-    allocateOnDevice(bound_free_sigma_dev, nb_spectral_points * sizeof(float));
-
-    calcHmbfCrossSectionDevice<<<blocks,threads>>>(
-      nb_spectral_points,
-      wavelengths_device,
-      bound_free_sigma_dev);
+    gpuErrchk(cudaFree(hm_batch_dev));
+    hm_batch_dev = nullptr;
   }
 
-  calcHmbfContinuumDevice<<<blocks,threads>>>(
-    hm_number_density,
-    nb_spectral_points,
-    grid_point,
-    bound_free_sigma_dev,
-    absorption_coeff_device);
+  if (hm_batch_host != nullptr)
+  {
+    gpuErrchk(cudaFreeHost(hm_batch_host));
+    hm_batch_host = nullptr;
+  }
 
-  calcHmffContinuumDevice<<<blocks,threads>>>(
-    h_number_density, 
-    e_pressure, 
-    temperature,
-    nb_spectral_points, 
-    grid_point,
-    wavelengths_device, 
-    absorption_coeff_device);
-
-  CUDA_CHECK_AFTER_KERNEL();
+  hm_batch_capacity = 0;
 }
 
 

@@ -49,15 +49,6 @@ class TransportCoefficients {
       std::vector<double>& absorption_coeff,
       std::vector<double>& scattering_coeff);
 
-    void calculateGPU(
-      const double temperature,
-      const double pressure,
-      const std::vector<double>& number_densities,
-      const size_t nb_grid_points,
-      const size_t grid_point,
-      float* absorption_coeff_device,
-      float* scattering_coeff_device);
-
     void prepareBatchedGPU(
       const Atmosphere& atmosphere,
       std::vector<float*>& cs1_ptrs, std::vector<float*>& cs2_ptrs,
@@ -68,11 +59,8 @@ class TransportCoefficients {
       std::vector<double>& ray_number_densities, std::vector<int>& ray_grid_points);
 
     void calculateContinuumGPU(
-      const double temperature,
-      const double pressure,
-      const std::vector<double>& number_densities,
-      const size_t nb_grid_points,
-      const size_t grid_point,
+      const std::vector<double>& temperature,
+      const std::vector<std::vector<double>>& number_densities,
       float* absorption_coeff_device);
 
   private:

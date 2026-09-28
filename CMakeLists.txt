@@ -176,7 +176,6 @@ set(SRC_CUDA
   src/CUDA_kernels/transmission_spectrum_kernels.cu
   src/radiative_transfer/short_characteristics/short_characteristics_kernels.cu
   src/radiative_transfer/adding_doubling/adding_doubling_kernels.cu
-  src/CUDA_kernels/rayleigh_scattering_kernels.cu
   src/CUDA_kernels/cloud_model_kernels.cu
   src/CUDA_kernels/contribution_function_kernels.cu
   src/CUDA_kernels/star_blackbody.cu
