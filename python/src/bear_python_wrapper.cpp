@@ -210,7 +210,7 @@ PYBIND11_MODULE(bear, m) {
         .def_readwrite("cloud_model_parameters", &bear::TransmissionModelConfig::cloud_model_parameters)
         .def_readwrite("modules", &bear::TransmissionModelConfig::modules)
         .def_readwrite("modules_parameters", &bear::TransmissionModelConfig::modules_parameters)
-        .def_readwrite("opacity_species_symbol", &bear::TransmissionModelConfig::modules)
+        .def_readwrite("opacity_species_symbol", &bear::TransmissionModelConfig::opacity_species_symbol)
         .def_readwrite("opacity_species_folder", &bear::TransmissionModelConfig::opacity_species_folder);
 
     py::class_<bear::OccultationConfig>(m, "OccultationConfig", genericConfig)
