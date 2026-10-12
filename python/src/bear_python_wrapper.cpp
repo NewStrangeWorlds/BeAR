@@ -202,6 +202,7 @@ PYBIND11_MODULE(bear, m) {
         .def_readwrite("atmos_boundaries", &bear::TransmissionModelConfig::atmos_boundaries)
         .def_readwrite("fit_mean_molecular_weight", &bear::TransmissionModelConfig::fit_mean_molecular_weight)
         .def_readwrite("fit_scale_height", &bear::TransmissionModelConfig::fit_scale_height)
+        .def_readwrite("patchy_clouds", &bear::TransmissionModelConfig::patchy_clouds)
         .def_readwrite("temperature_profile_model", &bear::TransmissionModelConfig::temperature_profile_model)
         .def_readwrite("temperature_profile_parameters", &bear::TransmissionModelConfig::temperature_profile_parameters)
         .def_readwrite("chemistry_model", &bear::TransmissionModelConfig::chemistry_model)

@@ -65,6 +65,10 @@ class TransmissionModelConfig : public GenericConfig{
     bool fit_scale_height = false;
     bool use_variable_gravity = false;
 
+    //patchy clouds: the transit depth is f * cloudy + (1 - f) * clear, with the
+    //cloud covering fraction f as one extra free parameter (cloud_covering_fraction)
+    bool patchy_clouds = false;
+
     //bool use_optional_modules = false;
 
     std::string temperature_profile_model;
@@ -234,7 +238,15 @@ class TransmissionModel : public ForwardModel{
     bool fit_mean_molecular_weight = false;
     bool fit_scale_height = false;
     bool use_variable_gravity = false;
-    
+
+    //patchy clouds (see TransmissionModelConfig): the covering fraction is the last
+    //entry of the cloud parameter block and is split off in extractParameters
+    bool patchy_clouds = false;
+    double cloud_covering_fraction = 1.0;
+    std::vector<double> clear_spectrum;
+    float* clear_spectrum_gpu = nullptr;
+    size_t clear_spectrum_gpu_size = 0;
+
     void initModules(
       const TransmissionModelConfig& model_config);
     
@@ -278,6 +290,19 @@ class TransmissionModel : public ForwardModel{
       const size_t nb_spectral_points,
       const double radius_planet,
       const double radius_star);
+
+    //patchy clouds on the GPU: clear and cloudy transit depths, mixed with the
+    //cloud covering fraction into transit_radius_dev
+    void calcTransitDepthPatchyGPU(
+      float* transit_radius_dev,
+      float* absorption_coeff_dev,
+      float* scattering_coeff_dev,
+      float* cloud_extinction_coeff_dev,
+      const Atmosphere& atmosphere,
+      const size_t nb_spectral_points,
+      const double radius_planet,
+      const double radius_star,
+      const double covering_fraction);
 
     void calcTransmissionSpectrum(
       const double bottom_radius,

@@ -27,6 +27,7 @@
 
 #include "error_check.h"
 #include "reduce_kernels.h"
+#include "data_management_kernels.h"
 #include "../additional/physical_const.h"
 
 
@@ -162,6 +163,24 @@ void sumExtinctionCoeff(
 
 
 
+//patchy clouds: transit depth = f * cloudy + (1 - f) * clear
+//the result is placed in the cloudy array
+__global__
+void mixPatchyCloudSpectrum(
+  const int nb_points,
+  const float covering_fraction,
+  float* __restrict__ cloudy_spectrum,
+  const float* __restrict__ clear_spectrum)
+{
+  int i = blockIdx.x * blockDim.x + threadIdx.x;
+
+  if (i < nb_points)
+    cloudy_spectrum[i] = covering_fraction * cloudy_spectrum[i]
+                       + (1.0f - covering_fraction) * clear_spectrum[i];
+}
+
+
+
 __host__ 
 void  TransmissionModel::calcTransitDepthGPU(
   float* transit_radius_dev,
@@ -202,6 +221,91 @@ void  TransmissionModel::calcTransitDepthGPU(
     atmosphere.altitude_dev,
     absorption_coeff_dev,
     transit_radius_dev);
+
+  CUDA_CHECK_AFTER_KERNEL();
+}
+
+
+
+//Patchy clouds: transit depth = f * cloudy + (1 - f) * clear for the same atmosphere.
+//sumExtinctionCoeff works in place on the absorption array, so the two spectra are made
+//in sequence: gas + scattering first (clear), then the cloud extinction is added on top
+//(cloudy). The result is written to transit_radius_dev; the clear spectrum is kept in a
+//scratch buffer of the model.
+void TransmissionModel::calcTransitDepthPatchyGPU(
+  float* transit_radius_dev,
+  float* absorption_coeff_dev,
+  float* scattering_coeff_dev,
+  float* cloud_extinction_coeff_dev,
+  const Atmosphere& atmosphere,
+  const size_t nb_spectral_points,
+  const double radius_planet,
+  const double radius_star,
+  const double covering_fraction)
+{
+  if (clear_spectrum_gpu != nullptr && clear_spectrum_gpu_size != nb_spectral_points)
+  {
+    deleteFromDevice(clear_spectrum_gpu);
+    clear_spectrum_gpu = nullptr;
+  }
+
+  if (clear_spectrum_gpu == nullptr)
+  {
+    allocateOnDevice(clear_spectrum_gpu, nb_spectral_points);
+    clear_spectrum_gpu_size = nb_spectral_points;
+  }
+
+  const int threads = 256;
+  const int nb_points = nb_spectral_points*nb_grid_points;
+  const int blocks_points = (nb_points + threads - 1) / threads;
+  const int blocks_spectrum = (nb_spectral_points + threads - 1) / threads;
+
+  //clear atmosphere: gas absorption plus scattering
+  sumExtinctionCoeff<<<blocks_points, threads>>>(
+    nb_points,
+    absorption_coeff_dev,
+    scattering_coeff_dev);
+
+  CUDA_CHECK_AFTER_KERNEL();
+
+  transmissionSpectrumKernel<<<blocks_spectrum, threads, nb_grid_points * sizeof(float)>>>(
+    nb_spectral_points,
+    nb_grid_points,
+    static_cast<float>(radius_planet),
+    static_cast<float>(radius_star),
+    atmosphere.altitude_dev,
+    absorption_coeff_dev,
+    clear_spectrum_gpu);
+
+  CUDA_CHECK_AFTER_KERNEL();
+
+  //cloudy atmosphere: add only the cloud extinction (scattering is already included)
+  if (cloud_extinction_coeff_dev != nullptr)
+  {
+    sumExtinctionCoeff<<<blocks_points, threads>>>(
+      nb_points,
+      absorption_coeff_dev,
+      cloud_extinction_coeff_dev);
+
+    CUDA_CHECK_AFTER_KERNEL();
+  }
+
+  transmissionSpectrumKernel<<<blocks_spectrum, threads, nb_grid_points * sizeof(float)>>>(
+    nb_spectral_points,
+    nb_grid_points,
+    static_cast<float>(radius_planet),
+    static_cast<float>(radius_star),
+    atmosphere.altitude_dev,
+    absorption_coeff_dev,
+    transit_radius_dev);
+
+  CUDA_CHECK_AFTER_KERNEL();
+
+  mixPatchyCloudSpectrum<<<blocks_spectrum, threads>>>(
+    nb_spectral_points,
+    static_cast<float>(covering_fraction),
+    transit_radius_dev,
+    clear_spectrum_gpu);
 
   CUDA_CHECK_AFTER_KERNEL();
 }
