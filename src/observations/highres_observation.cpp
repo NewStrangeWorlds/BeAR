@@ -23,11 +23,14 @@
 #include <iostream>
 #include <cmath>
 #include <algorithm>
+#include <functional>
 #include <omp.h>
 
 #include <Eigen/Dense>
 
+#include "highres_model_transform.h"
 #include "../additional/physical_const.h"
+#include "../additional/exceptions.h"
 #include "../CUDA_kernels/highres_loglike_kernels.h"
 
 
@@ -82,6 +85,20 @@ void HighResObservation::init(const std::string& file_path)
     std::cout << "  Exposure blurring enabled\n";
 
   loadModelScale(file_path);
+
+  // Re-injection puts the model into detector units so that (I-P) acts on it the
+  // way it acted on the data.  Without model filtering it has no meaning.
+  if ((reinject_model || has_model_scale) && (!has_filtering || !filter_model))
+  {
+    std::string error_message =
+      "#reinject_model 1 and #model_scale require a #filtering_basis section and "
+      "#filter_model 1 in file: " + file_path + "\n";
+    throw InvalidInput(std::string("HighResObservation::init"), error_message);
+  }
+
+  if (reinject_model && has_model_scale)
+    std::cout << "  WARNING: #model_scale section ignored, #reinject_model 1 "
+              << "uses S = P*raw_flux instead\n";
 
   if (has_filtering)
     initFiltering();
@@ -144,6 +161,20 @@ void HighResObservation::initFiltering()
         projection_matrices[ord][i * ne + j] = IminusP(i, j);
   }
 
+  // Offsets of each order in the flattened [order_offset * ne + exp * N + pixel]
+  // layout used by the re-injection matrix.
+  std::vector<size_t> ord_offsets(nb_orders);
+  size_t total_pix = 0;
+
+  for (size_t ord = 0; ord < nb_orders; ++ord)
+  {
+    ord_offsets[ord] = total_pix;
+    total_pix += spectral_orders[ord].nb_pixels;
+  }
+
+  if (reinject_model)
+    model_scale_host.assign(total_pix * ne, 0.0f);
+
   // Apply (I-P) to observed flux and precompute filtered statistics
   filtered_flux.resize(nb_orders);
   filtered_data_mean.resize(nb_orders * ne);
@@ -171,20 +202,28 @@ void HighResObservation::initFiltering()
       }
     }
 
+    // CHIMERA-style re-injection background S = D - (I-P) D = P D, the part of the
+    // data the filter captures.  Taken before the spectral detrending below, so
+    // that (I-P) S = 0 and a model that is constant in time cancels exactly.
+    if (reinject_model)
+    {
+      const size_t off = ord_offsets[ord];
+
+      for (size_t e = 0; e < ne; ++e)
+        for (size_t p = 0; p < N; ++p)
+          model_scale_host[off * ne + e * N + p] = static_cast<float>(
+            order.flux[e][p] - filtered_flux[ord][e][p]);
+    }
+
     // For filter_model=true: quadratic-detrend each exposure to remove the
     // broad CIA/blackbody continuum curvature before per-exposure cross-correlation.
-    // For filter_model=false: skip detrending.  The total-CCF logL sums over ALL
-    // exposures, so the CIA cancels exactly because sum_e D_pca[e,p] = 0 per pixel
-    // (guaranteed by the column-of-ones augmentation of the SVD basis).
-    // Detrending would break this zero-temporal-mean property and corrupt the CIA
-    // cancellation.
+    // The filtered model is detrended the same way at every likelihood call.
+    // For filter_model=false (data-only mode): no detrending.  The sums there run
+    // over all exposures, and the zero temporal mean per pixel guaranteed by the
+    // column-of-ones augmentation is what cancels a static continuum.
     if (filter_model)
     {
-      const double p_mid   = 0.5 * static_cast<double>(N - 1);
-      const double dN      = static_cast<double>(N);
-      const double sigma2  = dN * (dN * dN - 1.0) / 12.0;
-      const double sigma4  = dN * (dN * dN - 1.0) * (3.0 * dN * dN - 7.0) / 240.0;
-      const double det     = dN * sigma4 - sigma2 * sigma2;
+      const double p_mid = 0.5 * static_cast<double>(N - 1);
 
       for (size_t e = 0; e < ne; ++e)
       {
@@ -201,9 +240,8 @@ void HighResObservation::initFiltering()
           Sx2y += x * x * v;
         }
 
-        const double a = (det > 0.0) ? (sigma4 * Sy - sigma2 * Sx2y) / det : Sy / dN;
-        const double b = (sigma2 > 0.0) ? Sxy / sigma2 : 0.0;
-        const double c = (det > 0.0) ? (dN * Sx2y - sigma2 * Sy) / det : 0.0;
+        double a, b, c;
+        quadraticFitFromSums(static_cast<double>(N), Sy, Sxy, Sx2y, a, b, c);
 
         for (size_t p = 0; p < N; ++p)
         {
@@ -234,38 +272,79 @@ void HighResObservation::initFiltering()
     }
   }
 
-  // CHIMERA-style re-injection: populate model_scale as P*raw_flux = raw_flux - filtered_flux.
-  // The model (Fp/Fs) is multiplied by this before (I-P), putting it in detector units.
   if (reinject_model)
   {
-    size_t total_pix = 0;
-    std::vector<size_t> ord_offsets(nb_orders);
-    for (size_t ord = 0; ord < nb_orders; ++ord)
-    {
-      ord_offsets[ord] = total_pix;
-      total_pix += spectral_orders[ord].nb_pixels;
-    }
-
-    model_scale_host.assign(total_pix * ne, 0.0f);
-
-    for (size_t ord = 0; ord < nb_orders; ++ord)
-    {
-      const auto& order = spectral_orders[ord];
-      const size_t N = order.nb_pixels;
-      const size_t off = ord_offsets[ord];
-
-      for (size_t e = 0; e < ne; ++e)
-        for (size_t p = 0; p < N; ++p)
-          model_scale_host[off * ne + e * N + p] = static_cast<float>(
-            order.flux[e][p] - filtered_flux[ord][e][p]);
-    }
-
     has_model_scale = true;
     std::cout << "  Re-injection enabled: model_scale = P*raw_flux (SVD background)\n";
   }
 
   std::cout << "  Filtering initialized: projection matrices computed for "
             << nb_orders << " orders\n";
+}
+
+
+double HighResObservation::kpRef() const { return kp_ref; }
+double HighResObservation::vsysRef() const { return vsys_ref; }
+
+
+// Diagnostic export. Runs only the interpolate+filter stage of the filtered
+// likelihood path, so the result is the model exactly as the likelihood builds
+// it -- including the CHIMERA re-injection scaling when the observation was
+// loaded with #reinject_model 1. No likelihood is evaluated. The only state
+// touched is model_filtered_dev, which is scratch workspace overwritten at the
+// start of every likelihood call anyway.
+std::vector<float> HighResObservation::modelMatrixGPU(
+  const float* broadened_spectrum_gpu,
+  const double* model_wavelengths_gpu,
+  size_t nb_model_points,
+  double Kp, double Vsys, double dphi,
+  bool apply_projection,
+  const float* stellar_spectrum_gpu) const
+{
+  // Same convention as computeLogLikelihoodGPU: the kernels receive total
+  // velocities, not the retrieved offsets.
+  Kp   += kp_ref;
+  Vsys += vsys_ref;
+
+  const float* exposure_blur_coeff_arg =
+    exposure_blurring ? exposure_blur_coeff_dev : nullptr;
+
+  // With the projection, show the model exactly as the likelihood treats it:
+  // (I-P) M, or the temporal centring of the data-only mode.
+  const int projection = !apply_projection ? highres_projection_none
+    : (filter_model ? highres_projection_filter : highres_projection_center_time);
+
+  launchHighResInterpFilterOnly(
+    broadened_spectrum_gpu,
+    model_wavelengths_gpu,
+    static_cast<int>(nb_model_points),
+    all_wavelengths_dev,
+    order_offsets_dev,
+    order_nb_pixels_dev,
+    orbital_phases_dev,
+    barycentric_velocities_dev,
+    exposure_blur_coeff_arg,
+    projection_matrices_dev,
+    model_filtered_dev,
+    static_cast<int>(nb_orders),
+    static_cast<int>(nb_exposures),
+    max_pixels_per_order,
+    Kp,
+    Vsys,
+    dphi,
+    has_model_scale ? model_scale_dev : nullptr,
+    projection,
+    use_phase_function,
+    stellar_spectrum_gpu);
+
+  std::vector<float> host(total_pixels * nb_exposures, 0.0f);
+
+  //moveToHost takes T*& , which a const method cannot bind to directly;
+  //the pointer itself is not modified.
+  float* device_ptr = model_filtered_dev;
+  moveToHost(device_ptr, host);
+
+  return host;
 }
 
 
@@ -336,6 +415,10 @@ void HighResObservation::applyProjection(
 }
 
 
+// Point interpolation of the model at the Doppler-shifted wavelengths of an
+// order.  model_wavelengths is DESCENDING (µm).  For each pixel the bracket
+// index is the first grid point at or below the shifted wavelength, the same
+// as the binary search of the GPU kernels; pixels outside the grid stay 0.
 void HighResObservation::interpolateModelOntoOrder(
   const SpectralOrder& order,
   const std::vector<double>& broadened_spectrum,
@@ -348,33 +431,33 @@ void HighResObservation::interpolateModelOntoOrder(
 
   model_on_order.assign(N, 0.0);
 
-  // Binary search for starting position
+  if (N == 0 || n_model < 2)
+    return;
+
+  // Seed the running bracket with a binary search at the first pixel
   const double wl_first = order.wavelengths[0] * 1e-3 * doppler_inv;
   auto it = std::lower_bound(
     model_wavelengths.begin(), model_wavelengths.end(),
     wl_first, std::greater<double>());
   size_t model_idx = std::distance(model_wavelengths.begin(), it);
 
-  if (model_idx == 0) model_idx = 1;
-
   for (size_t p = 0; p < N; ++p)
   {
     const double wl_shifted = order.wavelengths[p] * 1e-3 * doppler_inv;
 
-    while (model_idx > 1 && model_wavelengths[model_idx - 1] < wl_shifted)
+    // model_wavelengths[model_idx - 1] > wl_shifted >= model_wavelengths[model_idx]
+    while (model_idx > 0 && model_wavelengths[model_idx - 1] <= wl_shifted)
       --model_idx;
+    while (model_idx < n_model && model_wavelengths[model_idx] > wl_shifted)
+      ++model_idx;
 
     if (model_idx < 1 || model_idx >= n_model)
       continue;
 
-    double w1 = model_wavelengths[model_idx - 1];
-    double w2 = model_wavelengths[model_idx];
-    double t = (wl_shifted - w1) / (w2 - w1);
-    // For the emission (filtered) path the spectrum is in physical flux units
-    // (W m⁻² cm), not transit-depth ppm, so use the raw interpolated value.
-    // The Brogi & Line Pearson-r formula is scale-invariant; only spectral
-    // shape matters.  For the non-filtered transmission path this gives a
-    // different scale but marginalized-alpha retrievals are unaffected.
+    const double w1 = model_wavelengths[model_idx - 1];
+    const double w2 = model_wavelengths[model_idx];
+    const double t = (wl_shifted - w1) / (w2 - w1);
+
     model_on_order[p] = (1.0 - t) * broadened_spectrum[model_idx - 1]
                       + t * broadened_spectrum[model_idx];
   }
@@ -467,6 +550,18 @@ void HighResObservation::interpolateModelOntoOrderBlurred(
 
 void HighResObservation::initDeviceMemory()
 {
+  // The filtered GPU path keeps one pixel column of the model (all exposures) in
+  // a fixed-size local array.
+  if (has_filtering && nb_exposures > static_cast<size_t>(highres_max_exposures_gpu))
+  {
+    std::string error_message =
+      "The filtered GPU likelihood supports at most "
+      + std::to_string(highres_max_exposures_gpu) + " exposures per observation, but "
+      + observation_name + " has " + std::to_string(nb_exposures)
+      + ". Split the sequence into several observation files or run on the CPU.\n";
+    throw InvalidInput(std::string("HighResObservation::initDeviceMemory"), error_message);
+  }
+
   // Compute total pixels across all orders and max pixels per order
   total_pixels = 0;
   max_pixels_per_order = 0;
@@ -529,12 +624,12 @@ void HighResObservation::initDeviceMemory()
 
   moveToDevice(all_flux_dev, all_flux);
 
-  // Upload orbital phases and barycentric velocities
-  std::vector<float> phases_float(orbital_phases.begin(), orbital_phases.end());
-  moveToDevice(orbital_phases_dev, phases_float);
+  // Orbital phases and barycentric velocities, in double as on the CPU
+  std::vector<double> phases(orbital_phases.begin(), orbital_phases.end());
+  moveToDevice(orbital_phases_dev, phases);
 
-  std::vector<float> vbary_float(barycentric_velocities.begin(), barycentric_velocities.end());
-  moveToDevice(barycentric_velocities_dev, vbary_float);
+  std::vector<double> vbary(barycentric_velocities.begin(), barycentric_velocities.end());
+  moveToDevice(barycentric_velocities_dev, vbary);
 
   // Upload the per-exposure exposure-blur coefficient (2*pi/P)*t_exp.  Kept null
   // when blurring is disabled so the kernels fall back to point interpolation.
@@ -547,42 +642,38 @@ void HighResObservation::initDeviceMemory()
     moveToDevice(exposure_blur_coeff_dev, blur_coeff);
   }
 
-  // Precompute per-order-per-exposure data mean and sf2 (variance)
+  // Precompute per-order-per-exposure data mean and sf2 (variance) from the
+  // float values the kernels actually read.  The kernels form R_xf and R_ff from
+  // those values; taking sf2 from the same numbers keeps R_xf^2 <= N sf2 R_ff
+  // (Cauchy-Schwarz), so the likelihood argument cannot turn negative through
+  // float/double rounding when the noise is tiny compared with the signal.
   std::vector<float> data_mean_h(nb_orders * nb_exposures);
   std::vector<double> data_sf2_h(nb_orders * nb_exposures);
 
   for (size_t ord = 0; ord < nb_orders; ++ord)
   {
-    const auto& order = spectral_orders[ord];
-    const size_t N = order.nb_pixels;
+    const size_t N = spectral_orders[ord].nb_pixels;
+    const size_t ord_offset = offsets[ord];
 
     for (size_t e = 0; e < nb_exposures; ++e)
     {
-      if (has_filtering)
-      {
-        data_mean_h[ord * nb_exposures + e] =
-          static_cast<float>(filtered_data_mean[ord * nb_exposures + e]);
-        data_sf2_h[ord * nb_exposures + e] =
-          filtered_data_sf2[ord * nb_exposures + e];
-      }
-      else
-      {
-        double sum = 0;
-        for (size_t p = 0; p < N; ++p)
-          sum += order.flux[e][p];
+      const float* row = &all_flux[ord_offset * nb_exposures + e * N];
 
-        double mean = sum / static_cast<double>(N);
-        data_mean_h[ord * nb_exposures + e] = static_cast<float>(mean);
+      double sum = 0;
+      for (size_t p = 0; p < N; ++p)
+        sum += static_cast<double>(row[p]);
 
-        double sf2 = 0;
-        for (size_t p = 0; p < N; ++p)
-        {
-          double d = order.flux[e][p] - mean;
-          sf2 += d * d;
-        }
-        sf2 /= static_cast<double>(N);
-        data_sf2_h[ord * nb_exposures + e] = sf2;
+      const float mean = static_cast<float>(sum / static_cast<double>(N));
+      data_mean_h[ord * nb_exposures + e] = mean;
+
+      double sf2 = 0;
+      for (size_t p = 0; p < N; ++p)
+      {
+        const double d = static_cast<double>(row[p]) - static_cast<double>(mean);
+        sf2 += d * d;
       }
+
+      data_sf2_h[ord * nb_exposures + e] = sf2 / static_cast<double>(N);
     }
   }
 
@@ -627,10 +718,43 @@ void HighResObservation::initDeviceMemory()
             static_cast<float>(order.flux_uncertainties[e][p]);
     }
 
+    // Data sums from the same float data and uncertainties the kernels read, for
+    // the same reason as sf2 above: chi^2(alpha) then stays >= 0 up to rounding.
+    std::vector<double> S1_h(nb_orders * nb_exposures);
+    std::vector<double> Sf_h(nb_orders * nb_exposures);
+    std::vector<double> Sff_h(nb_orders * nb_exposures);
+
+    for (size_t ord = 0; ord < nb_orders; ++ord)
+    {
+      const size_t N = spectral_orders[ord].nb_pixels;
+      const size_t ord_offset = offsets[ord];
+
+      for (size_t e = 0; e < nb_exposures; ++e)
+      {
+        const float* f = &all_flux[ord_offset * nb_exposures + e * N];
+        const float* s = &all_unc[ord_offset * nb_exposures + e * N];
+
+        double s1 = 0, sf = 0, sff = 0;
+
+        for (size_t p = 0; p < N; ++p)
+        {
+          const double inv_s2 = 1.0 / (static_cast<double>(s[p]) * static_cast<double>(s[p]));
+          const double fp = static_cast<double>(f[p]);
+          s1  += inv_s2;
+          sf  += fp * inv_s2;
+          sff += fp * fp * inv_s2;
+        }
+
+        S1_h[ord * nb_exposures + e]  = s1;
+        Sf_h[ord * nb_exposures + e]  = sf;
+        Sff_h[ord * nb_exposures + e] = sff;
+      }
+    }
+
     moveToDevice(flux_uncertainties_dev, all_unc);
-    moveToDevice(gibson_S1_dev, gibson_S1);
-    moveToDevice(gibson_Sf_dev, gibson_Sf);
-    moveToDevice(gibson_Sff_dev, gibson_Sff);
+    moveToDevice(gibson_S1_dev, S1_h);
+    moveToDevice(gibson_Sf_dev, Sf_h);
+    moveToDevice(gibson_Sff_dev, Sff_h);
   }
 
   std::cout << "  GPU memory initialized: " << total_pixels << " total pixels, "
@@ -659,9 +783,34 @@ void HighResObservation::freeDeviceMemory()
 }
 
 
-// CPU log-likelihood with unified order-first structure.
-// When filtering is enabled, the model is interpolated at all exposures,
-// then filtered via (I-P) before computing the cross-correlation likelihood.
+// Linear interpolation on the descending model grid, 0 outside it (the same
+// bracket rule as the GPU kernels).
+static double interpolateDescending(
+  const std::vector<double>& grid,
+  const double* values,
+  const size_t n,
+  const double wl)
+{
+  auto it = std::lower_bound(grid.begin(), grid.begin() + n, wl, std::greater<double>());
+  const size_t idx = static_cast<size_t>(std::distance(grid.begin(), it));
+
+  if (idx < 1 || idx >= n)
+    return 0.0;
+
+  const double t = (wl - grid[idx - 1]) / (grid[idx] - grid[idx - 1]);
+
+  return (1.0 - t) * values[idx - 1] + t * values[idx];
+}
+
+
+// CPU log-likelihood.  Mirrors the GPU path step by step (see
+// highres_loglike_kernels.cu): model value at the Doppler target (box-averaged
+// over the exposure smear when enabled), emission stellar-frame correction or
+// transmission depth conversion, phase weight, re-injection scale, then
+//   filtered, filter_model = true: (I-P), quadratic detrend, per-exposure logL
+//   filtered, filter_model = false: temporal centring, one logL per order
+//   no filtering:                  mean subtraction, per-exposure logL
+// with the Gibson form using inverse-variance weighted means instead.
 double HighResObservation::computeLogLikelihood(
   const std::vector<double>& broadened_spectrum,
   const std::vector<double>& model_wavelengths,
@@ -670,7 +819,18 @@ double HighResObservation::computeLogLikelihood(
   size_t nb_stellar_points) const
 {
   const double c_kms = constants::light_c * 1e-5;  // cm/s -> km/s
-  double total_log_like = 0;
+  const size_t ne = nb_exposures;
+  const size_t n_model = model_wavelengths.size();
+
+  const bool emission  = stellar_spectrum != nullptr && nb_stellar_points > 0;
+  const size_t n_stellar = std::min(n_model, nb_stellar_points);
+  const bool filtered  = has_filtering && filter_model;
+  const bool data_only = has_filtering && !filter_model;
+  const bool gibson    = likelihood_mode == HighResLikelihoodMode::gibson;
+
+  // Brogi & Line forms: a negative alpha selects the maximum-likelihood alpha
+  const double alpha_bl =
+    (likelihood_mode == HighResLikelihoodMode::free_alpha) ? alpha : -1.0;
 
   // Exposure blurring: precompute the cumulative trapezoidal integral of the model
   // once (shared by all orders and exposures).  model_wavelengths is descending, so
@@ -679,7 +839,6 @@ double HighResObservation::computeLogLikelihood(
   std::vector<double> model_cumint;
   if (exposure_blurring)
   {
-    const size_t n_model = model_wavelengths.size();
     model_cumint.assign(n_model, 0.0);
     for (size_t k = 1; k < n_model; ++k)
       model_cumint[k] = model_cumint[k-1]
@@ -687,246 +846,278 @@ double HighResObservation::computeLogLikelihood(
               * (model_wavelengths[k-1] - model_wavelengths[k]);
   }
 
+  // Per-exposure geometry, identical to exposureGeometry() in the GPU kernels
+  const double kp_total   = kp_ref + Kp;
+  const double vsys_total = vsys_ref + Vsys;
+
+  std::vector<double> v_rad(ne), inv_dop(ne), delta_v(ne, 0.0), phase_w(ne, 1.0);
+
+  for (size_t e = 0; e < ne; ++e)
+  {
+    const double phase = orbital_phases[e] + dphi;
+
+    v_rad[e]   = kp_total * std::sin(2.0 * constants::pi * phase)
+               + vsys_total + barycentric_velocities[e];
+    inv_dop[e] = 1.0 / (1.0 + v_rad[e] / c_kms);
+
+    // Full width of the intra-exposure velocity smear (km/s).  Only the planet's
+    // orbital term accelerates over an exposure; Vsys and v_bary are ~constant.
+    if (exposure_blurring)
+      delta_v[e] = kp_total * std::cos(2.0 * constants::pi * phase)
+                 * (2.0 * constants::pi / orbital_period) * exposure_times[e];
+
+    if (use_phase_function)
+      phase_w[e] = highResPhaseWeight(phase);
+  }
+
+  // Order offsets in the flattened re-injection matrix
+  std::vector<size_t> ord_offsets(nb_orders, 0);
+  for (size_t o = 1; o < nb_orders; ++o)
+    ord_offsets[o] = ord_offsets[o - 1] + spectral_orders[o - 1].nb_pixels;
+
+  double total_log_like = 0;
+
   // Process each order (parallelized over orders)
   #pragma omp parallel for reduction(+:total_log_like) schedule(dynamic, 1)
   for (size_t ord = 0; ord < nb_orders; ++ord)
   {
     const auto& order = spectral_orders[ord];
     const size_t N = order.nb_pixels;
+    const double dN = static_cast<double>(N);
 
-    // 1) Interpolate the model at all exposures.  When exposure blurring is active,
-    //    the model is box-averaged over the intra-exposure velocity drift (a running
-    //    mean via the precomputed cumulative integral, O(1) per pixel) instead of
-    //    point-sampled.  Optional Lambertian phase function applied afterwards.
-    std::vector<std::vector<double>> model_matrix(
-      nb_exposures, std::vector<double>(N, 0.0));
+    // Fs at the rest wavelength of each pixel (emission), the same for all exposures
+    std::vector<double> fs_rest;
 
-    for (size_t exp = 0; exp < nb_exposures; ++exp)
+    if (emission)
     {
-      const double phase = orbital_phases[exp];
-      const double v_rad = (kp_ref + Kp) * std::sin(2.0 * constants::pi * (phase + dphi))
-                           + (vsys_ref + Vsys) + barycentric_velocities[exp];
-      const double inv   = 1.0 / (1.0 + v_rad / c_kms);
+      fs_rest.resize(N);
+      for (size_t p = 0; p < N; ++p)
+        fs_rest[p] = interpolateDescending(
+          model_wavelengths, stellar_spectrum, n_stellar, order.wavelengths[p] * 1e-3);
+    }
 
-      // Full width of the intra-exposure velocity smear (km/s).  Only the planet's
-      // orbital term accelerates over an exposure; Vsys and v_bary are ~constant.
-      double delta_v = 0.0;
-      if (exposure_blurring)
-        delta_v = (kp_ref + Kp)
-                * std::cos(2.0 * constants::pi * (phase + dphi))
-                * (2.0 * constants::pi / orbital_period)
-                * exposure_times[exp];
+    // 1) Model at all exposures
+    std::vector<std::vector<double>> model_matrix(ne, std::vector<double>(N, 0.0));
 
-      // Box-average the model at the Doppler target when the smear is non-negligible
-      // (near conjunction); otherwise (near quadrature, or blurring disabled)
-      // point-interpolate.
-      if (exposure_blurring && std::abs(delta_v) > 1.0e-3)
+    for (size_t exp = 0; exp < ne; ++exp)
+    {
+      auto& row = model_matrix[exp];
+
+      // Box-average at the Doppler target when the smear is non-negligible (near
+      // conjunction); otherwise point-interpolate.
+      if (exposure_blurring && std::abs(delta_v[exp]) > exposure_blur_min_kms)
         interpolateModelOntoOrderBlurred(order, broadened_spectrum, model_cumint,
-                                         model_wavelengths, v_rad, delta_v,
-                                         model_matrix[exp]);
+                                         model_wavelengths, v_rad[exp], delta_v[exp], row);
       else
         interpolateModelOntoOrder(order, broadened_spectrum, model_wavelengths,
-                                  inv, model_matrix[exp]);
+                                  inv_dop[exp], row);
 
-      if (use_phase_function)
+      for (size_t p = 0; p < N; ++p)
       {
-        const double pf = 1.0 + std::cos(2.0 * constants::pi * phase - constants::pi);
-        const double w  = 0.5 * pf * pf;
-        for (size_t p = 0; p < N; ++p)
-          model_matrix[exp][p] *= w;
-      }
+        double m = row[p];
 
-      if (stellar_spectrum != nullptr && nb_stellar_points > 0)
-      {
-        // Per-pixel correction: Fs(λ·inv_dop) / Fs(λ_rest) undoes the erroneous
-        // Doppler shift of the stellar template introduced by interpolating Fp/Fs at
-        // the Doppler-shifted wavelength. Only Fp should be shifted; Fs must stay at
-        // rest wavelengths (data is in the stellar rest frame).
-        for (size_t p = 0; p < N; ++p)
+        if (!emission)
         {
-          const double wl_dop  = order.wavelengths[p] * 1e-3 * inv;
-          const double wl_rest = order.wavelengths[p] * 1e-3;
-
-          auto interp_stellar = [&](double wl) -> double {
-            auto it = std::lower_bound(
-              model_wavelengths.begin(), model_wavelengths.end(),
-              wl, std::greater<double>());
-            const size_t idx = static_cast<size_t>(
-              std::distance(model_wavelengths.begin(), it));
-            if (idx < 1 || idx >= nb_stellar_points) return 0.0;
-            const double t = (wl - model_wavelengths[idx-1])
-                           / (model_wavelengths[idx] - model_wavelengths[idx-1]);
-            return (1.0 - t) * stellar_spectrum[idx-1] + t * stellar_spectrum[idx];
-          };
-
-          const double fs_dop  = interp_stellar(wl_dop);
-          const double fs_rest = interp_stellar(wl_rest);
-
-          if (fs_rest > 0.0)
-            model_matrix[exp][p] *= fs_dop / fs_rest;
+          // transmission: transit depth (ppm) -> relative in-transit flux change
+          m *= transit_depth_to_flux;
         }
+        else if (fs_rest[p] > 0.0)
+        {
+          // Fs(λ')/Fs(λ_rest) undoes the Doppler shift that interpolating Fp/Fs at
+          // λ' gives the stellar spectrum: only Fp moves, Fs stays in the stellar
+          // rest frame of the data.
+          m *= interpolateDescending(model_wavelengths, stellar_spectrum, n_stellar,
+                                     order.wavelengths[p] * 1e-3 * inv_dop[exp])
+             / fs_rest[p];
+        }
+
+        m *= phase_w[exp];
+
+        // Re-injection (Line et al. 2021): model in detector units, m * S
+        if (has_model_scale)
+          m *= static_cast<double>(model_scale_host[ord_offsets[ord] * ne + exp * N + p]);
+
+        row[p] = m;
       }
     }
 
-    // 2) Apply model temporal filtering:
-    //    - filter_model=true:  apply (I-P) projection (removes SVD modes + mean)
-    //    - filter_model=false: subtract temporal mean per pixel only (N_PCA=0 model
-    //      filtering), zeroing out velocity-independent CIA/blackbody while preserving
-    //      the Doppler trail of molecular lines.
-    if (has_filtering && filter_model)
+    // 2) Temporal treatment of the model
+    if (filtered)
     {
       applyProjection(ord, model_matrix);
     }
-
-    // 3) Cross-correlation likelihood
-    if (has_filtering && !filter_model)
+    else if (data_only)
     {
-      // Total-CCF per order: sum R_xf, R_ff, sf2 over ALL exposures × pixels.
-      // The CIA/blackbody continuum cancels because sum_e filtered_flux[e,p] = 0
-      // per pixel (guaranteed by the column-of-ones augmentation of the SVD basis).
-      // This cancellation is only valid when the sum is taken over all exposures;
-      // per-exposure logL would have spurious CIA contributions.
-      //
-      double R_xf = 0, R_ff = 0, sf2_total = 0;
-      const double dN_total = static_cast<double>(N * nb_exposures);
-
-      for (size_t exp = 0; exp < nb_exposures; ++exp)
+      // N_PCA = 0 model filtering: remove the temporal mean of each pixel
+      for (size_t p = 0; p < N; ++p)
       {
-        const auto& flux_ref = filtered_flux[ord][exp];
+        double mean = 0.0;
+        for (size_t exp = 0; exp < ne; ++exp)
+          mean += model_matrix[exp][p];
+
+        mean /= static_cast<double>(ne);
+
+        for (size_t exp = 0; exp < ne; ++exp)
+          model_matrix[exp][p] -= mean;
+      }
+    }
+
+    // 3a) Data-only mode: sums over all exposures of the order, one logL per order.
+    //     The (I-P)-filtered data have zero temporal mean per pixel and the model is
+    //     centred in time, so a continuum that does not move with the planet cancels.
+    if (data_only)
+    {
+      double rxf = 0, rff = 0, sff = 0;
+      double sm = 0, sfm = 0, smm = 0;
+
+      for (size_t exp = 0; exp < ne; ++exp)
+      {
+        const auto& d_row = filtered_flux[ord][exp];
+        const auto& m_row = model_matrix[exp];
+
         for (size_t p = 0; p < N; ++p)
         {
-          const double d = flux_ref[p];
-          const double m = model_matrix[exp][p];
-          R_xf     += d * m;
-          R_ff     += m * m;
-          sf2_total += d * d;
+          const double d = d_row[p];
+          const double m = m_row[p];
+
+          rxf += d * m;
+          rff += m * m;
+          sff += d * d;
+
+          if (gibson)
+          {
+            const double s = order.flux_uncertainties[exp][p];
+            const double inv_s2 = 1.0 / (s * s);
+            sm  += m * inv_s2;
+            sfm += d * m * inv_s2;
+            smm += m * m * inv_s2;
+          }
         }
       }
 
-      if (R_ff > 0.0 && sf2_total > 0.0)
-      {
-        const double r2 = (R_xf * R_xf) / (sf2_total * R_ff);
-        if (r2 < 1.0)
-          total_log_like += -0.5 * dN_total * std::log(1.0 - r2);
-        else
-          total_log_like += -1e30;
-      }
-    }
-    else
-    {
-      // Per-exposure logL (filter_model=true or no filtering)
-      for (size_t exp = 0; exp < nb_exposures; ++exp)
-      {
-        const auto& flux_ref = has_filtering ? filtered_flux[ord][exp]
-                                             : order.flux[exp];
+      const double dN_total = dN * static_cast<double>(ne);
 
+      if (gibson)
+      {
+        double S1 = 0, Sf = 0, Sff = 0;
+
+        for (size_t exp = 0; exp < ne; ++exp)
+        {
+          S1  += gibson_S1[ord * ne + exp];
+          Sf  += gibson_Sf[ord * ne + exp];
+          Sff += gibson_Sff[ord * ne + exp];
+        }
+
+        total_log_like += gibsonLogLike(S1, Sf, Sff, sm, sfm, smm, dN_total, alpha);
+      }
+      else
+      {
+        total_log_like += brogiLineLogLike(rxf, rff, sff / dN_total, dN_total, alpha_bl);
+      }
+
+      continue;
+    }
+
+    // 3b) Per-exposure likelihood
+    const double p_mid = 0.5 * static_cast<double>(N - 1);
+
+    for (size_t exp = 0; exp < ne; ++exp)
+    {
+      const auto& flux_ref = has_filtering ? filtered_flux[ord][exp] : order.flux[exp];
+      auto& m_row = model_matrix[exp];
+
+      // Model detrending: a quadratic in pixel index when the model is filtered (the
+      // filtered data were detrended the same way at initialisation), otherwise the
+      // mean.  The Gibson form removes weighted means through its sums instead.
+      if (filtered)
+      {
+        double Sy = 0, Sxy = 0, Sx2y = 0;
+
+        for (size_t p = 0; p < N; ++p)
+        {
+          const double x = static_cast<double>(p) - p_mid;
+          Sy   += m_row[p];
+          Sxy  += x * m_row[p];
+          Sx2y += x * x * m_row[p];
+        }
+
+        double a, b, c;
+        quadraticFitFromSums(dN, Sy, Sxy, Sx2y, a, b, c);
+
+        for (size_t p = 0; p < N; ++p)
+        {
+          const double x = static_cast<double>(p) - p_mid;
+          m_row[p] -= a + b * x + c * x * x;
+        }
+      }
+      else if (!gibson)
+      {
+        double mean = 0;
+        for (size_t p = 0; p < N; ++p)
+          mean += m_row[p];
+
+        mean /= dN;
+
+        for (size_t p = 0; p < N; ++p)
+          m_row[p] -= mean;
+      }
+
+      if (gibson)
+      {
+        const auto& sigma = order.flux_uncertainties[exp];
+
+        double Sm = 0, Sfm = 0, Smm = 0;
+
+        for (size_t p = 0; p < N; ++p)
+        {
+          const double m = m_row[p];
+          const double inv_sigma2 = 1.0 / (sigma[p] * sigma[p]);
+          Sm  += m * inv_sigma2;
+          Sfm += flux_ref[p] * m * inv_sigma2;
+          Smm += m * m * inv_sigma2;
+        }
+
+        const size_t idx = ord * ne + exp;
+
+        total_log_like += gibsonLogLike(
+          gibson_S1[idx], gibson_Sf[idx], gibson_Sff[idx], Sm, Sfm, Smm, dN, alpha);
+      }
+      else
+      {
         double data_mean, sf2;
 
         if (has_filtering)
         {
-          data_mean = filtered_data_mean[ord * nb_exposures + exp];
-          sf2 = filtered_data_sf2[ord * nb_exposures + exp];
+          data_mean = filtered_data_mean[ord * ne + exp];
+          sf2 = filtered_data_sf2[ord * ne + exp];
         }
         else
         {
           double sum = 0;
           for (size_t p = 0; p < N; ++p)
             sum += flux_ref[p];
-          data_mean = sum / static_cast<double>(N);
+          data_mean = sum / dN;
 
           sf2 = 0;
           for (size_t p = 0; p < N; ++p)
           {
-            double d = flux_ref[p] - data_mean;
+            const double d = flux_ref[p] - data_mean;
             sf2 += d * d;
           }
-          sf2 /= static_cast<double>(N);
+          sf2 /= dN;
         }
 
-        const double p_mid   = 0.5 * static_cast<double>(N - 1);
-        const double dN      = static_cast<double>(N);
-        const double sigma2  = dN * (dN * dN - 1.0) / 12.0;
-        const double sigma4  = dN * (dN * dN - 1.0) * (3.0 * dN * dN - 7.0) / 240.0;
-        const double det     = dN * sigma4 - sigma2 * sigma2;
-        double Sy   = 0;
-        double Sxy  = 0;
-        double Sx2y = 0;
+        double rxf = 0, rff = 0;
 
         for (size_t p = 0; p < N; ++p)
         {
-          const double x = static_cast<double>(p) - p_mid;
-          const double m = model_matrix[exp][p];
-          Sy   += m;
-          Sxy  += x * m;
-          Sx2y += x * x * m;
+          const double d = flux_ref[p] - data_mean;
+          rxf += d * m_row[p];
+          rff += m_row[p] * m_row[p];
         }
 
-        const double model_a = (det > 0.0) ? (sigma4 * Sy - sigma2 * Sx2y) / det : Sy / dN;
-        const double model_b = (sigma2 > 0.0) ? Sxy / sigma2 : 0.0;
-        const double model_c = (det > 0.0) ? (dN * Sx2y - sigma2 * Sy) / det : 0.0;
-
-        if (likelihood_mode == HighResLikelihoodMode::gibson)
-        {
-          const auto& sigma = spectral_orders[ord].flux_uncertainties[exp];
-          const double S1  = gibson_S1[ord * nb_exposures + exp];
-          const double Sf  = gibson_Sf[ord * nb_exposures + exp];
-          const double Sff = gibson_Sff[ord * nb_exposures + exp];
-
-          double Sm = 0, Sfm = 0, Smm = 0;
-
-          for (size_t p = 0; p < N; ++p)
-          {
-            const double m = model_matrix[exp][p];
-            const double inv_sigma2 = 1.0 / (sigma[p] * sigma[p]);
-            Sm  += m * inv_sigma2;
-            Sfm += flux_ref[p] * m * inv_sigma2;
-            Smm += m * m * inv_sigma2;
-          }
-
-          const double chi2_data = Sff - Sf * Sf / S1;
-          const double chi2 = chi2_data
-                             + alpha * alpha * (Smm - Sm * Sm / S1)
-                             - 2.0 * alpha * (Sfm - Sf * Sm / S1);
-
-          if (chi2 > 0 && chi2_data > 0)
-            total_log_like += -0.5 * dN * std::log(chi2 / chi2_data);
-          else
-            total_log_like += -1e30;
-        }
-        else
-        {
-          double R_xf = 0, R_ff = 0;
-
-          for (size_t p = 0; p < N; ++p)
-          {
-            const double x = static_cast<double>(p) - p_mid;
-            const double d = flux_ref[p] - data_mean;
-            const double m = model_matrix[exp][p] - model_a - model_b * x - model_c * x * x;
-            R_xf += d * m;
-            R_ff += m * m;
-          }
-
-          if (R_ff > 0.0)
-          {
-            double arg;
-
-            if (likelihood_mode == HighResLikelihoodMode::marginalized_alpha)
-            {
-              arg = (sf2 - (R_xf * R_xf) / (dN * R_ff)) / sf2;
-            }
-            else
-            {
-              const double sg2 = R_ff / dN;
-              const double R = R_xf / dN;
-              arg = (sf2 + alpha * alpha * sg2 - 2.0 * alpha * R) / sf2;
-            }
-
-            if (arg > 0)
-              total_log_like += -0.5 * N * std::log(arg);
-            else
-              total_log_like += -1e30;
-          }
-        }
+        if (rff > 0.0)
+          total_log_like += brogiLineLogLike(rxf, rff, sf2, dN, alpha_bl);
       }
     }
   }
@@ -946,77 +1137,18 @@ void HighResObservation::computeLogLikelihoodGPU(
   // Fold in reference offsets so CUDA kernels receive the total velocity
   Kp   += kp_ref;
   Vsys += vsys_ref;
-  // alpha_gpu: positive = explicit alpha; negative = marginalize
-  const float alpha_gpu = (likelihood_mode == HighResLikelihoodMode::marginalized_alpha)
-    ? -1.0f : static_cast<float>(alpha);
+
+  const bool gibson = likelihood_mode == HighResLikelihoodMode::gibson;
+  const int likelihood_form = gibson ? highres_form_gibson
+    : (likelihood_mode == HighResLikelihoodMode::free_alpha ? highres_form_free_alpha
+                                                            : highres_form_marginalized_alpha);
 
   // Exposure blurring: the kernels box-average the model at the Doppler target using
   // exposure_blur_coeff_dev (null when disabled -> point interpolation).
   const float* exposure_blur_coeff_arg =
     exposure_blurring ? exposure_blur_coeff_dev : nullptr;
 
-  if (likelihood_mode == HighResLikelihoodMode::gibson)
-  {
-    if (has_filtering)
-    {
-      launchHighResLogLikeFilteredGibson(
-        broadened_spectrum_gpu,
-        model_wavelengths_gpu,
-        static_cast<int>(nb_model_points),
-        all_wavelengths_dev,
-        all_flux_dev,
-        order_offsets_dev,
-        order_nb_pixels_dev,
-        orbital_phases_dev,
-        barycentric_velocities_dev,
-        exposure_blur_coeff_arg,
-        projection_matrices_dev,
-        model_filtered_dev,
-        flux_uncertainties_dev,
-        gibson_S1_dev,
-        gibson_Sf_dev,
-        gibson_Sff_dev,
-        static_cast<int>(nb_orders),
-        static_cast<int>(nb_exposures),
-        max_pixels_per_order,
-        static_cast<float>(Kp),
-        static_cast<float>(Vsys),
-        static_cast<float>(dphi),
-        static_cast<float>(alpha),
-        d_log_like_dev,
-        stellar_spectrum_gpu,
-        use_phase_function);
-    }
-    else
-    {
-      launchHighResLogLikeGibson(
-        broadened_spectrum_gpu,
-        model_wavelengths_gpu,
-        static_cast<int>(nb_model_points),
-        all_wavelengths_dev,
-        all_flux_dev,
-        order_offsets_dev,
-        order_nb_pixels_dev,
-        flux_uncertainties_dev,
-        gibson_S1_dev,
-        gibson_Sf_dev,
-        gibson_Sff_dev,
-        orbital_phases_dev,
-        barycentric_velocities_dev,
-        exposure_blur_coeff_arg,
-        static_cast<int>(nb_orders),
-        static_cast<int>(nb_exposures),
-        max_pixels_per_order,
-        static_cast<float>(Kp),
-        static_cast<float>(Vsys),
-        static_cast<float>(dphi),
-        static_cast<float>(alpha),
-        d_log_like_dev,
-        stellar_spectrum_gpu,
-        use_phase_function);
-    }
-  }
-  else if (has_filtering)
+  if (has_filtering)
   {
     launchHighResLogLikeFiltered(
       broadened_spectrum_gpu,
@@ -1036,15 +1168,44 @@ void HighResObservation::computeLogLikelihoodGPU(
       static_cast<int>(nb_orders),
       static_cast<int>(nb_exposures),
       max_pixels_per_order,
-      static_cast<float>(Kp),
-      static_cast<float>(Vsys),
-      static_cast<float>(dphi),
-      alpha_gpu,
-      d_log_like_dev,
+      Kp, Vsys, dphi,
+      alpha,
+      likelihood_form,
+      flux_uncertainties_dev,
+      gibson_S1_dev,
+      gibson_Sf_dev,
+      gibson_Sff_dev,
       has_model_scale ? model_scale_dev : nullptr,
       filter_model,
       use_phase_function,
-      stellar_spectrum_gpu);
+      stellar_spectrum_gpu,
+      d_log_like_dev);
+  }
+  else if (gibson)
+  {
+    launchHighResLogLikeGibson(
+      broadened_spectrum_gpu,
+      model_wavelengths_gpu,
+      static_cast<int>(nb_model_points),
+      all_wavelengths_dev,
+      all_flux_dev,
+      order_offsets_dev,
+      order_nb_pixels_dev,
+      flux_uncertainties_dev,
+      gibson_S1_dev,
+      gibson_Sf_dev,
+      gibson_Sff_dev,
+      orbital_phases_dev,
+      barycentric_velocities_dev,
+      exposure_blur_coeff_arg,
+      static_cast<int>(nb_orders),
+      static_cast<int>(nb_exposures),
+      max_pixels_per_order,
+      Kp, Vsys, dphi,
+      alpha,
+      d_log_like_dev,
+      stellar_spectrum_gpu,
+      use_phase_function);
   }
   else
   {
@@ -1064,10 +1225,8 @@ void HighResObservation::computeLogLikelihoodGPU(
       static_cast<int>(nb_orders),
       static_cast<int>(nb_exposures),
       max_pixels_per_order,
-      static_cast<float>(Kp),
-      static_cast<float>(Vsys),
-      static_cast<float>(dphi),
-      alpha_gpu,
+      Kp, Vsys, dphi,
+      likelihood_form == highres_form_free_alpha ? alpha : -1.0,
       d_log_like_dev,
       stellar_spectrum_gpu,
       use_phase_function);

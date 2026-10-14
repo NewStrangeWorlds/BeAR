@@ -31,8 +31,9 @@ namespace bear {
 
 
 // Likelihood mode for high-resolution cross-correlation spectroscopy.
-// marginalized_alpha: Brogi & Line 2019, alpha and sigma analytically marginalized
-// free_alpha:         Brogi & Line 2019 with explicit alpha, sigma marginalized
+// marginalized_alpha: -N/2 ln(1 - r^2) (Zucker 2003); sigma marginalized and alpha
+//                     set to its maximum-likelihood value in each order and exposure
+// free_alpha:         Brogi & Line 2019 with a sampled alpha, sigma marginalized
 // gibson:             Gibson et al. 2022 Eq. 4, per-pixel uncertainties, beta marginalized
 enum class HighResLikelihoodMode { marginalized_alpha, free_alpha, gibson };
 
@@ -70,6 +71,28 @@ class HighResObservation {
 
     bool hasFiltering() const { return has_filtering; }
     bool hasFluxUncertainties() const { return has_flux_uncertainties; }
+
+    // Diagnostic export (not part of any likelihood). The interpolated model
+    // for every order and exposure, either before or after the (I-P) temporal
+    // filter, computed with the same GPU kernel the likelihood uses.
+    // Layout matches the flux buffer: [order_offset*nb_exp + exp*N + pixel].
+    std::vector<float> modelMatrixGPU(
+      const float* broadened_spectrum_gpu,
+      const double* model_wavelengths_gpu,
+      size_t nb_model_points,
+      double Kp, double Vsys, double dphi,
+      bool apply_projection,
+      const float* stellar_spectrum_gpu = nullptr) const;
+
+    size_t totalPixels() const { return total_pixels; }
+    double kpRef() const;
+    double vsysRef() const;
+    bool filterModel() const { return filter_model; }
+    bool reinjectModel() const { return reinject_model; }
+
+    // (I-P)-filtered observed data, [order][exposure][pixel]
+    const std::vector<std::vector<std::vector<double>>>& filteredFlux() const {
+      return filtered_flux; }
 
     void precomputeGibsonStatistics();
 
@@ -144,18 +167,20 @@ class HighResObservation {
 
     // --- Model filtering (Gibson et al. 2022) ---
     bool has_filtering = false;
-    // When false, (I-P) is applied only to the data; the model is left unfiltered
-    // and only spectrally detrended per exposure.  Required when the planet velocity
-    // pattern correlates with the dominant SVD modes (e.g. WASP-77Ab/IGRINS where
-    // airmass tracks orbital phase over the 2-hour observation window).
+    // Data-only mode when false (#filter_model 0): (I-P) is applied to the data only;
+    // the model is centred in time per pixel instead, and the cross-correlation sums
+    // are accumulated over all exposures of an order before the logarithm.  The model
+    // then does not undergo the distortion the filter imposes on the data, so this
+    // mode is a diagnostic rather than an unbiased likelihood.
     bool filter_model = true;
-    // CHIMERA-style re-injection: if true, model_scale is computed in initFiltering()
-    // as P*raw_flux (the SVD-captured background).  The model (Fp/Fs) is then multiplied
-    // by this background before the (I-P) projection, embedding the planet signal in
-    // detector units.  Requires filter_model=true and a free alpha prior.
+    // CHIMERA-style re-injection (Line et al. 2021): if true, model_scale is computed
+    // in initFiltering() as S = P*raw_flux (the background the filter captures).  The
+    // model is multiplied by S before the (I-P) projection, which puts the planet
+    // signal in detector units.  Requires filtering with filter_model = true, and is
+    // only informative with a free alpha.
     bool reinject_model = false;
-    // Lambertian dayside phase function 0.5*(1+cos(2*pi*phase-pi))^2 applied
-    // per-exposure to the model before (I-P) projection.  Enabled by
+    // Dayside phase function [0.5*(1+cos(2*pi*phase-pi))]^2 (Pelletier et al. 2025)
+    // applied per exposure to the model before filtering.  Enabled by
     // #phase_function 1 in the observation data file.
     bool use_phase_function = false;
     size_t nb_basis_vectors = 0;
@@ -210,8 +235,8 @@ class HighResObservation {
     float* all_flux_dev = nullptr;          // flattened flux [per order: nb_exp * nb_pix]
     int* order_offsets_dev = nullptr;       // pixel offset per order
     int* order_nb_pixels_dev = nullptr;     // pixels per order
-    float* orbital_phases_dev = nullptr;
-    float* barycentric_velocities_dev = nullptr;
+    double* orbital_phases_dev = nullptr;
+    double* barycentric_velocities_dev = nullptr;
     // Per-exposure exposure-blur coefficient (2*pi/P) * t_exp [dimensionless];
     // delta_v = Kp * cos(2*pi*(phi+dphi)) * coeff.  Null when blurring is disabled.
     float* exposure_blur_coeff_dev = nullptr;
@@ -225,9 +250,10 @@ class HighResObservation {
     size_t total_pixels = 0;
 
     // Optional per-pixel, per-exposure scale matrix for model re-injection
-    // (CHIMERA-style: model is multiplied by this matrix before (I-P) projection).
-    // Layout: same as all_flux_dev [order_offset * nb_exposures + exp * N + pixel].
-    // Null when absent.
+    // (CHIMERA-style: the model is multiplied by this matrix before the (I-P)
+    // projection).  Either S = P*raw_flux (#reinject_model 1) or read from a
+    // #model_scale section.  Layout: same as all_flux_dev
+    // [order_offset * nb_exposures + exp * N + pixel].  Null when absent.
     bool has_model_scale = false;
     std::vector<float> model_scale_host;  // flattened host copy
     float* model_scale_dev = nullptr;

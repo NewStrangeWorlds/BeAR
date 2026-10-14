@@ -2,9 +2,11 @@
 #ifdef _SETUP_PY
 #include "pybind11/pybind11.h"
 #include "pybind11/stl.h"
+#include "pybind11/numpy.h"
 #else
 #include "../../_deps/pybind11-src/include/pybind11/pybind11.h"
 #include "../../_deps/pybind11-src/include/pybind11/stl.h"
+#include "../../_deps/pybind11-src/include/pybind11/numpy.h"
 #endif
 
 #include "../../src/config/global_config.h"
@@ -107,6 +109,32 @@ PYBIND11_MODULE(bear, m) {
         .def_readwrite("species_symbols", &bear::AtmosphereOutput::species_symbols)
         .def_readwrite("mixing_ratios", &bear::AtmosphereOutput::mixing_ratios);
 
+    py::class_<bear::HighResLayout>(m, "HighResLayout")
+        .def(py::init<>())
+        .def_readonly("valid", &bear::HighResLayout::valid)
+        .def_readonly("nb_orders", &bear::HighResLayout::nb_orders)
+        .def_readonly("nb_exposures", &bear::HighResLayout::nb_exposures)
+        .def_readonly("kp_ref", &bear::HighResLayout::kp_ref)
+        .def_readonly("vsys_ref", &bear::HighResLayout::vsys_ref)
+        .def_readonly("order_nb_pixels", &bear::HighResLayout::order_nb_pixels)
+        .def_readonly("orbital_phases", &bear::HighResLayout::orbital_phases)
+        .def_readonly("wavelengths", &bear::HighResLayout::wavelengths)
+        .def_property_readonly("data_filtered",
+          [](const bear::HighResLayout& s) {
+            return py::array_t<float>(s.data_filtered.size(),
+                                      s.data_filtered.data());
+          });
+
+    py::class_<bear::HighResModelExport>(m, "HighResModelExport")
+        .def(py::init<>())
+        .def_readonly("valid", &bear::HighResModelExport::valid)
+        .def_readonly("nb_exposures", &bear::HighResModelExport::nb_exposures)
+        .def_readonly("nb_pixels", &bear::HighResModelExport::nb_pixels)
+        .def_readonly("wavelengths", &bear::HighResModelExport::wavelengths)
+        .def_readonly("model_unfiltered", &bear::HighResModelExport::model_unfiltered)
+        .def_readonly("model_filtered", &bear::HighResModelExport::model_filtered)
+        .def_readonly("data_filtered", &bear::HighResModelExport::data_filtered);
+
     py::class_<bear::Retrieval>(m, "Retrieval")
         .def(py::init<
           bear::GlobalConfig*>())
@@ -138,6 +166,26 @@ PYBIND11_MODULE(bear, m) {
             return self.computeLikelihood(full);
         })
         .def("computeModel", &bear::Retrieval::computeModel)
+        .def("computeHighResModelFlat",
+          [](bear::Retrieval& self, std::vector<double> free_phys,
+             const size_t obs_index, const bool apply_projection) {
+            auto full = self.priors.expandFreeToFull(free_phys);
+            auto v = self.computeHighResModelFlat(full, obs_index,
+                                                  apply_projection);
+            return py::array_t<float>(v.size(), v.data());
+          },
+          py::arg("parameters"), py::arg("observation_index") = 0,
+          py::arg("apply_projection") = true)
+        .def("highResLayout", &bear::Retrieval::highResLayout,
+          py::arg("observation_index") = 0)
+        .def("computeHighResModelMatrices",
+          [](bear::Retrieval& self, std::vector<double> free_phys,
+             const size_t obs_index, const size_t order_index) {
+            auto full = self.priors.expandFreeToFull(free_phys);
+            return self.computeHighResModelMatrices(full, obs_index, order_index);
+          },
+          py::arg("parameters"), py::arg("observation_index") = 0,
+          py::arg("order_index") = 0)
         .def("computeAtmosphereStructure", &bear::PostProcess::computeAtmosphereStructure);
 
     py::class_<bear::PostProcess>(m, "PostProcess")

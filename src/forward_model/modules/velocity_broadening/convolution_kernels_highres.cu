@@ -22,9 +22,10 @@
  * convolution_kernels_highres.cu
  *
  * GPU spectral broadening for high-resolution spectroscopy.
- * Two-pass pipeline: rotational broadening (Gray 2005) then
- * instrumental Gaussian broadening, both in velocity space
- * on a constant-resolution (log-lambda) grid.
+ * Two-pass pipeline: rotational broadening (Gray 2005) then instrumental
+ * Gaussian broadening, both as normalised convolutions in velocity space that
+ * use the actual velocity step between neighbouring grid points (see
+ * velocity_convolution_kernels.cuh).
  */
 
 
@@ -32,7 +33,6 @@
 #include <stdio.h>
 
 #include "../../../CUDA_kernels/error_check.h"
-#include "../../../CUDA_kernels/reduce_kernels.h"
 #include "../../../CUDA_kernels/data_management_kernels.h"
 #include "velocity_convolution_kernels.cuh"
 #include "../../../CUDA_kernels/highres_convolution.h"
@@ -41,90 +41,35 @@
 namespace bear {
 
 
-// One thread per output pixel.  The convolution windows are only a few to a
-// few tens of pixels wide (5 sigma of the instrumental profile, or vsini, in
-// pixel units), so a serial loop per thread is far more efficient than a
-// block-wide reduction: no idle threads, no reduction overhead, and adjacent
-// threads read adjacent windows so the loads stay coalesced.
-__global__
-void convolveGaussianHRKernel(
-  const float* __restrict__ spectrum_in,
-  float*       __restrict__ spectrum_out,
-  const int                 n_pixels,
-  const float               sigma_pixels,
-  const int                 half_width)
-{
-  const int i = blockIdx.x * blockDim.x + threadIdx.x;
-
-  if (i >= n_pixels) return;
-
-  const float inv_2sig2 = 1.0f / (2.0f * sigma_pixels * sigma_pixels);
-  const float norm      = rsqrtf(2.0f * (float)M_PI) / sigma_pixels;
-
-  const int j_start = max(0,           i - half_width);
-  const int j_end   = min(n_pixels - 1, i + half_width);
-
-  float local_sum = 0.0f;
-
-  for (int j = j_start; j <= j_end; ++j)
-  {
-    float dx = (float)(j - i);
-    local_sum += gaussianKernelHR(dx, inv_2sig2, norm) * spectrum_in[j];
-  }
-
-  spectrum_out[i] = local_sum;
-}
-
-
-__global__
-void convolveRotationalHRKernel(
-  const float* __restrict__ spectrum_in,
-  float*       __restrict__ spectrum_out,
-  const int                 n_pixels,
-  const float               vsini_pixels,
-  const float               epsilon)
-{
-  const int i = blockIdx.x * blockDim.x + threadIdx.x;
-
-  if (i >= n_pixels) return;
-
-  const int half_width = (int)ceilf(vsini_pixels);
-  const int j_start    = max(0,           i - half_width);
-  const int j_end      = min(n_pixels - 1, i + half_width);
-
-  float local_sum = 0.0f;
-
-  for (int j = j_start; j <= j_end; ++j)
-  {
-    float dx = (float)(j - i);
-    local_sum += rotationalKernelHR(dx, vsini_pixels, epsilon) * spectrum_in[j];
-  }
-
-  spectrum_out[i] = local_sum;
-}
-
-
 __host__
 void applyHighResConvolutionGPU(
-  float*  spectrum_in_dev,
-  float*  spectrum_out_dev,
-  int     n_pixels,
-  double  sigma_kms,
-  double  vsini_kms,
-  double  delta_v_kms,
-  double  epsilon,
-  float*  temp_dev)
+  float*       spectrum_in_dev,
+  float*       spectrum_out_dev,
+  int          n_pixels,
+  const float* dv_dev,
+  double       dv_min_kms,
+  double       sigma_kms,
+  double       vsini_kms,
+  double       epsilon,
+  float*       temp_dev)
 {
   cudaGetLastError();
 
-  const int threads = HIGHRES_BLOCK_SIZE;
-  const int blocks  = (n_pixels + threads - 1) / threads;
+  // A kernel whose support is narrower than every step of the grid leaves the
+  // spectrum unchanged, so these tests are exact rather than approximations.
+  const bool do_rotation = vsini_kms >= dv_min_kms;
+  const bool do_gaussian = 5.0 * sigma_kms >= dv_min_kms;
 
-  const float sigma_pixels = (float)(sigma_kms / delta_v_kms);
-  const int   half_width   = (int)ceil(5.0 * sigma_kms / delta_v_kms);
+  const RotationalProfileGPU rotation{
+    static_cast<float>(1.0 / vsini_kms),
+    static_cast<float>(2.0 * (1.0 - epsilon)),
+    static_cast<float>(0.5 * M_PI * epsilon)};
 
-  const bool do_rotation = vsini_kms > 0.5 * delta_v_kms;
-  const bool do_gaussian = sigma_pixels > 0.01f;
+  const GaussianProfileGPU gaussian{
+    static_cast<float>(1.0 / (2.0 * sigma_kms * sigma_kms))};
+
+  const float rot_hw   = static_cast<float>(vsini_kms);
+  const float gauss_hw = static_cast<float>(5.0 * sigma_kms);
 
   bool allocated_temp = false;
 
@@ -136,35 +81,27 @@ void applyHighResConvolutionGPU(
       allocated_temp = true;
     }
 
-    const float vsini_pixels = (float)(vsini_kms / delta_v_kms);
-
-    convolveRotationalHRKernel<<<blocks, threads>>>(
-      spectrum_in_dev, temp_dev, n_pixels, vsini_pixels, (float)epsilon);
-
-    CUDA_CHECK_AFTER_KERNEL();
-
-    convolveGaussianHRKernel<<<blocks, threads>>>(
-      temp_dev, spectrum_out_dev, n_pixels, sigma_pixels, half_width);
+    launchVelocitySpaceConvolution(
+      spectrum_in_dev, temp_dev, n_pixels, dv_dev, rot_hw, rotation);
+    launchVelocitySpaceConvolution(
+      temp_dev, spectrum_out_dev, n_pixels, dv_dev, gauss_hw, gaussian);
   }
   else if (do_rotation)
   {
-    const float vsini_pixels = (float)(vsini_kms / delta_v_kms);
-
-    convolveRotationalHRKernel<<<blocks, threads>>>(
-      spectrum_in_dev, spectrum_out_dev, n_pixels, vsini_pixels, (float)epsilon);
+    launchVelocitySpaceConvolution(
+      spectrum_in_dev, spectrum_out_dev, n_pixels, dv_dev, rot_hw, rotation);
   }
   else if (do_gaussian)
   {
-    convolveGaussianHRKernel<<<blocks, threads>>>(
-      spectrum_in_dev, spectrum_out_dev, n_pixels, sigma_pixels, half_width);
+    launchVelocitySpaceConvolution(
+      spectrum_in_dev, spectrum_out_dev, n_pixels, dv_dev, gauss_hw, gaussian);
   }
   else
   {
     // No broadening — copy input to output
     copyOnDevice(spectrum_out_dev, spectrum_in_dev, (size_t)n_pixels);
+    CUDA_CHECK_AFTER_KERNEL();
   }
-
-  CUDA_CHECK_AFTER_KERNEL();
 
   if (allocated_temp)
     deleteFromDevice(temp_dev);

@@ -21,8 +21,9 @@
 /*
  * convolution_kernels_phase_resolved.cu
  *
- * GPU convolution with a pre-computed 1D broadening kernel for the
- * phase-resolved broadening module (Brogi et al. 2016).
+ * GPU convolution with the tabulated broadening kernel of the phase-resolved
+ * broadening module (Brogi et al. 2016), as a normalised convolution in
+ * velocity space on the actual grid steps (velocity_convolution_kernels.cuh).
  */
 
 
@@ -30,59 +31,36 @@
 #include <cstdio>
 
 #include "../../../CUDA_kernels/error_check.h"
-#include "../../../CUDA_kernels/reduce_kernels.h"
+#include "../velocity_broadening/velocity_convolution_kernels.cuh"
 #include "phase_resolved_convolution.h"
 
 
 namespace bear {
 
 
-static constexpr int PHASE_BLOCK_SIZE = 128;
-
-
-// One thread per output pixel.  The kernel window is narrow (a few tens of
-// pixels), so a serial loop per thread avoids idle threads and reduction
-// overhead; adjacent threads read adjacent windows, keeping loads coalesced.
-__global__
-void convolveWithPrecomputedKernel(
-  const float* __restrict__ spectrum_in,
-  float*       __restrict__ spectrum_out,
-  const float* __restrict__ kernel_data,
-  const int                 kernel_hw,
-  const int                 n_pixels)
-{
-  const int i = blockIdx.x * blockDim.x + threadIdx.x;
-
-  if (i >= n_pixels) return;
-
-  const int j_start = max(0,           i - kernel_hw);
-  const int j_end   = min(n_pixels - 1, i + kernel_hw);
-
-  float local_sum = 0.0f;
-
-  for (int j = j_start; j <= j_end; ++j)
-    local_sum += kernel_data[j - i + kernel_hw] * spectrum_in[j];
-
-  spectrum_out[i] = local_sum;
-}
-
-
 __host__
-void applyPrecomputedConvolutionGPU(
+void applyTabulatedConvolutionGPU(
   const float* spectrum_in_dev,
   float*       spectrum_out_dev,
-  const float* kernel_dev,
-  int          kernel_hw,
-  int          n_pixels)
+  int          n_pixels,
+  const float* dv_dev,
+  const float* table_dev,
+  int          table_size,
+  double       table_v_min,
+  double       table_step,
+  double       half_width)
 {
   cudaGetLastError();
 
-  const int blocks = (n_pixels + PHASE_BLOCK_SIZE - 1) / PHASE_BLOCK_SIZE;
+  const TabulatedProfileGPU profile{
+    table_dev,
+    table_size,
+    static_cast<float>(table_v_min),
+    static_cast<float>(1.0 / table_step)};
 
-  convolveWithPrecomputedKernel<<<blocks, PHASE_BLOCK_SIZE>>>(
-    spectrum_in_dev, spectrum_out_dev, kernel_dev, kernel_hw, n_pixels);
-
-  CUDA_CHECK_AFTER_KERNEL();
+  launchVelocitySpaceConvolution(
+    spectrum_in_dev, spectrum_out_dev, n_pixels, dv_dev,
+    static_cast<float>(half_width), profile);
 }
 
 

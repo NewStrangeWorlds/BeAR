@@ -27,6 +27,7 @@
 #include "fastchem_chemistry.h"
 #include "isoprofile_chemistry.h"
 #include "isoprofile_clr_chemistry.h"
+#include "iso_ratio_chemistry.h"
 #include "free_chemistry.h"
 #include "free_cbspline_chemistry.h"
 #include "free_pchip_chemistry.h"
@@ -47,9 +48,9 @@ namespace bear {
 //definition of the different chemistry modules with an
 //identifier, a keyword to be located in the config file and a short version of the keyword
 namespace chemistry_modules{
-  enum id {free, iso, eq, cspline, iso_clr, bg, sf, pchip};
-  const std::vector<std::string> description {"free", "isoprofile", "equilibrium", "free_cspline", "isoprofile_clr", "background", "step_function", "free_pchip"};
-  const std::vector<std::string> description_short {"free", "iso", "eq", "free_cs", "iso_clr", "bg", "sf", "free_p"};
+  enum id {free, iso, eq, cspline, iso_clr, bg, sf, pchip, iso_ratio};
+  const std::vector<std::string> description {"free", "isoprofile", "equilibrium", "free_cspline", "isoprofile_clr", "background", "step_function", "free_pchip", "isoprofile_ratio"};
+  const std::vector<std::string> description_short {"free", "iso", "eq", "free_cs", "iso_clr", "bg", "sf", "free_p", "iso_ratio"};
 }
 
 
@@ -108,6 +109,11 @@ inline std::unique_ptr<Chemistry> selectChemistryModule(
   if (module_id == chemistry_modules::iso)
   {
     return std::make_unique<IsoprofileChemistry>(parameters);
+  }
+
+  if (module_id == chemistry_modules::iso_ratio)
+  {
+    return std::make_unique<IsoprofileRatioChemistry>(parameters);
   }
 
   if (module_id == chemistry_modules::free)

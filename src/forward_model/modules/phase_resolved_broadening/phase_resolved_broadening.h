@@ -68,25 +68,30 @@ class PhaseResolvedBroadening : public Module{
 
   private:
     SpectralGrid* spectral_grid;
-    double delta_v_kms = 0;
+
+    // Velocity step between neighbouring grid points (km/s), and its minimum.
+    // The high-res grid is not uniform in ln(lambda), so the kernel is evaluated
+    // at the actual velocity offsets instead of on a fixed pixel grid.
+    std::vector<double> dv_kms;
+    double dv_min_kms = 0;
+    float* dv_gpu = nullptr;
 
     float* temp_buffer_gpu = nullptr;
-    float* kernel_gpu = nullptr;
-    int kernel_gpu_size = 0;
+    float* table_gpu = nullptr;
+    size_t table_gpu_capacity = 0;
 
     static constexpr int N_ANGLE = 720;
     static constexpr double WIND_LAT_LIMIT_DEG = 25.0;
 
+    void setVelocitySteps();
+    void freeDeviceBuffers();
+
+    // Broadening kernel tabulated at velocities v_min + k*step, k = 0..size-1,
+    // non-zero within |v| <= half_width.
     void buildBroadeningKernel(
       double v_eq, double v_wind, double sigma_inst,
       double u1, double u2, double Rp_Rs, double impact_b,
-      std::vector<double>& kernel_out, int& kernel_hw);
-
-    void convolveWithKernelCPU(
-      const std::vector<double>& spectrum_in,
-      std::vector<double>& spectrum_out,
-      const std::vector<double>& kernel,
-      int kernel_hw);
+      std::vector<double>& table, double& v_min, double& step, double& half_width);
 };
 
 

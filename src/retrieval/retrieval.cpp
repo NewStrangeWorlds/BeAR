@@ -208,6 +208,15 @@ Retrieval::Retrieval(
 
         std::cout << "  Alpha is a free retrieval parameter\n";
       }
+
+      // Re-injection restores the absolute line amplitude only through a free
+      // alpha; with alpha at its maximum-likelihood value the amplitude drops out.
+      if (!use_free_alpha)
+        for (const auto& obs : highres_observations)
+          if (obs.reinjectModel())
+            std::cout << "  WARNING: " << obs.observationName()
+                      << " uses #reinject_model 1 without an alpha prior; the"
+                      << " absolute line amplitude is not constrained\n";
     }
 
     priors.initFromMap(prior_map, ordered_names);
@@ -447,6 +456,173 @@ double Retrieval::logLikelihoodGPU(
   return log_like;
 }
 
+
+
+std::vector<float> Retrieval::computeHighResModelFlat(
+  std::vector<double>& physical_parameters,
+  const size_t observation_index,
+  const bool apply_projection)
+{
+  if (!has_highres_observations
+      || observation_index >= nb_highres_observations
+      || !config->use_gpu)
+    return std::vector<float>();
+
+  if (spectral_grid.nbSpectralPoints() > 0)
+    initializeOnDevice(spectrum_dev, spectral_grid.nbSpectralPoints());
+
+  for (size_t i=0; i<observations.size(); ++i)
+    initializeOnDevice(spectrum_obs_dev[i], observations[i].nbPoints());
+
+  forward_model->calcModelGPU(
+    physical_parameters,
+    spectrum_dev,
+    spectrum_obs_dev);
+
+  const size_t kp_idx = forward_model->parametersNumber();
+
+  return highres_observations[observation_index].modelMatrixGPU(
+    forward_model->spectrumHighResGPU(),
+    spectral_grid_highres->wavelength_list_gpu,
+    forward_model->nbSpectralPointsHighRes(),
+    physical_parameters[kp_idx],
+    physical_parameters[kp_idx + 1],
+    physical_parameters[kp_idx + 2],
+    apply_projection,
+    forward_model->stellarSpectrumGPU());
+}
+
+
+HighResLayout Retrieval::highResLayout(const size_t observation_index) const
+{
+  HighResLayout out;
+
+  if (!has_highres_observations || observation_index >= nb_highres_observations)
+    return out;
+
+  const auto& obs = highres_observations[observation_index];
+  const auto& orders = obs.orders();
+  const size_t ne = obs.nbExposures();
+
+  out.valid = true;
+  out.nb_orders = obs.nbOrders();
+  out.nb_exposures = ne;
+  out.kp_ref = obs.kpRef();
+  out.vsys_ref = obs.vsysRef();
+  out.orbital_phases = obs.orbitalPhases();
+
+  out.order_nb_pixels.reserve(out.nb_orders);
+  for (const auto& o : orders)
+    out.order_nb_pixels.push_back(static_cast<int>(o.nb_pixels));
+
+  for (const auto& o : orders)
+    out.wavelengths.insert(
+      out.wavelengths.end(), o.wavelengths.begin(), o.wavelengths.end());
+
+  const auto& ff = obs.filteredFlux();
+
+  if (ff.size() == out.nb_orders)
+  {
+    out.data_filtered.resize(obs.totalPixels() * ne, 0.0f);
+    size_t offset = 0;
+
+    for (size_t ord = 0; ord < out.nb_orders; ++ord)
+    {
+      const size_t N = orders[ord].nb_pixels;
+
+      for (size_t e = 0; e < ne; ++e)
+        for (size_t p = 0; p < N; ++p)
+          out.data_filtered[offset * ne + e * N + p] =
+            static_cast<float>(ff[ord][e][p]);
+
+      offset += N;
+    }
+  }
+
+  return out;
+}
+
+
+HighResModelExport Retrieval::computeHighResModelMatrices(
+  std::vector<double>& physical_parameters,
+  const size_t observation_index,
+  const size_t order_index)
+{
+  HighResModelExport out;
+
+  if (!has_highres_observations
+      || observation_index >= nb_highres_observations
+      || !config->use_gpu)
+    return out;
+
+  const auto& obs = highres_observations[observation_index];
+
+  if (order_index >= obs.nbOrders())
+    return out;
+
+  // Build the forward model exactly as logLikelihoodGPU does.
+  if (spectral_grid.nbSpectralPoints() > 0)
+    initializeOnDevice(spectrum_dev, spectral_grid.nbSpectralPoints());
+
+  for (size_t i=0; i<observations.size(); ++i)
+    initializeOnDevice(spectrum_obs_dev[i], observations[i].nbPoints());
+
+  forward_model->calcModelGPU(
+    physical_parameters,
+    spectrum_dev,
+    spectrum_obs_dev);
+
+  const size_t kp_idx = forward_model->parametersNumber();
+  const double Kp   = physical_parameters[kp_idx];
+  const double Vsys = physical_parameters[kp_idx + 1];
+  const double dphi = physical_parameters[kp_idx + 2];
+
+  const std::vector<float> filtered = obs.modelMatrixGPU(
+    forward_model->spectrumHighResGPU(),
+    spectral_grid_highres->wavelength_list_gpu,
+    forward_model->nbSpectralPointsHighRes(),
+    Kp, Vsys, dphi, true,
+    forward_model->stellarSpectrumGPU());
+
+  const std::vector<float> unfiltered = obs.modelMatrixGPU(
+    forward_model->spectrumHighResGPU(),
+    spectral_grid_highres->wavelength_list_gpu,
+    forward_model->nbSpectralPointsHighRes(),
+    Kp, Vsys, dphi, false,
+    forward_model->stellarSpectrumGPU());
+
+  const size_t ne = obs.nbExposures();
+  const auto& orders = obs.orders();
+  const size_t N = orders[order_index].nb_pixels;
+
+  //flat layout is [order_offset*nb_exp + exp*N + pixel]
+  size_t offset = 0;
+  for (size_t o = 0; o < order_index; ++o)
+    offset += orders[o].nb_pixels;
+
+  out.valid = true;
+  out.nb_exposures = ne;
+  out.nb_pixels = N;
+  out.wavelengths = orders[order_index].wavelengths;
+
+  out.model_filtered.assign(ne, std::vector<double>(N, 0.0));
+  out.model_unfiltered.assign(ne, std::vector<double>(N, 0.0));
+
+  for (size_t e = 0; e < ne; ++e)
+    for (size_t p = 0; p < N; ++p)
+    {
+      const size_t idx = offset * ne + e * N + p;
+      out.model_filtered[e][p]   = filtered[idx];
+      out.model_unfiltered[e][p] = unfiltered[idx];
+    }
+
+  const auto& ff = obs.filteredFlux();
+
+  if (order_index < ff.size())
+    out.data_filtered = ff[order_index];
+
+  return out;
+}
 
 
 ForwardModelOutput Retrieval::computeModel(

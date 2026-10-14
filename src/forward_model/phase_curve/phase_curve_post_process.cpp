@@ -83,6 +83,9 @@ void PhaseCurvePostProcessConfig::readConfigFile(const std::string& file_name)
   save_temperatures = readBooleanParameter(cfg, "save_temperatures", save_temperatures);
   save_contribution_functions = readBooleanParameter(cfg, "save_contribution_functions", save_contribution_functions);
   species_to_save = readChemicalSpecies(cfg, "species_to_save");
+  //BeAR-highres addition: dump the high-res spectrum for every posterior
+  //sample (spectra_hr_all.bin), needed for the per-species decomposition figure
+  save_hr_spectra_all = readBooleanParameter(cfg, "save_hr_spectra_all", save_hr_spectra_all);
 }
 
 
@@ -136,6 +139,8 @@ void PhaseCurveModel::postProcess(
     std::vector<std::vector<std::vector<double>>> model_spectra_obs;
 
     std::vector<double> model_spectrum_best_fit;
+
+    save_hr_spectra_all_ = post_process_config.save_hr_spectra_all;
 
     calcPostProcessSpectra(
       model_parameter,
@@ -249,6 +254,22 @@ void PhaseCurveModel::savePostProcessTemperatures(
 void PhaseCurveModel::postProcessContributionFunctions(
   const std::vector<double>& parameter)
 {
+  //Contribution functions are computed on the LOW-RES grid and written per
+  //low-res observation. A high-res-only run (e.g. IGRINS alone) has neither,
+  //so the opacity kernel below would be launched with zero spectral points
+  //and abort with "invalid argument" -- at the very end of post-processing,
+  //after all the useful output has already been produced.
+  //To get contribution functions for a high-res-only retrieval, add a
+  //postprocess_spectrum_data.dat to the run folder: Retrieval appends it as a
+  //low-res observation, which gives this path a grid to work on.
+  if (observations.empty() || spectral_grid->nbSpectralPoints() == 0)
+  {
+    std::cout << "\nSkipping contribution functions: this retrieval has no "
+              << "low-resolution observations.\n"
+              << "Add a postprocess_spectrum_data.dat to compute them.\n";
+    return;
+  }
+
   std::vector<double> cloud_parameters(
       parameter.begin() + nb_general_param + nb_total_chemistry_param + nb_temperature_param,
       parameter.begin() + nb_general_param + nb_total_chemistry_param + nb_temperature_param + nb_total_cloud_param);
@@ -321,6 +342,94 @@ void PhaseCurveModel::saveContributionFunctions(
   }
 
   file.close();
+}
+
+
+// Override the base-class calcPostProcessSpectra to read back spectrum_highres_gpu_
+// for the best-fit sample only. For HRCCS retrievals there is no meaningful per-sample
+// high-res output: the data lives in CCF/Kp-Vsys space, not in flux space.
+void PhaseCurveModel::calcPostProcessSpectra(
+  const std::vector<std::vector<double>>& model_parameter,
+  const size_t best_fit_model,
+  std::vector<std::vector<std::vector<double>>>& model_spectra_obs,
+  std::vector<double>& spectrum_best_fit)
+{
+  const size_t nb_models = model_parameter.size();
+  const size_t nb_hr = nbSpectralPointsHighRes();
+  const bool has_hr = (nb_hr > 0 && spectrum_highres_gpu_ != nullptr);
+  const bool dump_hr = (save_hr_spectra_all_ && has_hr);
+
+  model_spectra_obs.resize(nb_models);
+
+  std::ofstream hr_bin_file;
+  if (dump_hr)
+  {
+    hr_bin_file.open(
+      config->post_output_path + "/spectra_hr_all.bin",
+      std::ios::binary);
+    const int32_t n_m = static_cast<int32_t>(nb_models);
+    const int32_t n_w = static_cast<int32_t>(nb_hr);
+    hr_bin_file.write(reinterpret_cast<const char*>(&n_m), sizeof(int32_t));
+    hr_bin_file.write(reinterpret_cast<const char*>(&n_w), sizeof(int32_t));
+
+    std::ofstream wl_file(config->post_output_path + "/spectra_hr_wavelengths.dat");
+    for (size_t k = 0; k < nb_hr; ++k)
+      wl_file << std::setprecision(10) << std::scientific
+              << spectral_grid_highres->wavelength_list[k] << "\n";
+  }
+
+  std::cout << "\n";
+
+  for (size_t i = 0; i < nb_models; ++i)
+  {
+    std::cout << "\rPostprocess spectra, model " << i << " of " << nb_models << std::flush;
+
+    std::vector<double> spectrum_lowres;
+    calcPostProcessSpectrum(model_parameter[i], spectrum_lowres, model_spectra_obs[i]);
+
+    if (dump_hr)
+    {
+      std::vector<float> hr_float(nb_hr);
+      moveToHost(spectrum_highres_gpu_, hr_float);
+      hr_bin_file.write(reinterpret_cast<const char*>(hr_float.data()),
+                        static_cast<std::streamsize>(nb_hr * sizeof(float)));
+    }
+
+    if (i == best_fit_model)
+    {
+      if (has_hr)
+      {
+        std::vector<float> hr_float(nb_hr);
+        moveToHost(spectrum_highres_gpu_, hr_float);
+        spectrum_best_fit.assign(hr_float.begin(), hr_float.end());
+      }
+      else
+      {
+        spectrum_best_fit = spectrum_lowres;
+      }
+    }
+  }
+
+  std::cout << "\n";
+}
+
+
+// Override saveBestFitSpectrum: if the spectrum matches the high-res grid size,
+// use the high-res wavelength list instead of the low-res one.
+void PhaseCurveModel::saveBestFitSpectrum(const std::vector<double>& spectrum)
+{
+  if (spectral_grid_highres &&
+      spectrum.size() == spectral_grid_highres->nbSpectralPoints())
+  {
+    const std::string file_name = config->post_output_path + "/spectrum_best_fit_hr.dat";
+    std::fstream file(file_name.c_str(), std::ios::out);
+    for (size_t i = 0; i < spectrum.size(); ++i)
+      file << std::setprecision(10) << std::scientific
+           << spectral_grid_highres->wavelength_list[i] << "\t"
+           << spectrum[i] << "\n";
+    return;
+  }
+  ForwardModel::saveBestFitSpectrum(spectrum);
 }
 
 

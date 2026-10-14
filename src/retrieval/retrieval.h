@@ -47,6 +47,37 @@ struct AtmosphereOutput;
 class GenericConfig;
 
 
+// Everything the detection figure needs that does not change with the trial
+// velocity: order sizes, phases, wavelengths and the filtered data. Fetched
+// once, then paired with computeHighResModelFlat() at each velocity.
+struct HighResLayout {
+  bool valid = false;
+  size_t nb_orders = 0;
+  size_t nb_exposures = 0;
+  double kp_ref = 0.0;
+  double vsys_ref = 0.0;
+  std::vector<int> order_nb_pixels;
+  std::vector<double> orbital_phases;
+  std::vector<double> wavelengths;    //flat [order_offset + pixel], nm
+  std::vector<float> data_filtered;   //flat [order_offset*nb_exp + exp*N + p]
+};
+
+
+// Diagnostic export for one spectral order of one high-res observation:
+// the model as the likelihood builds it, before and after the (I-P) temporal
+// filter, alongside the filtered data it is compared against. Produced by the
+// same GPU kernel the likelihood uses; nothing here feeds back into sampling.
+struct HighResModelExport {
+  bool valid = false;
+  size_t nb_exposures = 0;
+  size_t nb_pixels = 0;
+  std::vector<double> wavelengths;                    //[pixel], nm
+  std::vector<std::vector<double>> model_unfiltered;  //[exposure][pixel]
+  std::vector<std::vector<double>> model_filtered;    //[exposure][pixel]
+  std::vector<std::vector<double>> data_filtered;     //[exposure][pixel]
+};
+
+
 //the main class that does the retrieval
 class Retrieval{
   public:
@@ -87,6 +118,24 @@ class Retrieval{
       std::vector<double>& physical_parameters,
       const bool return_high_res_spectrum);
     
+    // Diagnostic: model matrices for one order, before and after (I-P).
+    // See HighResModelExport above. Returns an invalid export when the run has
+    // no high-resolution observation or the indices are out of range.
+    HighResModelExport computeHighResModelMatrices(
+      std::vector<double>& physical_parameters,
+      const size_t observation_index,
+      const size_t order_index);
+
+    // The model for EVERY order, flattened. The cross-correlation detection
+    // map needs all orders at each of a few hundred trial velocities, and
+    // nested vectors are far too slow to hand to Python that many times.
+    std::vector<float> computeHighResModelFlat(
+      std::vector<double>& physical_parameters,
+      const size_t observation_index,
+      const bool apply_projection);
+
+    HighResLayout highResLayout(const size_t observation_index) const;
+
     AtmosphereOutput computeAtmosphereStructure(
       std::vector<double>& physical_parameters,
       const std::vector<std::string>& species_symbols);

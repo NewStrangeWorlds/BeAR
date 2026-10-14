@@ -56,10 +56,19 @@ class VelocityBroadening : public Module{
     void setSpectralGrid(SpectralGrid* grid);
   protected:
     SpectralGrid* spectral_grid;
-    double delta_v_kms = 0;
+
+    // Velocity step between neighbouring grid points (km/s), and its minimum.
+    // The high-res grid is not uniform in ln(lambda), so the kernels use these
+    // actual steps instead of a single value for the whole grid.
+    std::vector<double> dv_kms;
+    double dv_min_kms = 0;
+    float* dv_gpu = nullptr;
 
     float* temp_buffer_gpu = nullptr;
     float* temp_buffer2_gpu = nullptr;
+
+    void setVelocitySteps();
+    void freeDeviceBuffers();
 
     void convolveSpectrumCPU(
       const std::vector<double>& spectrum_in,

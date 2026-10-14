@@ -25,12 +25,20 @@
 namespace bear {
 
 
-void applyPrecomputedConvolutionGPU(
+// Normalised convolution in velocity space with a kernel tabulated at the
+// velocities table_v_min + k * table_step (k = 0..table_size-1), evaluated at the
+// actual velocity offsets of the grid points (dv_dev: the n_pixels - 1 steps
+// between neighbouring points, km/s).
+void applyTabulatedConvolutionGPU(
   const float* spectrum_in_dev,
   float*       spectrum_out_dev,
-  const float* kernel_dev,
-  int          kernel_hw,
-  int          n_pixels);
+  int          n_pixels,
+  const float* dv_dev,
+  const float* table_dev,
+  int          table_size,
+  double       table_v_min,
+  double       table_step,
+  double       half_width);
 
 
 }

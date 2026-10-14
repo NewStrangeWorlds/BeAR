@@ -40,7 +40,11 @@ set(CMAKE_BUILD_TYPE Release)
 
 
 
-if(SM MATCHES "0")
+# NOTE: this was 'if(SM MATCHES "0")', a REGEX match -- so any SM containing
+# the digit 0 (80, 90, 100, 120, ...) matched and silently fell back to sm_75.
+# Use an exact comparison instead.
+if(NOT DEFINED SM OR SM STREQUAL "" OR SM STREQUAL "0")
+  message(STATUS "CUDA architecture not set, defaulting to: -arch=sm_75")
   set(CUDA_ARCH_FLAGS "-arch=sm_75")
 else()
   message(STATUS "CUDA Architecture manually set to: -arch=sm_${SM}")
@@ -146,6 +150,7 @@ set(SRC
   src/transport_coeff/transport_coeff.cpp
   src/transport_coeff/h_m.cpp
   src/chemistry/isoprofile_chemistry.cpp
+  src/chemistry/iso_ratio_chemistry.cpp
   src/chemistry/background_chemistry.cpp
   src/chemistry/isoprofile_clr_chemistry.cpp
   src/chemistry/fastchem_chemistry.cpp

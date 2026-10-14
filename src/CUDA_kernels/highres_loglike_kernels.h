@@ -25,14 +25,29 @@
 namespace bear {
 
 
-// Launch the GPU kernel for Brogi & Line 2019 high-res log-likelihood.
-// Computes Doppler-shifted interpolation of the broadened model onto each
-// spectral order's wavelength grid, then evaluates the B&L cross-correlation
-// likelihood for all orders and exposures in a single kernel launch.
-//
-// Result is atomically accumulated into d_log_like_dev (must be zeroed before call).
-// alpha parameter: if negative, alpha is analytically marginalized (default).
-// If non-negative, it is used as an explicit scaling factor in the likelihood.
+// Largest number of exposures the filtered GPU path supports.  The per-pixel
+// model column is held in a fixed-size local array; see highResInterpFilterKernel.
+constexpr int highres_max_exposures_gpu = 512;
+
+
+// Likelihood form, mirrored from HighResLikelihoodMode so that this header does
+// not depend on the observation class.
+constexpr int highres_form_marginalized_alpha = 0;
+constexpr int highres_form_free_alpha = 1;
+constexpr int highres_form_gibson = 2;
+
+
+// What happens to the interpolated model matrix of an order before the sums.
+constexpr int highres_projection_none = 0;         // raw model (diagnostics only)
+constexpr int highres_projection_filter = 1;       // (I - P) M
+constexpr int highres_projection_center_time = 2;  // subtract the temporal mean per pixel
+
+
+// Unfiltered path (no #filtering_basis): Brogi & Line 2019 likelihood with the
+// per-exposure means subtracted from data and model.  One block per (order,
+// exposure); the result is atomically added to d_log_like_dev.
+// alpha < 0: alpha maximised analytically (marginalized-alpha mode);
+// alpha >= 0: explicit scale factor (free-alpha mode).
 void launchHighResLogLike(
     const float* broadened_spectrum_dev,
     const double* model_wavelengths_dev,
@@ -43,63 +58,21 @@ void launchHighResLogLike(
     const int* order_nb_pixels_dev,
     const float* data_mean_dev,
     const double* data_sf2_dev,
-    const float* orbital_phases_dev,
-    const float* v_bary_dev,
+    const double* orbital_phases_dev,
+    const double* v_bary_dev,
     const float* exposure_blur_coeff_dev,
     int nb_orders,
     int nb_exposures,
     int max_pixels_per_order,
-    float Kp, float Vsys, float dphi,
-    float alpha,
+    double Kp, double Vsys, double dphi,
+    double alpha,
     double* d_log_like_dev,
     const float* stellar_spectrum_dev = nullptr,
     bool use_phase_function = false);
 
 
-// Filtered variant: Gibson et al. 2022 fast model filtering.
-// Two-kernel pipeline:
-//   Kernel 1 (interpFilter): Interpolate model at all Doppler shifts, optionally
-//     multiply by model_scale_dev (re-injection), then apply (I-P)
-//   Kernel 2 (logLikeFromFiltered): Cross-correlation likelihood from precomputed model
-//
-// model_scale_dev: if non-null, element-wise multiply the raw model spectrum by this
-//   matrix before applying (I-P).  Same layout as order_flux_dev:
-//   model_scale_dev[order_offset * nb_exposures + exp * N + pixel].
-//   Pass nullptr to skip multiplication (original behaviour).
-// apply_model_projection: when false, the (I-P) projection is skipped and the raw
-//   Doppler-interpolated model is stored directly.  Use this when the data has already
-//   been filtered externally (e.g. CHIMERA PCA) and the model should NOT be projected
-//   into the same temporal subspace (which would destroy the planet signal when the
-//   planet velocity correlates with the dominant SVD modes).
-void launchHighResLogLikeFiltered(
-    const float* broadened_spectrum_dev,
-    const double* model_wavelengths_dev,
-    int n_model,
-    const double* order_wavelengths_dev,
-    const float* order_flux_dev,
-    const int* order_offsets_dev,
-    const int* order_nb_pixels_dev,
-    const float* data_mean_dev,
-    const double* data_sf2_dev,
-    const float* orbital_phases_dev,
-    const float* v_bary_dev,
-    const float* exposure_blur_coeff_dev,
-    const float* projection_matrices_dev,
-    float* model_filtered_dev,
-    int nb_orders,
-    int nb_exposures,
-    int max_pixels_per_order,
-    float Kp, float Vsys, float dphi,
-    float alpha,
-    double* d_log_like_dev,
-    const float* model_scale_dev = nullptr,
-    bool apply_model_projection = true,
-    bool use_phase_function = false,
-    const float* stellar_spectrum_dev = nullptr);
-
-
-// Gibson et al. 2022 Eq. 4: per-pixel uncertainty weighting, beta marginalized.
-// Unfiltered variant: single kernel, one block per (order, exposure).
+// Unfiltered path, Gibson et al. 2022 Eq. 4 with per-pixel uncertainties
+// (inverse-variance weighted means subtracted per exposure).
 void launchHighResLogLikeGibson(
     const float* broadened_spectrum_dev,
     const double* model_wavelengths_dev,
@@ -112,22 +85,35 @@ void launchHighResLogLikeGibson(
     const double* gibson_S1_dev,
     const double* gibson_Sf_dev,
     const double* gibson_Sff_dev,
-    const float* orbital_phases_dev,
-    const float* v_bary_dev,
+    const double* orbital_phases_dev,
+    const double* v_bary_dev,
     const float* exposure_blur_coeff_dev,
     int nb_orders,
     int nb_exposures,
     int max_pixels_per_order,
-    float Kp, float Vsys, float dphi,
-    float alpha,
+    double Kp, double Vsys, double dphi,
+    double alpha,
     double* d_log_like_dev,
     const float* stellar_spectrum_dev = nullptr,
     bool use_phase_function = false);
 
 
-// Gibson Eq. 4 filtered variant: uses existing interp+filter kernel (Kernel 1),
-// then a Gibson-specific likelihood kernel (Kernel 2).
-void launchHighResLogLikeFilteredGibson(
+// Filtered path (a #filtering_basis is present), for all three likelihood forms.
+//
+// Kernel 1 interpolates the model at every exposure, applies the optional
+// phase weight and re-injection scale, and then either
+//   filter_model = true:  applies (I - P)                    (Gibson et al. 2022), or
+//   filter_model = false: subtracts the temporal mean per pixel (data-only mode).
+// With filter_model = true, the likelihood is evaluated per (order, exposure)
+// after removing a quadratic in pixel index from the model (the data were
+// detrended the same way at initialisation).  With filter_model = false, the
+// sums are accumulated over all exposures of an order before the logarithm.
+//
+// model_scale_dev: optional re-injection matrix (same layout as order_flux_dev),
+// only valid together with filter_model = true.
+// The Gibson inputs (flux_uncertainties_dev, gibson_*_dev) are only read for
+// likelihood_form == highres_form_gibson.
+void launchHighResLogLikeFiltered(
     const float* broadened_spectrum_dev,
     const double* model_wavelengths_dev,
     int n_model,
@@ -135,23 +121,55 @@ void launchHighResLogLikeFilteredGibson(
     const float* order_flux_dev,
     const int* order_offsets_dev,
     const int* order_nb_pixels_dev,
-    const float* orbital_phases_dev,
-    const float* v_bary_dev,
+    const float* data_mean_dev,
+    const double* data_sf2_dev,
+    const double* orbital_phases_dev,
+    const double* v_bary_dev,
     const float* exposure_blur_coeff_dev,
     const float* projection_matrices_dev,
     float* model_filtered_dev,
+    int nb_orders,
+    int nb_exposures,
+    int max_pixels_per_order,
+    double Kp, double Vsys, double dphi,
+    double alpha,
+    int likelihood_form,
     const float* flux_uncertainties_dev,
     const double* gibson_S1_dev,
     const double* gibson_Sf_dev,
     const double* gibson_Sff_dev,
+    const float* model_scale_dev,
+    bool filter_model,
+    bool use_phase_function,
+    const float* stellar_spectrum_dev,
+    double* d_log_like_dev);
+
+
+// Diagnostic export (not used by any likelihood): run only kernel 1 of the
+// filtered path and leave the result in model_filtered_dev.
+// projection = highres_projection_filter gives exactly the model the likelihood
+// sees after (I - P); highres_projection_none gives the same model before
+// filtering.  No likelihood is evaluated.
+void launchHighResInterpFilterOnly(
+    const float* broadened_spectrum_dev,
+    const double* model_wavelengths_dev,
+    int n_model,
+    const double* order_wavelengths_dev,
+    const int* order_offsets_dev,
+    const int* order_nb_pixels_dev,
+    const double* orbital_phases_dev,
+    const double* v_bary_dev,
+    const float* exposure_blur_coeff_dev,
+    const float* projection_matrices_dev,
+    float* model_filtered_dev,
     int nb_orders,
     int nb_exposures,
     int max_pixels_per_order,
-    float Kp, float Vsys, float dphi,
-    float alpha,
-    double* d_log_like_dev,
-    const float* stellar_spectrum_dev = nullptr,
-    bool use_phase_function = false);
+    double Kp, double Vsys, double dphi,
+    const float* model_scale_dev,
+    int projection,
+    bool use_phase_function,
+    const float* stellar_spectrum_dev);
 
 
 }

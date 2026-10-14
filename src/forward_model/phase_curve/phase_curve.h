@@ -121,6 +121,7 @@ class PhaseCurvePostProcessConfig : public GenericConfig{
     bool save_contribution_functions = false;
     bool delete_sampler_files = false;
     std::vector<chemical_species_id> species_to_save;
+    bool save_hr_spectra_all = false;  // dump HR spectrum for every posterior sample
 
     PhaseCurvePostProcessConfig (
       const std::string& folder_path,
@@ -210,6 +211,8 @@ class PhaseCurveModel : public ForwardModel{
     std::vector<size_t> modules_lowres_idx;
     std::vector<size_t> modules_highres_idx;
 
+    bool save_hr_spectra_all_ = false;
+
     size_t nb_grid_points = 0;
     size_t nb_general_param = 0;
     size_t nb_stellar_param = 0;
@@ -286,6 +289,14 @@ class PhaseCurveModel : public ForwardModel{
       const unsigned int species);
     void savePostProcessTemperatures(
       const std::vector<std::vector<double>>& temperature_profiles);
+
+    virtual void calcPostProcessSpectra(
+      const std::vector<std::vector<double>>& model_parameter,
+      const size_t best_fit_model,
+      std::vector<std::vector<std::vector<double>>>& model_spectra_obs,
+      std::vector<double>& spectrum_best_fit) override;
+    virtual void saveBestFitSpectrum(
+      const std::vector<double>& spectrum) override;
 };
 
 
