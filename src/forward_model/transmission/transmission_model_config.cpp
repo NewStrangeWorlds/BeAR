@@ -146,6 +146,17 @@ void TransmissionModelConfig::readConfigFile(const std::string& file_name)
   readModelList(cfg, "clouds",
     cloud_model, cloud_model_parameters, /*skip_none=*/true, /*required=*/false, "Cloud model");
 
+  patchy_clouds = readBooleanParameter(cfg, "patchy_clouds", false);
+
+  if (patchy_clouds)
+  {
+    if (cloud_model.empty())
+      throw InvalidInput(std::string ("TransmissionModelConfig::readConfigFile"),
+        "patchy_clouds = true needs at least one cloud model in the clouds list\n");
+
+    std::cout << "- Patchy clouds: yes (free parameter cloud_covering_fraction)\n";
+  }
+
   readModelList(cfg, "modules",
     modules, modules_parameters, /*skip_none=*/true, /*required=*/false, "Optional modules");
 

@@ -76,7 +76,8 @@ TransmissionModel::TransmissionModel (
   fit_mean_molecular_weight = model_config.fit_mean_molecular_weight;
   fit_scale_height = model_config.fit_scale_height;
   use_variable_gravity = model_config.use_variable_gravity;
-  
+  patchy_clouds = model_config.patchy_clouds;
+
   //select and set up the modules
   initModules(model_config);
 }
@@ -133,6 +134,14 @@ void TransmissionModel::extractParameters(
   cloud_parameters = std::vector<double>(
       parameters.begin() + nb_previous_param,
       parameters.begin() + nb_previous_param + nb_total_cloud_param);
+
+  //patchy clouds: the covering fraction closes the cloud block; split it off so the
+  //cloud models only ever see their own parameters
+  if (patchy_clouds)
+  {
+    cloud_covering_fraction = cloud_parameters.back();
+    cloud_parameters.pop_back();
+  }
 
   nb_previous_param += nb_total_cloud_param;
 
@@ -242,6 +251,20 @@ bool TransmissionModel::calcModelCPU(
 
     calcTransmissionSpectrum(bottom_radius, star_radius, spectrum);
 
+    //patchy clouds: mix the cloudy transit depth with the clear one (same atmosphere,
+    //cloud extinction removed), weighted by the cloud covering fraction
+    if (patchy_clouds)
+    {
+      clear_spectrum.assign(spectrum.size(), 0.0);
+
+      calcTransmissionSpectrum(
+        bottom_radius, star_radius, opacity_calc, spectrum.size(), clear_spectrum);
+
+      for (size_t i=0; i<spectrum.size(); ++i)
+        spectrum[i] = cloud_covering_fraction * spectrum[i]
+                    + (1.0 - cloud_covering_fraction) * clear_spectrum[i];
+    }
+
     if (modules_lowres_idx.empty() && modules_highres_idx.empty())
     {
       // No module classification (no high-res grid): apply all modules to low-res
@@ -336,15 +359,27 @@ bool TransmissionModel::calcModelGPU(
         cloud_extinction_gpu);
     }
 
-    calcTransitDepthGPU(
-      spectrum,
-      opacity_calc.absorption_coeff_gpu,
-      opacity_calc.scattering_coeff_dev,
-      cloud_extinction_gpu,
-      atmosphere,
-      spectral_grid->nbSpectralPoints(),
-      bottom_radius,
-      star_radius);
+    if (patchy_clouds)
+      calcTransitDepthPatchyGPU(
+        spectrum,
+        opacity_calc.absorption_coeff_gpu,
+        opacity_calc.scattering_coeff_dev,
+        cloud_extinction_gpu,
+        atmosphere,
+        spectral_grid->nbSpectralPoints(),
+        bottom_radius,
+        star_radius,
+        cloud_covering_fraction);
+    else
+      calcTransitDepthGPU(
+        spectrum,
+        opacity_calc.absorption_coeff_gpu,
+        opacity_calc.scattering_coeff_dev,
+        cloud_extinction_gpu,
+        atmosphere,
+        spectral_grid->nbSpectralPoints(),
+        bottom_radius,
+        star_radius);
 
     if (modules_lowres_idx.empty() && modules_highres_idx.empty())
     {
@@ -571,6 +606,9 @@ TransmissionModel::~TransmissionModel()
 {
   if (cloud_extinction_gpu != nullptr)
     deleteFromDevice(cloud_extinction_gpu);
+
+  if (clear_spectrum_gpu != nullptr)
+    deleteFromDevice(clear_spectrum_gpu);
 
   if (spectrum_highres_gpu_ != nullptr)
     deleteFromDevice(spectrum_highres_gpu_);

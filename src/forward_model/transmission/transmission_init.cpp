@@ -33,6 +33,7 @@
 #include "../modules/velocity_broadening/velocity_broadening.h"
 #include "../modules/phase_resolved_broadening/phase_resolved_broadening.h"
 #include "../../transport_coeff/opacity_calc.h"
+#include "../../additional/exceptions.h"
 
 
 namespace bear{
@@ -75,9 +76,19 @@ void TransmissionModel::initModules(const TransmissionModelConfig& model_config)
   }
   
   nb_total_cloud_param = 0;
-  
+
   for (auto & i : cloud_models)
     nb_total_cloud_param += i->nbParameters();
+
+  //patchy clouds add the covering fraction as the last parameter of the cloud block
+  if (patchy_clouds)
+  {
+    if (cloud_models.empty())
+      throw InvalidInput(std::string ("TransmissionModel::initModules"),
+        "patchy clouds need at least one cloud model\n");
+
+    nb_total_cloud_param += 1;
+  }
 
   if (model_config.modules.size() > 0)
   {
@@ -123,6 +134,9 @@ void TransmissionModel::initModules(const TransmissionModelConfig& model_config)
 
   for (size_t c=0; c<cloud_models.size(); ++c)
     appendParameterNames(cloud_models[c]->parameterNames(), c, cloud_models.size());
+
+  if (patchy_clouds)
+    parameter_names.push_back("cloud_covering_fraction");
 
   for (auto & i : modules)
     for (auto & name : i->parameterNames())
