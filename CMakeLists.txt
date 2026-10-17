@@ -15,6 +15,7 @@
 cmake_minimum_required (VERSION 3.15 FATAL_ERROR)
 
 OPTION(USE_PYTHON "Compile BeAR's Python Wrapper" ON)
+OPTION(USE_MULTINEST_MPI "Additionally compile MultiNest with MPI support (libmultinest_mpi.so)" OFF)
 OPTION(DEBUG_CUDA "Enable full CUDA synchronization for debugging" OFF)
 
 # check command line args, user can specify SM to override manual setting
@@ -150,7 +151,6 @@ set(SRC
   src/transport_coeff/transport_coeff.cpp
   src/transport_coeff/h_m.cpp
   src/chemistry/isoprofile_chemistry.cpp
-  src/chemistry/iso_ratio_chemistry.cpp
   src/chemistry/background_chemistry.cpp
   src/chemistry/isoprofile_clr_chemistry.cpp
   src/chemistry/fastchem_chemistry.cpp
@@ -359,6 +359,26 @@ find_package(LAPACK REQUIRED)
 add_library(multinest_shared SHARED ${MultiNest_SOURCE})
 SET_TARGET_PROPERTIES(multinest_shared PROPERTIES LINKER_LANGUAGE Fortran OUTPUT_NAME "multinest")
 target_link_libraries(multinest_shared PUBLIC ${LAPACK_LIBRARIES})
+
+
+# libmultinest_mpi.so: same sources compiled with the MPI preprocessor flag.
+# PyMultiNest automatically loads this variant instead of libmultinest.so when
+# it detects an MPI world size > 1 (via mpi4py).
+# Must be linked against the same MPI implementation that mpi4py was built with,
+# since both end up initialized in the same process.
+if (USE_MULTINEST_MPI MATCHES ON)
+  find_package(MPI REQUIRED COMPONENTS Fortran)
+
+  add_library(multinest_mpi_shared SHARED ${MultiNest_SOURCE})
+  SET_TARGET_PROPERTIES(multinest_mpi_shared PROPERTIES
+    LINKER_LANGUAGE Fortran
+    OUTPUT_NAME "multinest_mpi"
+    # separate .mod directory: the MPI flag changes the Fortran modules, so the
+    # two variants must not share module files
+    Fortran_MODULE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/multinest_mpi_modules")
+  target_compile_definitions(multinest_mpi_shared PRIVATE MPI)
+  target_link_libraries(multinest_mpi_shared PUBLIC MPI::MPI_Fortran ${LAPACK_LIBRARIES})
+endif()
 
 
 
