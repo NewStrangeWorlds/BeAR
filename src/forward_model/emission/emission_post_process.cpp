@@ -384,12 +384,20 @@ void EmissionModel::saveContributionFunctions(
 
   std::fstream file(file_name.c_str(), std::ios::out);
 
+  //the bands are stored in descending wavelength order; write them in the
+  //order of the observation file, as the saved spectra are
+  const size_t nb_bands = observations[observation_index].spectral_bands.nbBands();
+  const bool reverse_order = observations[observation_index].ascending_wavelengths;
+
   for (size_t j=0; j<nb_grid_points; ++j)
   { 
     file << std::setprecision(10) << std::scientific << atmosphere.pressure[j] << "\t";
 
-    for (size_t i=0; i<observations[observation_index].spectral_bands.nbBands(); ++i)
-      file << std::setprecision(10) << std::scientific << contribution_function[j][i] << "\t";
+    for (size_t i=0; i<nb_bands; ++i)
+    {
+      const size_t band = reverse_order ? nb_bands - 1 - i : i;
+      file << std::setprecision(10) << std::scientific << contribution_function[j][band] << "\t";
+    }
      
     file << "\n";
   }
