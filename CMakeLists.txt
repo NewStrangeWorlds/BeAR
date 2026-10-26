@@ -151,6 +151,7 @@ set(SRC
   src/transport_coeff/transport_coeff.cpp
   src/transport_coeff/h_m.cpp
   src/chemistry/isoprofile_chemistry.cpp
+  src/chemistry/iso_ratio_chemistry.cpp
   src/chemistry/background_chemistry.cpp
   src/chemistry/isoprofile_clr_chemistry.cpp
   src/chemistry/fastchem_chemistry.cpp
