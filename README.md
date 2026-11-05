@@ -2,7 +2,7 @@
 
 <p align="left">
   <picture>
-    <img alt="BeAR logo" src="bear_logo/bear.png" width="100">
+    <img alt="BeAR logo" src="bear_logo/bear.png" width="150">
   </picture>
 </p>
 
