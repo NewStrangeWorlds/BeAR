@@ -63,7 +63,7 @@ resp7 = np.loadtxt(retrieval_folder+"../telescope_data/Spitzer_irac1_bandpass.da
 obs8 = np.atleast_2d(np.loadtxt(retrieval_folder+"wasp-43b_spitzer_2.dat", skiprows=11))
 resp8 = np.loadtxt(retrieval_folder+"../telescope_data/Spitzer_irac2_bandpass.dat", skiprows=6)
 
-#and create the pyBeAR observation inputs
+#and create the BeAR observation inputs
 wfc3_obs = bear.Observation(
   "WFC3", "band-spectroscopy", obs1[:,0:2], obs1[:,2], obs1[:,3])
 
@@ -270,7 +270,7 @@ postprocess_config = bear.OccultationPostProcessConfig(
   save_post_chemistry)
 
 
-#create a pyBeAR retrieval post process object
+#create a BeAR retrieval post process object
 post_process = bear.PostProcess(
   model_config, 
   forward_model_config, 

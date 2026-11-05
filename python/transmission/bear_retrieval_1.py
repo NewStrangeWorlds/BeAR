@@ -19,14 +19,9 @@ retrieval_folder = "TransmissionExample/"
 #load the retrieval configuration file
 model_config = bear.Config(retrieval_folder)
 
-#create a pyBeAR retrieval object
+#create a BeAR retrieval object
 model = bear.Retrieval(model_config)
 
-
-#load the observation data to compute the likelihood
-observation = np.loadtxt(retrieval_folder+"WASP-12b_kreidberg.dat", skiprows=11)
-obs_data = observation[:,2]
-obs_error = observation[:,3]
 
 #Define the priors and likelihood functions for MultiNest
 #We use the internal functions of BeAR to convert the cube parameters
@@ -55,23 +50,10 @@ def priors(cube, ndim, nparams):
   return None
 
 
-#Instead of using the computeLikelihood function from BeAR, 
-#we calculate the likelihood using spectra provided by BeAR and 
-#the corresponding observations
+
 def loglike(cube, ndim, nparams):
-
-  output = model.computeModel(physical_parameters, False)
   
-  model_spectrum_obs = np.array(output.spectrum_obs[0])
-
-  obs_delta = obs_data - model_spectrum_obs
-
-  log_like = 0
-
-  for i in range(obs_data.size):
-    error_square = obs_error[i]**2
-    log_like += (- 0.5 * np.log(error_square* 2.0 * np.pi)
-                 - 0.5 * obs_delta[i]**2 / error_square)
+  log_like = model.computeLikelihood(physical_parameters)
 
   return log_like
 
@@ -91,7 +73,7 @@ pymultinest.run(
   outputfiles_basename=retrieval_folder)
 
 
-#create a pyBeAR retrieval post process object
+#create a BeAR retrieval post process object
 post_process = bear.PostProcess(model_config)
 
 print("Starting post process\n")

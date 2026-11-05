@@ -14,26 +14,41 @@ import pymultinest
 
 #For simplicity, we use the configuration files from the example
 #We could also set up the configuration manually as shown in 
-#the pyBear_retrieval_3.py example
+#the bear_retrieval_3.py example
 
 #setting the basic properties of the model
-retrieval_folder = "FlatLineExample/"
+retrieval_folder = "TransmissionExample/"
 
 #load the retrieval configuration file
 model_config = bear.Config(retrieval_folder)
 
-#create a pyBeAR retrieval post process object
+#create a BeAR retrieval post process object
 post_process = bear.PostProcess(model_config)
 
 
 #we manually load the posteriors from the example
-posterior_data = np.loadtxt("FlatLineExample/post_equal_weights.dat")
+posterior_data = np.loadtxt("TransmissionExample/post_equal_weights.dat")
 posteriors = posterior_data[:, 0:-1]
 log_like = posterior_data[:, -1]
 
 nb_samples = posteriors.shape[0]
 
-#we can obtain all spectra, including the high-resolution spectra
+
+#first, we can obtain the different atmospheric structures
+for i in range(nb_samples):
+  physical_parameters = post_process.convertToPhysicalParameters(posteriors[i])
+
+  output = post_process.computeAtmosphereStructure(physical_parameters, ["H2O"])
+  
+  #now, we can do whatever we want with the output
+  temperature = output.temperature
+  pressure = output.pressure
+  altitude = output.altitude
+  species_symbols = output.species_symbols
+  mixing_ratios = output.mixing_ratios
+
+
+#we can also obtain all spectra, including the high-resolution spectra
 return_high_res_spectrum = True
 
 #the corresponding wavelength grid:

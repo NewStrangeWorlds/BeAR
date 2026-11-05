@@ -14,12 +14,12 @@ import pymultinest
 
 
 #setting the basic properties of the model
-retrieval_folder = "TransmissionExample/"
+retrieval_folder = "FlatLineExample/"
 
 #load the retrieval configuration file
 model_config = bear.Config(retrieval_folder)
 
-#create a pyBeAR retrieval object
+#create a BeAR retrieval object
 model = bear.Retrieval(model_config)
 
 
@@ -73,7 +73,7 @@ pymultinest.run(
   outputfiles_basename=retrieval_folder)
 
 
-#create a pyBeAR retrieval post process object
+#create a BeAR retrieval post process object
 post_process = bear.PostProcess(model_config)
 
 print("Starting post process\n")

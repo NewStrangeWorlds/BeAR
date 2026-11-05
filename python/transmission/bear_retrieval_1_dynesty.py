@@ -17,7 +17,7 @@ retrieval_folder = "trappist-1e_python/"
 #load the retrieval configuration file
 model_config = bear.Config(retrieval_folder)
 
-#create a pyBeAR retrieval object
+#create a BeAR retrieval object
 model = bear.Retrieval(model_config)
 
 

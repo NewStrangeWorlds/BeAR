@@ -16,14 +16,14 @@ import pymultinest
 #setting the basic properties of the model
 use_gpu = True
 nb_omp_threads = 0
-model_type = "flat_line"
+model_type = "secondary_eclipse_bb"
 cross_section_file_path = ""
 spectral_discretisation = 'const_wavenumber'
-resolution = 0.5
+resolution = 1.0
 
-retrieval_folder = "FlatLineExample/"
-multinest_output_folder = "FlatLineExample/"
-post_output_folder = "FlatLineExample/"
+retrieval_folder = "SecondaryEclipseExampleBB/"
+multinest_output_folder = "SecondaryEclipseExampleBB/"
+post_output_folder = "SecondaryEclipseExampleBB/"
 
 #create the general model config
 model_config = bear.Config(
@@ -40,23 +40,34 @@ model_config.nb_omp_processes = nb_omp_threads
 
 
 #read in the observation data and the filter response functions where requried
-obs = np.loadtxt(retrieval_folder+"55Cnce_V5.dat", skiprows=11)
+obs = np.atleast_2d(np.loadtxt(retrieval_folder+"MIRI.dat", skiprows=11))
 
-nircam = bear.Observation(
-  "NIRCAM", "spectroscopy", obs[:,0], obs[:,1], obs[:,2])
+miri = bear.Observation(
+  "MIRI", "photometry", obs[:,0:2], obs[:,2], obs[:,3])
+miri_resp = np.loadtxt(retrieval_folder+"../telescope_data/JWST_MIRI_F1500W.dat", skiprows=6)
+miri.filter_response = np.transpose(miri_resp)
+miri.filter_detector_type = "photon"
+
 
 #create a list of all observations
-observations = list([nircam])
+observations = list([miri])
 
 
 #create the list of priors
 priors_config = list([
-  bear.Prior("uniform", "eclipse_depth", [0, 200])])
+  bear.Prior("uniform", "planet_temperature", [500, 3000]),
+  bear.Prior("gaussian", "radius_ratio", [0.03385, 0.001488]),
+  bear.Prior("gaussian", "stellar_temperature", [3496.0, 25.0])])
+
+#stellar spectrum model
+stellar_model = "blackbody"
+stellar_model_parameters = [] #blackbody does not require any parameters
 
 
 #Create the configuration of the forward model
-#The flat line model does not require any additional configuration
-forward_model_config = None
+forward_model_config = bear.OccultationBlackBodyConfig(
+  stellar_model,
+  stellar_model_parameters)
 
 
 #Now, we can create the BeAR retrieval object
@@ -119,11 +130,11 @@ pymultinest.run(
 #Define the post process configuration
 save_post_spectra = True
 
-postprocess_config = bear.FlatLinePostProcessConfig(
+postprocess_config = bear.OccultationBlackBodyPostConfig(
   save_post_spectra)
 
 
-#create a pyBeAR retrieval post process object
+#create a BeAR retrieval post process object
 post_process = bear.PostProcess(
   model_config, 
   forward_model_config, 

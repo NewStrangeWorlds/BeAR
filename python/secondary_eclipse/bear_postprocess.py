@@ -14,7 +14,7 @@ import pymultinest
 
 #For simplicity, we use the configuration files from the example
 #We could also set up the configuration manually as shown in 
-#the pyBear_retrieval_3.py example
+#the bear_retrieval_3.py example
 
 #setting the basic properties of the model
 retrieval_folder = "SecondaryEclipseExample/"
@@ -22,7 +22,7 @@ retrieval_folder = "SecondaryEclipseExample/"
 #load the retrieval configuration file
 model_config = bear.Config(retrieval_folder)
 
-#create a pyBeAR retrieval post process object
+#create a BeAR retrieval post process object
 post_process = bear.PostProcess(model_config)
 
 

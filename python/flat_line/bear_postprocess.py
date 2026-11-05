@@ -14,20 +14,20 @@ import pymultinest
 
 #For simplicity, we use the configuration files from the example
 #We could also set up the configuration manually as shown in 
-#the pyBear_retrieval_3.py example
+#the bear_retrieval_3.py example
 
 #setting the basic properties of the model
-retrieval_folder = "SecondaryEclipseExampleBB/"
+retrieval_folder = "FlatLineExample/"
 
 #load the retrieval configuration file
 model_config = bear.Config(retrieval_folder)
 
-#create a pyBeAR retrieval post process object
+#create a BeAR retrieval post process object
 post_process = bear.PostProcess(model_config)
 
 
 #we manually load the posteriors from the example
-posterior_data = np.loadtxt("SecondaryEclipseExampleBB/post_equal_weights.dat")
+posterior_data = np.loadtxt("FlatLineExample/post_equal_weights.dat")
 posteriors = posterior_data[:, 0:-1]
 log_like = posterior_data[:, -1]
 

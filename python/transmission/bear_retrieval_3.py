@@ -44,7 +44,7 @@ obs_wavelength_bins = observation[:,0:2]
 obs_data = observation[:,2]
 obs_error = observation[:,3]
 
-#and create a pyBeAR observation input
+#and create a BeAR observation input
 wasp_12b_obs = bear.Observation(
   "WASP-12b_Kreidberg", "band-spectroscopy", obs_wavelength_bins, obs_data, obs_error)
 
@@ -180,7 +180,7 @@ postprocess_config = bear.TransmissionPostProcessConfig(
   save_post_chemistry)
 
 
-#create a pyBeAR retrieval post process object
+#create a BeAR retrieval post process object
 post_process = bear.PostProcess(
   model_config, 
   forward_model_config, 

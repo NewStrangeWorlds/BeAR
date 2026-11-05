@@ -49,7 +49,7 @@ obs_error = obs[:,2]
 obs_line_spread = obs[:,3]
 log_like_weight = obs[:,4]
 
-#and create the pyBeAR observation inputs
+#and create the BeAR observation inputs
 spex = bear.Observation(
   "GJ570D SpeX", "spectroscopy", obs_wavelengths, obs_data, obs_error)
 
@@ -224,7 +224,7 @@ obs_add = bear.Observation(
 
 observations.append(obs_add)
 
-#create a pyBeAR retrieval post process object
+#create a BeAR retrieval post process object
 post_process = bear.PostProcess(
   model_config, 
   forward_model_config, 

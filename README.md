@@ -17,4 +17,4 @@ BeAR comes with a user guide that can be found here: https://newstrangeworlds.gi
 
 # Python Interface #
 
-Since its newest version, BeAR now includes a Python interface called pyBeAR that allows retrieval calculations to be done from within Python. Examples for the different forward models are provided in the python folder. In addition to performing retrievals, the Python interface can also call the forward models directly. That way, for example, transmission or emission spectra can be calculated for user-defined temperature profiles or chemical compositions. A detailed description of pyBeAR is provided in the user guide.
+BeAR is used exclusively through its Python module `bear`, which allows retrieval calculations to be done from within Python. Examples for the different forward models are provided in the python folder. In addition to performing retrievals, the Python interface can also call the forward models directly. That way, for example, transmission or emission spectra can be calculated for user-defined temperature profiles or chemical compositions. A detailed description of the Python interface is provided in the user guide.
