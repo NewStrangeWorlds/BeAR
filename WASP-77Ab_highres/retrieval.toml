@@ -1,0 +1,11 @@
+[general]
+use_gpu = true
+nb_omp_threads = 0     # 0 = auto
+
+[retrieval]
+forward_model_type = "phase_curve"
+spectral_discretisation = "const_resolution"
+spectral_resolution = 10000.0
+opacity_data_folder = "/media/data/opacity_data/helios-k/"
+use_error_inflation = false
+spectral_resolution_highres = 250000.0

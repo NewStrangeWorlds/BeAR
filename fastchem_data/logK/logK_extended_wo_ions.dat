@@ -586,10 +586,10 @@ C1H1F1O1 Formyl_Fluoride : C 1 H 1 F 1 O 1 # Chase, M. et al., JANAF thermochemi
 C1H1F3 Trifluoromethane : C 1 H 1 F 3 # Chase, M. et al., JANAF thermochemical tables, 1998.
    2.2368929203016960e+05  -5.6226861606049852e+00  -2.3263454751261634e+01   2.0487307565586477e-03  -1.1240010497630916e-07 
 
-C1H1N1_hcn Hydrogen_Cyanide_HCN : C 1 H 1 N 1 # Chase, M. et al., JANAF thermochemical tables, 1998.
-   1.5220770936532610e+05  -3.2044022899036122e+00  -6.2670328370286370e+00   9.8433301098929671e-04  -5.1782570298829157e-08 
+C1H1N1_hcn Hydrogen_Cyanide_HCN : C 1 H 1 N 1 # Goos et al., Extended Third Millennium Ideal Gas Thermochemical Database, 2023.
+   1.5281916243376781e+05   -3.2553951782995711e+00   -5.9159043461952807e+00    1.0101019438732398e-03   -5.3488185063095000e-08
 
-C1H1N1_hnc Hydrogen_Isocyanide_HNC : C 1 H 1 N 1 # Goos et al., Extended Third Millenium Ideal Gas Thermochemical Database [...] , 2023.
+C1H1N1_hnc Hydrogen_Isocyanide_HNC : C 1 H 1 N 1 # Goos et al., Extended Third Millenium Ideal Gas Thermochemical Database, 2023.
    1.453839706728254e+05   -2.938196985615019e+00   -7.380414445068316e+00    8.66421612553809e-04    -4.695937733428566e-08
 
 C1H1N1O1 Hydrogen_Isocyanate : C 1 H 1 N 1 O 1 # Chase, M. et al., JANAF thermochemical tables, 1998.
@@ -1896,4 +1896,3 @@ Si3 Silicon : Si 3 # Chase, M. et al., JANAF thermochemical tables, 1998.
 
 Te2 Tellurium : Te 2 # Barklem, P.S. and Collet, R., 2016, Astron. & Astrophys., 588, A96.
    3.08670009441136e+04    -5.119686351108497e-02  -1.141756726714613e+01    -1.327464439158169e-04   -8.96135094512734e-10
-
