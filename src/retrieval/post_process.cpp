@@ -1,22 +1,7 @@
-/*
-* This file is part of the BeAR code (https://github.com/newstrangeworlds/BeAR).
-* Copyright (C) 2024 Daniel Kitzmann
-*
-* BeAR is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* BeAR is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You find a copy of the GNU General Public License in the main
-* BeAR directory under <LICENSE>. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
-
+// SPDX-FileCopyrightText: 2024-2026 Daniel Kitzmann
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// This file is part of BeAR (https://github.com/newstrangeworlds/BeAR).
 
 #include <string>
 #include <iostream>
@@ -70,7 +55,7 @@ bool PostProcess::run()
 
   try
   {
-    std::string file_path = config->multinest_output_path.c_str();
+    std::string file_path = config->output_path.c_str();
     file_path += "post_equal_weights.dat";
     
     readPosteriorData(file_path);
@@ -95,12 +80,6 @@ bool PostProcess::run()
     return false;
   }
   
-  if (delete_sampler_files)
-  {
-    MultinestParameter param(config);
-    deleteSamplerFiles(param.unused_posterior_files);
-  }
-
   return true;
 }
 
@@ -134,12 +113,6 @@ bool PostProcess::run(const std::string posterior_file_path)
     return false;
   }
   
-  if (delete_sampler_files)
-  {
-    MultinestParameter param(config);
-    deleteSamplerFiles(param.unused_posterior_files);
-  }
-
   return true;
 }
 
@@ -176,12 +149,6 @@ bool PostProcess::run(
     return false;
   }
   
-  if (delete_sampler_files)
-  {
-    MultinestParameter param(config);
-    deleteSamplerFiles(param.unused_posterior_files);
-  }
-
   return true;
 }
 
@@ -222,7 +189,7 @@ void PostProcess::deleteSamplerFiles(const std::vector<std::string>& file_list)
   
   for (auto & f : file_list)
   {
-    std::string file_name = config->multinest_output_path + f;
+    std::string file_name = config->output_path + f;
     std::remove(file_name.c_str());
   }
 

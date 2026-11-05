@@ -1,22 +1,7 @@
-/*
-* This file is part of the BeAR code (https://github.com/newstrangeworlds/BeAR).
-* Copyright (C) 2024 Daniel Kitzmann
-*
-* BeAR is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* BeAR is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You find a copy of the GNU General Public License in the main
-* BeAR directory under <LICENSE>. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
-
+// SPDX-FileCopyrightText: 2024-2026 Daniel Kitzmann
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// This file is part of BeAR (https://github.com/newstrangeworlds/BeAR).
 
 #include <string>
 #include <iostream>
@@ -83,9 +68,32 @@ void EmissionModel::initModules(const EmissionModelConfig& model_config)
   
   //count the total number of free parameters for the cloud modules
   nb_total_cloud_param = 0;
-  
+
   for (auto & i : cloud_models)
     nb_total_cloud_param += i->nbParameters();
+
+
+  //Assemble the ordered list of parameter names for this model's parameter
+  //block. The order here MUST match the slicing in EmissionModel::extractParameters:
+  //  general | chemistry | temperature | cloud | spectrum modifier
+  parameter_names.clear();
+
+  parameter_names.push_back("log_g");
+  parameter_names.push_back("scaling_factor");
+  parameter_names.push_back("distance");
+
+  for (auto & i : chemistry)
+    for (auto & name : i->parameterNames())
+      parameter_names.push_back(name);
+
+  for (auto & name : temperature_profile->parameterNames())
+    parameter_names.push_back(name);
+
+  for (size_t c=0; c<cloud_models.size(); ++c)
+    appendParameterNames(cloud_models[c]->parameterNames(), c, cloud_models.size());
+
+  for (size_t i=0; i<nb_spectrum_modifier_param; ++i)
+    parameter_names.push_back("spectrum_shift_" + std::to_string(i+1));
 }
 
 

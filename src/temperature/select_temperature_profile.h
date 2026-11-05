@@ -1,22 +1,7 @@
-/*
-* This file is part of the BeAR code (https://github.com/newstrangeworlds/BeAR).
-* Copyright (C) 2024 Daniel Kitzmann
-*
-* BeAR is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* BeAR is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You find a copy of the GNU General Public License in the main
-* BeAR directory under <LICENSE>. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
-
+// SPDX-FileCopyrightText: 2024-2026 Daniel Kitzmann
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// This file is part of BeAR (https://github.com/newstrangeworlds/BeAR).
 
 #ifndef _select_temperature_h
 #define _select_temperature_h
@@ -35,8 +20,10 @@
 #include "milne_solution_temperature.h"
 #include "constant_temperature.h"
 #include "cubic_b_spline_temperature.h"
+#include "pchip_temperature.h"
 #include "guillot_temperature.h"
 #include "adiabate_cubic_spline.h"
+#include "madhusudhan_seager_temperature.h"
 
 
 namespace bear {
@@ -44,8 +31,24 @@ namespace bear {
 //definition of the different chemistry modules with an
 //identifier, a keyword to be located in the config file and a short version of the keyword
 namespace temp_profile_modules{
-  enum id {poly, milne, constant, cubicbspline, guillot, adspline};
-  const std::vector<std::string> description {"poly", "milne", "const", "cubicbspline", "guillot", "adiabate_spline"};
+  enum id {poly, milne, constant, cubicbspline, guillot, adspline, madhusudhan_seager, pchip};
+  const std::vector<std::string> description {"poly", "milne", "const", "cubicbspline", "guillot", "adiabate_spline", "madhusudhan_seager", "pchip"};
+}
+
+
+//parse the optional parametrisation keyword ("absolute"/"relative") of a
+//control-point temperature profile; an empty keyword falls back to default_mode
+inline Parametrisation parseParametrisation(
+  const std::string& keyword,
+  const Parametrisation default_mode)
+{
+  if (keyword.empty()) return default_mode;
+  if (keyword == "absolute") return Parametrisation::absolute;
+  if (keyword == "relative") return Parametrisation::relative;
+
+  std::string error_message = "Temperature parametrisation '" + keyword
+    + "' unknown (expected 'absolute' or 'relative')!\n";
+  throw InvalidInput(std::string ("forward_model.toml"), error_message);
 }
 
 
@@ -66,7 +69,7 @@ inline std::unique_ptr<Temperature> selectTemperatureProfile(
   if (it == temp_profile_modules::description.end())
   {
     std::string error_message = "Temperature profile type " + profile_type + " unknown!\n";
-    throw InvalidInput(std::string ("forward_model.config"), error_message);
+    throw InvalidInput(std::string ("forward_model.toml"), error_message);
   }
 
 
@@ -79,35 +82,42 @@ inline std::unique_ptr<Temperature> selectTemperatureProfile(
   switch (module_id)
   {
     case temp_profile_modules::poly :
-      if (parameters.size() != 2)
+      if (parameters.size() != 2 && parameters.size() != 3)
       {
         std::string error_message =
-          "Piesewise polynomial temperature profile requires exactly two parameters!\n";
-        throw InvalidInput(std::string ("forward_model.config"), error_message);
+          "Piecewise polynomial temperature profile requires two parameters "
+          "(elements, degree) and an optional parametrisation!\n";
+        throw InvalidInput(std::string ("forward_model.toml"), error_message);
       }
       return std::make_unique<PiecewisePolynomialTemperature>(
           std::stoi(parameters[0]),
           std::stoi(parameters[1]),
-          atmos_boundaries);
+          atmos_boundaries,
+          parseParametrisation(
+            parameters.size() > 2 ? parameters[2] : "", Parametrisation::relative));
 
     case temp_profile_modules::milne :
       return std::make_unique<MilneTemperature>();
 
     case temp_profile_modules::cubicbspline :
-      if (parameters.size() != 1)
+      if (parameters.size() != 1 && parameters.size() != 2)
       {
         std::string error_message =
-          "Cubic B spline temperature profile requires exactly one parameter!\n";
-        throw InvalidInput(std::string ("forward_model.config"), error_message);
+          "Cubic B spline temperature profile requires one parameter "
+          "(control points) and an optional parametrisation!\n";
+        throw InvalidInput(std::string ("forward_model.toml"), error_message);
       }
-      return std::make_unique<CubicBSplineTemperature>(std::stoi(parameters[0]));
+      return std::make_unique<CubicBSplineTemperature>(
+          std::stoi(parameters[0]),
+          parseParametrisation(
+            parameters.size() > 1 ? parameters[1] : "", Parametrisation::relative));
 
     case temp_profile_modules::guillot :
       if (parameters.size() != 1)
       {
         std::string error_message =
           "Guillot temperature profile requires exactly one parameter!\n";
-        throw InvalidInput(std::string ("forward_model.config"), error_message);
+        throw InvalidInput(std::string ("forward_model.toml"), error_message);
       }
       return std::make_unique<GuillotTemperature>(parameters[0]);
 
@@ -116,12 +126,28 @@ inline std::unique_ptr<Temperature> selectTemperatureProfile(
       {
         std::string error_message =
           "Adiabate Cubic B spline temperature profile requires exactly one parameter!\n";
-        throw InvalidInput(std::string ("forward_model.config"), error_message);
+        throw InvalidInput(std::string ("forward_model.toml"), error_message);
       }
       return std::make_unique<AdiabateSplineTemperature>(std::stoi(parameters[0]));
 
     case temp_profile_modules::constant :
       return std::make_unique<ConstantTemperature>();
+
+    case temp_profile_modules::madhusudhan_seager :
+      return std::make_unique<MadhusudhanSeagerTemperature>();
+
+    case temp_profile_modules::pchip :
+      if (parameters.size() != 1 && parameters.size() != 2)
+      {
+        std::string error_message =
+          "PCHIP temperature profile requires one parameter "
+          "(control points) and an optional parametrisation!\n";
+        throw InvalidInput(std::string ("forward_model.toml"), error_message);
+      }
+      return std::make_unique<PchipTemperature>(
+          std::stoi(parameters[0]),
+          parseParametrisation(
+            parameters.size() > 1 ? parameters[1] : "", Parametrisation::absolute));
   }
 
 

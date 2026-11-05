@@ -1,22 +1,7 @@
-/*
-* This file is part of the BeAR code (https://github.com/newstrangeworlds/BeAR).
-* Copyright (C) 2024 Daniel Kitzmann
-*
-* BeAR is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* BeAR is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You find a copy of the GNU General Public License in the main
-* BeAR directory under <LICENSE>. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
-
+// SPDX-FileCopyrightText: 2024-2026 Daniel Kitzmann
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// This file is part of BeAR (https://github.com/newstrangeworlds/BeAR).
 
 #ifndef _secondary_eclipse_bb_h
 #define _secondary_eclipse_bb_h
@@ -50,7 +35,8 @@ class OccultationBlackBodyConfig : public GenericConfig{
     std::vector<std::string> stellar_model_parameters;
 
     OccultationBlackBodyConfig (
-      const std::string& folder_path);
+      const std::string& folder_path,
+      const std::string& file_name = "forward_model.toml");
     OccultationBlackBodyConfig (
       const std::string stellar_spectrum_model_,
       const std::vector<std::string>& stellar_model_parameters_);
@@ -66,7 +52,8 @@ class OccultationBlackBodyPostConfig : public GenericConfig{
     bool delete_sampler_files = false;
 
     OccultationBlackBodyPostConfig (
-      const std::string& folder_path);
+      const std::string& folder_path,
+      const std::string& file_name = "post_process.toml");
     OccultationBlackBodyPostConfig (
       const bool save_spectra_)
       : save_spectra(save_spectra_) {};
@@ -86,7 +73,7 @@ class OccultationBlackBodyModel : public ForwardModel{
     virtual ~OccultationBlackBodyModel();
     
     virtual size_t parametersNumber() {
-      return nb_total_param();};
+      return parameter_names.empty() ? nb_total_param() : parameter_names.size();};
 
     virtual bool calcModelCPU(
       const std::vector<double>& parameter,

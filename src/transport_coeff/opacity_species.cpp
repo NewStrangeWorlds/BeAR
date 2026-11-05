@@ -1,21 +1,7 @@
-/*
-* This file is part of the BeAR code (https://github.com/newstrangeworlds/BeAR).
-* Copyright (C) 2024 Daniel Kitzmann
-*
-* BeAR is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* BeAR is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You find a copy of the GNU General Public License in the main
-* BeAR directory under <LICENSE>. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+// SPDX-FileCopyrightText: 2024-2026 Daniel Kitzmann
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// This file is part of BeAR (https://github.com/newstrangeworlds/BeAR).
 
 #include <vector>
 #include <string>
@@ -364,37 +350,6 @@ void OpacitySpecies::checkDataAvailability(std::vector<SampledData*>& data_point
 }
 
 
-//calculation of the absorption coefficients for a specific temperature and pressure
-//the method interpolates within a two-dimensional, tabulated cross section grid
-//this is version for doing the calculation on the GPU
-//the four data points for the interpolation are still obtained on the CPU and then passed to the GPU
-void OpacitySpecies::calcAbsorptionCoefficientsGPU(
-  const double pressure,
-  const double temperature,
-  const double number_density,
-  const size_t nb_grid_points,
-  const size_t grid_point,
-  float* absorption_coeff_device)
-{
-  std::vector<SampledData*> data_points = findClosestDataPoints(pressure, temperature);
-
-  checkDataAvailability(data_points);
-
-  calcAbsorptionCoefficientsGPU(
-    data_points[0]->cross_sections_device,
-    data_points[1]->cross_sections_device,
-    data_points[2]->cross_sections_device,
-    data_points[3]->cross_sections_device,
-    data_points[0]->temperature,
-    data_points[2]->temperature,
-    data_points[0]->log_pressure,
-    data_points[1]->log_pressure,
-    temperature, std::log10(pressure),
-    number_density,
-    spectral_grid->nbSpectralPoints(),
-    nb_grid_points, grid_point,
-    absorption_coeff_device);
-}
 
 
 void OpacitySpecies::calcTransportCoefficients(
@@ -457,44 +412,6 @@ void OpacitySpecies::calcTransportCoefficients(
 
 
 
-void OpacitySpecies::calcTransportCoefficientsGPU(
-  const double temperature,
-  const double pressure,
-  const std::vector<double>& number_densities,
-  const size_t nb_grid_points,
-  const size_t grid_point,
-  float* absorption_coeff_device,
-  float* scattering_coeff_device)
-{
-  double number_density = number_densities[species_index];
-
-  for (const auto & i : cia_collision_partner)
-    number_density *= number_densities[i];
-
-  if (number_density == 0) return;
-
-
-  double reference_pressure = pressure;
-  
-  //if the opacity species uses a different species for its tabulated pressure
-  //use the partial pressure of that reference species here 
-  if (pressure_reference_species != _TOTAL)
-    reference_pressure *= number_densities[pressure_reference_species]/number_densities[_TOTAL];
-
-  if (cross_section_available == true) calcAbsorptionCoefficientsGPU(
-    pressure,
-    temperature,
-    number_density,
-    nb_grid_points,
-    grid_point,
-    absorption_coeff_device);
-  
-  calcRayleighCrossSectionsGPU(
-    number_density, nb_grid_points, grid_point, scattering_coeff_device);
-
-  calcContinuumAbsorptionGPU(
-    temperature, number_densities, nb_grid_points, grid_point, absorption_coeff_device);
-}
 
 
 
@@ -530,18 +447,6 @@ OpacitySpecies::CrossSectionMetadata OpacitySpecies::prepareCrossSectionMetadata
 }
 
 
-void OpacitySpecies::calcContinuumGPU(
-  const double temperature,
-  const std::vector<double>& number_densities,
-  const size_t nb_grid_points,
-  const size_t grid_point,
-  float* absorption_coeff_device)
-{
-  if (!continuum_available) return;
-
-  calcContinuumAbsorptionGPU(
-    temperature, number_densities, nb_grid_points, grid_point, absorption_coeff_device);
-}
 
 
 bool OpacitySpecies::calcScatteringCrossSections(

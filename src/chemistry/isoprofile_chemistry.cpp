@@ -1,22 +1,7 @@
-/*
-* This file is part of the BeAR code (https://github.com/newstrangeworlds/BeAR).
-* Copyright (C) 2024 Daniel Kitzmann
-*
-* BeAR is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* BeAR is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You find a copy of the GNU General Public License in the main
-* BeAR directory under <LICENSE>. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
-
+// SPDX-FileCopyrightText: 2024-2026 Daniel Kitzmann
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// This file is part of BeAR (https://github.com/newstrangeworlds/BeAR).
 
 #include <algorithm>
 #include <vector>
@@ -79,7 +64,14 @@ IsoprofileChemistry::IsoprofileChemistry(const std::vector<std::string>& chemica
     sodium_free_parameter = true;
 
   
-  nb_parameters = chemical_species.size();
+  //parameter_names is the source of truth for the parameter count:
+  //one isoprofile mixing ratio per listed species, named chem_<species>_mr
+  for (auto & i : chemical_species)
+  {
+    std::string name = i;
+    std::transform(name.begin(), name.end(), name.begin(), ::tolower);
+    parameter_names.push_back("chem_" + name + "_mr");
+  }
 }
 
 

@@ -1,22 +1,7 @@
-/*
-* This file is part of the BeAR code (https://github.com/newstrangeworlds/BeAR).
-* Copyright (C) 2024 Daniel Kitzmann
-*
-* BeAR is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* BeAR is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You find a copy of the GNU General Public License in the main
-* BeAR directory under <LICENSE>. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
-
+// SPDX-FileCopyrightText: 2024-2026 Daniel Kitzmann
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// This file is part of BeAR (https://github.com/newstrangeworlds/BeAR).
 
 #include "cubic_b_spline_temperature.h"
 #include "../additional/exceptions.h"
@@ -33,7 +18,9 @@
 namespace bear {
 
 
-CubicBSplineTemperature::CubicBSplineTemperature(const size_t nb_control_points_)
+CubicBSplineTemperature::CubicBSplineTemperature(
+  const size_t nb_control_points_,
+  const Parametrisation parametrisation_)
  : nb_control_points{nb_control_points_}
 {
   if (nb_control_points < 5)
@@ -42,7 +29,10 @@ CubicBSplineTemperature::CubicBSplineTemperature(const size_t nb_control_points_
     throw InvalidInput(std::string ("CubicBSplineTemperature::CubicBSplineTemperature"), error_message);
   }
 
-  nb_parameters = nb_control_points;
+  parametrisation = parametrisation_;
+
+  //parameter_names is the source of truth for the parameter count
+  setControlPointNames(nb_control_points);
 }
 
 
@@ -61,19 +51,14 @@ bool CubicBSplineTemperature::calcProfile(
   double control_points_step = (std::log10(pressure[0]) - std::log10(pressure.back())) / (nb_control_points - 1.0);
 
 
-  std::vector<double> temperature_control_point(nb_control_points, 0.0);
-
-  temperature_control_point[0] = parameters[0];
-
-  for (size_t i=1; i<nb_parameters; ++i)
-    temperature_control_point[i] = temperature_control_point[i-1] * parameters[i];
+  std::vector<double> temperature_control_point = controlTemperatures(parameters);
 
   std::reverse(temperature_control_point.begin(), temperature_control_point.end());
 
   boost::math::interpolators::cardinal_cubic_b_spline<double> temperature_profile (
-    temperature_control_point.data(), 
-    temperature_control_point.size(), 
-    std::log10(pressure.back()), 
+    temperature_control_point.data(),
+    temperature_control_point.size(),
+    std::log10(pressure.back()),
     control_points_step);
 
   temperature.assign(pressure.size(), 0);

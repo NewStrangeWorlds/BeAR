@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2024-2026 Daniel Kitzmann
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// This file is part of BeAR (https://github.com/newstrangeworlds/BeAR).
 
 #ifndef _contribution_function_kernels_h
 #define _contribution_function_kernels_h

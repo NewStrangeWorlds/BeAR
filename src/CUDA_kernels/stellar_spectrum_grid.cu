@@ -1,22 +1,7 @@
-/*
-* This file is part of the BeAR code (https://github.com/newstrangeworlds/BeAR).
-* Copyright (C) 2024 Daniel Kitzmann
-*
-* BeAR is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* BeAR is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You find a copy of the GNU General Public License in the main
-* BeAR directory under <LICENSE>. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
-
+// SPDX-FileCopyrightText: 2024-2026 Daniel Kitzmann
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// This file is part of BeAR (https://github.com/newstrangeworlds/BeAR).
 
 #include <iostream>
 #include <cmath>
@@ -30,66 +15,6 @@
 
 
 namespace bear{
-
-
-__global__ void stellarSpectrumInterpolationOld(
-  const double xd, const double yd, const double zd,
-  const double* c000, const double* c100,
-  const double* c010, const double* c110,
-  const double* c001, const double* c101,
-  const double* c011, const double* c111,
-  const int nb_wavenumbers,
-  double* spectrum_dev)
-{
-  for (int tid = blockIdx.x * blockDim.x + threadIdx.x; tid < nb_wavenumbers; tid += blockDim.x * gridDim.x)
-  {
-    const double c00 = c000[tid] * (1. - xd) + c100[tid]*xd;
-    const double c01 = c001[tid] * (1. - xd) + c101[tid]*xd;
-    const double c10 = c010[tid] * (1. - xd) + c110[tid]*xd;
-    const double c11 = c011[tid] * (1. - xd) + c111[tid]*xd;
-
-    const double c0 = c00 * (1. - yd) + c10*yd;
-    const double c1 = c01 * (1. - yd) + c11*yd;
-
-    const double c = c0 * (1. - zd) + c1 * zd;
-
-    spectrum_dev[tid] = c0 * (1. - zd) + c1 * zd;
-  }
-}
-
-
-__global__ 
-void stellarSpectrumInterpolation(
-  const double xd, const double yd, const double zd,
-  const double* __restrict__ c000, const double* __restrict__ c100,
-  const double* __restrict__ c010, const double* __restrict__ c110,
-  const double* __restrict__ c001, const double* __restrict__ c101,
-  const double* __restrict__ c011, const double* __restrict__ c111,
-  const int nb_wavenumbers,
-  double* __restrict__ spectrum_dev)
-{
-  // Pre-calculate weights to save subtractions in the loop
-  const double omx = 1.0 - xd;
-  const double omy = 1.0 - yd;
-  const double omz = 1.0 - zd;
-
-  int tid = blockIdx.x * blockDim.x + threadIdx.x;
-  int stride = blockDim.x * gridDim.x;
-
-  for (; tid < nb_wavenumbers; tid += stride)
-  {
-    // Layer 0 (z=0)
-    double xy0 = omy * (c000[tid] * omx + c100[tid] * xd) + 
-                 yd  * (c010[tid] * omx + c110[tid] * xd);
-    
-    // Layer 1 (z=1)
-    double xy1 = omy * (c001[tid] * omx + c101[tid] * xd) + 
-                 yd  * (c011[tid] * omx + c111[tid] * xd);
-
-    // Final Interpolation
-    spectrum_dev[tid] = xy0 * omz + xy1 * zd;
-  }
-}
 
 
 __global__

@@ -1,0 +1,10 @@
+[general]
+use_gpu = true
+nb_omp_threads = 0     # 0 = auto
+
+[retrieval]
+forward_model_type = "transmission"
+spectral_discretisation = "const_wavenumber"
+spectral_resolution = 1.0
+opacity_data_folder = "/media/data/opacity_data/helios-k/"
+use_error_inflation = false

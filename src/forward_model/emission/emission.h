@@ -1,22 +1,7 @@
-/*
-* This file is part of the BeAR code (https://github.com/newstrangeworlds/BeAR).
-* Copyright (C) 2024 Daniel Kitzmann
-*
-* BeAR is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* BeAR is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You find a copy of the GNU General Public License in the main
-* BeAR directory under <LICENSE>. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
-
+// SPDX-FileCopyrightText: 2024-2026 Daniel Kitzmann
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// This file is part of BeAR (https://github.com/newstrangeworlds/BeAR).
 
 #ifndef _emission_h
 #define _emission_h
@@ -71,7 +56,8 @@ class EmissionModelConfig : public GenericConfig {
     std::vector<std::string> opacity_species_folder;
 
     EmissionModelConfig (
-      const std::string& folder_path);
+      const std::string& folder_path,
+      const std::string& file_name = "forward_model.toml");
     EmissionModelConfig (
       const int nb_grid_points_,
       const double atmos_bottom_pressure_,
@@ -113,7 +99,8 @@ class EmissionPostProcessConfig : public GenericConfig{
     std::vector<chemical_species_id> species_to_save;
 
     EmissionPostProcessConfig (
-      const std::string& folder_path);
+      const std::string& folder_path,
+      const std::string& file_name = "post_process.toml");
     EmissionPostProcessConfig (
       const bool save_temperatures_, 
       const bool save_effective_temperatures_, 
@@ -143,7 +130,9 @@ class EmissionModel : public ForwardModel{
     virtual ~EmissionModel();
 
     virtual size_t parametersNumber() {
-      return nb_total_param();};
+      //parameter_names is the source of truth once assembled in initModules;
+      //the lightweight test constructor leaves it empty and falls back.
+      return parameter_names.empty() ? nb_total_param() : parameter_names.size();};
     
     virtual bool calcModelCPU(
       const std::vector<double>& parameter, 

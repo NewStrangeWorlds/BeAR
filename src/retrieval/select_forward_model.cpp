@@ -1,22 +1,7 @@
-/*
-* This file is part of the BeAR code (https://github.com/newstrangeworlds/BeAR).
-* Copyright (C) 2024 Daniel Kitzmann
-*
-* BeAR is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* BeAR is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You find a copy of the GNU General Public License in the main
-* BeAR directory under <LICENSE>. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
-
+// SPDX-FileCopyrightText: 2024-2026 Daniel Kitzmann
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// This file is part of BeAR (https://github.com/newstrangeworlds/BeAR).
 
 #include "retrieval.h"
 
@@ -29,6 +14,7 @@
 #include "../forward_model/transmission/transmission.h"
 #include "../forward_model/flat_line/flat_line.h"
 #include "../forward_model/secondary_eclipse_bb/secondary_eclipse_bb.h"
+#include "../forward_model/phase_curve/phase_curve.h"
 
 #include <memory>
 
@@ -46,7 +32,7 @@ std::unique_ptr<ForwardModel> Retrieval::selectForwardModel(
     if (model_config == nullptr)
     {
       return std::make_unique<EmissionModel>(
-        EmissionModelConfig (config->retrieval_folder_path),
+        EmissionModelConfig (config->retrieval_folder_path, config->forward_model_config_file),
         config,
         &spectral_grid,
         observations);
@@ -69,7 +55,7 @@ std::unique_ptr<ForwardModel> Retrieval::selectForwardModel(
     if (model_config == nullptr)
     {
       return std::make_unique<OccultationModel>(
-        OccultationConfig (config->retrieval_folder_path),
+        OccultationConfig (config->retrieval_folder_path, config->forward_model_config_file),
         config,
         &spectral_grid,
         observations);
@@ -91,7 +77,7 @@ std::unique_ptr<ForwardModel> Retrieval::selectForwardModel(
     if (model_config == nullptr)
     {
       return std::make_unique<TransmissionModel>(
-        TransmissionModelConfig (config->retrieval_folder_path),
+        TransmissionModelConfig (config->retrieval_folder_path, config->forward_model_config_file),
         config,
         &spectral_grid,
         observations);
@@ -123,7 +109,7 @@ std::unique_ptr<ForwardModel> Retrieval::selectForwardModel(
     if (model_config == nullptr)
     {
       return std::make_unique<OccultationBlackBodyModel>(
-        OccultationBlackBodyConfig (config->retrieval_folder_path),
+        OccultationBlackBodyConfig (config->retrieval_folder_path, config->forward_model_config_file),
         config,
         &spectral_grid,
         observations);
@@ -141,8 +127,31 @@ std::unique_ptr<ForwardModel> Retrieval::selectForwardModel(
   }
 
 
+  if (model_description == "phase_curve" || model_description == "Phase_curve" || model_description == "pc")
+  {
+    if (model_config == nullptr)
+    {
+      return std::make_unique<PhaseCurveModel>(
+        PhaseCurveConfig(config->retrieval_folder_path, config->forward_model_config_file),
+        config,
+        &spectral_grid,
+        observations);
+    }
+    else
+    {
+      PhaseCurveConfig* c = dynamic_cast<PhaseCurveConfig*>(model_config);
+
+      return std::make_unique<PhaseCurveModel>(
+        *c,
+        config,
+        &spectral_grid,
+        observations);
+    }
+  }
+
+
   std::string error_message = "Unkown forward model found in retrieval config file: " + model_description + "\n";
-  throw InvalidInput(std::string ("retrieval.config"), error_message);
+  throw InvalidInput(std::string ("retrieval.toml"), error_message);
 
   return nullptr;
 }

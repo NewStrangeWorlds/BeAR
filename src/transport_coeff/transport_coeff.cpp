@@ -1,23 +1,7 @@
-
-/*
-* This file is part of the BeAR code (https://github.com/newstrangeworlds/BeAR).
-* Copyright (C) 2024 Daniel Kitzmann
-*
-* BeAR is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* BeAR is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You find a copy of the GNU General Public License in the main
-* BeAR directory under <LICENSE>. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
-
+// SPDX-FileCopyrightText: 2024-2026 Daniel Kitzmann
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// This file is part of BeAR (https://github.com/newstrangeworlds/BeAR).
 
 #include <iostream>
 #include <omp.h>
@@ -261,31 +245,6 @@ void TransportCoefficients::calculate(
 
 
 
-//calculates the transport coefficients on the GPU
-//calculations are stored on the GPU, nothing is returned
-//the layer coefficients are a temporary storage for a given p-T point
-void TransportCoefficients::calculateGPU(
-  const double temperature,
-  const double pressure,
-  const std::vector<double>& number_densities,
-  const size_t nb_grid_points,
-  const size_t grid_point,
-  float* absorption_coeff_device,
-  float* scattering_coeff_device)
-{
-  for (unsigned int i=0; i<gas_species.size(); i++)
-    gas_species[i]->calcTransportCoefficientsGPU(
-      temperature,
-      pressure,
-      number_densities,
-      nb_grid_points,
-      grid_point,
-      absorption_coeff_device,
-      scattering_coeff_device);
-}
-
-
-
 void TransportCoefficients::prepareBatchedGPU(
   const Atmosphere& atmosphere,
   std::vector<float*>& cs1_ptrs, std::vector<float*>& cs2_ptrs,
@@ -355,16 +314,13 @@ void TransportCoefficients::prepareBatchedGPU(
 
 
 void TransportCoefficients::calculateContinuumGPU(
-  const double temperature,
-  const double pressure,
-  const std::vector<double>& number_densities,
-  const size_t nb_grid_points,
-  const size_t grid_point,
+  const std::vector<double>& temperature,
+  const std::vector<std::vector<double>>& number_densities,
   float* absorption_coeff_device)
 {
   for (auto& species : gas_species)
-    species->calcContinuumGPU(
-      temperature, number_densities, nb_grid_points, grid_point, absorption_coeff_device);
+    species->calcContinuumBatchedGPU(
+      temperature, number_densities, absorption_coeff_device);
 }
 
 

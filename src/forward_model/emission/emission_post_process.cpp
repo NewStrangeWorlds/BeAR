@@ -1,22 +1,8 @@
-/*
-* This file is part of the BeAR code (https://github.com/newstrangeworlds/BeAR).
-* Copyright (C) 2024 Daniel Kitzmann
-*
-* BeAR is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* BeAR is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You find a copy of the GNU General Public License in the main
-* BeAR directory under <LICENSE>. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
-
+// SPDX-FileCopyrightText: 2024-2026 Daniel Kitzmann
+// SPDX-FileCopyrightText: 2026 Esther Wang
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// This file is part of BeAR (https://github.com/newstrangeworlds/BeAR).
 
 #include <string>
 #include <iostream>
@@ -39,11 +25,11 @@
 namespace bear{
 
 
-EmissionPostProcessConfig::EmissionPostProcessConfig (const std::string& folder_path)
+EmissionPostProcessConfig::EmissionPostProcessConfig (
+  const std::string& folder_path,
+  const std::string& file_name)
 {
-  const std::string config_file_name = folder_path + "post_process.config";
-
-  readConfigFile(config_file_name);
+  readConfigFile(folder_path + file_name);
 }
 
 
@@ -65,31 +51,26 @@ EmissionPostProcessConfig::EmissionPostProcessConfig (
 
 void EmissionPostProcessConfig::readConfigFile(const std::string& file_name)
 {
-  std::fstream file;
-  file.open(file_name.c_str(), std::ios::in);
+  std::ifstream test_file(file_name.c_str());
 
-  if (file.fail())
+  if (!test_file.good())
   {
     std::cout << "\n Post-process config file not found. Using default options!\n\n";
 
     return;
   }
+  test_file.close();
 
   std::cout << "\nParameters read from " << file_name << " :\n";
 
-  delete_sampler_files = readBooleanParameter(file, "Delete sampler files");
+  toml::table cfg = parseConfigFile(file_name);
 
-  save_spectra = readBooleanParameter(file, "Save posterior spectra");
-
-  save_temperatures = readBooleanParameter(file, "Save temperature structures");
-
-  save_effective_temperatures = readBooleanParameter(file, "Save effective temperatures");
-
-  save_contribution_functions = readBooleanParameter(file, "Save contribution functions");
-  
-  species_to_save = readChemicalSpecies(file, "Save chemical species profiles");
-
-  file.close();
+  delete_sampler_files = readBooleanParameter(cfg, "delete_sampler_files", delete_sampler_files);
+  save_spectra = readBooleanParameter(cfg, "save_spectra", save_spectra);
+  save_temperatures = readBooleanParameter(cfg, "save_temperatures", save_temperatures);
+  save_effective_temperatures = readBooleanParameter(cfg, "save_effective_temperatures", save_effective_temperatures);
+  save_contribution_functions = readBooleanParameter(cfg, "save_contribution_functions", save_contribution_functions);
+  species_to_save = readChemicalSpecies(cfg, "species_to_save");
 }
 
 
@@ -118,7 +99,8 @@ void EmissionModel::postProcess(
   const size_t best_fit_model,
   bool& delete_unused_files)
 {
-  EmissionPostProcessConfig post_process_config(config->retrieval_folder_path);
+  EmissionPostProcessConfig post_process_config(
+    config->retrieval_folder_path, config->post_process_config_file);
 
   if (post_process_config.delete_sampler_files)
     delete_unused_files = true;
@@ -388,12 +370,20 @@ void EmissionModel::saveContributionFunctions(
 
   std::fstream file(file_name.c_str(), std::ios::out);
 
+  //the bands are stored in descending wavelength order; write them in the
+  //order of the observation file, as the saved spectra are
+  const size_t nb_bands = observations[observation_index].spectral_bands.nbBands();
+  const bool reverse_order = observations[observation_index].ascending_wavelengths;
+
   for (size_t j=0; j<nb_grid_points; ++j)
   { 
     file << std::setprecision(10) << std::scientific << atmosphere.pressure[j] << "\t";
 
-    for (size_t i=0; i<observations[observation_index].spectral_bands.nbBands(); ++i)
-      file << std::setprecision(10) << std::scientific << contribution_function[j][i] << "\t";
+    for (size_t i=0; i<nb_bands; ++i)
+    {
+      const size_t band = reverse_order ? nb_bands - 1 - i : i;
+      file << std::setprecision(10) << std::scientific << contribution_function[j][band] << "\t";
+    }
      
     file << "\n";
   }

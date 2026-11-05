@@ -1,0 +1,34 @@
+atmosphere = { nb_grid_points = 70, bottom_pressure = 100, top_pressure = 1e-3 }
+
+temperature = { model = "poly", params = ["6", "1"] }
+
+stellar_spectrum = { model = "file", params = ["SecondaryEclipseExample/WASP-43.dat"] }
+
+clouds = []
+
+radiative_transfer = { model = "scm", params = [] }
+
+chemistry = [
+  { model = "eq", params = ["fastchem_parameters.dat"] },
+]
+
+opacity = [
+  { species = "CIA-H2-H2", folder = "CIA/H2-H2" },
+  { species = "CIA-H2-He", folder = "CIA/H2-He" },
+  { species = "Na", folder = "Alkali_Allard/Na" },
+  { species = "K", folder = "Alkali_Allard/K" },
+  { species = "H2O", folder = "Molecules/1H2-16O__POKAZATEL_e2b" },
+  { species = "CO", folder = "Molecules/12C-16O__Li2015_e2b" },
+  { species = "TiO", folder = "Molecules/48Ti-16O__Toto_e2b" },
+  { species = "VO", folder = "Molecules/51V-16O__VOMYT_e2b" },
+  { species = "SH", folder = "Molecules/32S-1H__GYT_e2b" },
+  { species = "H2S", folder = "Molecules/1H2-32S__AYT2_e2b" },
+  { species = "FeH", folder = "Molecules/56Fe-1H__Yueqi_e2b" },
+  { species = "CH4", folder = "Molecules/12C-1H4__YT34to10_e2b" },
+  { species = "CO2", folder = "Molecules/12C-16O2__CDSD_4000_e2b" },
+  { species = "HCN", folder = "Molecules/1H-12C-14N__Harris_e2b" },
+  { species = "MgH", folder = "Molecules/26Mg-1H__Yadin_e2b" },
+  { species = "TiH", folder = "Molecules/48Ti-1H__MoLLIST_e2b" },
+  { species = "CrH", folder = "Molecules/52Cr-1H__Yueqi_e2b" },
+  { species = "CaH", folder = "Molecules/40Ca-1H__MoLLIST_e2b" },
+]

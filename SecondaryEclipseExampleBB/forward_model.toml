@@ -1,0 +1,5 @@
+stellar_spectrum = { model = "blackbody", params = [] }
+
+clouds = []
+
+chemistry = []

@@ -1,0 +1,26 @@
+atmosphere = { nb_grid_points = 100, bottom_pressure = 400, top_pressure = 1e-06 }
+
+temperature = { model = "madhusudhan_seager", params = [] }
+
+stellar_spectrum = { model = "file", params = ["WASP-77Ab_highres/PHOENIX_5605_4.33_bear.dat"], highres_stellar_smooth_sigma = 200 }
+
+clouds = []
+
+radiative_transfer = { model = "scm", params = [] }
+
+modules = [
+  { model = "velocity_broadening", params = [] },
+]
+
+chemistry = [
+  { model = "iso", params = ["H2O", "CO"] },
+  { model = "bg", params = ["H2He"] },
+]
+
+opacity = [
+  { species = "CIA-H2-H2", folder = "CIA/H2-H2" },
+  { species = "CIA-H2-He", folder = "CIA/H2-He" },
+  { species = "CIA-H-He", folder = "CIA/H-He" },
+  { species = "H2O", folder = "Molecules/1H2-16O__POKAZATEL_e2b" },
+  { species = "CO", folder = "Molecules/12C-16O__Li2015_e2b" },
+]

@@ -1,22 +1,7 @@
-/*
-* This file is part of the BeAR code (https://github.com/newstrangeworlds/BeAR).
-* Copyright (C) 2024 Daniel Kitzmann
-*
-* BeAR is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* BeAR is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You find a copy of the GNU General Public License in the main
-* BeAR directory under <LICENSE>. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
-
+// SPDX-FileCopyrightText: 2024-2026 Daniel Kitzmann
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// This file is part of BeAR (https://github.com/newstrangeworlds/BeAR).
 
 #include "fastchem_chemistry.h"
 
@@ -27,44 +12,101 @@
 
 
 #include <algorithm>
+#include <unordered_map>
 #include <vector>
 #include <omp.h>
-#include <math.h> 
+#include <math.h>
 #include <iostream>
+#include <string>
 
 
 namespace bear {
 
 
 FastChemChemistry::FastChemChemistry(
-  const std::string& fastchen_parameter_file, const size_t nb_openmp_proc)
-  : fastchem(fastchen_parameter_file, 1) 
+  const std::string& fastchen_parameter_file,
+  const size_t nb_openmp_proc,
+  const std::vector<std::string>& ratio_specs)
+  : fastchem(fastchen_parameter_file, 1)
   , nb_processes{nb_openmp_proc}
 {
   std::cout << "- Chemistry model: " << "equilibrium/FastChem" << "\n";
-  std::cout << "  - Parameter file: " << fastchen_parameter_file << "\n\n";
-  
+  std::cout << "  - Parameter file: " << fastchen_parameter_file << "\n";
 
   reference_element_abundances = fastchem.getElementAbundances();
-
   
+  // Build reverse lookup: FastChem species symbol -> FastChem index.
+  // We iterate by index rather than calling getGasSpeciesIndex, whose
+  // find_if loop triggers a GCC -O3 relocation bug in the unrolled tail.
+  const unsigned int nb_fc_species = fastchem.getGasSpeciesNumber();
+  std::unordered_map<std::string, size_t> fc_index_map;
+  for (unsigned int j = 0; j < nb_fc_species; ++j)
+    fc_index_map[fastchem.getGasSpeciesSymbol(j)] = j;
+
   fastchem_species_indices.assign(constants::species_data.size(), fastchem::FASTCHEM_UNKNOWN_SPECIES);
-
-  for (size_t i=0; i<constants::species_data.size(); ++i)
-    fastchem_species_indices[i] = fastchem.getGasSpeciesIndex(constants::species_data[i].fastchem_symbol);
-    
-  
-  //check if C, O, and H are present in FastChem
-  if (fastchem_species_indices[_H] == fastchem::FASTCHEM_UNKNOWN_SPECIES 
-      || fastchem_species_indices[_O] == fastchem::FASTCHEM_UNKNOWN_SPECIES 
-      || fastchem_species_indices[_C] == fastchem::FASTCHEM_UNKNOWN_SPECIES)
+  for (size_t i = 0; i < constants::species_data.size(); ++i)
   {
-    std::string error_message = "Critical elements (H, C, or O) not found in FastChem\n";
+    auto it = fc_index_map.find(constants::species_data[i].fastchem_symbol);
+    if (it != fc_index_map.end())
+      fastchem_species_indices[i] = it->second;
+  }
+
+  if (fastchem_species_indices[_H] == fastchem::FASTCHEM_UNKNOWN_SPECIES)
+  {
+    std::string error_message = "Critical element (H) not found in FastChem\n";
     throw InvalidInput(std::string ("FastChemChemistry::FastChemChemistry"), error_message);
   }
-  
 
-  nb_parameters = 2;
+  for (const auto& spec : ratio_specs)
+  {
+    const size_t slash = spec.find('/');
+    if (slash == std::string::npos || slash == 0 || slash == spec.size() - 1)
+    {
+      std::string error_message = "Invalid element ratio specification '" + spec + "'; expected format X/Y\n";
+      throw InvalidInput(std::string ("FastChemChemistry::FastChemChemistry"), error_message);
+    }
+
+    const std::string num_symbol = spec.substr(0, slash);
+    const std::string den_symbol = spec.substr(slash + 1);
+
+    const unsigned int num_idx = fastchem.getElementIndex(num_symbol);
+    const unsigned int den_idx = fastchem.getElementIndex(den_symbol);
+
+    if (num_idx == fastchem::FASTCHEM_UNKNOWN_SPECIES)
+    {
+      std::string error_message = "Element '" + num_symbol + "' from ratio '" + spec + "' not found in FastChem\n";
+      throw InvalidInput(std::string ("FastChemChemistry::FastChemChemistry"), error_message);
+    }
+    if (den_idx == fastchem::FASTCHEM_UNKNOWN_SPECIES)
+    {
+      std::string error_message = "Element '" + den_symbol + "' from ratio '" + spec + "' not found in FastChem\n";
+      throw InvalidInput(std::string ("FastChemChemistry::FastChemChemistry"), error_message);
+    }
+
+    const unsigned int h_idx = fastchem.getElementIndex("H");
+    const double ref_ratio = (den_idx == h_idx)
+        ? reference_element_abundances[num_idx] / reference_element_abundances[den_idx]
+        : 1.0;
+    element_ratios.push_back({num_idx, den_idx, ref_ratio, spec});
+    std::cout << "  - Element ratio: " << spec << "\n";
+  }
+
+  std::cout << "\n";
+
+  //parameter_names is the source of truth for the parameter count:
+  //parameters[0] is the metallicity scaling factor applied to all elements
+  //except H and He; parameters[1..] are the element abundance ratios, one per
+  //requested X/Y specification, in the order they were supplied.
+  parameter_names.push_back("fc_metallicity");
+
+  for (const auto& ratio : element_ratios)
+  {
+    //turn a spec like "C/O" into a snake_case name "c_o_ratio"
+    std::string name = ratio.label;
+    std::replace(name.begin(), name.end(), '/', '_');
+    std::transform(name.begin(), name.end(), name.begin(), ::tolower);
+    parameter_names.push_back("fc_" + name + "_ratio");
+  }
 }
 
 
@@ -78,16 +120,18 @@ bool FastChemChemistry::calcChemicalComposition(
   std::vector<double>& mean_molecular_weight)
 {
   const double metallicity_factor = parameters[0];
-  const double co_ratio = parameters[1];
 
   std::vector<double> element_abundances = reference_element_abundances;
-  
+
   for (size_t i=0; i<element_abundances.size(); ++i)
     if (i != fastchem_species_indices[_H] && (i != fastchem_species_indices[_He] && fastchem_species_indices[_He] != fastchem::FASTCHEM_UNKNOWN_SPECIES) )
       element_abundances[i] *= metallicity_factor;
 
-
-  element_abundances[fastchem_species_indices[_O]] = element_abundances[fastchem_species_indices[_C]] / co_ratio;
+  for (size_t i=0; i<element_ratios.size(); ++i)
+    element_abundances[element_ratios[i].numerator_idx] =
+      element_abundances[element_ratios[i].denominator_idx]
+      * parameters[1 + i]
+      * element_ratios[i].reference_ratio;
 
 
   fastchem.setElementAbundances(element_abundances);
@@ -118,9 +162,8 @@ bool FastChemChemistry::calcChemicalComposition(
   if (status != fastchem::FASTCHEM_SUCCESS)
     neglect_model = true;
 
-
+  
   mean_molecular_weight = output.mean_molecular_weight;
-
 
   for (size_t j=0; j<temperature.size(); ++j)
     for (size_t i=0; i<constants::species_data.size(); ++i)

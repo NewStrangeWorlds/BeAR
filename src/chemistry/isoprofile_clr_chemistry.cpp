@@ -1,22 +1,7 @@
-/*
-* This file is part of the BeAR code (https://github.com/newstrangeworlds/BeAR).
-* Copyright (C) 2024 Daniel Kitzmann
-*
-* BeAR is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* BeAR is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You find a copy of the GNU General Public License in the main
-* BeAR directory under <LICENSE>. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
-
+// SPDX-FileCopyrightText: 2024-2026 Daniel Kitzmann
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// This file is part of BeAR (https://github.com/newstrangeworlds/BeAR).
 
 #include <algorithm>
 #include <vector>
@@ -70,7 +55,17 @@ IsoprofileCLRChemistry::IsoprofileCLRChemistry(const std::vector<std::string>& c
     std::cout << constants::species_data[i].symbol << "  ";
   std::cout << "\n";*/
 
-  nb_parameters = chemical_species.size() - 1;
+  //parameter_names is the source of truth for the parameter count:
+  //the centred-log-ratio prior uses one fewer parameter than the number of
+  //species (the last species is determined by the constraint that the mixing
+  //ratios sum to one). Names follow the isoprofile mr_<species> convention,
+  //using the first (nb_species - 1) species in the listed order.
+  for (size_t i=0; i<chemical_species.size()-1; ++i)
+  {
+    std::string name = chemical_species[i];
+    std::transform(name.begin(), name.end(), name.begin(), ::tolower);
+    parameter_names.push_back("chem_" + name + "_clr");
+  }
 }
 
 

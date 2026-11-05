@@ -1,22 +1,7 @@
-/*
-* This file is part of the BeAR code (https://github.com/newstrangeworlds/BeAR).
-* Copyright (C) 2024 Daniel Kitzmann
-*
-* BeAR is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* BeAR is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You find a copy of the GNU General Public License in the main
-* BeAR directory under <LICENSE>. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
-
+// SPDX-FileCopyrightText: 2024-2026 Daniel Kitzmann
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// This file is part of BeAR (https://github.com/newstrangeworlds/BeAR).
 
 #ifndef _chem_species_h
 #define _chem_species_h
@@ -27,7 +12,10 @@
 
 namespace bear{
 
-enum chemical_species_id {_TOTAL, _H, _He, _C, _O, _Fe, _Fep, _Ca, _Ti, _Tip, _H2, _H2O, _CO2, _CO, _CH4, _HCN, _NH3, _C2H2, _N2, _Na, _K, _H2S, _Hm, _TiO, _VO, _FeH, _SH, _MgO, _AlO, _CaO, _CrH, _MgH, _CaH, _TiH, _OH, _e, _V, _Vp, _Mn, _Si, _Cr, _Crp, _SiO, _SiO2, _SO2, _CS2};
+enum chemical_species_id {
+  _TOTAL, _H, _He, _C, _O, _Fe, _Fep, _Ca, _Ti, _Tip, _H2, _H2O, _CO2, _CO, _CH4, _HCN, _NH3, _C2H2, 
+  _N2, _Na, _K, _H2S, _Hm, _TiO, _VO, _FeH, _SH, _MgO, _AlO, _CaO, _CrH, _MgH, _CaH, _TiH, _OH, _e, 
+  _V, _Vp, _Mn, _Si, _Cr, _Crp, _SiO, _SiO2, _SO2, _CS2, _Co, _Ni, _Mg, _13C16O, _SiS, _SiH, _CH, _HCl, _ScH};
 
 
 struct chemistry_data{
@@ -47,16 +35,16 @@ const std::vector<chemistry_data> species_data{ {_TOTAL, "Total", "Total",  0.0}
                                                 {_C,     "C",     "C",      12.0107},
                                                 {_O,     "O",     "O",      15.999},
                                                 {_Fe,    "Fe",    "Fe",     55.845},
-                                                {_Fep,   "Fe+",   "Fe+",    55.845},
+                                                {_Fep,   "Fe+",   "Fe1+",   55.845},
                                                 {_Ca,    "Ca",    "Ca",     40.078},
                                                 {_Ti,    "Ti",    "Ti",     47.867},
-                                                {_Tip,   "Ti+",   "Ti+",    47.867},
+                                                {_Tip,   "Ti+",   "Ti1+",   47.867},
                                                 {_H2,    "H2",    "H2",     2.01588},
                                                 {_H2O,   "H2O",   "H2O1",   18.01528},
                                                 {_CO2,   "CO2",   "C1O2",   44.01},
                                                 {_CO,    "CO",    "C1O1",   28.0101},
                                                 {_CH4,   "CH4",   "C1H4",   16.04246},
-                                                {_HCN,   "HCN",   "C1H1N1_1", 27.0253},
+                                                {_HCN,   "HCN",   "C1H1N1_hcn", 27.0253},
                                                 {_NH3,   "NH3",   "H3N1",   17.03052},
                                                 {_C2H2,  "C2H2",  "C2H2",   26.04},
                                                 {_N2,    "N2",    "N2",     28.0134},
@@ -86,7 +74,16 @@ const std::vector<chemistry_data> species_data{ {_TOTAL, "Total", "Total",  0.0}
                                                 {_SiO,   "SiO",   "O1Si1",  44.08},
                                                 {_SiO2,  "SiO2",  "O2Si1",  60.08},
                                                 {_SO2,   "SO2",   "O2S1",   64.066},
-                                                {_CS2,   "CS2",   "C1S2",   76.139}
+                                                {_CS2,   "CS2",   "C1S2",   76.139},
+                                                {_Co,    "Co",    "Co",     58.9332},
+                                                {_Ni,    "Ni",    "Ni",     58.6934},
+                                                {_Mg,    "Mg",    "Mg",     24.3050},
+                                                {_13C16O, "13C16O", "C1O1",   28.9982},
+                                                {_SiS,   "SiS",   "S1Si1",  60.150},
+                                                {_SiH,   "SiH",   "H1Si1",  29.093},
+                                                {_CH,    "CH",    "C1H1",   13.01},
+                                                {_HCl,   "HCl",   "Cl1H1",  36.46},
+                                                {_ScH,   "ScH",   "H1Sc1",  47.98},
                                               };
 }
 }

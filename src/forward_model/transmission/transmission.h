@@ -1,22 +1,7 @@
-/*
-* This file is part of the BeAR code (https://github.com/newstrangeworlds/BeAR).
-* Copyright (C) 2024 Daniel Kitzmann
-*
-* BeAR is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* BeAR is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You find a copy of the GNU General Public License in the main
-* BeAR directory under <LICENSE>. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
-
+// SPDX-FileCopyrightText: 2024-2026 Daniel Kitzmann
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// This file is part of BeAR (https://github.com/newstrangeworlds/BeAR).
 
 #ifndef _transmission_h
 #define _transmission_h
@@ -82,7 +67,9 @@ class TransmissionModelConfig : public GenericConfig{
     std::vector<std::string> opacity_species_symbol;
     std::vector<std::string> opacity_species_folder;
     
-    TransmissionModelConfig (const std::string& folder_path);
+    TransmissionModelConfig (
+      const std::string& folder_path,
+      const std::string& file_name = "forward_model.toml");
     TransmissionModelConfig (
       const int nb_grid_points_,
       const double atmos_bottom_pressure_,
@@ -122,7 +109,8 @@ class TransmissionPostProcessConfig : public GenericConfig{
     std::vector<chemical_species_id> species_to_save;
     
     TransmissionPostProcessConfig (
-      const std::string& folder_path);
+      const std::string& folder_path,
+      const std::string& file_name = "post_process.toml");
     TransmissionPostProcessConfig (
       const bool save_temperatures_, 
       const bool save_spectra_, 
@@ -149,7 +137,7 @@ class TransmissionModel : public ForwardModel{
     virtual ~TransmissionModel() override;
 
     virtual size_t parametersNumber() {
-      return nb_total_param();};
+      return parameter_names.empty() ? nb_total_param() : parameter_names.size();};
 
     virtual bool calcModelCPU(
       const std::vector<double>& parameters, 
@@ -190,14 +178,24 @@ class TransmissionModel : public ForwardModel{
       const std::vector<std::vector<double>>& cloud_optical_depth,
       const double use_variable_gravity);
 
+    virtual void setHighResGrid(SpectralGrid* grid) override;
+
   protected:
     Atmosphere atmosphere;
     OpacityCalculation opacity_calc;
+    std::unique_ptr<OpacityCalculation> opacity_calc_highres;
 
     std::unique_ptr<Temperature> temperature_profile;
     std::vector<std::unique_ptr<Chemistry>> chemistry;
     std::vector<std::unique_ptr<CloudModel>> cloud_models;
     std::vector<std::unique_ptr<Module>> modules;
+
+    std::vector<std::string> opacity_species_symbol_;
+    std::vector<std::string> opacity_species_folder_;
+
+    // Module routing: indices into the modules vector
+    std::vector<size_t> modules_lowres_idx;
+    std::vector<size_t> modules_highres_idx;
 
     size_t nb_general_param = 0;
     size_t nb_total_chemistry_param = 0;
@@ -267,8 +265,14 @@ class TransmissionModel : public ForwardModel{
       const double radius_star);
 
     void calcTransmissionSpectrum(
-      const double bottom_radius, 
-      const double star_radius, 
+      const double bottom_radius,
+      const double star_radius,
+      std::vector<double>& spectrum);
+    void calcTransmissionSpectrum(
+      const double bottom_radius,
+      const double star_radius,
+      OpacityCalculation& opacity,
+      const size_t nb_spectral_pts,
       std::vector<double>& spectrum);
     double calcTransitRadius(
       const unsigned int wavelength, 

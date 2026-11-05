@@ -1,22 +1,7 @@
-/*
-* This file is part of the BeAR code (https://github.com/newstrangeworlds/BeAR).
-* Copyright (C) 2024 Daniel Kitzmann
-*
-* BeAR is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* BeAR is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You find a copy of the GNU General Public License in the main
-* BeAR directory under <LICENSE>. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
-
+// SPDX-FileCopyrightText: 2024-2026 Daniel Kitzmann
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// This file is part of BeAR (https://github.com/newstrangeworlds/BeAR).
 
 #ifndef _prior_types_h
 #define _prior_types_h
@@ -43,10 +28,13 @@ class BasicPrior{
       return parameterValue(hypercube_parameter) * unit;};
     virtual double applyParameterUnit(const double& parameter) {
       return parameter * unit;};
+    virtual double invertParameterUnit(const double& physical_value) const {
+      return physical_value / unit;};
     virtual ~BasicPrior() {}
     std::string distributionType() {return distribution_type;}
     std::string parameterName() {return parameter_name;}
     virtual void printInfo() = 0;
+    virtual bool isFixed() const { return false; }
   protected:
     std::string distribution_type = "";
     std::string parameter_name = "";
@@ -217,6 +205,7 @@ class DeltaPrior : public BasicPrior {
     virtual ~DeltaPrior() {}
     virtual double parameterValue(const double& hypercube_value) {
       return const_value;}
+    virtual bool isFixed() const override { return true; }
     virtual void printInfo() {
       std::cout << std::setw(15) << std::left << parameter_name << "  "
                 << std::setw(20) << std::left << distribution_type
@@ -245,6 +234,8 @@ class LinkedPrior : public BasicPrior {
       return linked_prior->parameterValue(hypercube_value);}
     virtual double applyParameterUnit(const double& parameter) {
       return linked_prior->applyParameterUnit(parameter);};
+    virtual double invertParameterUnit(const double& physical_value) const override {
+      return linked_prior->invertParameterUnit(physical_value);};
     virtual void printInfo() {
       std::cout << std::setw(15) << std::left << parameter_name << "  "
                 << std::setw(20) << std::left << distribution_type 

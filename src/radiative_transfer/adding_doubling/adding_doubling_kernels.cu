@@ -1,22 +1,7 @@
-/*
-* This file is part of the BeAR code (https://github.com/newstrangeworlds/BeAR).
-* Copyright (C) 2024 Daniel Kitzmann
-*
-* BeAR is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* BeAR is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You find a copy of the GNU General Public License in the main
-* BeAR directory under <LICENSE>. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
-
+// SPDX-FileCopyrightText: 2024-2026 Daniel Kitzmann
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// This file is part of BeAR (https://github.com/newstrangeworlds/BeAR).
 
 #include "adding_doubling.h"
 
@@ -26,6 +11,15 @@
 
 
 namespace bear{
+
+
+AddingDoubling::~AddingDoubling()
+{
+  if (phase_moments_dev != nullptr) deleteFromDevice(phase_moments_dev);
+
+  if (gpu_workspace_ptr != nullptr)
+    delete static_cast<adrt::cuda::SolverWorkspaceGPU*>(gpu_workspace_ptr);
+}
 
 
 void AddingDoubling::calcSpectrumGPU(
@@ -84,8 +78,12 @@ void AddingDoubling::calcSpectrumGPU(
   }
   else
   {
-    gpu_workspace.allocate(nb_spectral_points, nb_layers);
-    adrt::cuda::solveBatchFromCoefficients(bcfg, data, gpu_workspace);
+    if (gpu_workspace_ptr == nullptr)
+      gpu_workspace_ptr = new adrt::cuda::SolverWorkspaceGPU();
+
+    auto& ws = *static_cast<adrt::cuda::SolverWorkspaceGPU*>(gpu_workspace_ptr);
+    ws.allocate(nb_spectral_points, nb_layers);
+    adrt::cuda::solveBatchFromCoefficients(bcfg, data, ws);
   }
 }
 

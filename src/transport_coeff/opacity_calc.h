@@ -1,22 +1,7 @@
-/*
-* This file is part of the BeAR code (https://github.com/newstrangeworlds/BeAR).
-* Copyright (C) 2024 Daniel Kitzmann
-*
-* BeAR is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* BeAR is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You find a copy of the GNU General Public License in the main
-* BeAR directory under <LICENSE>. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
-
+// SPDX-FileCopyrightText: 2024-2026 Daniel Kitzmann
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// This file is part of BeAR (https://github.com/newstrangeworlds/BeAR).
 
 #ifndef OPACITY_CALC_H
 #define OPACITY_CALC_H
@@ -150,14 +135,11 @@ inline void OpacityCalculation::calculateGPU(
       batch_buffers, nb_spectral_points,
       scattering_coeff_dev);
   
-  //H- continuum (0-1 species, kept as per-layer launches)
-  for (size_t i=0; i<nb_grid_points; ++i)
-    transport_coeff.calculateContinuumGPU(
-      atmosphere->temperature[i],
-      atmosphere->pressure[i],
-      atmosphere->number_densities[i],
-      nb_grid_points, i,
-      absorption_coeff_gpu);
+  //H- continuum, all grid points in a single batched launch
+  transport_coeff.calculateContinuumGPU(
+    atmosphere->temperature,
+    atmosphere->number_densities,
+    absorption_coeff_gpu);
 
   if (use_cloud)
   {

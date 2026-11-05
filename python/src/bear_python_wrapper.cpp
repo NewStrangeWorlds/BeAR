@@ -1,10 +1,17 @@
+// SPDX-FileCopyrightText: 2024-2026 Daniel Kitzmann
+// SPDX-FileCopyrightText: 2026 Esther Wang
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// This file is part of BeAR (https://github.com/newstrangeworlds/BeAR).
 
 #ifdef _SETUP_PY
 #include "pybind11/pybind11.h"
 #include "pybind11/stl.h"
+#include "pybind11/numpy.h"
 #else
 #include "../../_deps/pybind11-src/include/pybind11/pybind11.h"
 #include "../../_deps/pybind11-src/include/pybind11/stl.h"
+#include "../../_deps/pybind11-src/include/pybind11/numpy.h"
 #endif
 
 #include "../../src/config/global_config.h"
@@ -24,32 +31,27 @@
 
 namespace py = pybind11;
 
-PYBIND11_MODULE(pybear, m) {
+PYBIND11_MODULE(bear, m) {
     py::class_<bear::GlobalConfig>(m, "Config")
         .def(py::init<>())
         .def(py::init<const std::string>())
         .def(py::init<
-            const bool, 
-            const std::string, 
-            const std::string, 
-            const std::string, 
+            const bool,
+            const std::string,
+            const std::string,
+            const std::string,
             const double,
-            const std::string, 
+            const std::string,
             const std::string>())
         .def("loadConfigFile", &bear::GlobalConfig::loadConfigFile)
         .def_readwrite("forward_model_type", &bear::GlobalConfig::forward_model_type)
         .def_readwrite("retrieval_folder_path", &bear::GlobalConfig::retrieval_folder_path)
-        .def_readwrite("multinest_output_path", &bear::GlobalConfig::multinest_output_path)
+        .def_readwrite("output_path", &bear::GlobalConfig::output_path)
         .def_readwrite("post_output_path", &bear::GlobalConfig::post_output_path)
         .def_readwrite("wavenumber_file_path", &bear::GlobalConfig::wavenumber_file_path)
         .def_readwrite("cross_section_file_path", &bear::GlobalConfig::cross_section_file_path)
         .def_readwrite("spectral_disecretisation", &bear::GlobalConfig::spectral_disecretisation)
         .def_readwrite("spectral_resolution", &bear::GlobalConfig::spectral_resolution)
-        .def_readwrite("multinest_print_iter_values", &bear::GlobalConfig::multinest_print_iter_values)
-        .def_readwrite("multinest_efficiency", &bear::GlobalConfig::multinest_efficiency)
-        .def_readwrite("multinest_nb_living_points", &bear::GlobalConfig::multinest_nb_living_points)
-        .def_readwrite("multinest_nb_iterations", &bear::GlobalConfig::multinest_nb_iterations)
-        .def_readwrite("multinest_feedback", &bear::GlobalConfig::multinest_feedback)
         .def_readwrite("use_error_inflation", &bear::GlobalConfig::use_error_inflation)
         .def_readwrite("use_gpu", &bear::GlobalConfig::use_gpu)
         .def_readwrite("nb_omp_processes", &bear::GlobalConfig::nb_omp_processes);
@@ -94,7 +96,8 @@ PYBIND11_MODULE(pybear, m) {
         .def_readwrite("type", &bear::PriorConfig::type)
         .def_readwrite("description", &bear::PriorConfig::description)
         .def_readwrite("parameter", &bear::PriorConfig::parameter)
-        .def_readwrite("unit", &bear::PriorConfig::unit);
+        .def_readwrite("unit", &bear::PriorConfig::unit)
+        .def_readwrite("link_target", &bear::PriorConfig::link_target);
 
     py::class_<bear::ForwardModelOutput>(m, "ForwardModelOutput")
         .def(py::init<>())
@@ -111,6 +114,32 @@ PYBIND11_MODULE(pybear, m) {
         .def_readwrite("species_symbols", &bear::AtmosphereOutput::species_symbols)
         .def_readwrite("mixing_ratios", &bear::AtmosphereOutput::mixing_ratios);
 
+    py::class_<bear::HighResLayout>(m, "HighResLayout")
+        .def(py::init<>())
+        .def_readonly("valid", &bear::HighResLayout::valid)
+        .def_readonly("nb_orders", &bear::HighResLayout::nb_orders)
+        .def_readonly("nb_exposures", &bear::HighResLayout::nb_exposures)
+        .def_readonly("kp_ref", &bear::HighResLayout::kp_ref)
+        .def_readonly("vsys_ref", &bear::HighResLayout::vsys_ref)
+        .def_readonly("order_nb_pixels", &bear::HighResLayout::order_nb_pixels)
+        .def_readonly("orbital_phases", &bear::HighResLayout::orbital_phases)
+        .def_readonly("wavelengths", &bear::HighResLayout::wavelengths)
+        .def_property_readonly("data_filtered",
+          [](const bear::HighResLayout& s) {
+            return py::array_t<float>(s.data_filtered.size(),
+                                      s.data_filtered.data());
+          });
+
+    py::class_<bear::HighResModelExport>(m, "HighResModelExport")
+        .def(py::init<>())
+        .def_readonly("valid", &bear::HighResModelExport::valid)
+        .def_readonly("nb_exposures", &bear::HighResModelExport::nb_exposures)
+        .def_readonly("nb_pixels", &bear::HighResModelExport::nb_pixels)
+        .def_readonly("wavelengths", &bear::HighResModelExport::wavelengths)
+        .def_readonly("model_unfiltered", &bear::HighResModelExport::model_unfiltered)
+        .def_readonly("model_filtered", &bear::HighResModelExport::model_filtered)
+        .def_readonly("data_filtered", &bear::HighResModelExport::data_filtered);
+
     py::class_<bear::Retrieval>(m, "Retrieval")
         .def(py::init<
           bear::GlobalConfig*>())
@@ -120,12 +149,48 @@ PYBIND11_MODULE(pybear, m) {
           const std::vector<bear::ObservationInput>&,
           const std::vector<bear::PriorConfig>&>())
         .def_readwrite("spectral_grid", &bear::Retrieval::spectral_grid)
-        .def("run", &bear::Retrieval::run)
         .def("nbParameters", &bear::Retrieval::nbParameters)
-        .def("convertCubeParameters", &bear::Retrieval::convertCubeParameters)
+        .def("convertCubeParameters", [](bear::Retrieval& self, std::vector<double> cube) {
+            auto result = self.convertCubeParameters(cube);
+            const size_t n_total = self.priors.number();
+            const size_t n_free  = self.priors.numberFree();
+            std::vector<double> free_params(n_free), free_phys(n_free);
+            for (size_t i = 0; i < n_total; i++) {
+                int j = self.priors.free_cube_index[i];
+                if (j >= 0) {
+                    free_params[j] = result.first[i];
+                    free_phys[j]   = result.second[i];
+                }
+            }
+            return std::make_pair(free_params, free_phys);
+        })
         .def("convertToPhysicalParameters", &bear::Retrieval::convertToPhysicalParameters)
-        .def("computeLikelihood", &bear::Retrieval::computeLikelihood)
+        .def("convertToParameterUnits", &bear::Retrieval::convertToParameterUnits)
+        .def("computeLikelihood", [](bear::Retrieval& self, std::vector<double> free_phys) {
+            auto full = self.priors.expandFreeToFull(free_phys);
+            return self.computeLikelihood(full);
+        })
         .def("computeModel", &bear::Retrieval::computeModel)
+        .def("computeHighResModelFlat",
+          [](bear::Retrieval& self, std::vector<double> free_phys,
+             const size_t obs_index, const bool apply_projection) {
+            auto full = self.priors.expandFreeToFull(free_phys);
+            auto v = self.computeHighResModelFlat(full, obs_index,
+                                                  apply_projection);
+            return py::array_t<float>(v.size(), v.data());
+          },
+          py::arg("parameters"), py::arg("observation_index") = 0,
+          py::arg("apply_projection") = true)
+        .def("highResLayout", &bear::Retrieval::highResLayout,
+          py::arg("observation_index") = 0)
+        .def("computeHighResModelMatrices",
+          [](bear::Retrieval& self, std::vector<double> free_phys,
+             const size_t obs_index, const size_t order_index) {
+            auto full = self.priors.expandFreeToFull(free_phys);
+            return self.computeHighResModelMatrices(full, obs_index, order_index);
+          },
+          py::arg("parameters"), py::arg("observation_index") = 0,
+          py::arg("order_index") = 0)
         .def("computeAtmosphereStructure", &bear::PostProcess::computeAtmosphereStructure);
 
     py::class_<bear::PostProcess>(m, "PostProcess")
@@ -138,6 +203,7 @@ PYBIND11_MODULE(pybear, m) {
           const std::vector<bear::PriorConfig>&>())
         .def_readwrite("spectral_grid", &bear::PostProcess::spectral_grid)
         .def("convertToPhysicalParameters", &bear::PostProcess::convertToPhysicalParameters)
+        .def("convertToParameterUnits", &bear::PostProcess::convertToParameterUnits)
         .def("computeModel", &bear::PostProcess::computeModel)
         .def("computeAtmosphereStructure", &bear::PostProcess::computeAtmosphereStructure)
         .def("run", static_cast<bool (bear::PostProcess::*)()>(&bear::PostProcess::run))

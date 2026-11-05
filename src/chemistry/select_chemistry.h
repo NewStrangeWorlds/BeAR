@@ -1,22 +1,8 @@
-/*
-* This file is part of the BeAR code (https://github.com/newstrangeworlds/BeAR).
-* Copyright (C) 2024 Daniel Kitzmann
-*
-* BeAR is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* BeAR is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You find a copy of the GNU General Public License in the main
-* BeAR directory under <LICENSE>. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
-
+// SPDX-FileCopyrightText: 2024-2026 Daniel Kitzmann
+// SPDX-FileCopyrightText: 2026 Esther Wang
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// This file is part of BeAR (https://github.com/newstrangeworlds/BeAR).
 
 #ifndef _select_chemistry_h
 #define _select_chemistry_h
@@ -27,8 +13,10 @@
 #include "fastchem_chemistry.h"
 #include "isoprofile_chemistry.h"
 #include "isoprofile_clr_chemistry.h"
+#include "iso_ratio_chemistry.h"
 #include "free_chemistry.h"
 #include "free_cbspline_chemistry.h"
+#include "free_pchip_chemistry.h"
 #include "background_chemistry.h"
 #include "step_function_chemistry.h"
 
@@ -46,9 +34,9 @@ namespace bear {
 //definition of the different chemistry modules with an
 //identifier, a keyword to be located in the config file and a short version of the keyword
 namespace chemistry_modules{
-  enum id {free, iso, eq, cspline, iso_clr, bg, sf};
-  const std::vector<std::string> description {"free", "isoprofile", "equilibrium", "free_cspline", "isoprofile_clr", "background", "step_function"};
-  const std::vector<std::string> description_short {"free", "iso", "eq", "free_cs", "iso_clr", "bg", "sf"};
+  enum id {free, iso, eq, cspline, iso_clr, bg, sf, pchip, iso_ratio};
+  const std::vector<std::string> description {"free", "isoprofile", "equilibrium", "free_cspline", "isoprofile_clr", "background", "step_function", "free_pchip", "isoprofile_ratio"};
+  const std::vector<std::string> description_short {"free", "iso", "eq", "free_cs", "iso_clr", "bg", "sf", "free_p", "iso_ratio"};
 }
 
 
@@ -73,7 +61,7 @@ inline std::unique_ptr<Chemistry> selectChemistryModule(
   if (it == chemistry_modules::description.end() && it_short == chemistry_modules::description_short.end())
   {
     std::string error_message = "Chemistry type " + chemistry_type + " unknown!\n";
-    throw InvalidInput(std::string ("forward_model.config"), error_message);
+    throw InvalidInput(std::string ("forward_model.toml"), error_message);
   }
 
 
@@ -92,13 +80,16 @@ inline std::unique_ptr<Chemistry> selectChemistryModule(
 
   if (module_id == chemistry_modules::eq)
   {
-    if (parameters.size() != 1) {
-        std::string error_message = "Equilibrium chemistry requires exactly one parameter!\n";
-        throw InvalidInput(std::string ("forward_model.config"), error_message);}
+    if (parameters.size() < 1) {
+        std::string error_message = "Equilibrium chemistry requires at least one parameter (the FastChem parameter file)!\n";
+        throw InvalidInput(std::string ("forward_model.toml"), error_message);}
+
+    const std::vector<std::string> ratio_specs(parameters.begin() + 1, parameters.end());
 
     return std::make_unique<FastChemChemistry>(
         config->retrieval_folder_path + parameters[0],
-        config->nb_omp_processes);
+        config->nb_omp_processes,
+        ratio_specs);
   }
 
   if (module_id == chemistry_modules::iso)
@@ -106,11 +97,16 @@ inline std::unique_ptr<Chemistry> selectChemistryModule(
     return std::make_unique<IsoprofileChemistry>(parameters);
   }
 
+  if (module_id == chemistry_modules::iso_ratio)
+  {
+    return std::make_unique<IsoprofileRatioChemistry>(parameters);
+  }
+
   if (module_id == chemistry_modules::free)
   {
     if (parameters.size() != 3) {
         std::string error_message = "Free chemistry requires exactly three parameters!\n";
-        throw InvalidInput(std::string ("forward_model.config"), error_message);}
+        throw InvalidInput(std::string ("forward_model.toml"), error_message);}
 
     return std::make_unique<FreeChemistry>(
         parameters[0],
@@ -123,7 +119,7 @@ inline std::unique_ptr<Chemistry> selectChemistryModule(
   {
     if (parameters.size() != 2) {
         std::string error_message = "Free cubic spline chemistry requires exactly two parameters!\n";
-        throw InvalidInput(std::string ("forward_model.config"), error_message);}
+        throw InvalidInput(std::string ("forward_model.toml"), error_message);}
 
     return std::make_unique<FreeCBSplineChemistry>(
         parameters[0],
@@ -139,7 +135,7 @@ inline std::unique_ptr<Chemistry> selectChemistryModule(
   {
     if (parameters.size() != 1) {
         std::string error_message = "Background chemistry requires exactly one parameter!\n";
-        throw InvalidInput(std::string ("forward_model.config"), error_message);}
+        throw InvalidInput(std::string ("forward_model.toml"), error_message);}
 
     return std::make_unique<BackgroundChemistry>(parameters[0]);
   }
@@ -148,9 +144,20 @@ inline std::unique_ptr<Chemistry> selectChemistryModule(
   {
     if (parameters.size() != 1) {
         std::string error_message = "Step function chemistry requires exactly one parameter!\n";
-        throw InvalidInput(std::string ("forward_model.config"), error_message);}
+        throw InvalidInput(std::string ("forward_model.toml"), error_message);}
 
     return std::make_unique<StepFunctionChemistry>(parameters[0]);
+  }
+
+  if (module_id == chemistry_modules::pchip)
+  {
+    if (parameters.size() != 2) {
+        std::string error_message = "Free PCHIP chemistry requires exactly two parameters!\n";
+        throw InvalidInput(std::string ("forward_model.toml"), error_message);}
+
+    return std::make_unique<FreePchipChemistry>(
+        parameters[0],
+        std::stoi(parameters[1]));
   }
 
   //we should never reach this point

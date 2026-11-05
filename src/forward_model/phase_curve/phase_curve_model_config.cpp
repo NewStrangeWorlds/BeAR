@@ -1,0 +1,150 @@
+// SPDX-FileCopyrightText: 2024-2026 Daniel Kitzmann
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// This file is part of BeAR (https://github.com/newstrangeworlds/BeAR).
+
+#include <string>
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <sstream>
+
+#include "phase_curve.h"
+
+#include "../../additional/exceptions.h"
+
+
+namespace bear{
+
+
+PhaseCurveConfig::PhaseCurveConfig (
+  const std::string& folder_path,
+  const std::string& file_name)
+{
+  readConfigFile(folder_path + file_name);
+}
+
+
+PhaseCurveConfig::PhaseCurveConfig (
+  const int nb_grid_points_,
+  const double atmos_bottom_pressure_,
+  const double atmos_top_pressure_,
+  const std::string temperature_profile_model_,
+  const std::vector<std::string>& temperature_profile_parameters_,
+  const std::string radiative_transfer_model_,
+  const std::vector<std::string>& radiative_transfer_parameters_,
+  const std::vector<std::string>& chemistry_model_,
+  const std::vector<std::vector<std::string>>& chemistry_parameters_,
+  const std::vector<std::string>& opacity_species_symbol_,
+  const std::vector<std::string>& opacity_species_folder_)
+  : PhaseCurveConfig(
+      nb_grid_points_,
+      atmos_bottom_pressure_,
+      atmos_top_pressure_,
+      temperature_profile_model_,
+      temperature_profile_parameters_,
+      radiative_transfer_model_,
+      radiative_transfer_parameters_,
+      chemistry_model_,
+      chemistry_parameters_,
+      opacity_species_symbol_,
+      opacity_species_folder_,
+      std::vector<std::string>(),
+      std::vector<std::vector<std::string>>())
+{
+
+}
+
+
+
+PhaseCurveConfig::PhaseCurveConfig (
+  const int nb_grid_points_,
+  const double atmos_bottom_pressure_,
+  const double atmos_top_pressure_,
+  const std::string temperature_profile_model_,
+  const std::vector<std::string>& temperature_profile_parameters_,
+  const std::string radiative_transfer_model_,
+  const std::vector<std::string>& radiative_transfer_parameters_,
+  const std::vector<std::string>& chemistry_model_,
+  const std::vector<std::vector<std::string>>& chemistry_parameters_,
+  const std::vector<std::string>& opacity_species_symbol_,
+  const std::vector<std::string>& opacity_species_folder_,
+  const std::vector<std::string>& cloud_model_,
+  const std::vector<std::vector<std::string>>& cloud_model_parameters_)
+{
+  nb_grid_points = nb_grid_points_;
+  atmos_boundaries[0] = atmos_bottom_pressure_;
+  atmos_boundaries[1] = atmos_top_pressure_;
+
+  radiative_transfer_model = radiative_transfer_model_;
+  radiative_transfer_parameters = radiative_transfer_parameters_;
+
+  temperature_profile_model = temperature_profile_model_;
+  temperature_profile_parameters = temperature_profile_parameters_;
+
+  chemistry_model = chemistry_model_;
+  chemistry_parameters = chemistry_parameters_;
+
+  opacity_species_symbol = opacity_species_symbol_;
+  opacity_species_folder = opacity_species_folder_;
+
+  cloud_model = cloud_model_;
+  cloud_model_parameters = cloud_model_parameters_;
+}
+
+
+void PhaseCurveConfig::readConfigFile(const std::string& file_name)
+{
+  std::cout << "Parameters read from " << file_name << " :\n";
+
+  toml::table cfg = parseConfigFile(file_name);
+
+  std::vector<double> pressure_boundaries;
+
+  readAtmosphereConfig(cfg, nb_grid_points, pressure_boundaries);
+  atmos_boundaries[0] = pressure_boundaries[0];
+  atmos_boundaries[1] = pressure_boundaries[1];
+
+  readModelBlock(cfg, "temperature",
+    temperature_profile_model, temperature_profile_parameters, "Temperature profile");
+
+  readModelBlock(cfg, "stellar_spectrum",
+    stellar_spectrum_model, stellar_model_parameters, "Stellar spectrum model");
+
+  //optional high-res stellar smoothing, a key inside the [stellar_spectrum] table
+  if (const toml::table* stellar = cfg["stellar_spectrum"].as_table())
+    highres_stellar_smooth_sigma =
+      (*stellar)["highres_stellar_smooth_sigma"].value_or(0.0);
+
+  if (highres_stellar_smooth_sigma > 0)
+    std::cout << "- High-res stellar smoothing sigma: "
+              << highres_stellar_smooth_sigma << " px\n";
+
+  readModelList(cfg, "clouds",
+    cloud_model, cloud_model_parameters, /*skip_none=*/true, /*required=*/false, "Cloud model");
+
+  readModelBlock(cfg, "radiative_transfer",
+    radiative_transfer_model, radiative_transfer_parameters, "Radiative transfer model");
+
+  readModelList(cfg, "modules",
+    modules, modules_parameters, /*skip_none=*/true, /*required=*/false, "Optional modules");
+
+  readModelList(cfg, "chemistry",
+    chemistry_model, chemistry_parameters, /*skip_none=*/false, /*required=*/true, "Chemistry model");
+
+  readOpacityConfig(cfg, "opacity",
+    opacity_species_symbol, opacity_species_folder, /*required=*/true);
+
+  //optional high-res opacity list; falls back to the normal one when absent/empty
+  readOpacityConfig(cfg, "opacity_highres",
+    opacity_species_symbol_highres, opacity_species_folder_highres, /*required=*/false);
+
+  if (opacity_species_symbol_highres.empty())
+  {
+    opacity_species_symbol_highres = opacity_species_symbol;
+    opacity_species_folder_highres = opacity_species_folder;
+  }
+}
+
+
+}

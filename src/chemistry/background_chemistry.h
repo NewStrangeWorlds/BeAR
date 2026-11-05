@@ -1,22 +1,7 @@
-/*
-* This file is part of the BeAR code (https://github.com/newstrangeworlds/BeAR).
-* Copyright (C) 2024 Daniel Kitzmann
-*
-* BeAR is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* BeAR is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You find a copy of the GNU General Public License in the main
-* BeAR directory under <LICENSE>. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
-
+// SPDX-FileCopyrightText: 2024-2026 Daniel Kitzmann
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// This file is part of BeAR (https://github.com/newstrangeworlds/BeAR).
 
 #ifndef _background_chemistry_h
 #define _background_chemistry_h
@@ -42,10 +27,20 @@ class BackgroundChemistry : public Chemistry{
       std::vector<std::vector<double>>& number_densities,
       std::vector<double>& mean_molecular_weight);
   protected:
-    const double solar_h2 = 0.5;
-    const double solar_he = 0.085114;
-
     bool h2he_background = false;
+    bool hhe_eq_background = false;
+
+    double mixingRatioBackground(const std::vector<double>& number_densities);
+
+    void backgroundH2He(
+      const double mixing_ratio_background, 
+      std::vector<double>& number_densities);
+
+    void equilibriumHHe(
+      const double pressure, 
+      const double temperature,
+      const double mixing_ratio_background, 
+      std::vector<double>& number_densities);
 };
 
 

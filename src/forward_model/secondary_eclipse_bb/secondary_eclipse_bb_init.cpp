@@ -1,22 +1,7 @@
-/*
-* This file is part of the BeAR code (https://github.com/newstrangeworlds/BeAR).
-* Copyright (C) 2024 Daniel Kitzmann
-*
-* BeAR is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* BeAR is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You find a copy of the GNU General Public License in the main
-* BeAR directory under <LICENSE>. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
-
+// SPDX-FileCopyrightText: 2024-2026 Daniel Kitzmann
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// This file is part of BeAR (https://github.com/newstrangeworlds/BeAR).
 
 #include <string>
 #include <iostream>
@@ -45,6 +30,21 @@ void OccultationBlackBodyModel::initModules(
     spectral_grid);
 
   nb_stellar_param = stellar_model->nbParameters();
+
+
+  //Assemble the ordered list of parameter names. The order here MUST match the
+  //slicing in OccultationBlackBodyModel::extractParameters:
+  //  general | stellar | spectrum modifier
+  parameter_names.clear();
+
+  parameter_names.push_back("planet_temperature");
+  parameter_names.push_back("radius_ratio");
+
+  for (auto & name : stellar_model->parameterNames())
+    parameter_names.push_back(name);
+
+  for (size_t i=0; i<nb_spectrum_modifier_param; ++i)
+    parameter_names.push_back("spectrum_shift_" + std::to_string(i+1));
 }
 
 

@@ -1,22 +1,7 @@
-/*
-* This file is part of the BeAR code (https://github.com/newstrangeworlds/BeAR).
-* Copyright (C) 2024 Daniel Kitzmann
-*
-* BeAR is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* BeAR is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You find a copy of the GNU General Public License in the main
-* BeAR directory under <LICENSE>. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
-
+// SPDX-FileCopyrightText: 2024-2026 Daniel Kitzmann
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// This file is part of BeAR (https://github.com/newstrangeworlds/BeAR).
 
 #include "piecewise_poly_temperature.h"
 #include "../additional/exceptions.h"
@@ -25,6 +10,7 @@
 #include <algorithm>
 #include <vector>
 #include <cmath>
+#include <string>
 
 
 namespace bear {
@@ -33,13 +19,17 @@ namespace bear {
 PiecewisePolynomialTemperature::PiecewisePolynomialTemperature(
   const size_t nb_elements_in,
   const size_t polynomial_degree_in,
-  const std::vector<double>& atmos_boundaries)
+  const std::vector<double>& atmos_boundaries,
+  const Parametrisation parametrisation_)
  : temperature_profile(nb_elements_in, polynomial_degree_in, atmos_boundaries)
  , nb_elements{nb_elements_in}, polynomial_degree{polynomial_degree_in}
 {
+  parametrisation = parametrisation_;
 
-  nb_parameters = nb_elements*polynomial_degree + 1; //total number of temperature parameters
+  //parameter_names is the source of truth for the parameter count.
+  const size_t nb_dof = nb_elements*polynomial_degree + 1;
 
+  setControlPointNames(nb_dof);
 }
 
 
@@ -55,12 +45,7 @@ bool PiecewisePolynomialTemperature::calcProfile(
   temperature.assign(pressure.size(), 0);
 
   //the temperature values at the degrees of freedom
-  std::vector<double> temperature_dof(nb_parameters, 0.0);
-
-  temperature_dof[0] = parameters[0];
-
-  for (size_t i=1; i<nb_parameters; ++i)
-    temperature_dof[i] = temperature_dof[i-1] * parameters[i];
+  std::vector<double> temperature_dof = controlTemperatures(parameters);
 
   temperature_profile.setDOFvalues(temperature_dof);
 

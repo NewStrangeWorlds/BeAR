@@ -14,7 +14,8 @@
 
 cmake_minimum_required (VERSION 3.15 FATAL_ERROR)
 
-OPTION(USE_PYTHON "Compile BeAR's Python Wrapper" OFF)
+OPTION(USE_PYTHON "Compile BeAR's Python Wrapper" ON)
+OPTION(USE_MULTINEST_MPI "Additionally compile MultiNest with MPI support (libmultinest_mpi.so)" OFF)
 OPTION(DEBUG_CUDA "Enable full CUDA synchronization for debugging" OFF)
 
 # check command line args, user can specify SM to override manual setting
@@ -32,15 +33,19 @@ project(bear C CXX CUDA Fortran)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(CMAKE_CXX_FLAGS "-Wall -march=native -pedantic -MMD")
-set(CMAKE_C_FLAGS "-Wall -march=native -pedantic -MMD")
+set(CMAKE_CXX_FLAGS "-Wall -pedantic -MMD")
+set(CMAKE_C_FLAGS "-Wall -pedantic -MMD")
 
 
 set(CMAKE_BUILD_TYPE Release)
 
 
 
-if(SM MATCHES "0")
+# NOTE: this was 'if(SM MATCHES "0")', a REGEX match -- so any SM containing
+# the digit 0 (80, 90, 100, 120, ...) matched and silently fell back to sm_75.
+# Use an exact comparison instead.
+if(NOT DEFINED SM OR SM STREQUAL "" OR SM STREQUAL "0")
+  message(STATUS "CUDA architecture not set, defaulting to: -arch=sm_75")
   set(CUDA_ARCH_FLAGS "-arch=sm_75")
 else()
   message(STATUS "CUDA Architecture manually set to: -arch=sm_${SM}")
@@ -57,7 +62,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR})
 
 #set CUDA flags
 string(APPEND CMAKE_CUDA_FLAGS ${CUDA_ARCH_FLAGS})
-string(APPEND CMAKE_CUDA_FLAGS " -std=c++17 -march=native -lineinfo -Xptxas -v")
+string(APPEND CMAKE_CUDA_FLAGS " -std=c++17 -lineinfo -Xptxas -v")
 
 #string (APPEND CMAKE_CUDA_FLAGS " -cudart shared" )
 
@@ -88,6 +93,12 @@ set(SRC
   src/forward_model/secondary_eclipse_bb/secondary_eclipse_bb_init.cpp
   src/forward_model/secondary_eclipse_bb/secondary_eclipse_bb.cpp
   src/forward_model/secondary_eclipse_bb/secondary_eclipse_bb_test.cpp
+  src/forward_model/phase_curve/phase_curve.cpp
+  src/forward_model/phase_curve/phase_curve_init.cpp
+  src/forward_model/phase_curve/phase_curve_model_config.cpp
+  src/forward_model/phase_curve/phase_curve_priors.cpp
+  src/forward_model/phase_curve/phase_curve_post_process.cpp
+  src/forward_model/phase_curve/phase_curve_test.cpp
   src/forward_model/transmission/transmission_model_config.cpp
   src/forward_model/transmission/transmission_post_process.cpp
   src/forward_model/transmission/transmission_priors.cpp
@@ -105,20 +116,22 @@ set(SRC
   src/forward_model/stellar_spectrum/star_blackbody.cpp
   src/forward_model/stellar_spectrum/star_file_spectrum.cpp
   src/forward_model/stellar_spectrum/stellar_spectrum_grid.cpp
-  src/forward_model/modules/stellar_contamination.cpp
+  src/forward_model/stellar_spectrum/smoothed_stellar_spectrum.cpp
+  src/forward_model/modules/stellar_contamination/stellar_contamination.cpp
+  src/forward_model/modules/velocity_broadening/velocity_broadening.cpp
+  src/forward_model/modules/phase_resolved_broadening/phase_resolved_broadening.cpp
+  src/observations/highres_observation.cpp
+  src/observations/highres_observation_load_data.cpp
   src/cloud_model/grey_cloud_model.cpp
   src/cloud_model/fixed_cloud_model.cpp
   src/cloud_model/kh_cloud_model.cpp
   src/cloud_model/power_law_cloud_model.cpp
-  src/model_main/model_main.cpp
   src/observations/observations.cpp
   src/observations/observations_load_data.cpp
   src/observations/observations_filter_response.cpp
   src/radiative_transfer/disort/discrete_ordinate.cpp
   src/radiative_transfer/adding_doubling/adding_doubling.cpp
   src/radiative_transfer/short_characteristics/short_characteristics.cpp
-  src/retrieval/multinest_parameter.cpp
-  src/retrieval/multinest_loglike.cpp
   src/retrieval/post_process_spectra.cpp
   src/retrieval/post_process.cpp
   src/retrieval/select_forward_model.cpp
@@ -138,18 +151,22 @@ set(SRC
   src/transport_coeff/transport_coeff.cpp
   src/transport_coeff/h_m.cpp
   src/chemistry/isoprofile_chemistry.cpp
+  src/chemistry/iso_ratio_chemistry.cpp
   src/chemistry/background_chemistry.cpp
   src/chemistry/isoprofile_clr_chemistry.cpp
   src/chemistry/fastchem_chemistry.cpp
   src/chemistry/free_chemistry.cpp
   src/chemistry/free_cbspline_chemistry.cpp
+  src/chemistry/free_pchip_chemistry.cpp
   src/chemistry/fixed_chemistry.cpp
   src/chemistry/step_function_chemistry.cpp
   src/temperature/piecewise_poly_temperature.cpp
   src/temperature/cubic_b_spline_temperature.cpp
+  src/temperature/pchip_temperature.cpp
   src/temperature/milne_solution_temperature.cpp
   src/temperature/guillot_temperature.cpp
   src/temperature/adiabate_cubic_spline.cpp
+  src/temperature/madhusudhan_seager_temperature.cpp
 )
 
 set(SRC_CUDA
@@ -160,11 +177,11 @@ set(SRC_CUDA
   src/CUDA_kernels/data_management_kernels.cu
   src/CUDA_kernels/log_like_kernels.cu
   src/CUDA_kernels/secondary_eclipse_kernels.cu
+  src/CUDA_kernels/phase_curve_kernels.cu
   src/CUDA_kernels/secondary_eclipse_bb.cu
   src/CUDA_kernels/transmission_spectrum_kernels.cu
   src/radiative_transfer/short_characteristics/short_characteristics_kernels.cu
   src/radiative_transfer/adding_doubling/adding_doubling_kernels.cu
-  src/CUDA_kernels/rayleigh_scattering_kernels.cu
   src/CUDA_kernels/cloud_model_kernels.cu
   src/CUDA_kernels/contribution_function_kernels.cu
   src/CUDA_kernels/star_blackbody.cu
@@ -173,7 +190,10 @@ set(SRC_CUDA
   src/CUDA_kernels/stellar_spectrum_grid.cu
   src/CUDA_kernels/observation_kernels.cu
   src/CUDA_kernels/radiative_transfer_kernels.cu
-  src/CUDA_kernels/batched_opacity_kernels.cu)
+  src/CUDA_kernels/batched_opacity_kernels.cu
+  src/CUDA_kernels/highres_loglike_kernels.cu
+  src/forward_model/modules/velocity_broadening/convolution_kernels_highres.cu
+  src/forward_model/modules/phase_resolved_broadening/convolution_kernels_phase_resolved.cu)
 
 
 set(SRC_PYTHON_WRAPPER
@@ -203,15 +223,30 @@ endif()
 
 
 
-#download FastChem 3, if necessary
+#download the toml++ library if necessary (header-only, for config parsing)
+FetchContent_Declare(
+  tomlplusplus
+  GIT_REPOSITORY https://github.com/marzer/tomlplusplus
+  GIT_TAG        v3.4.0
+)
+
+FetchContent_GetProperties(tomlplusplus)
+
+if (NOT tomlplusplus_POPULATED)
+  FetchContent_Populate(tomlplusplus)
+endif()
+
+
+
+#download FastChem 4, if necessary
 FetchContent_Declare(
   fastchem
   GIT_REPOSITORY https://github.com/newstrangeworlds/fastchem
-  GIT_TAG        0979ebe637de51241c77e73071b0a3da5a16c8f2
+  GIT_TAG        v4.0.2
 )
 
 FetchContent_GetProperties(fastchem)
-set(FASTCHEM_ONLY_LIBRARY ON)
+set(FASTCHEM_ONLY_PYTHON_LIBRARY ON)
 
 if (NOT fastchem_POPULATED)
   FetchContent_Populate(fastchem)
@@ -317,13 +352,34 @@ foreach(lang C CXX Fortran)
     endif()
 endforeach()
 
-# libmultinest.so
-add_library(multinest_shared SHARED ${MultiNest_SOURCE})
-SET_TARGET_PROPERTIES(multinest_shared PROPERTIES LINKER_LANGUAGE Fortran)
-
-
 #check for LAPACK library (required by MultiNest)
 find_package(LAPACK REQUIRED)
+
+# libmultinest.so (OUTPUT_NAME "multinest" so PyMultiNest finds it as libmultinest.so)
+# Link LAPACK directly so the .so is self-contained when loaded via dlopen by PyMultiNest.
+add_library(multinest_shared SHARED ${MultiNest_SOURCE})
+SET_TARGET_PROPERTIES(multinest_shared PROPERTIES LINKER_LANGUAGE Fortran OUTPUT_NAME "multinest")
+target_link_libraries(multinest_shared PUBLIC ${LAPACK_LIBRARIES})
+
+
+# libmultinest_mpi.so: same sources compiled with the MPI preprocessor flag.
+# PyMultiNest automatically loads this variant instead of libmultinest.so when
+# it detects an MPI world size > 1 (via mpi4py).
+# Must be linked against the same MPI implementation that mpi4py was built with,
+# since both end up initialized in the same process.
+if (USE_MULTINEST_MPI MATCHES ON)
+  find_package(MPI REQUIRED COMPONENTS Fortran)
+
+  add_library(multinest_mpi_shared SHARED ${MultiNest_SOURCE})
+  SET_TARGET_PROPERTIES(multinest_mpi_shared PROPERTIES
+    LINKER_LANGUAGE Fortran
+    OUTPUT_NAME "multinest_mpi"
+    # separate .mod directory: the MPI flag changes the Fortran modules, so the
+    # two variants must not share module files
+    Fortran_MODULE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/multinest_mpi_modules")
+  target_compile_definitions(multinest_mpi_shared PRIVATE MPI)
+  target_link_libraries(multinest_mpi_shared PUBLIC MPI::MPI_Fortran ${LAPACK_LIBRARIES})
+endif()
 
 
 
@@ -339,6 +395,10 @@ endif()
 
 
 if (USE_PYTHON MATCHES ON)
+    set_target_properties(disortpp PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    set_target_properties(adding_doubling PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    set_target_properties(adding_doubling_cuda PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
     #find the python version
     find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
     
@@ -362,6 +422,9 @@ if (USE_PYTHON MATCHES ON)
   #compilation target for BeAR's Python library
   add_library(bear_for_py ${SRC})
   target_include_directories(bear_for_py PUBLIC ${boost_math_SOURCE_DIR}/include/)
+  target_include_directories(bear_for_py PUBLIC ${eigen_SOURCE_DIR})
+  target_include_directories(bear_for_py PUBLIC ${tomlplusplus_SOURCE_DIR}/include/)
+  target_link_libraries(bear_for_py PUBLIC disortpp adding_doubling)
   
   add_library(bear_cuda_for_py ${SRC_CUDA})
   target_include_directories(bear_cuda_for_py PUBLIC ${boost_math_SOURCE_DIR}/include/)
@@ -377,22 +440,19 @@ if (USE_PYTHON MATCHES ON)
 
   
   #compilation target for BeAR's Python wrapper
-  pybind11_add_module(pybear ${SRC_PYTHON_WRAPPER})
-  
-  set_target_properties(pybear PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python/lib")
-  
-  target_link_libraries(pybear PUBLIC fastchem_lib_for_py bear_cuda_for_py bear_for_py multinest_shared disortpp adding_doubling OpenMP::OpenMP_CXX pybind11::module ${LAPACK_LIBRARIES})
+  pybind11_add_module(bear ${SRC_PYTHON_WRAPPER})
+
+  set_target_properties(bear PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python/lib")
+
+  target_link_libraries(bear PUBLIC fastchem_lib_for_py bear_cuda_for_py bear_for_py disortpp adding_doubling OpenMP::OpenMP_CXX pybind11::module ${LAPACK_LIBRARIES})
+
+  # Generate a Python config file with the path to libmultinest.so so that PyMultiNest
+  # can find it without requiring LD_LIBRARY_PATH to be set in the shell.
+  file(GENERATE
+      OUTPUT "${CMAKE_BINARY_DIR}/python/lib/bear_multinest_path.py"
+      CONTENT
+"# Auto-generated by CMake -- do not edit\nMULTINEST_LIB_DIR = \"$<TARGET_FILE_DIR:multinest_shared>\"\n"
+  )
 endif()
 
 
-
-
-
-
-# build application for BeAR
-add_executable(bear ${SRC})
-target_include_directories(bear PUBLIC ${boost_math_SOURCE_DIR}/include/)
-
-
-#link files for the final BeAR code
-target_link_libraries(bear PUBLIC fastchem_lib bear_cuda multinest_shared disortpp adding_doubling OpenMP::OpenMP_CXX ${LAPACK_LIBRARIES})

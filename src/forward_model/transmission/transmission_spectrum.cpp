@@ -1,22 +1,7 @@
-/*
-* This file is part of the BeAR code (https://github.com/newstrangeworlds/BeAR).
-* Copyright (C) 2024 Daniel Kitzmann
-*
-* BeAR is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* BeAR is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You find a copy of the GNU General Public License in the main
-* BeAR directory under <LICENSE>. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
-
+// SPDX-FileCopyrightText: 2024-2026 Daniel Kitzmann
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// This file is part of BeAR (https://github.com/newstrangeworlds/BeAR).
 
 #include <iostream>
 #include <vector>
@@ -30,11 +15,10 @@ namespace bear{
 
 
 void TransmissionModel::calcTransmissionSpectrum(
-  const double bottom_radius, 
-  const double star_radius, 
+  const double bottom_radius,
+  const double star_radius,
   std::vector<double>& spectrum)
 {
-
   #pragma omp parallel for schedule(dynamic, 1)
   for (size_t i=0; i<spectrum.size(); ++i)
   {
@@ -42,7 +26,65 @@ void TransmissionModel::calcTransmissionSpectrum(
 
     spectrum[i] = planet_radius*planet_radius/star_radius/star_radius *1e6;
   }
+}
 
+
+void TransmissionModel::calcTransmissionSpectrum(
+  const double bottom_radius,
+  const double star_radius,
+  OpacityCalculation& opacity,
+  const size_t nb_spectral_pts,
+  std::vector<double>& spectrum)
+{
+  // No-cloud version using the provided opacity data
+  #pragma omp parallel for schedule(dynamic, 1)
+  for (size_t w=0; w<nb_spectral_pts; ++w)
+  {
+    double effective_tangent_height = 0;
+
+    // Compute tangent path transmissions and integrate
+    std::vector<double> path_transmission(nb_grid_points, 0);
+    path_transmission.back() = 1;
+
+    for (int i=nb_grid_points-2; i>-1; --i)
+    {
+      double tangent_optical_depth = 0;
+
+      for (size_t j=i; j<nb_grid_points-1; ++j)
+      {
+        const double path_length =
+          distanceToTangentCenter(i, j+1, bottom_radius)
+          - distanceToTangentCenter(i, j, bottom_radius);
+
+        const double ext1 = opacity.absorption_coeff[w][j]
+                           + opacity.scattering_coeff[w][j];
+        const double ext2 = opacity.absorption_coeff[w][j+1]
+                           + opacity.scattering_coeff[w][j+1];
+
+        tangent_optical_depth += path_length * (ext1 + ext2);
+
+        if (tangent_optical_depth > transmission_optical_depth_cutoff)
+          break;
+      }
+
+      path_transmission[i] = std::exp(-tangent_optical_depth);
+    }
+
+    // Integrate effective tangent height
+    for (size_t i=0; i<nb_grid_points-1; ++i)
+    {
+      effective_tangent_height += 2.0
+        * ((bottom_radius + atmosphere.altitude[i]) * (1.0 - path_transmission[i])
+         + (bottom_radius + atmosphere.altitude[i+1]) * (1.0 - path_transmission[i+1]))
+        * (atmosphere.altitude[i+1] - atmosphere.altitude[i]) * 0.5;
+    }
+
+    effective_tangent_height =
+      std::sqrt(effective_tangent_height + bottom_radius*bottom_radius) - bottom_radius;
+
+    const double planet_radius = effective_tangent_height + bottom_radius;
+    spectrum[w] = planet_radius * planet_radius / star_radius / star_radius * 1e6;
+  }
 }
 
 

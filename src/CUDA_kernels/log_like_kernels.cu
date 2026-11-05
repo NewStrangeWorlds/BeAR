@@ -1,22 +1,7 @@
-/*
-* This file is part of the BeAR code (https://github.com/newstrangeworlds/BeAR).
-* Copyright (C) 2024 Daniel Kitzmann
-*
-* BeAR is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* BeAR is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You find a copy of the GNU General Public License in the main
-* BeAR directory under <LICENSE>. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
-
+// SPDX-FileCopyrightText: 2024-2026 Daniel Kitzmann
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// This file is part of BeAR (https://github.com/newstrangeworlds/BeAR).
 
 #include <iostream>
 #include <cmath>
@@ -70,12 +55,12 @@ __host__ double Retrieval::logLikeDev(
   std::vector<float*> model_spectrum,
   const double error_inflation_coefficient)
 {
-  double log_like = 0;
+  //all observations accumulate into the same device scalar via atomicAdd,
+  //so only one memset and one readback are needed for the whole set
+  gpuErrchk(cudaMemset(d_log_like_dev, 0, sizeof(double)));
 
   for (size_t i=0; i<nb_observations; ++i)
   {
-    gpuErrchk(cudaMemset(d_log_like_dev, 0, sizeof(double)));
-
     const int threads = 128;
     const int nb_points = observations[i].nbPoints();
 
@@ -94,14 +79,40 @@ __host__ double Retrieval::logLikeDev(
 
 
     CUDA_CHECK_AFTER_KERNEL();
-
-    double h_log_like = 0;
-    gpuErrchk(cudaMemcpy(&h_log_like, d_log_like_dev, sizeof(double), cudaMemcpyDeviceToHost));
-
-    log_like += h_log_like;
   }
 
+  double log_like = 0;
+  gpuErrchk(cudaMemcpy(&log_like, d_log_like_dev, sizeof(double), cudaMemcpyDeviceToHost));
+
   return log_like;
+}
+
+
+
+__host__ double Retrieval::logLikeHighResDev(
+  float* spectrum_hr_gpu,
+  double* model_wl_gpu,
+  size_t nb_hr_points,
+  double Kp, double Vsys, double dphi, double alpha,
+  const float* stellar_spectrum_gpu)
+{
+  gpuErrchk(cudaMemset(d_log_like_dev, 0, sizeof(double)));
+
+  for (size_t i = 0; i < nb_highres_observations; ++i)
+  {
+    highres_observations[i].computeLogLikelihoodGPU(
+      spectrum_hr_gpu,
+      model_wl_gpu,
+      nb_hr_points,
+      Kp, Vsys, dphi, alpha,
+      d_log_like_dev,
+      stellar_spectrum_gpu);
+  }
+
+  double h_log_like = 0;
+  gpuErrchk(cudaMemcpy(&h_log_like, d_log_like_dev, sizeof(double), cudaMemcpyDeviceToHost));
+
+  return h_log_like;
 }
 
 

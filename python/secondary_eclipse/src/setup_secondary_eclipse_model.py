@@ -6,7 +6,7 @@ parent_directory = os.path.dirname(current_directory)
 sys.path.append(parent_directory)
 sys.path.append(os.path.dirname(parent_directory))
 
-from lib import pybear
+from lib import bear
 import numpy as np
 
 
@@ -34,7 +34,7 @@ class BeAROccultationModel:
     
     self.nb_grid_points = grid_points_number
     
-    bear_config = pybear.Config()
+    bear_config = bear.Config()
     
     bear_config.use_gpu = np.bool_(use_gpu)
     bear_config.forward_model_type = "secondary_eclipse"
@@ -57,7 +57,7 @@ class BeAROccultationModel:
     bear_config.spectral_resolution = resolution
     
    
-    self.spectral_grid = pybear.SpectralGrid(
+    self.spectral_grid = bear.SpectralGrid(
       bear_config,
       wavelength_min,
       wavelength_max)
@@ -68,7 +68,7 @@ class BeAROccultationModel:
     opacity_species = opacity_species_data[:, 0]
     opacity_folders = opacity_species_data[:, 1]
 
-    self.forward_model = pybear.OccultationModel(
+    self.forward_model = bear.OccultationModel(
       bear_config, 
       self.spectral_grid, 
       self.nb_grid_points, 

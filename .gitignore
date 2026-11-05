@@ -3,6 +3,7 @@ bear
 
 # build files from cmake
 build/*
+build_test/*
 CMakeFiles/*
 .vscode/
 
@@ -20,6 +21,9 @@ TransmissionTest/*
 EmissionTest/*
 SecondaryEclipseTest/*
 
+WASP-121b_test/*
+WASP-121b_em_test/*
+
 python/lib/pybear.cpython*
 python/lib/bear.cpython*
 python/lib/__pycache__/*
@@ -29,9 +33,9 @@ python/transmission/src/__pycache__/*
 python/secondary_eclipse/src/__pycache__/*
 python/emission/src/__pycache__/*
 
-WASP-77Ab_comb/*
-WASP-77Ab_JWST/*
 WASP-77Ab_em_test/*
-WASP-121b_comb/*
+WASP-77Ab_JWST/*
+WASP-77Ab_comb/*
 WASP-121b_em_test/*
 WASP-121b_JWST/*
+WASP-121b_comb/*

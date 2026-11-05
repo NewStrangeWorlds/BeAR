@@ -1,22 +1,7 @@
-/*
-* This file is part of the BeAR code (https://github.com/newstrangeworlds/BeAR).
-* Copyright (C) 2024 Daniel Kitzmann
-*
-* BeAR is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* BeAR is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You find a copy of the GNU General Public License in the main
-* BeAR directory under <LICENSE>. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
-
+// SPDX-FileCopyrightText: 2024-2026 Daniel Kitzmann
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// This file is part of BeAR (https://github.com/newstrangeworlds/BeAR).
 
 #ifndef SPECIES_DEFINITION_H
 #define SPECIES_DEFINITION_H
@@ -97,43 +82,31 @@ class GasHm : public OpacitySpecies {
     virtual ~GasHm() {
         if (bound_free_sigma_dev != nullptr)
           deleteFromDevice(bound_free_sigma_dev);
+
+        freeHmBatchBuffers();
     }
+    //all grid points are processed with a single fused kernel launch
+    virtual void calcContinuumBatchedGPU(
+      const std::vector<double>& temperature,
+      const std::vector<std::vector<double>>& number_densities,
+      float* absorption_coeff_device) override;
   protected:
     virtual bool calcContinuumAbsorption(
       const double temperature,
       const std::vector<double>& number_densities,
       std::vector<double>& absorption_coeff);
-    virtual void calcContinuumAbsorptionGPU(
-      const double temperature, 
-      const std::vector<double>& number_densities,
-      const size_t nb_grid_points, 
-      const size_t grid_point,
-      float* absorption_coeff_device) {
-        calcContinuumGPU(
-          number_densities[_Hm],
-          number_densities[_H],
-          number_densities[_e]*constants::boltzmann_k*temperature,
-          temperature,
-          spectral_grid->nbSpectralPoints(), 
-          grid_point,
-          spectral_grid->wavelength_list_gpu,
-          absorption_coeff_device);
-      };
     private:
       std::vector<double> boundFreeAbsorption(const double temperature);
       std::vector<double> freeFreeAbsorption(const double temperature);
 
       float* bound_free_sigma_dev = nullptr;
 
-      void calcContinuumGPU(
-        const double hm_number_density,
-        const double h_number_density,
-        const double e_pressure,
-        const double temperature,
-        const int nb_spectral_points, 
-        const int grid_point,
-        double* wavelengths_device,
-        float* absorption_coeff_device);
+      //cached device + pinned host staging buffers for the batched launch
+      char* hm_batch_dev = nullptr;
+      char* hm_batch_host = nullptr;
+      size_t hm_batch_capacity = 0;
+
+      void freeHmBatchBuffers();
 };
 
 

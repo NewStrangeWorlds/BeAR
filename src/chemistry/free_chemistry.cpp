@@ -1,25 +1,12 @@
-/*
-* This file is part of the BeAR code (https://github.com/newstrangeworlds/BeAR).
-* Copyright (C) 2024 Daniel Kitzmann
-*
-* BeAR is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* BeAR is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You find a copy of the GNU General Public License in the main
-* BeAR directory under <LICENSE>. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+// SPDX-FileCopyrightText: 2024-2026 Daniel Kitzmann
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// This file is part of BeAR (https://github.com/newstrangeworlds/BeAR).
 
 #include <algorithm>
 #include <vector>
 #include <cmath>
+#include <string>
 
 #include "free_chemistry.h"
 
@@ -78,7 +65,18 @@ FreeChemistry::FreeChemistry(
   //std::cout << constants::species_data[species.front()].symbol << "\n";
   
 
-  nb_parameters = nb_elements*polynomial_degree + 1; //total number of chemistry parameters
+  //parameter_names is the source of truth for the parameter count:
+  //the piecewise polynomial has (nb_elements*polynomial_degree + 1) degrees of
+  //freedom. Each parameter is the ABSOLUTE (log) mixing ratio at a DOF node
+  //(parameters[i] is assigned directly to the DOF value), named
+  //chem_<species>_mr_<i> (0-based, absolute log mixing ratio at each DOF).
+  const size_t nb_dof = nb_elements*polynomial_degree + 1;
+
+  std::string species_name = chemical_species;
+  std::transform(species_name.begin(), species_name.end(), species_name.begin(), ::tolower);
+
+  for (size_t i=0; i<nb_dof; ++i)
+    parameter_names.push_back("chem_" + species_name + "_mr_" + std::to_string(i));
 }
 
 
