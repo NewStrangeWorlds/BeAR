@@ -1,4 +1,11 @@
 # BeAR - The Bern Atmospheric Retrieval code
+
+<p align="left">
+  <picture>
+    <img alt="BeAR logo" src="bear_logo/bear.png" width="400">
+  </picture>
+</p>
+
 #### Authors: Daniel Kitzmann, Esther Wang ####
 
 
