@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2024-2026 Daniel Kitzmann
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// This file is part of BeAR (https://github.com/newstrangeworlds/BeAR).
 
 #include "species_definition.h"
 #include "opacity_species.h"

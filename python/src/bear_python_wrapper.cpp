@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: 2024-2026 Daniel Kitzmann
+// SPDX-FileCopyrightText: 2026 Esther Wang
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// This file is part of BeAR (https://github.com/newstrangeworlds/BeAR).
 
 #ifdef _SETUP_PY
 #include "pybind11/pybind11.h"
