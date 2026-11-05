@@ -7,13 +7,15 @@ Observations
 Supported observational types
 -----------------------------
 
-BeAR currently supports three different types of observations:
+BeAR currently supports four different types of observations:
 
 - :ref:`Spectroscopy <sec:spectroscopy>`
 
 - :ref:`Band-Spectroscopy <sec:band_spectroscopy>`
 
 - :ref:`Photometry <sec:photometry>`
+
+- :ref:`High-resolution (cross-correlation) observations <sec:highres_observations>`
 
 Based on the type of observation, the required format of the data files
 differs slightly. In the following sections, the three basic types and
@@ -23,8 +25,8 @@ calculations in wavenumber space.
 
 Typically, the computions are done with a higher spectral resolution than
 the observations and then integrated to the observational wavelength structure.
-The resolution is determined by the corresponding configuration parameter in
-the retrieval.config file.
+The internal spectral grid is determined by the ``spectral_discretisation`` and
+``spectral_resolution`` keys in the ``[retrieval]`` section of the ``retrieval.toml`` file.
 
 For spectroscopy and band spectroscopy obervations, BeAR has the option to
 use :ref:`instrument line profiles <sec:instrument_line_profile>`, which typically
@@ -52,8 +54,9 @@ is shown in the figure below.
   :width: 700
   :align: center
 
-BeAR sets up a high-resolution wavenumber grid, with a step size determined 
-by the corresponding option in the retrieval.config file. This grid is
+BeAR sets up a high-resolution wavenumber grid, with a step size determined
+by the ``spectral_discretisation`` and ``spectral_resolution`` keys in the
+``[retrieval]`` section of the ``retrieval.toml`` file. This grid is
 symbolised by the red lines in the figure.
 
 To simulate the observed flux at the given wavelengths, BeAR creates a 
@@ -344,3 +347,243 @@ a constant offset:
 The offset itself is a free parameter that needs to have a corresponding entry in the ``priors.config`` file. The free parameter in
 the priors config file needs to have same units as the observational data. For example, for a transmission spectrum the offset
 has to be given in ppm, while for an emission spectrum it needs to be specified in :math:`\mathrm{W/m^2/\mu m}`.
+
+In addition, a ``high_resolution`` modifier exists. Adding it after an observation entry routes that
+file into the high-resolution observation pipeline used for cross-correlation retrievals, for example::
+
+   WASP-77Ab_IGRINS_em.dat   high_resolution
+
+The full format of the high-resolution observation files is described in the
+:ref:`section below <sec:highres_observations>`.
+
+
+.. _sec:highres_observations:
+
+High-resolution observations
+----------------------------
+
+A data file flagged with the ``high_resolution`` modifier in ``observations.list``
+does **not** use the classic spectroscopy/photometry ``.dat`` layout described above.
+Instead it uses a dedicated, header-keyed format that is read by the
+``HighResObservation`` class. This format stores a set of spectral orders, each with
+its own wavelength grid and a two-dimensional block of flux values (one row per
+exposure), together with the metadata needed for cross-correlation retrievals, such as
+the per-exposure orbital phases and velocity corrections.
+
+The theory behind the high-resolution (cross-correlation) retrieval, including the
+model filtering, re-injection and likelihood formulations, is described on the
+:ref:`high-resolution retrieval page <sec:high_resolution>`.
+
+
+Header keywords
+...............
+
+Each section of the file is introduced by a keyword line that begins with a ``#``.
+The keyword is always on its own line, and its values follow on the subsequent line(s).
+Keywords may appear in any order, with the important exception that ``#nb_exposures``
+must be specified *before* any keyword whose data is sized by the number of exposures
+(``#orbital_phases``, ``#barycentric_velocities``, ``#exposure_times`` and the flux
+blocks of the ``#order`` sections), and that the ``#filtering_basis`` section (if present)
+must be the last section in the file (apart from an optional ``#model_scale`` section).
+In particular, the flags ``#filter_model``, ``#reinject_model`` and ``#phase_function``
+have to be placed before ``#filtering_basis``.
+
+The following keywords are recognised by the parser:
+
+``#name``
+   Name of the observation/instrument, given on the following line. As with the other
+   observation types, this is not used in the calculation itself but determines the file
+   name of the posterior spectra. Required.
+
+``#resolving_power``
+   The instrument resolving power :math:`R = \lambda / \Delta\lambda`, given as a single
+   number on the following line. Required. Currently, this value is informational only
+   (it is printed when the file is loaded); the instrumental broadening of the model is
+   set by the ``sigma_inst`` parameter of the broadening modules (see
+   :ref:`sec:high_resolution`).
+
+``#nb_orders``
+   Integer number of spectral orders contained in the file. Required. After reading, the
+   parser verifies that exactly this many ``#order`` sections are present and aborts
+   otherwise.
+
+``#nb_exposures``
+   Integer number of exposures (individual frames/spectra) per order. Required, and must
+   precede every keyword whose data is sized per exposure.
+
+``#orbital_phases``
+   A list of ``#nb_exposures`` values giving the orbital phase of each exposure
+   (dimensionless, in fractions of an orbit). Required.
+
+``#kp_ref``
+   Reference value of the planetary orbital velocity semi-amplitude
+   :math:`K_\mathrm{p}` in :math:`\mathrm{km\,s^{-1}}`. Optional; defaults to ``0``.
+   When given, the retrieved :math:`K_\mathrm{p}` is treated as an *offset* relative to
+   this reference value (i.e. the effective value is ``kp_ref + Kp``).
+
+``#vsys_ref``
+   Reference systemic velocity :math:`V_\mathrm{sys}` in :math:`\mathrm{km\,s^{-1}}`.
+   Optional; defaults to ``0``. As with ``#kp_ref``, the retrieved
+   :math:`V_\mathrm{sys}` is an offset relative to this reference value.
+
+``#barycentric_velocities``
+   A list of ``#nb_exposures`` per-exposure barycentric velocities in
+   :math:`\mathrm{km\,s^{-1}}`. These values are *added* to the planetary radial velocity
+   of each exposure. Optional; if absent, all values default to ``0``, which
+   assumes that the barycentric correction has already been applied during
+   pre-processing.
+
+``#orbital_period``
+   Orbital period of the planet, given in **days** on the following line. It is converted
+   to seconds internally (multiplied by 86400). Optional. Together with
+   ``#exposure_times`` this enables exposure (velocity) blurring; see below.
+
+``#exposure_times``
+   A list of ``#nb_exposures`` per-exposure integration times in **seconds**. Optional.
+   Together with ``#orbital_period`` this enables exposure blurring. If the number of
+   values does not match ``#nb_exposures``, a warning is printed and blurring is disabled.
+
+``#order`` *(N)*
+   Begins a spectral-order block. The integer index following the keyword (e.g.
+   ``#order 0``) is informational only; orders are read sequentially in the order they
+   appear. Each ``#order`` block must contain a ``#wavelengths`` and a ``#flux`` section
+   and may optionally contain a ``#flux_uncertainties`` section:
+
+   ``#wavelengths``
+      A single line listing the wavelengths of every pixel of this order, in
+      **nanometres**. The number of values defines the number of pixels of the order.
+      (Note that this differs from the classic ``.dat`` formats, which use micrometres.)
+
+   ``#flux``
+      A block of ``#nb_exposures`` lines, one per exposure, each listing one flux value
+      per pixel. The flux is the pre-processed/detrended detector flux used for
+      cross-correlation and is generally in arbitrary (detrended) units rather than a
+      physical radiation flux.
+
+   ``#flux_uncertainties``
+      Optional block, with the same layout as ``#flux`` (``#nb_exposures`` lines of one
+      value per pixel), giving the per-pixel flux uncertainties. When present, per-pixel
+      uncertainties are enabled (used by the Gibson-style likelihood); values below
+      :math:`10^{-30}` are floored to :math:`10^{-30}` to avoid division by zero.
+
+``#filter_model``
+   Integer flag (``0`` or ``1``) toggling model filtering. Optional; defaults to ``1``
+   (enabled). When set to ``0``, the :math:`(I-P)` projection is applied only to the
+   data, while the model is only centred in time (per pixel) and the cross-correlation
+   sums are accumulated over all exposures of an order. This mode is a diagnostic rather
+   than an unbiased likelihood; see :ref:`sec:highres_filtering`.
+
+``#reinject_model``
+   Integer flag (``0`` or ``1``) toggling CHIMERA-style re-injection of the model into
+   the SVD-captured background. Optional; defaults to ``0`` (disabled). When enabled, the
+   model is multiplied by the captured background :math:`S = P\,D` before the
+   :math:`(I-P)` projection. This requires a ``#filtering_basis`` section and
+   ``#filter_model 1`` (BeAR aborts otherwise) and should be combined with a free
+   ``alpha`` scaling prior (BeAR prints a warning if it is missing). A ``#model_scale``
+   section is ignored when re-injection is enabled.
+
+``#phase_function``
+   Integer flag (``0`` or ``1``) toggling a dayside phase function,
+   :math:`[0.5\,(1+\cos(2\pi\,\phi-\pi))]^2`, applied per exposure to the model before the
+   :math:`(I-P)` projection. Optional; defaults to ``0`` (disabled).
+
+``#filtering_basis``
+   Marks the start of the model-filtering basis section and enables filtering. If
+   present, this section must be the **last** section in the file. It contains:
+
+   ``#nb_basis_vectors``
+      Integer number of basis vectors per order (the number of retained SVD modes).
+
+   ``#order`` *(N)* / ``#basis_vectors``
+      One block per order (in the same order as the flux orders). Following the
+      ``#basis_vectors`` keyword there are ``#nb_exposures`` lines, each listing
+      ``#nb_basis_vectors`` values, i.e. the per-exposure basis-vector components.
+
+   ``#uncertainties``
+      Optional, per order. A single line of ``#nb_exposures`` values giving the mean
+      per-exposure uncertainty used for weighting. If absent, no per-exposure weighting
+      is applied for that order.
+
+``#model_scale``
+   Optional section, placed after the filtering basis. It provides a per-pixel,
+   per-exposure scaling matrix by which the model is multiplied before the projection.
+   For each order it contains an ``#order`` line, a single header line (consumed), and
+   ``#nb_exposures`` rows of one value per pixel. If the section is absent, all scale
+   factors default to unity. Like re-injection, this section requires a
+   ``#filtering_basis`` section and ``#filter_model 1``; it is ignored if
+   ``#reinject_model 1`` is set.
+
+
+Exposure blurring and model options
+....................................
+
+Exposure (velocity) blurring is enabled only when **both** ``#orbital_period`` and
+``#exposure_times`` are present. During a finite exposure the planet's line-of-sight
+velocity drifts, so the observed spectrum is a time-average of the instantaneous
+Doppler-shifted model. BeAR models this as a top-hat (boxcar) average in velocity whose
+width scales with the orbital angular velocity, the projected velocity and the exposure
+time; it is maximal near conjunction and vanishes near quadrature.
+
+The ``#filter_model``, ``#reinject_model`` and ``#phase_function`` flags toggle,
+respectively, the model-filtering, CHIMERA-style re-injection, and the dayside
+phase-function behaviour of the forward model. The details of these operations, together
+with the cross-correlation likelihood, are described on the
+:ref:`high-resolution retrieval page <sec:high_resolution>`.
+
+
+Example file
+............
+
+An abbreviated example, based on the WASP-77Ab IGRINS emission data set, is shown below.
+The wavelength, flux and basis-vector rows are truncated for readability::
+
+   #name
+   WASP-77Ab_IGRINS_dayside
+   #resolving_power
+   45000
+   #nb_orders
+   44
+   #nb_exposures
+   79
+   #kp_ref
+   192.06
+   #vsys_ref
+   1.6845
+   #orbital_period
+   1.3600309
+   #exposure_times
+   212.8737  212.8737  212.8737  ...
+   #filter_model
+   1
+   #reinject_model
+   1
+   #orbital_phases
+   0.32493106  0.32683699  0.32877743  ...
+   #order 0
+   #wavelengths
+   2419.205617  2419.223833  2419.242046  ...
+   #flux
+   -5.781168e-05  3.943321e-02  7.688893e-02  ...
+   ... (79 exposure rows) ...
+   #order 1
+   #wavelengths
+   ...
+   #flux
+   ...
+   ... (44 orders in total) ...
+   #filtering_basis
+   #nb_basis_vectors
+   4
+   #order 0
+   #basis_vectors
+   -0.1124439372  -0.0575954295  0.0241310666  -0.1574337113
+   -0.1129810708  -0.0682286644  0.2120893957  0.0032828254
+   ... (79 exposure rows) ...
+   ... (44 orders in total) ...
+
+In this particular file the wavelengths are given in nanometres and cover the IGRINS
+K band, there are 44 spectral orders with 79 exposures each, model filtering and
+re-injection are enabled, exposure blurring is active through the orbital period and
+the exposure times, the barycentric correction has already been applied to the data,
+and a four-vector filtering basis is supplied per order. The complete file is part of
+the ``WASP-77Ab_highres`` example folder of the BeAR repository.

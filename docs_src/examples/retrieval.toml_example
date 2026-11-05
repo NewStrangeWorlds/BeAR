@@ -1,0 +1,18 @@
+[general]
+use_gpu = true
+nb_omp_threads = 0     # 0 = auto
+
+[retrieval]
+forward_model_type = "emission"
+spectral_discretisation = "const_resolution"
+spectral_resolution = 50000.0
+opacity_data_folder = "/media/data/opacity_data/helios-k/"
+use_error_inflation = true
+
+# optional: enable a separate high-resolution spectral grid (> 0 activates it)
+# spectral_resolution_highres = 250000.0
+
+# optional: override the default configuration file names
+# forward_model_config = "forward_model.toml"
+# priors_config       = "priors.config"
+# post_process_config = "post_process.toml"

@@ -11,7 +11,7 @@ stellar spectra in the three different ways:
 
   - :ref:`A single, tabulated stellar spectrum <sec:stellar_spectrum_file>`
   
-  -  :ref:`A grid of stellar atmosphere spectra <sec:stellar_spectrum_bb>`
+  -  :ref:`A grid of stellar atmosphere spectra <sec:stellar_spectrum_grid>`
 
 
 .. _sec:stellar_spectrum_bb: 
@@ -20,15 +20,14 @@ Blackbody spectra
 -----------------
 
 The simplest way to provide a stellar spectrum is by using a blackbody spectrum. It is chosen by using
-the keyword :code:`blackbody` in the corresponding section in the ``forward_model.config`` file:
+the model keyword :code:`blackbody` in the ``stellar_spectrum`` table in the ``forward_model.toml`` file:
 
-.. code:: 
+.. code::
 
-   #Stellar spectrum
-   blackbody
+   stellar_spectrum = { model = "blackbody", params = [] }
 
 This option requires the user to provide the temperature of the blackbody spectrum in Kelvin as a free
-parameter in the priors configuration file.
+parameter in the priors configuration file, using the prior name ``star_t_eff``.
 
 
 .. _sec:stellar_spectrum_file:
@@ -36,17 +35,16 @@ parameter in the priors configuration file.
 Tabulated stellar spectrum
 --------------------------
 
-If a tabulated stellar spectrum is used, the keyword :code:`file` has to be used in the corresponding
+If a tabulated stellar spectrum is used, the model keyword :code:`file` has to be used in the
+``stellar_spectrum`` table in the ``forward_model.toml`` file:
 
-`forward_model.config`` file:
+.. code::
 
-.. code:: 
+   stellar_spectrum = { model = "file", params = ["SecondaryEclipseExample/WASP-43.dat"] }
 
-   #Stellar spectrum
-   file WASP-43.dat
-
-with the file name of the stellar spectrum following the keyword. The file location hast to be given relative 
-to the path of the BeAR executable. It has the following structure:
+with the file name of the stellar spectrum given as the single entry in ``params``. The file location has to be given relative
+to the working directory from which the Python driver script is run (the BeAR root directory for the provided examples).
+It has the following structure:
 
 .. include:: ../examples/WASP-43.dat
    :literal:
@@ -68,14 +66,14 @@ when one wants to sample stellar spectra for a range of different effective temp
 Examples of grids of stellar spectra are the `PHOENIX stellar atmosphere library <https://phoenix.astro.physik.uni-goettingen.de/>`_ 
 or the `SPHINX library <https://zenodo.org/records/7416042>`_
 
-To use a grid of stellar spectra, the keyword :code:`grid` has to be used in the corresponding ``forward_model.config`` file:
+To use a grid of stellar spectra, the model keyword :code:`grid` has to be used in the
+``stellar_spectrum`` table in the ``forward_model.toml`` file:
 
-.. code:: 
+.. code::
 
-   #Stellar spectrum
-   grid /data/phoenix_grid/
+   stellar_spectrum = { model = "grid", params = ["/data/phoenix_grid/"] }
 
-followed by a path to the folder that contains the grid of stellar atmosphere models. 
+with the single ``params`` entry being a path to the folder that contains the grid of stellar atmosphere models.
 BeAR currently assumes that the grid is given in terms of:
 
   - stellar effective temperature in Kelvin
@@ -111,5 +109,30 @@ The binary files should contain the stellar photospheric flux in :math:`\mathrm{
 floating point numbers. As mentioned above, BeAR expects to find a stellar spectrum entry for every possible combination
 of stellar parameters. If this is not the case, an error message will be displayed and the code will terminate.
 
-The use of the stellar grid requires the user to provide the effective temperature, the surface gravity, and the 
-metallicity as free parameters in the priors configuration file.
+The use of the stellar grid requires the user to provide the effective temperature, the surface gravity, and the
+metallicity as free parameters in the priors configuration file, using the prior names ``star_t_eff``,
+``star_log_g``, and ``star_metallicity``.
+
+
+Smoothing for high-resolution re-injection
+------------------------------------------
+
+For the :ref:`phase-curve forward model <sec:forward_model_phase_curve>`, an optional
+``highres_stellar_smooth_sigma`` key can be added to the ``stellar_spectrum`` inline table in the
+``forward_model.toml`` file, independently of the chosen stellar-spectrum model, for example:
+
+.. code::
+
+   stellar_spectrum = { model = "file", params = ["WASP-77Ab/WASP-77A.dat"], highres_stellar_smooth_sigma = 200 }
+
+When set, BeAR wraps the chosen stellar-spectrum model in a ``SmoothedStellarSpectrum`` decorator that
+applies a Gaussian smoothing to the stellar spectrum. The value of ``highres_stellar_smooth_sigma`` is
+the standard deviation :math:`\sigma` of the Gaussian kernel given in **pixels** of the spectral grid
+(i.e. the number of wavenumber grid points), not in wavelength or wavenumber units. Internally the
+Gaussian is approximated by a fast three-pass box filter, which is accurate to better than 0.1 % for
+:math:`\sigma \gtrsim 5` px.
+
+The default value is ``0``, which disables the smoothing and leaves the stellar spectrum untouched.
+The key is only read by the phase-curve model; the other forward models ignore it.
+The smoothing is used to produce a smooth stellar reference spectrum for high-resolution re-injection
+and phase-curve modelling; see :ref:`sec:high_resolution` for the reasoning behind this step.

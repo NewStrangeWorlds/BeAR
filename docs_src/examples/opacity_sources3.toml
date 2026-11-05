@@ -1,0 +1,10 @@
+opacity = [
+  { species = "CIA-H2-H2", folder = "CIA/H2-H2" },
+  { species = "CIA-H2-He", folder = "CIA/H2-He" },
+  { species = "H-", folder = "none" },
+  { species = "H2", folder = "Rayleigh" },
+  { species = "He", folder = "Rayleigh" },
+  { species = "H2O", folder = "Molecules/1H2-16O__POKAZATEL_e2b" },
+  { species = "TiO", folder = "Molecules/48Ti-16O__Toto_e2b" },
+  { species = "VO", folder = "Molecules/51V-16O__VOMYT_e2b" },
+]

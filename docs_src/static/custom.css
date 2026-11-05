@@ -1,1 +1,26 @@
-div.highlight {background-color: {{ theme_code_highlight_bg }}; font-size: medium;} 
+/* Custom styling for the BeAR documentation (furo theme). */
+
+/* Slightly wider content column to accommodate wide config-file listings. */
+.content {
+    width: 50em;
+}
+
+/* Code blocks: a touch larger, as in the previous theme. */
+div.highlight pre,
+pre.literal-block {
+    font-size: 0.9em;
+    line-height: 1.5;
+}
+
+/* Keep the sidebar logo at a sensible size. */
+.sidebar-logo {
+    max-width: 60%;
+}
+
+/* The figures have transparent backgrounds with dark text; give them a
+   light backdrop so that they remain readable in dark mode. */
+article img {
+    background-color: #ffffff;
+    padding: 0.4em;
+    border-radius: 0.3em;
+}

@@ -19,13 +19,14 @@ to daniel.kitzmann@unibe.ch .
    sections/opacity_data
    sections/observations
    sections/forward_models
+   sections/high_resolution
    sections/priors
    sections/retrieval_setup
-   sections/pybear
+   sections/python_interface
    sections/temperature_profiles
    sections/chemistry_models
    sections/cloud_models
    sections/stellar_spectra
    sections/profile_parametrisations
-   sections/pybear_details
+   sections/python_interface_details
 

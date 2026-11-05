@@ -15,15 +15,19 @@ repository. Licensees may also distribute derivative works only under a
 license identical to ("not more restrictive than") the license that
 governs the original work.
 
-The ``BeAR`` repository also links to additional open-source codes:
-  * the equilibrium chemistry ``FastChem`` (https://github.com/newstrangeworlds/fastchem) 
-  * the ``MultiNest`` nested-sampling code (https://github.com/farhanferoz/MultiNest)
-  * the C++ ``Boost`` library (https://github.com/boostorg/)
-  * the ``PyBind11`` library (https://github.com/pybind/pybind11)
-  * the ``CDisort`` discrete ordinate radiative transfer (included in this repository)
+The ``BeAR`` repository also links to additional open-source codes that are downloaded and
+compiled during the installation of ``BeAR`` and are, thus, not part of the ``BeAR`` repository:
 
-``FastChem`` and ``CDisort`` are released under the GPL 3.0 licence as well. ``MultiNest`` and ``Boost`` 
-use their own open-source licences. ``PyBind11`` is released under a BSD-style licence. The full licences 
-of these codes can be found in the respective repositories. With the exception of ``CDisort``, all codes
-are downloaded and compiled during the installation of ``BeAR`` and are, thus, not part of the ``BeAR`` 
-repository.
+  * the equilibrium chemistry ``FastChem`` (https://github.com/newstrangeworlds/fastchem)
+  * the ``MultiNest`` nested-sampling code (https://github.com/farhanferoz/MultiNest)
+  * the ``DisORT++`` discrete ordinate radiative transfer code (https://github.com/NewStrangeWorlds/DisORT)
+  * the ``AddingDoublingRT`` adding-doubling radiative transfer code (https://github.com/NewStrangeWorlds/AddingDoublingRT)
+  * the C++ ``Boost.Math`` library (https://github.com/boostorg/math)
+  * the ``Eigen`` linear algebra library (https://gitlab.com/libeigen/eigen)
+  * the ``toml++`` TOML parser (https://github.com/marzer/tomlplusplus)
+  * the ``PyBind11`` library (https://github.com/pybind/pybind11)
+
+``FastChem``, ``DisORT++``, and ``AddingDoublingRT`` are released under the GPL 3.0 licence as well.
+``MultiNest`` uses its own open-source licence, ``Boost.Math`` the Boost Software Licence, ``Eigen`` the
+MPL 2.0 licence, ``toml++`` the MIT licence, and ``PyBind11`` a BSD-style licence. The full licences
+of these codes can be found in the respective repositories.

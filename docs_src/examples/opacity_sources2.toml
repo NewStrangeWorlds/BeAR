@@ -1,0 +1,6 @@
+opacity = [
+  { species = "H2", folder = "Rayleigh" },
+  { species = "He", folder = "Rayleigh" },
+  { species = "H2O", folder = "Molecules/1H2-16O__POKAZATEL_e2b" },
+  { species = "CH4", folder = "Molecules/12C-1H4__YT34to10_e2b" },
+]

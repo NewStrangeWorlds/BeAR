@@ -15,53 +15,58 @@ BeAR currently includes the following cloud descriptions:
 
 The code also supports the :ref:`mixing of different cloud models <sec:cloud_model_mixing>` in a single retrieval.
 
+Cloud models are configured through the ``clouds`` array in the ``forward_model.toml`` file. To run a
+retrieval without any clouds, set an empty array: ``clouds = []``.
+
 
 .. _sec:cloud_model_grey:
 
 Grey Cloud Model
 ----------------
 
-The grey cloud layer model is the most simple cloud parametrisation available in BeAR. 
-It puts a cloud layer with a certain geometric height and a wavelength-independent 
-optical depth into the atmosphere. It is selected by using the keyword 
-:code:`grey` in the corresponding section in the ``forward_model.config`` file:
+The grey cloud layer model is the most simple cloud parametrisation available in BeAR.
+It puts a cloud layer with a certain geometric height and a wavelength-independent
+optical depth into the atmosphere. Cloud models are configured through the ``clouds`` array
+in the ``forward_model.toml`` file. The grey model is selected by using the model keyword
+:code:`grey`:
 
-.. code:: 
+.. code::
 
-   #Cloud model
-   grey
+   clouds = [ { model = "grey", params = [] } ]
 
-The location of the cloud layer is set by a cloud top pressure :math:`p_\mathrm{top}` 
-that is one of the free parameters of the model. The cloud bottom pressure 
-:math:`p_\mathrm{bot}` is determined by a free parameter :math:`b`, such that 
+The location of the cloud layer is set by a cloud top pressure :math:`p_\mathrm{top}`
+that is one of the free parameters of the model. The cloud bottom pressure
+:math:`p_\mathrm{bot}` is determined by a free parameter :math:`b`, such that
 :math:`p_\mathrm{bot} = p_\mathrm{top} \, b`. The optical depth is divided between all
 atmospheric layers that lie between these two pressures.
 
 A grey cloud model has in total three free parameters that have to be added to the prior config
-file in the following order:
+file:
 
-  - (vertical) grey optical depth
+  - (vertical) grey optical depth (``cloud_optical_depth``)
 
-  - cloud top pressure in bar
+  - cloud top pressure in bar (``cloud_top_pressure``)
 
-  - cloud bottom parameter :math:`b`
-   
-It is sometimes not possible to constrain the bottom of the cloud deck properly. 
-This is often the case when performing retrieval calculations for a transmission spectrum. 
+  - cloud bottom parameter :math:`b` (``cloud_bottom_fraction``)
+
+The cloud priors in ``priors.config`` are name-keyed (via the names listed in parentheses above)
+and therefore order-independent.
+
+It is sometimes not possible to constrain the bottom of the cloud deck properly.
+This is often the case when performing retrieval calculations for a transmission spectrum.
 In this case, BeAR has the option to use a fixed cloud bottom. This can be enabled by
-using the optional parameter :code:`fb` after the cloud model:
+adding the :code:`fb` string to the ``params`` of the cloud model:
 
-.. code:: 
+.. code::
 
-   #Cloud model
-   grey fb
+   clouds = [ { model = "grey", params = ["fb"] } ]
 
 By choosing this option, BeAR fixes the cloud bottom pressure at one atmospheric scale height
 below the cloud top. In this case, only two free parameters are required in the prior file:
 
-  - (vertical) grey optical depth
+  - (vertical) grey optical depth (``cloud_optical_depth``)
 
-  - cloud top pressure in bar
+  - cloud top pressure in bar (``cloud_top_pressure``)
 
 
 .. _sec:cloud_model_kh:
@@ -102,61 +107,62 @@ Since, however, it is usually difficult to put good priors on the number density
 
 By using the reference optical depth, the normalisation constant :math:`Q_1` is not required anymore.
 
-The non-grey cloud description is selected by using the keyword 
-:code:`KHnongrey`, followed by the reference wavelength in :math:`\mu\mathrm{m}` 
-in the corresponding section in the ``forward_model.config`` file:
+The non-grey cloud description is selected by using the model keyword
+:code:`KHnongrey`, with the reference wavelength in :math:`\mu\mathrm{m}` given as the first
+entry of ``params`` in the ``clouds`` array in the ``forward_model.toml`` file:
 
-.. code:: 
+.. code::
 
-   #Cloud model
-   KHnongrey 1.0
+   clouds = [ { model = "KHnongrey", params = ["1.0"] } ]
 
-The reference wavelength does not need to be within the wavelength range of the 
+The reference wavelength does not need to be within the wavelength range of the
 retrieval calculations.
 
 A non-grey cloud model has in total six free parameters that have to be added to the prior config
-file in the following order:
+file:
 
-  - (vertical) optical depth at the reference wavelength
+  - (vertical) optical depth at the reference wavelength (``cloud_optical_depth``)
 
-  - :math:`Q_1`
+  - :math:`Q_0` (``cloud_q0``)
 
-  - :math:`a_0`
+  - :math:`a_0` (``cloud_a0``)
 
-  - particle size :math:`a` in microns
+  - particle size :math:`a` in microns (``cloud_particle_size``)
 
-  - cloud top pressure in bar
+  - cloud top pressure in bar (``cloud_top_pressure``)
 
-  - cloud bottom parameter :math:`b`
+  - cloud bottom parameter :math:`b` (``cloud_bottom_fraction``)
 
-The location of the cloud layer is set by a cloud top pressure :math:`p_\mathrm{top}` 
-that is one of the free parameters of the model. The cloud bottom pressure 
-:math:`p_\mathrm{bot}` is determined by a free parameter :math:`b`, such that 
+The cloud priors in ``priors.config`` are name-keyed (via the names listed in parentheses above)
+and therefore order-independent.
+
+The location of the cloud layer is set by a cloud top pressure :math:`p_\mathrm{top}`
+that is one of the free parameters of the model. The cloud bottom pressure
+:math:`p_\mathrm{bot}` is determined by a free parameter :math:`b`, such that
 :math:`p_\mathrm{bot} = p_\mathrm{top} \, b`. The optical depth is divided between all
 atmospheric layers that lie between these two pressures.
 
-It is sometimes not possible to constrain the bottom of the cloud deck properly. 
-This is often the case when performing retrieval calculations for a transmission spectrum. 
+It is sometimes not possible to constrain the bottom of the cloud deck properly.
+This is often the case when performing retrieval calculations for a transmission spectrum.
 In this case, BeAR has the option to use a fixed cloud bottom. This can be enabled by
-using the optional parameter :code:`fb` after the cloud model and the reference wavelength:
+adding the :code:`fb` string to ``params`` after the reference wavelength:
 
-.. code:: 
+.. code::
 
-   #Cloud model
-   KHnongrey 1.0 fb
+   clouds = [ { model = "KHnongrey", params = ["1.0", "fb"] } ]
 
 By choosing this option, BeAR fixes the cloud bottom pressure at one atmospheric scale height
 below the cloud top. In this case, only five free parameters are required in the prior file:
 
-  - (vertical) optical depth at the reference wavelength
+  - (vertical) optical depth at the reference wavelength (``cloud_optical_depth``)
 
-  - :math:`Q_1`
+  - :math:`Q_0` (``cloud_q0``)
 
-  - :math:`a_0`
+  - :math:`a_0` (``cloud_a0``)
 
-  - particle size :math:`a`
+  - particle size :math:`a` (``cloud_particle_size``)
 
-  - cloud top pressure in bar
+  - cloud top pressure in bar (``cloud_top_pressure``)
 
 
 .. _sec:cloud_model_power_law:
@@ -172,53 +178,54 @@ the cloud layer. It uses the optical depth at a reference wavelength as normalis
 where :math:`e` is the exponent of the power law. To simulate Rayleigh scattering, for
 example, :math:`e=-4`.
 
-The power-law cloud model is selected by using the keyword 
-:code:`power_law`, followed by the reference wavelength in :math:`\mu\mathrm{m}` 
-in the corresponding section in the ``forward_model.config`` file:
+The power-law cloud model is selected by using the model keyword
+:code:`power_law`, with the reference wavelength in :math:`\mu\mathrm{m}` given as the first
+entry of ``params`` in the ``clouds`` array in the ``forward_model.toml`` file:
 
-.. code:: 
+.. code::
 
-   #Cloud model
-   power_law 1.0
+   clouds = [ { model = "power_law", params = ["1.0"] } ]
 
-The reference wavelength does not need to be within the wavelength range of the 
+The reference wavelength does not need to be within the wavelength range of the
 retrieval calculations.
 
-A non-grey cloud model has in total four free parameters that have to be added to the prior config
-file in the following order:
+A power-law cloud model has in total four free parameters that have to be added to the prior config
+file:
 
-  - (vertical) optical depth at the reference wavelength
+  - (vertical) optical depth at the reference wavelength (``cloud_optical_depth``)
 
-  - power-law exponent :math:`e`
+  - power-law exponent :math:`e` (``cloud_exponent``)
 
-  - cloud top pressure in bar
+  - cloud top pressure in bar (``cloud_top_pressure``)
 
-  - cloud bottom parameter :math:`b`
+  - cloud bottom parameter :math:`b` (``cloud_bottom_fraction``)
 
-The location of the cloud layer is set by a cloud top pressure :math:`p_\mathrm{top}` 
-that is one of the free parameters of the model. The cloud bottom pressure 
-:math:`p_\mathrm{bot}` is determined by a free parameter :math:`b`, such that 
+The cloud priors in ``priors.config`` are name-keyed (via the names listed in parentheses above)
+and therefore order-independent.
+
+The location of the cloud layer is set by a cloud top pressure :math:`p_\mathrm{top}`
+that is one of the free parameters of the model. The cloud bottom pressure
+:math:`p_\mathrm{bot}` is determined by a free parameter :math:`b`, such that
 :math:`p_\mathrm{bot} = p_\mathrm{top} \, b`. The optical depth is divided between all
 atmospheric layers that lie between these two pressures.
 
-It is sometimes not possible to constrain the bottom of the cloud deck properly. 
-This is often the case when performing retrieval calculations for a transmission spectrum. 
+It is sometimes not possible to constrain the bottom of the cloud deck properly.
+This is often the case when performing retrieval calculations for a transmission spectrum.
 In this case, BeAR has the option to use a fixed cloud bottom. This can be enabled by
-using the optional parameter :code:`fb` after the cloud model:
+adding the :code:`fb` string to ``params`` after the reference wavelength:
 
-.. code:: 
+.. code::
 
-   #Cloud model
-   power_law 1.0 fb
+   clouds = [ { model = "power_law", params = ["1.0", "fb"] } ]
 
 By choosing this option, BeAR fixes the cloud bottom pressure at one atmospheric scale height
-below the cloud top. In this case, only two three parameters are required in the prior file:
+below the cloud top. In this case, only three parameters are required in the prior file:
 
-  - (vertical) optical depth at the reference wavelength
+  - (vertical) optical depth at the reference wavelength (``cloud_optical_depth``)
 
-  - power-law exponent :math:`e`
+  - power-law exponent :math:`e` (``cloud_exponent``)
 
-  - cloud top pressure in bar
+  - cloud top pressure in bar (``cloud_top_pressure``)
 
 
 .. _sec:cloud_model_mixing:
@@ -228,30 +235,29 @@ Mixing different cloud models
 
 BeAR also has the ability to use multiple clouds simultaneously. For example, to perform a retrieval with
 grey cloud layer and a second cloud with a power-law optical depth to simulate, for example, a haze-like
-behaviour, the following can be used as configuration in the ``forward_model.config`` file:
+behaviour, several entries can be added to the ``clouds`` array in the ``forward_model.toml`` file:
 
-.. code:: 
+.. code::
 
-   #Cloud model
-   grey
-   power_law 1.0 fb
+   clouds = [ { model = "grey", params = [] }, { model = "power_law", params = ["1.0", "fb"] } ]
 
-BeAR will call the cloud models in the order they appear in this list. Clouds can also be overlapping
+BeAR will call the cloud models in the order they appear in this array. Clouds can also be overlapping
 in pressure.
 
-In the prior configuration file, the free parameters have to appear in the same order as the 
-cloud models listed in ``forward_model.config``. 
+The cloud priors in ``priors.config`` are name-keyed and order-independent. When more than one
+cloud model is used, the parameter names of each cloud are suffixed with the 1-based index of the
+cloud in the ``clouds`` array (``_1``, ``_2``, ...) so that they stay unique. With a single cloud
+model, the names are used without a suffix. For the example above, the following priors need to be
+listed:
 
-Thus, for the example above, the following priors need to be listed:
-  
-  - grey optical depth
-  
-  - cloud top pressure in bar
+  - grey optical depth (``cloud_optical_depth_1``)
 
-  - cloud bottom parameter
+  - cloud top pressure in bar (``cloud_top_pressure_1``)
 
-  - optical depth at the reference wavelength
+  - cloud bottom parameter (``cloud_bottom_fraction_1``)
 
-  - power-law exponent
+  - optical depth at the reference wavelength (``cloud_optical_depth_2``)
 
-  - cloud top pressure in bar
+  - power-law exponent (``cloud_exponent_2``)
+
+  - cloud top pressure in bar (``cloud_top_pressure_2``)

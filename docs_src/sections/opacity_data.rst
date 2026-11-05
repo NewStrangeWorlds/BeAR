@@ -34,14 +34,15 @@ In that case, the opacity data is calculated on a wavenumber grid with a constan
 BeAR will implicitely assume that this standard HELIOS-k grid is used and no further configuration is needed.
 
 However, if other opacity data is used, the wavenumber grid has to be provided as well. In that case,
-BeAR expects to find this global wavenumber grid in a special file. The location of the opacity 
-data and the wavenumber file are handled by the ``retrieval.config`` configuration file.
-Within the root opacity folder indicated in the ``retrieval.config`` file, BeAR expects to find a file 
-called ``wavenumbers_full.dat``.
+BeAR expects to find this global wavenumber grid in a special file. The location of the opacity
+data and the wavenumber file are handled by the ``retrieval.toml`` configuration file. The root
+opacity folder is set via the ``opacity_data_folder`` key in the ``[retrieval]`` section of
+``retrieval.toml``. Within this root opacity folder, BeAR expects to find a file
+called ``wavenumber_full.dat``.
 
 This file has the following, simple structure.
 
-.. include:: ../examples/wavenumbers_full.dat_example
+.. include:: ../examples/wavenumber_full.dat_example
    :literal:
    
 The file starts with an integer value that is equal to the total number of wavenumbers in
@@ -52,7 +53,7 @@ Opacity data for a specific species
 ...................................
 
 Opacity data for a specific species have to be located in a folder that is usually
-specified in the opacity species list within the ``forward_model.config``. Inside
+specified in the opacity species list within the ``forward_model.toml``. Inside
 this folder, BeAR expects to find a summary file ``filelist.dat`` that contains
 a list of pressures and temperatures as well as filenames the opacities have
 been tabulated at.
@@ -115,20 +116,17 @@ Thus, the molecular weight is set to 0, and the parameter ``log`` is used afterw
 If the data is stored in linear space, ``lin`` can be used. Since, however, this is
 standard behaviour for HELIOS-k data, it can be omitted as shown in the first example.
 
-Another special case for opacities is pressure broadening by a specific species. Usually, BeAR
-treats the pressure the opacities are tabulated at as the total gas pressure. However,
-sometimes absorption cross-sections have been calculated for a specific background perturber
-species. This can also be taken into account in the header of the ``filelist.dat`` file as
-shown in the following example.
+Another special case for opacities is pressure broadening by a specific perturber species.
+BeAR always treats the pressure the opacities are tabulated at as the total gas pressure.
+Cross-sections that have been computed for a specific background perturber (e.g. H2) are
+therefore interpolated at the total pressure rather than at the partial pressure of the
+perturber. A header line such as
 
 .. include:: ../examples/filelist_K.dat
    :literal:
 
-Here, cross-sections per mass for potassium are stored in linear space with molecular hydrogen as the
-perturber species. Thus, instead of the total gas pressure, BeAR will use the partial
-pressure of H2 for these opacities. The perturber species is listed in the third
-column of the header. Note, that when this option is used, the second column with
-the storage format of the opacities has to be present as well.
+with the perturber species in a third column is accepted (the additional column is ignored by
+the parser), but the partial-pressure treatment is currently not implemented.
 
 .. _sec:built-in-opacity_data:
 
@@ -168,29 +166,31 @@ Choosing opacity sources in forward models
 ..........................................
 
 Most forward models in BeAR require the user to specify the opacity sources that should be used.
-The general format for this is as follows:
+These are given in the ``forward_model.toml`` file as a TOML array of tables assigned to the
+``opacity`` key. The general format for this is as follows:
 
-.. include:: ../examples/opacity_sources1.dat
+.. include:: ../examples/opacity_sources1.toml
    :literal:
 
-The first column refers to the species' chemical formulas. These need to be listed in the internal
-chemical species list of BeAR as discussed :ref:`here <sec:chemistry_models>`. The second column
-indicates the folder where the opacity data, or more specifically the summary file ``filelist.dat``, 
+Each entry has a ``species`` field with the species' chemical formula and a ``folder`` field.
+The species names need to be listed in the internal
+chemical species list of BeAR as discussed :ref:`here <sec:chemistry_models>`. The ``folder`` field
+indicates the folder where the opacity data, or more specifically the summary file ``filelist.dat``,
 for the species can be found. The folders here are relative to the root opacity folder that is set
-as a config parameter in the file ``retrieval.config``. The species do not have to appear in any
-specific order.
+via the ``opacity_data_folder`` key in the ``[retrieval]`` section of ``retrieval.toml``.
+The species do not have to appear in any specific order.
 
 For the Rayleigh-scattering species mentioned above, the folder name is replaced by the keyword
 ``Rayleigh`` as shown in the following example, where Rayleigh scattering for H2 and He is added.
 
-.. include:: ../examples/opacity_sources2.dat
+.. include:: ../examples/opacity_sources2.toml
    :literal:
 
 Special cases are the bound-free and free-free continuum absorptions for H- and collision-induced
-absorption (CIA). These are added by using the keywords ``H-`` and ``CIA``, respectively, as shown
-below:
+absorption (CIA). These are added by using the keyword ``H-`` and the ``CIA-`` species names,
+respectively, as shown below:
 
-.. include:: ../examples/opacity_sources3.dat
+.. include:: ../examples/opacity_sources3.toml
    :literal:
 
 BeAR currently can add the following CIA sources:
@@ -203,3 +203,37 @@ BeAR currently can add the following CIA sources:
 
 The opacity for the hydrogen anion H- is calculated by BeAR on-the-fly and does not need a folder
 to be specified. Thus, the keyword ``none`` is used here instead.
+
+.. _sec:opacity_highres:
+
+Separate opacity sources for the high-resolution model
+......................................................
+
+The phase-curve (high-resolution) forward model can read a *separate* opacity table that is used
+only for its high-resolution part. This is done via an optional ``opacity_highres`` key in
+``forward_model.toml``, which uses exactly the same array-of-tables format as the normal
+``opacity`` block described above:
+
+.. code::
+
+   opacity_highres = [
+     { species = "CO", folder = "CO/high_res" },
+     { species = "H2O", folder = "H2O/high_res" }
+   ]
+
+Each entry again has a ``species`` field with the chemical formula and a ``folder`` field pointing to
+the folder that contains the corresponding ``filelist.dat``, relative to the root opacity folder set
+via the ``opacity_data_folder`` key in the ``[retrieval]`` section of ``retrieval.toml``. All of the
+special keywords (``Rayleigh``, ``H-``, the ``CIA-`` sources) are supported here as well.
+
+The purpose of this separate list is to let the high-resolution part of the model use different
+opacity data than the low-resolution part, typically cross-sections computed at a higher spectral
+resolution or from a different line list, while keeping the (usually coarser) low-resolution
+opacities in the normal ``opacity`` block.
+
+If ``opacity_highres`` is absent or empty, the high-resolution model automatically falls back to the
+species and folders given in the normal ``opacity`` list, so specifying it is only necessary when the
+two parts of the model should use genuinely different opacity data.
+
+See :ref:`sec:high_resolution` for how the high-resolution opacities enter the re-injection and
+cross-correlation calculation.
