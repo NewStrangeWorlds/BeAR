@@ -242,7 +242,7 @@ endif()
 FetchContent_Declare(
   fastchem
   GIT_REPOSITORY https://github.com/newstrangeworlds/fastchem
-  GIT_TAG        v4.0.2
+  GIT_TAG        v4.0.4
 )
 
 FetchContent_GetProperties(fastchem)
