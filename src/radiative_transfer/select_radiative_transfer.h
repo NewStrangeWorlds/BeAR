@@ -16,6 +16,7 @@
 #include "short_characteristics/short_characteristics.h"
 #include "disort/discrete_ordinate.h"
 #include "adding_doubling/adding_doubling.h"
+#include "toon_source_function/toon_source_function.h"
 #include "../config/global_config.h"
 #include "../additional/exceptions.h"
 
@@ -25,8 +26,8 @@ namespace bear {
 //definition of the different chemistry modules with an
 //identifier, a keyword to be located in the config file and a short version of the keyword
 namespace rt_modules{
-  enum id {scm, disort, adding_doubling};
-  const std::vector<std::string> description {"scm", "disort", "adding_doubling"};
+  enum id {scm, disort, adding_doubling, toon};
+  const std::vector<std::string> description {"scm", "disort", "adding_doubling", "toon"};
 }
 
 
@@ -105,6 +106,24 @@ inline std::unique_ptr<RadiativeTransfer> selectRadiativeTransfer(
           nb_grid_points,
           config->use_gpu,
           use_delta_m);
+    }
+
+    case rt_modules::toon :
+    {
+      if (parameters.size() > 1)
+      {
+        std::string error_message = "Toon source function radiative transfer takes at most one parameter (number of angles)!\n";
+        throw InvalidInput(std::string ("forward_model.toml"), error_message);
+      }
+
+      //Gauss-Legendre angles for the intensity integration, two angles as in the scm scheme by default
+      const size_t nb_angles = parameters.size() == 1 ? std::stoi(parameters[0]) : 2;
+
+      return std::make_unique<ToonSourceFunction>(
+          spectral_grid,
+          nb_angles,
+          nb_grid_points,
+          config->use_gpu);
     }
   }
 

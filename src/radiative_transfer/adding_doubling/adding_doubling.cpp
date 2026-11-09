@@ -13,6 +13,7 @@
 
 #include "adding_doubling.h"
 
+#include "../layer_optical_properties.h"
 #include "../../forward_model/atmosphere/atmosphere.h"
 #include "../../additional/aux_functions.h"
 #include "../../additional/physical_const.h"
@@ -144,42 +145,21 @@ void AddingDoubling::calcSpectrum(
     // Set per-wavelength quantities: optical depth and single scattering albedo
     for (size_t j = 0; j < nb_layers; ++j)
     {
-      const double dz = atmosphere.altitude[j+1] - atmosphere.altitude[j];
+      const LayerOpticalProperties p = layerOpticalProperties(
+        atmosphere.altitude,
+        absorption_coeff[i],
+        scattering_coeff[i],
+        cloud_optical_depth[i],
+        cloud_single_scattering[i],
+        cloud_asym_param[i],
+        j);
 
-      const double abs_depth = dz
-        * (absorption_coeff[i][j+1] + absorption_coeff[i][j]) / 2.;
-      const double scat_depth = dz
-        * (scattering_coeff[i][j+1] + scattering_coeff[i][j]) / 2.;
-
-      double optical_depth = abs_depth + scat_depth;
-      double cloud_scat_depth = 0.0;
-      double cloud_asym = 0.0;
-
-      if (cloud_optical_depth[i].size() != 0)
-      {
-        optical_depth += cloud_optical_depth[i][j];
-
-        if (cloud_single_scattering[i].size() != 0)
-          cloud_scat_depth = cloud_optical_depth[i][j] * cloud_single_scattering[i][j];
-
-        if (cloud_asym_param[i].size() != 0)
-          cloud_asym = cloud_asym_param[i][j];
-      }
-
-      if (optical_depth < 0.0) optical_depth = 0.0;
-
-      const double scat_depth_total = scat_depth + cloud_scat_depth;
-
-      config.delta_tau[j] = optical_depth;
-      config.single_scat_albedo[j] = (optical_depth > 0.0)
-        ? std::min(scat_depth_total / optical_depth, 1.0) : 0.0;
+      config.delta_tau[j] = p.optical_depth;
+      config.single_scat_albedo[j] = p.single_scattering;
 
       // Phase function: gas Rayleigh + cloud Henyey-Greenstein, weighted by
       // their scattering optical depths
-      const double cloud_weight = (scat_depth_total > 0.0)
-        ? cloud_scat_depth / scat_depth_total : 0.0;
-
-      setPhaseMoments(config.phase_function_moments[j], cloud_weight, cloud_asym);
+      setPhaseMoments(config.phase_function_moments[j], p.cloud_scattering_fraction, p.cloud_asym_param);
     }
 
     // Set wavenumber for Planck function

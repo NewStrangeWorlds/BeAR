@@ -132,6 +132,7 @@ set(SRC
   src/radiative_transfer/disort/discrete_ordinate.cpp
   src/radiative_transfer/adding_doubling/adding_doubling.cpp
   src/radiative_transfer/short_characteristics/short_characteristics.cpp
+  src/radiative_transfer/toon_source_function/toon_source_function.cpp
   src/retrieval/post_process_spectra.cpp
   src/retrieval/post_process.cpp
   src/retrieval/select_forward_model.cpp
@@ -181,6 +182,7 @@ set(SRC_CUDA
   src/CUDA_kernels/secondary_eclipse_bb.cu
   src/CUDA_kernels/transmission_spectrum_kernels.cu
   src/radiative_transfer/short_characteristics/short_characteristics_kernels.cu
+  src/radiative_transfer/toon_source_function/toon_source_function_kernels.cu
   src/radiative_transfer/adding_doubling/adding_doubling_kernels.cu
   src/CUDA_kernels/cloud_model_kernels.cu
   src/CUDA_kernels/contribution_function_kernels.cu
