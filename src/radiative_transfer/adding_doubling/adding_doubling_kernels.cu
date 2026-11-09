@@ -100,9 +100,10 @@ void AddingDoubling::calcSpectrumGPU(
   data.wavenumber = spectral_grid->wavenumber_list_gpu;
   data.phase_moments = phase_moments_dev;
   data.phase_moments_shared = true;
-  data.cloud_optical_depth = cloud_optical_depth_dev;
-  data.cloud_single_scattering = cloud_single_scattering_dev;
-  data.cloud_asym_param = cloud_asym_param_dev;
+  // clouds enter as the particle component; the library mixes them with the gas
+  data.particle_optical_depth = cloud_optical_depth_dev;
+  data.particle_single_scattering = cloud_single_scattering_dev;
+  data.particle_asym_param = cloud_asym_param_dev;
   data.flux_up = model_spectrum_dev;
 
   if (nb_quadrature <= 16)
