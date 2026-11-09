@@ -88,25 +88,51 @@ class BeAREmissionModel:
     chem_species, 
     mixing_ratios,
     cloud_optical_depth,
-    use_variable_gravity=False) :
+    use_variable_gravity=False,
+    cloud_single_scattering=None,
+    cloud_asym_param=None) :
 
-    cloud_tau = np.copy(cloud_optical_depth)
-    
-    #reverse the cloud optical depth array because BeAR uses wavenumbers in increasing order
-    for i in range(cloud_tau.shape[0]):
-      cloud_tau[i] = np.flip(cloud_tau[i])
+    #reverse the cloud arrays along the spectral axis because BeAR uses wavenumbers in increasing order
+    #all cloud arrays are indexed [layer, wavelength]
+    def reverse_spectral_axis(array):
+      array = np.copy(array)
+      for i in range(array.shape[0]):
+        array[i] = np.flip(array[i])
+      return array
 
-    spectrum = np.array(
-      self.forward_model.calcSpectrum(
-        surface_gravity, 
-        radius,
-        distance, 
-        pressure, 
-        temperature, 
-        chem_species, 
-        mixing_ratios, 
-        cloud_tau,
-        use_variable_gravity))
+    cloud_tau = reverse_spectral_axis(cloud_optical_depth)
+
+    if cloud_single_scattering is None and cloud_asym_param is None:
+      spectrum = np.array(
+        self.forward_model.calcSpectrum(
+          surface_gravity,
+          radius,
+          distance,
+          pressure,
+          temperature,
+          chem_species,
+          mixing_ratios,
+          cloud_tau,
+          use_variable_gravity))
+    else:
+      if cloud_single_scattering is None:
+        cloud_single_scattering = np.zeros_like(cloud_tau)
+      if cloud_asym_param is None:
+        cloud_asym_param = np.zeros_like(cloud_tau)
+
+      spectrum = np.array(
+        self.forward_model.calcSpectrum(
+          surface_gravity,
+          radius,
+          distance,
+          pressure,
+          temperature,
+          chem_species,
+          mixing_ratios,
+          cloud_tau,
+          reverse_spectral_axis(cloud_single_scattering),
+          reverse_spectral_axis(cloud_asym_param),
+          use_variable_gravity))
     
     spectrum = np.flip(spectrum)
 

@@ -17,6 +17,7 @@
 
 #include "../forward_model/atmosphere/atmosphere.h"
 #include "../CUDA_kernels/data_management_kernels.h"
+#include "../additional/exceptions.h"
 
 
 namespace bear{
@@ -24,11 +25,25 @@ namespace bear{
 
 GreyCloudModel::GreyCloudModel(const std::vector<std::string>& parameters)
 {
-  //fixed bottom case
-  if (parameters.size() == 1 && parameters[0] == "fb")
-    fixed_bottom = true;
+  //optional model options:
+  //  "fb"          fixed cloud bottom, one scale height below the cloud top
+  //  "scattering"  the cloud scatters with a constant single scattering albedo
+  //                and Henyey-Greenstein asymmetry parameter (two extra free parameters)
+  for (auto & p : parameters)
+  {
+    if (p == "fb")
+      fixed_bottom = true;
+    else if (p == "scattering")
+      scattering = true;
+    else
+    {
+      std::string error_message =
+        "Unknown option \"" + p + "\" for the grey cloud model (allowed: fb, scattering)\n";
+      throw InvalidInput(std::string ("GreyCloudModel::GreyCloudModel"), error_message);
+    }
+  }
 
-  //populate the parameter names in the same order opticalProperties() reads them
+  //populate the parameter names in the same order readParameters() reads them
   parameter_names = {
     "cloud_optical_depth",
     "cloud_top_pressure"};
@@ -36,6 +51,44 @@ GreyCloudModel::GreyCloudModel(const std::vector<std::string>& parameters)
   if (fixed_bottom == false)
     parameter_names.push_back("cloud_bottom_fraction");
 
+  if (scattering == true)
+  {
+    parameter_names.push_back("cloud_single_scattering_albedo");
+    parameter_names.push_back("cloud_asym_param");
+  }
+}
+
+
+
+//extracts the free parameters; the single scattering albedo and the asymmetry
+//parameter are zero unless the scattering option is used
+void GreyCloudModel::readParameters(
+  const std::vector<double>& parameters,
+  double& cloud_optical_depth,
+  double& cloud_top_pressure,
+  double& cloud_bottom_pressure,
+  double& single_scattering_albedo,
+  double& asym_param) const
+{
+  cloud_optical_depth = parameters[0];
+  cloud_top_pressure = parameters[1];
+  cloud_bottom_pressure = 0;
+
+  size_t idx = 2;
+
+  if (fixed_bottom == false)
+    cloud_bottom_pressure = cloud_top_pressure * parameters[idx++];
+
+  if (cloud_optical_depth < 0) cloud_optical_depth = 0;
+
+  single_scattering_albedo = 0;
+  asym_param = 0;
+
+  if (scattering == true)
+  {
+    single_scattering_albedo = std::min(std::max(parameters[idx], 0.0), 1.0);
+    asym_param = std::min(std::max(parameters[idx+1], -1.0), 1.0);
+  }
 }
 
 
@@ -51,15 +104,19 @@ void GreyCloudModel::opticalProperties(
   std::vector<std::vector<double>>& single_scattering, 
   std::vector<std::vector<double>>& asym_param)
 {
-  double cloud_optical_depth = parameters[0];
-  double cloud_top_pressure = parameters[1];
+  double cloud_optical_depth = 0;
+  double cloud_top_pressure = 0;
   double cloud_bottom_pressure = 0;
+  double cloud_single_scattering_albedo = 0;
+  double cloud_asym_param = 0;
 
-  if (fixed_bottom == false)
-    cloud_bottom_pressure = cloud_top_pressure * parameters[2];
-
-
-  if (cloud_optical_depth < 0) cloud_optical_depth = 0;
+  readParameters(
+    parameters,
+    cloud_optical_depth,
+    cloud_top_pressure,
+    cloud_bottom_pressure,
+    cloud_single_scattering_albedo,
+    cloud_asym_param);
 
 
   size_t nb_spectral_points = spectral_grid->nbSpectralPoints();
@@ -86,10 +143,15 @@ void GreyCloudModel::opticalProperties(
   double optical_depth_layer = 
     cloud_optical_depth/static_cast<double>(cloud_top_index - cloud_bottom_index); 
 
-  //the grey cloud here only has absorption, no scattering
+  //constant optical properties in all cloud layers
+  //without the scattering option, the cloud is a pure absorber
   for (size_t j=0; j<nb_spectral_points; ++j)
     for (size_t i=cloud_top_index; i>cloud_bottom_index; --i)
+    {
       optical_depth[j][i] = optical_depth_layer;
+      single_scattering[j][i] = cloud_single_scattering_albedo;
+      asym_param[j][i] = cloud_asym_param;
+    }
 }
 
 

@@ -78,16 +78,34 @@ inline std::unique_ptr<RadiativeTransfer> selectRadiativeTransfer(
           config->use_gpu);
 
     case rt_modules::adding_doubling :
-      if (parameters.size() != 1)
+    {
+      if (parameters.size() < 1 || parameters.size() > 2)
       {
-        std::string error_message = "Adding-doubling radiative transfer requires exactly one parameter (number of quadrature points)!\n";
+        std::string error_message = "Adding-doubling radiative transfer requires one or two parameters (number of quadrature points, optional delta_m/no_delta_m)!\n";
         throw InvalidInput(std::string ("forward_model.toml"), error_message);
       }
+
+      //delta-M scaling of strongly forward-peaked phase functions is on by default
+      bool use_delta_m = true;
+
+      if (parameters.size() == 2)
+      {
+        if (parameters[1] == "no_delta_m")
+          use_delta_m = false;
+        else if (parameters[1] != "delta_m")
+        {
+          std::string error_message = "Unknown adding-doubling option \"" + parameters[1] + "\" (allowed: delta_m, no_delta_m)!\n";
+          throw InvalidInput(std::string ("forward_model.toml"), error_message);
+        }
+      }
+
       return std::make_unique<AddingDoubling>(
           spectral_grid,
           std::stoi(parameters[0]),
           nb_grid_points,
-          config->use_gpu);
+          config->use_gpu,
+          use_delta_m);
+    }
   }
 
 

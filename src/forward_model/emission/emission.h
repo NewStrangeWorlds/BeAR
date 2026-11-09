@@ -154,6 +154,18 @@ class EmissionModel : public ForwardModel{
       const std::vector<std::vector<double>>& mixing_ratios,
       const std::vector<std::vector<double>>& cloud_optical_depth,
       const bool use_variable_gravity);
+    std::vector<double> calcSpectrum(
+      const double surface_gravity,
+      const double radius,
+      const double distance,
+      const std::vector<double>& pressure,
+      const std::vector<double>& temperature,
+      const std::vector<std::string>& species_symbol,
+      const std::vector<std::vector<double>>& mixing_ratios,
+      const std::vector<std::vector<double>>& cloud_optical_depth,
+      const std::vector<std::vector<double>>& cloud_single_scattering,
+      const std::vector<std::vector<double>>& cloud_asym_param,
+      const bool use_variable_gravity);
 
     virtual void postProcess(
       const std::vector< std::vector<double> >& model_parameter,
@@ -205,7 +217,10 @@ class EmissionModel : public ForwardModel{
     double radiusDistanceScaling(const std::vector<double>& parameter);
     void changeSpectrumUnitsGPU(float* spectrum_gpu);
 
-    void setCloudProperties(const std::vector<std::vector<double>>& cloud_optical_depth);
+    void setCloudProperties(
+      const std::vector<std::vector<double>>& cloud_optical_depth,
+      const std::vector<std::vector<double>>& cloud_single_scattering,
+      const std::vector<std::vector<double>>& cloud_asym_param);
 
     void postProcess(
       const EmissionPostProcessConfig& post_process_config_,

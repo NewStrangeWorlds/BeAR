@@ -28,7 +28,8 @@ class AddingDoubling : public RadiativeTransfer{
       SpectralGrid* spectral_grid_ptr,
       const size_t nb_quadrature,
       const size_t nb_grid_points,
-      const bool use_gpu);
+      const bool use_gpu,
+      const bool use_delta_m = true);
     virtual ~AddingDoubling();
 
     virtual void calcSpectrum(
@@ -55,6 +56,7 @@ class AddingDoubling : public RadiativeTransfer{
     size_t nb_quadrature;
     size_t nb_grid_points;
     bool gpu_enabled = false;
+    bool use_delta_m = true;
 
     std::vector<adrt::ADConfig> configs;
     std::vector<adrt::SolverWorkspace> workspaces;

@@ -250,6 +250,7 @@ bool EmissionModel::calcModelGPU(
 }
 
 
+//absorbing clouds only: single scattering albedo and asymmetry parameter are zero
 std::vector<double> EmissionModel::calcSpectrum(
   const double surface_gravity,
   const double radius,
@@ -261,18 +262,47 @@ std::vector<double> EmissionModel::calcSpectrum(
   const std::vector<std::vector<double>>& cloud_optical_depth,
   const bool use_variable_gravity)
 {
+  return calcSpectrum(
+    surface_gravity,
+    radius,
+    distance,
+    pressure,
+    temperature,
+    species_symbol,
+    mixing_ratios,
+    cloud_optical_depth,
+    std::vector<std::vector<double>>{},
+    std::vector<std::vector<double>>{},
+    use_variable_gravity);
+}
+
+
+
+std::vector<double> EmissionModel::calcSpectrum(
+  const double surface_gravity,
+  const double radius,
+  const double distance,
+  const std::vector<double>& pressure,
+  const std::vector<double>& temperature,
+  const std::vector<std::string>& species_symbol,
+  const std::vector<std::vector<double>>& mixing_ratios,
+  const std::vector<std::vector<double>>& cloud_optical_depth,
+  const std::vector<std::vector<double>>& cloud_single_scattering,
+  const std::vector<std::vector<double>>& cloud_asym_param,
+  const bool use_variable_gravity)
+{
 
   atmosphere.setAtmosphericStructure(
-    surface_gravity, 
+    surface_gravity,
     radius,
     use_variable_gravity,
-    pressure, 
-    temperature, 
-    species_symbol, 
+    pressure,
+    temperature,
+    species_symbol,
     mixing_ratios);
-  
 
-  setCloudProperties(cloud_optical_depth);
+
+  setCloudProperties(cloud_optical_depth, cloud_single_scattering, cloud_asym_param);
 
   std::vector<double> spectrum(spectral_grid->nbSpectralPoints(), 0.0);
   
@@ -327,8 +357,12 @@ std::vector<double> EmissionModel::calcSpectrum(
 
 
 
+//cloud arrays are indexed [layer][spectral point]; empty single scattering albedo or
+//asymmetry parameter arrays correspond to a purely absorbing cloud
 void EmissionModel::setCloudProperties(
-  const std::vector<std::vector<double>>& cloud_optical_depth)
+  const std::vector<std::vector<double>>& cloud_optical_depth,
+  const std::vector<std::vector<double>>& cloud_single_scattering,
+  const std::vector<std::vector<double>>& cloud_asym_param)
 {
   bool use_cloud = false;
 
@@ -345,13 +379,36 @@ void EmissionModel::setCloudProperties(
   if (!use_cloud)
     return;
 
-  std::vector<std::vector<double>> single_scattering_albedo(
-    nb_grid_points-1, 
-    std::vector<double>(spectral_grid->nbSpectralPoints(), 0.0));
+  std::vector<std::vector<double>> single_scattering_albedo = cloud_single_scattering;
+  std::vector<std::vector<double>> asymmetry_parameter = cloud_asym_param;
 
-  std::vector<std::vector<double>> asymmetry_parameter(
-    nb_grid_points-1, 
-    std::vector<double>(spectral_grid->nbSpectralPoints(), 0.0));
+  if (single_scattering_albedo.empty())
+    single_scattering_albedo.assign(
+      nb_grid_points-1,
+      std::vector<double>(spectral_grid->nbSpectralPoints(), 0.0));
+
+  if (asymmetry_parameter.empty())
+    asymmetry_parameter.assign(
+      nb_grid_points-1,
+      std::vector<double>(spectral_grid->nbSpectralPoints(), 0.0));
+
+  auto checkShape = [&](const std::vector<std::vector<double>>& array, const std::string& name)
+  {
+    bool ok = array.size() == cloud_optical_depth.size();
+
+    for (size_t i=0; ok && i<array.size(); ++i)
+      ok = array[i].size() == cloud_optical_depth[i].size();
+
+    if (!ok)
+    {
+      std::string error_message =
+        "The cloud " + name + " array must have the same shape as the cloud optical depth array\n";
+      throw InvalidInput(std::string ("EmissionModel::setCloudProperties"), error_message);
+    }
+  };
+
+  checkShape(single_scattering_albedo, "single scattering albedo");
+  checkShape(asymmetry_parameter, "asymmetry parameter");
 
   cloud_models.push_back(std::make_unique<FixedCloudModel>(
     cloud_optical_depth,

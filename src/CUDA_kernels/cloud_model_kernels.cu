@@ -83,10 +83,12 @@ __device__ __forceinline__ void mixCloudLayer(
 
 
 __global__ void greyCloudModel(
-  float* optical_depth, 
-  float* single_scattering_albedo, 
+  float* optical_depth,
+  float* single_scattering_albedo,
   float* asym_param,
   const double layer_optical_depth,
+  const double layer_single_scattering,
+  const double layer_asym_param,
   const int cloud_top,
   const int cloud_bottom,
   const int nb_spectral_points)
@@ -101,7 +103,7 @@ __global__ void greyCloudModel(
       //the grey cloud here only has absorption, no scattering
       mixCloudLayer(
         optical_depth, single_scattering_albedo, asym_param,
-        j, layer_optical_depth, 0.0, 0.0);
+        j, layer_optical_depth, layer_single_scattering, layer_asym_param);
     }
 
   }
@@ -214,15 +216,19 @@ __host__ void GreyCloudModel::opticalPropertiesGPU(const std::vector<double>& pa
   float* single_scattering_dev, 
   float* asym_param)
 {
-  double cloud_optical_depth = parameters[0];
-  double cloud_top_pressure = parameters[1];
+  double cloud_optical_depth = 0;
+  double cloud_top_pressure = 0;
   double cloud_bottom_pressure = 0;
+  double cloud_single_scattering_albedo = 0;
+  double cloud_asym_param = 0;
 
-  if (fixed_bottom == false)
-    cloud_bottom_pressure = cloud_top_pressure * parameters[2];
-
-
-  if (cloud_optical_depth < 0) cloud_optical_depth = 0;
+  readParameters(
+    parameters,
+    cloud_optical_depth,
+    cloud_top_pressure,
+    cloud_bottom_pressure,
+    cloud_single_scattering_albedo,
+    cloud_asym_param);
 
 
   size_t nb_spectral_points = spectral_grid->nbSpectralPoints();
@@ -247,6 +253,8 @@ __host__ void GreyCloudModel::opticalPropertiesGPU(const std::vector<double>& pa
     single_scattering_dev,
     asym_param,
     optical_depth_layer,
+    cloud_single_scattering_albedo,
+    cloud_asym_param,
     cloud_top_index,
     cloud_bottom_index,
     nb_spectral_points);

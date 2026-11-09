@@ -8,6 +8,7 @@
 #include <fstream>
 #include <cmath>
 #include <vector>
+#include <algorithm>
 #include <omp.h>
 
 #include "adding_doubling.h"
@@ -26,15 +27,41 @@
 namespace bear{
 
 
+// Legendre moments of the mixed gas + cloud phase function of a layer, weighted by
+// the scattering optical depths. Gas: Rayleigh (chi_0 = 1, chi_2 = 0.1),
+// cloud: Henyey-Greenstein (chi_l = g^l). The (2l+1) factor is applied by the solver.
+static void setPhaseMoments(
+  std::vector<double>& moments,
+  const double cloud_weight,
+  const double asym_param)
+{
+  const double gas_weight = 1.0 - cloud_weight;
+  double gk = 1.0;
+
+  for (size_t m = 0; m < moments.size(); ++m)
+  {
+    double rayleigh = 0.0;
+    if (m == 0) rayleigh = 1.0;
+    if (m == 2) rayleigh = 0.1;
+
+    moments[m] = gas_weight * rayleigh + cloud_weight * gk;
+    gk *= asym_param;
+  }
+}
+
+
+
 AddingDoubling::AddingDoubling(
   SpectralGrid* spectral_grid_ptr,
   const size_t nb_quadrature_,
   const size_t nb_grid_points_,
-  const bool use_gpu)
+  const bool use_gpu,
+  const bool use_delta_m_)
    : RadiativeTransfer(spectral_grid_ptr)
    , nb_quadrature(nb_quadrature_)
    , nb_grid_points(nb_grid_points_)
    , gpu_enabled(use_gpu)
+   , use_delta_m(use_delta_m_)
 {
   if (nb_quadrature < 2)
   {
@@ -43,6 +70,9 @@ AddingDoubling::AddingDoubling(
   }
 
   const size_t nb_layers = nb_grid_points - 1;
+
+  // delta-M scaling needs the 2N-th moment in addition to the 2N used by the solver
+  nb_phase_moments = use_delta_m ? 2 * nb_quadrature + 1 : 2 * nb_quadrature;
 
   if (!use_gpu)
   {
@@ -59,13 +89,14 @@ AddingDoubling::AddingDoubling(
 
     // Allocate with thermal emission enabled so temperature array is always present
     config_template.use_thermal_emission = true;
+    config_template.use_delta_m = use_delta_m;
     config_template.allocate();
 
-    // Set constant optical properties
+    // Default optical properties: non-scattering layers with the gas (Rayleigh) phase function
     for (size_t j = 0; j < nb_layers; ++j)
     {
       config_template.single_scat_albedo[j] = 0.0;
-      config_template.setIsotropic(j);
+      config_template.setRayleigh(j);
     }
 
     configs.assign(nb_cores, config_template);
@@ -121,15 +152,34 @@ void AddingDoubling::calcSpectrum(
         * (scattering_coeff[i][j+1] + scattering_coeff[i][j]) / 2.;
 
       double optical_depth = abs_depth + scat_depth;
+      double cloud_scat_depth = 0.0;
+      double cloud_asym = 0.0;
 
       if (cloud_optical_depth[i].size() != 0)
+      {
         optical_depth += cloud_optical_depth[i][j];
+
+        if (cloud_single_scattering[i].size() != 0)
+          cloud_scat_depth = cloud_optical_depth[i][j] * cloud_single_scattering[i][j];
+
+        if (cloud_asym_param[i].size() != 0)
+          cloud_asym = cloud_asym_param[i][j];
+      }
 
       if (optical_depth < 0.0) optical_depth = 0.0;
 
+      const double scat_depth_total = scat_depth + cloud_scat_depth;
+
       config.delta_tau[j] = optical_depth;
       config.single_scat_albedo[j] = (optical_depth > 0.0)
-        ? scat_depth / optical_depth : 0.0;
+        ? std::min(scat_depth_total / optical_depth, 1.0) : 0.0;
+
+      // Phase function: gas Rayleigh + cloud Henyey-Greenstein, weighted by
+      // their scattering optical depths
+      const double cloud_weight = (scat_depth_total > 0.0)
+        ? cloud_scat_depth / scat_depth_total : 0.0;
+
+      setPhaseMoments(config.phase_function_moments[j], cloud_weight, cloud_asym);
     }
 
     // Set wavenumber for Planck function

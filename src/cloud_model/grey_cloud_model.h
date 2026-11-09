@@ -36,6 +36,15 @@ class GreyCloudModel: public CloudModel{
 
   protected:
     bool fixed_bottom = false;
+    bool scattering = false;
+
+    void readParameters(
+      const std::vector<double>& parameters,
+      double& cloud_optical_depth,
+      double& cloud_top_pressure,
+      double& cloud_bottom_pressure,
+      double& single_scattering_albedo,
+      double& asym_param) const;
 
     void cloudPosition(
       const Atmosphere& atmosphere, 

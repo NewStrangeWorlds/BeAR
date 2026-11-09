@@ -142,7 +142,7 @@ PYBIND11_MODULE(bear, m) {
 
     py::class_<bear::Retrieval>(m, "Retrieval")
         .def(py::init<
-          bear::GlobalConfig*>())
+          bear::GlobalConfig*>(), py::keep_alive<1, 2>())
         .def(py::init<
           bear::GlobalConfig*,
           bear::GenericConfig*,
@@ -194,7 +194,7 @@ PYBIND11_MODULE(bear, m) {
         .def("computeAtmosphereStructure", &bear::PostProcess::computeAtmosphereStructure);
 
     py::class_<bear::PostProcess>(m, "PostProcess")
-        .def(py::init<bear::GlobalConfig*>())
+        .def(py::init<bear::GlobalConfig*>(), py::keep_alive<1, 2>())
         .def(py::init<
           bear::GlobalConfig*,
           bear::GenericConfig*,
@@ -213,9 +213,11 @@ PYBIND11_MODULE(bear, m) {
             std::vector<std::vector<double>>&, 
             std::vector<double>&)>(&bear::PostProcess::run));
 
+    //the models keep raw pointers to the config and the spectral grid, so those
+    //Python objects must outlive them (keep_alive ties their lifetime to the model)
     py::class_<bear::SpectralGrid>(m, "SpectralGrid")
-        .def(py::init<bear::GlobalConfig*>())
-        .def(py::init<bear::GlobalConfig*, double, double>())
+        .def(py::init<bear::GlobalConfig*>(), py::keep_alive<1, 2>())
+        .def(py::init<bear::GlobalConfig*, double, double>(), py::keep_alive<1, 2>())
         .def_readwrite("wavenumber_list", &bear::SpectralGrid::wavenumber_list)
         .def_readwrite("wavelength_list", &bear::SpectralGrid::wavelength_list)
         .def("wavelengthToWavenumber", static_cast<double (bear::SpectralGrid::*)(const double)>(&bear::SpectralGrid::wavelengthToWavenumber));
@@ -412,7 +414,7 @@ PYBIND11_MODULE(bear, m) {
           bear::SpectralGrid*, 
           const size_t, 
           const std::vector<std::string>&, 
-          const std::vector<std::string>&>())
+          const std::vector<std::string>&>(), py::keep_alive<1, 2>(), py::keep_alive<1, 3>())
         .def("calcSpectrum", &bear::TransmissionModel::calcSpectrum);
 
     py::class_<bear::OccultationModel>(m, "OccultationModel")
@@ -423,7 +425,7 @@ PYBIND11_MODULE(bear, m) {
           const std::vector<double>&, 
           const std::vector<double>&, 
           const std::vector<std::string>&, 
-          const std::vector<std::string>&>())
+          const std::vector<std::string>&>(), py::keep_alive<1, 2>(), py::keep_alive<1, 3>())
         .def("calcSpectrum", &bear::OccultationModel::calcSpectrum);
 
     py::class_<bear::EmissionModel>(m, "EmissionModel")
@@ -434,6 +436,18 @@ PYBIND11_MODULE(bear, m) {
           const std::string,
           const std::vector<std::string>&,
           const std::vector<std::string>&, 
-          const std::vector<std::string>&>())
-        .def("calcSpectrum", &bear::EmissionModel::calcSpectrum);
+          const std::vector<std::string>&>(), py::keep_alive<1, 2>(), py::keep_alive<1, 3>())
+        .def("calcSpectrum", py::overload_cast<
+          const double, const double, const double,
+          const std::vector<double>&, const std::vector<double>&,
+          const std::vector<std::string>&, const std::vector<std::vector<double>>&,
+          const std::vector<std::vector<double>>&, const bool>(
+            &bear::EmissionModel::calcSpectrum))
+        .def("calcSpectrum", py::overload_cast<
+          const double, const double, const double,
+          const std::vector<double>&, const std::vector<double>&,
+          const std::vector<std::string>&, const std::vector<std::vector<double>>&,
+          const std::vector<std::vector<double>>&, const std::vector<std::vector<double>>&,
+          const std::vector<std::vector<double>>&, const bool>(
+            &bear::EmissionModel::calcSpectrum));
 }
