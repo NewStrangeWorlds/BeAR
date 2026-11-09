@@ -141,6 +141,10 @@ void AddingDoubling::calcSpectrum(
     config.use_thermal_emission =
       adrt::planckFunction(wavenumber, wavenumber, atmosphere.temperature[0]) > 1.e-35;
 
+    // Cold space at the top: no thermal downwelling at TOA.
+    // The library only accepts top_temperature >= 0 together with thermal emission
+    config.top_temperature = config.use_thermal_emission ? 0.0 : -1.0;
+
     try
     {
       // Solve and extract upward flux at TOA

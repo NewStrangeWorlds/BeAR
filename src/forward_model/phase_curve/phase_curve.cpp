@@ -159,7 +159,7 @@ bool PhaseCurveModel::calcModelCPU(
     radiative_transfer->calcSpectrum(
       atmosphere,
       opacity_calc.absorption_coeff,
-      opacity_calc.absorption_coeff,
+      opacity_calc.scattering_coeff,
       opacity_calc.cloud_optical_depths,
       opacity_calc.cloud_single_scattering,
       opacity_calc.cloud_asym_param,
@@ -226,7 +226,7 @@ bool PhaseCurveModel::calcModelCPU(
     radiative_transfer_highres->calcSpectrum(
       atmosphere,
       opacity_calc_highres->absorption_coeff,
-      opacity_calc_highres->absorption_coeff,
+      opacity_calc_highres->scattering_coeff,
       opacity_calc_highres->cloud_optical_depths,
       opacity_calc_highres->cloud_single_scattering,
       opacity_calc_highres->cloud_asym_param,
@@ -473,7 +473,7 @@ std::vector<double> PhaseCurveModel::calcSpectrum(
     radiative_transfer->calcSpectrum(
       atmosphere,
       opacity_calc.absorption_coeff,
-      opacity_calc.absorption_coeff,
+      opacity_calc.scattering_coeff,
       opacity_calc.cloud_optical_depths,
       opacity_calc.cloud_single_scattering,
       opacity_calc.cloud_asym_param,

@@ -94,7 +94,7 @@ void FixedCloudModel::opticalPropertiesGPU(
       const int idx = i*nb_spectral_points + j;
 
       optical_depth_flat[idx] = fixed_optical_depth[j][i];
-      single_scattering_flat[idx] = fixed_optical_depth[j][i];
+      single_scattering_flat[idx] = fixed_single_scattering_albedo[j][i];
       asymmetry_param_flat[idx] = fixed_asymmetry_parameter[j][i];
     }
   }

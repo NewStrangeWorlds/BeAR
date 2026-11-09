@@ -58,6 +58,7 @@ void AddingDoubling::calcSpectrumGPU(
   bcfg.solar_flux = 0.0;
   bcfg.solar_mu = 0.5;
   bcfg.use_thermal_emission = true;
+  bcfg.top_temperature = 0.0;  // cold space: no thermal downwelling at TOA
   bcfg.spectrum_scaling = spectrum_scaling;
 
   // Pass BeAR's raw data directly to the solver

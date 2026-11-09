@@ -238,8 +238,9 @@ inline void OpacityCalculation::calculate(
       for (size_t j=0; j<nb_spectral_points; ++j)
         for (size_t k=0; k<nb_grid_points-1; ++k)
         {
+          //scattering optical depths of the already accumulated clouds and the new model
           const double tau_scattering1 = cloud_optical_depths[j][k] * cloud_single_scattering[j][k];
-          const double tau_scattering2 = optical_depths[j][k] * cloud_single_scattering[j][k];
+          const double tau_scattering2 = optical_depths[j][k] * single_scattering[j][k];
           const double tau_scattering_mix = tau_scattering1 + tau_scattering2;
           
           const double optical_depth_mix = cloud_optical_depths[j][k] + optical_depths[j][k];
@@ -249,8 +250,13 @@ inline void OpacityCalculation::calculate(
           if (optical_depth_mix > 0)
             single_scattering_mix = tau_scattering_mix / optical_depth_mix;
 
-          const double mix_asym_param = tau_scattering1/tau_scattering_mix * cloud_asym_param[j][k]
-                                      + tau_scattering2/tau_scattering_mix * asym_param[j][k];
+          //asymmetry parameter is weighted by the scattering optical depth;
+          //without any scattering it is left at zero
+          double mix_asym_param = 0;
+
+          if (tau_scattering_mix > 0)
+            mix_asym_param = (tau_scattering1 * cloud_asym_param[j][k]
+                            + tau_scattering2 * asym_param[j][k]) / tau_scattering_mix;
 
           cloud_optical_depths[j][k] = optical_depth_mix;
           cloud_single_scattering[j][k] = single_scattering_mix;

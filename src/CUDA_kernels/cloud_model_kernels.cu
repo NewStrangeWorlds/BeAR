@@ -46,9 +46,46 @@ namespace bear{
 }
 
 
+//mixes the optical properties of a new cloud layer into the already accumulated
+//cloud properties at array index j
+//the single scattering albedo is weighted by the optical depth, the asymmetry
+//parameter by the scattering optical depth (same scheme as OpacityCalculation::calculate)
+__device__ __forceinline__ void mixCloudLayer(
+  float* optical_depth,
+  float* single_scattering_albedo,
+  float* asym_param,
+  const int j,
+  const double layer_optical_depth,
+  const double layer_single_scattering,
+  const double layer_asym_param)
+{
+  const double tau_scattering1 = optical_depth[j] * single_scattering_albedo[j];
+  const double tau_scattering2 = layer_optical_depth * layer_single_scattering;
+  const double tau_scattering_mix = tau_scattering1 + tau_scattering2;
+
+  const double optical_depth_mix = optical_depth[j] + layer_optical_depth;
+
+  double single_scattering_mix = 0;
+
+  if (optical_depth_mix > 0)
+    single_scattering_mix = tau_scattering_mix / optical_depth_mix;
+
+  double asym_param_mix = 0;
+
+  if (tau_scattering_mix > 0)
+    asym_param_mix = (tau_scattering1 * asym_param[j]
+                    + tau_scattering2 * layer_asym_param) / tau_scattering_mix;
+
+  optical_depth[j] = optical_depth_mix;
+  single_scattering_albedo[j] = single_scattering_mix;
+  asym_param[j] = asym_param_mix;
+}
+
+
 __global__ void greyCloudModel(
   float* optical_depth, 
   float* single_scattering_albedo, 
+  float* asym_param,
   const double layer_optical_depth,
   const int cloud_top,
   const int cloud_bottom,
@@ -60,11 +97,11 @@ __global__ void greyCloudModel(
     for (int i=cloud_top; i>cloud_bottom; --i)
     { 
       const int j = i*nb_spectral_points + tid;
-      const double optical_depth_mix = optical_depth[j] + layer_optical_depth;
 
-      single_scattering_albedo[j] = optical_depth[j] * single_scattering_albedo[j] / optical_depth_mix;
-
-      optical_depth[j] = optical_depth_mix;
+      //the grey cloud here only has absorption, no scattering
+      mixCloudLayer(
+        optical_depth, single_scattering_albedo, asym_param,
+        j, layer_optical_depth, 0.0, 0.0);
     }
 
   }
@@ -76,6 +113,7 @@ __global__ void greyCloudModel(
 __global__ void KHnongreyCloudModel(
   float* optical_depth, 
   float* single_scattering_albedo, 
+  float* asym_param,
   double* wavelengths,
   const double optical_depth_layer_ref,
   const double reference_q,
@@ -97,11 +135,11 @@ __global__ void KHnongreyCloudModel(
     for (int i=cloud_top; i>cloud_bottom; --i)
     {
       const int j = i*nb_spectral_points + tid;
-      const double optical_depth_mix = optical_depth[j] + optical_depth_layer;
 
-      single_scattering_albedo[j] = optical_depth[j] * single_scattering_albedo[j] / optical_depth_mix;
-      
-      optical_depth[j] = optical_depth_mix;
+      //the cloud here only has absorption, no scattering
+      mixCloudLayer(
+        optical_depth, single_scattering_albedo, asym_param,
+        j, optical_depth_layer, 0.0, 0.0);
     }
   }
 
@@ -112,6 +150,7 @@ __global__ void KHnongreyCloudModel(
 __global__ void powerLawCloudModel(
   float* optical_depth, 
   float* single_scattering_albedo, 
+  float* asym_param,
   double* wavelengths,
   const double optical_depth_layer_ref,
   const double reference_value,
@@ -129,11 +168,11 @@ __global__ void powerLawCloudModel(
     for (int i=cloud_top; i>cloud_bottom; --i)
     {
       const int j = i*nb_spectral_points + tid;
-      const double optical_depth_mix = optical_depth[j] + optical_depth_layer;
 
-      single_scattering_albedo[j] = optical_depth[j] * single_scattering_albedo[j] / optical_depth_mix;
-      
-      optical_depth[j] = optical_depth_mix;
+      //the cloud here only has absorption, no scattering
+      mixCloudLayer(
+        optical_depth, single_scattering_albedo, asym_param,
+        j, optical_depth_layer, 0.0, 0.0);
     }
   }
 
@@ -206,6 +245,7 @@ __host__ void GreyCloudModel::opticalPropertiesGPU(const std::vector<double>& pa
   greyCloudModel<<<blocks,threads>>>(
     optical_depth_dev,
     single_scattering_dev,
+    asym_param,
     optical_depth_layer,
     cloud_top_index,
     cloud_bottom_index,
@@ -266,6 +306,7 @@ __host__ void KHCloudModel::opticalPropertiesGPU(
   KHnongreyCloudModel<<<blocks,threads>>>(
     optical_depth_dev,
     single_scattering_dev,
+    asym_param,
     spectral_grid->wavelength_list_gpu,
     optical_depth_layer_reference,
     reference_q,
@@ -326,6 +367,7 @@ __host__ void PowerLawCloudModel::opticalPropertiesGPU(
   powerLawCloudModel<<<blocks,threads>>>(
     optical_depth_dev,
     single_scattering_dev,
+    asym_param,
     spectral_grid->wavelength_list_gpu,
     optical_depth_layer_reference,
     reference_value,

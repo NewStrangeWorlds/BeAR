@@ -181,7 +181,7 @@ bool OccultationModel::calcModelCPU(
   radiative_transfer->calcSpectrum(
     atmosphere,
     opacity_calc.absorption_coeff, 
-    opacity_calc.absorption_coeff, 
+    opacity_calc.scattering_coeff, 
     opacity_calc.cloud_optical_depths, 
     opacity_calc.cloud_single_scattering, 
     opacity_calc.cloud_asym_param,
@@ -446,7 +446,7 @@ std::vector<double> OccultationModel::calcSpectrum(
     radiative_transfer->calcSpectrum(
       atmosphere,
       opacity_calc.absorption_coeff, 
-      opacity_calc.absorption_coeff, 
+      opacity_calc.scattering_coeff, 
       opacity_calc.cloud_optical_depths, 
       opacity_calc.cloud_single_scattering, 
       opacity_calc.cloud_asym_param,
