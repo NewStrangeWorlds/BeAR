@@ -24,7 +24,7 @@ namespace bear{
 
 
 KHCloudModel::KHCloudModel(const std::vector<std::string>& parameters)
- : GreyCloudModel(parameters)
+ : GreyCloudModel(std::vector<std::string>{})
 {
   if (parameters.size() < 1)
   {

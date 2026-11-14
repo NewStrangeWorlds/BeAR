@@ -6,6 +6,7 @@
 #include "../cloud_model/grey_cloud_model.h"
 #include "../cloud_model/kh_cloud_model.h"
 #include "../cloud_model/power_law_cloud_model.h"
+#include "../cloud_model/mie_cloud_model.h"
 #include "../spectral_grid/spectral_grid.h"
 
 #include <iostream>
@@ -180,6 +181,50 @@ __global__ void powerLawCloudModel(
 
 }
 
+
+
+//cloud layer with tabulated Mie properties; the table columns have been
+//interpolated to the particle size and distribution width on the host and
+//are here interpolated in wavelength via the pre-computed grid mapping
+__global__ void mieCloudModel(
+  float* optical_depth, 
+  float* single_scattering_albedo, 
+  float* asym_param,
+  const double* log_cross_section,
+  const double* table_single_scattering,
+  const double* table_asym_param,
+  const int* grid_index,
+  const double* grid_weight,
+  const double optical_depth_layer_ref,
+  const double log_cross_section_ref,
+  const int cloud_top,
+  const int cloud_bottom,
+  const int nb_spectral_points)
+{
+  //the thread index tid is the wavelength
+  for (int tid = blockIdx.x * blockDim.x + threadIdx.x; tid < nb_spectral_points; tid += blockDim.x * gridDim.x)
+  {
+    const int k = grid_index[tid];
+    const double w = grid_weight[tid];
+
+    const double log_cross_section_wl = (1.0 - w) * log_cross_section[k] + w * log_cross_section[k+1];
+    const double ssa_wl = (1.0 - w) * table_single_scattering[k] + w * table_single_scattering[k+1];
+    const double g_wl = (1.0 - w) * table_asym_param[k] + w * table_asym_param[k+1];
+
+    const double optical_depth_layer = 
+      optical_depth_layer_ref * exp(log_cross_section_wl - log_cross_section_ref);
+
+    for (int i=cloud_top; i>cloud_bottom; --i)
+    {
+      const int j = i*nb_spectral_points + tid;
+
+      mixCloudLayer(
+        optical_depth, single_scattering_albedo, asym_param,
+        j, optical_depth_layer, ssa_wl, g_wl);
+    }
+  }
+
+}
 
 
 //converts layer optical depths to level-based extinction coefficients
@@ -380,6 +425,109 @@ __host__ void PowerLawCloudModel::opticalPropertiesGPU(
     optical_depth_layer_reference,
     reference_value,
     exponent,
+    cloud_top_index,
+    cloud_bottom_index,
+    nb_spectral_points);
+
+  CUDA_CHECK_AFTER_KERNEL();
+}
+
+
+//uploads the spectral grid mapping to the GPU if it is not there yet
+__host__ void MieCloudModel::mapSpectralGridGPU(SpectralGrid* spectral_grid)
+{
+  //(re-)computes the host mapping if the grid changed, which also frees the device copy
+  mapSpectralGrid(spectral_grid);
+
+  if (grid_index_dev == nullptr)
+    moveToDevice(grid_index_dev, grid_index);
+
+  if (grid_weight_dev == nullptr)
+    moveToDevice(grid_weight_dev, grid_weight);
+
+  if (log_cross_section_dev == nullptr)
+    allocateOnDevice(log_cross_section_dev, nb_wavelengths);
+
+  if (single_scattering_dev_table == nullptr)
+    allocateOnDevice(single_scattering_dev_table, nb_wavelengths);
+
+  if (asym_param_dev_table == nullptr)
+    allocateOnDevice(asym_param_dev_table, nb_wavelengths);
+}
+
+
+
+//calculates the vertical distribution of the Mie cloud layer
+//the optical depth at the reference wavelength is distributed evenly over
+//the layers between the cloud's top and bottom
+__host__ void MieCloudModel::opticalPropertiesGPU(
+  const std::vector<double>& parameters, 
+  const Atmosphere& atmosphere,
+  SpectralGrid* spectral_grid,
+  float* optical_depth_dev, 
+  float* single_scattering_dev, 
+  float* asym_param)
+{
+  double cloud_optical_depth = 0;
+  double particle_radius = 0;
+  double sigma_g = 0;
+  double cloud_top_pressure = 0;
+  double cloud_bottom_pressure = 0;
+
+  readParameters(
+    parameters,
+    cloud_optical_depth,
+    particle_radius,
+    sigma_g,
+    cloud_top_pressure,
+    cloud_bottom_pressure);
+
+
+  const size_t nb_spectral_points = spectral_grid->nbSpectralPoints();
+
+  unsigned int cloud_top_index = 0;
+  unsigned int cloud_bottom_index = 0;
+
+  if (fixed_bottom == true)
+    cloudPosition(atmosphere, cloud_top_pressure, cloud_top_index, cloud_bottom_index);
+  else
+    cloudPosition(atmosphere, cloud_top_pressure, cloud_bottom_pressure, cloud_top_index, cloud_bottom_index);
+
+
+  const double optical_depth_layer_reference = 
+    cloud_optical_depth/static_cast<double>(cloud_top_index - cloud_bottom_index);
+
+
+  std::vector<double> log_cross_section;
+  std::vector<double> table_ssa;
+  std::vector<double> table_g;
+
+  interpolateTable(particle_radius, sigma_g, log_cross_section, table_ssa, table_g);
+
+  const double log_cross_section_ref = referenceLogCrossSection(log_cross_section);
+
+  mapSpectralGridGPU(spectral_grid);
+
+  moveToDevice(log_cross_section_dev, log_cross_section, false);
+  moveToDevice(single_scattering_dev_table, table_ssa, false);
+  moveToDevice(asym_param_dev_table, table_g, false);
+
+
+  int threads = 256;
+  int blocks = nb_spectral_points / threads;
+  if (nb_spectral_points % threads) blocks++;
+
+  mieCloudModel<<<blocks,threads>>>(
+    optical_depth_dev,
+    single_scattering_dev,
+    asym_param,
+    log_cross_section_dev,
+    single_scattering_dev_table,
+    asym_param_dev_table,
+    grid_index_dev,
+    grid_weight_dev,
+    optical_depth_layer_reference,
+    log_cross_section_ref,
     cloud_top_index,
     cloud_bottom_index,
     nb_spectral_points);

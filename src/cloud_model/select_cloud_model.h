@@ -11,6 +11,7 @@
 #include "grey_cloud_model.h"
 #include "kh_cloud_model.h"
 #include "power_law_cloud_model.h"
+#include "mie_cloud_model.h"
 
 #include "../config/global_config.h"
 #include "../additional/exceptions.h"
@@ -26,13 +27,16 @@ namespace bear {
 //definition of the different chemistry modules with an
 //identifier, a keyword to be located in the config file
 namespace cloud_modules{
-  enum id {none, grey, KHnongrey, power_law};
-  const std::vector<std::string> description {"none", "grey", "KHnongrey", "power_law"};
+  enum id {none, grey, KHnongrey, power_law, mie};
+  const std::vector<std::string> description {"none", "grey", "KHnongrey", "power_law", "mie"};
 }
 
 
 
-inline std::unique_ptr<CloudModel> selectCloudModel(const std::string type, const std::vector<std::string>& parameters)
+inline std::unique_ptr<CloudModel> selectCloudModel(
+  const std::string type,
+  const std::vector<std::string>& parameters,
+  GlobalConfig* config)
 {
   //find the corresponding cloud module to the supplied type string
   auto it = std::find(cloud_modules::description.begin(), cloud_modules::description.end(), type);
@@ -64,6 +68,9 @@ inline std::unique_ptr<CloudModel> selectCloudModel(const std::string type, cons
 
     case cloud_modules::power_law :
       return std::make_unique<PowerLawCloudModel>(parameters);
+
+    case cloud_modules::mie :
+      return std::make_unique<MieCloudModel>(parameters, config->retrieval_folder_path);
   }
 
 

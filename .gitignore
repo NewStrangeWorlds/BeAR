@@ -20,6 +20,7 @@ RetrievalTest/*
 TransmissionTest/*
 EmissionTest/*
 SecondaryEclipseTest/*
+BrownDwarf*
 
 WASP-121b_test/*
 WASP-121b_em_test/*

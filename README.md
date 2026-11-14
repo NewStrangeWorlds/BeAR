@@ -25,7 +25,7 @@ Supported forward models:
 - flat-line models for model comparison
 - high-resolution phase-curve spectra for cross-correlation spectroscopy (Brogi & Line 2019 and Gibson et al. 2022 likelihoods, model filtering, CHIMERA-style re-injection, exposure blurring)
 
-Observations can be spectroscopic, band-spectroscopic, photometric, or high-resolution time series. Atmospheric structure is described by a range of temperature-profile parametrisations (piecewise polynomials, splines, PCHIP, Guillot, Madhusudhan & Seager, Milne, adiabat plus spline), chemistry models (equilibrium chemistry via FastChem, isoprofiles, centred-log-ratio priors, isotopologue ratios, vertically varying profiles), and cloud models (grey, non-grey, power-law), all configurable in TOML files.
+Observations can be spectroscopic, band-spectroscopic, photometric, or high-resolution time series. Atmospheric structure is described by a range of temperature-profile parametrisations (piecewise polynomials, splines, PCHIP, Guillot, Madhusudhan & Seager, Milne, modified Milne, adiabat plus spline), chemistry models (equilibrium chemistry via FastChem, isoprofiles, centred-log-ratio priors, isotopologue ratios, vertically varying profiles), and cloud models (grey, non-grey, power-law), all configurable in TOML files.
 
 
 # User Guide #

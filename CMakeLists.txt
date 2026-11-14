@@ -126,6 +126,7 @@ set(SRC
   src/cloud_model/fixed_cloud_model.cpp
   src/cloud_model/kh_cloud_model.cpp
   src/cloud_model/power_law_cloud_model.cpp
+  src/cloud_model/mie_cloud_model.cpp
   src/observations/observations.cpp
   src/observations/observations_load_data.cpp
   src/observations/observations_filter_response.cpp
@@ -133,6 +134,7 @@ set(SRC
   src/radiative_transfer/adding_doubling/adding_doubling.cpp
   src/radiative_transfer/short_characteristics/short_characteristics.cpp
   src/radiative_transfer/toon_source_function/toon_source_function.cpp
+  src/radiative_transfer/discrete_ordinate_adding/discrete_ordinate_adding.cpp
   src/retrieval/post_process_spectra.cpp
   src/retrieval/post_process.cpp
   src/retrieval/select_forward_model.cpp
@@ -165,6 +167,7 @@ set(SRC
   src/temperature/cubic_b_spline_temperature.cpp
   src/temperature/pchip_temperature.cpp
   src/temperature/milne_solution_temperature.cpp
+  src/temperature/modified_milne_temperature.cpp
   src/temperature/guillot_temperature.cpp
   src/temperature/adiabate_cubic_spline.cpp
   src/temperature/madhusudhan_seager_temperature.cpp
@@ -183,6 +186,7 @@ set(SRC_CUDA
   src/CUDA_kernels/transmission_spectrum_kernels.cu
   src/radiative_transfer/short_characteristics/short_characteristics_kernels.cu
   src/radiative_transfer/toon_source_function/toon_source_function_kernels.cu
+  src/radiative_transfer/discrete_ordinate_adding/discrete_ordinate_adding_kernels.cu
   src/radiative_transfer/adding_doubling/adding_doubling_kernels.cu
   src/CUDA_kernels/cloud_model_kernels.cu
   src/CUDA_kernels/contribution_function_kernels.cu

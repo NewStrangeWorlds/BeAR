@@ -70,7 +70,8 @@ void OccultationModel::initModules(const OccultationConfig& model_config)
   {
     auto model = selectCloudModel(
       model_config.cloud_model[i],
-      model_config.cloud_model_parameters[i]);
+      model_config.cloud_model_parameters[i],
+      config);
 
     if (model != nullptr)
       cloud_models.push_back(std::move(model));

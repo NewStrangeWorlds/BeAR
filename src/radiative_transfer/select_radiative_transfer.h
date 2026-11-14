@@ -17,6 +17,7 @@
 #include "disort/discrete_ordinate.h"
 #include "adding_doubling/adding_doubling.h"
 #include "toon_source_function/toon_source_function.h"
+#include "discrete_ordinate_adding/discrete_ordinate_adding.h"
 #include "../config/global_config.h"
 #include "../additional/exceptions.h"
 
@@ -26,8 +27,8 @@ namespace bear {
 //definition of the different chemistry modules with an
 //identifier, a keyword to be located in the config file and a short version of the keyword
 namespace rt_modules{
-  enum id {scm, disort, adding_doubling, toon};
-  const std::vector<std::string> description {"scm", "disort", "adding_doubling", "toon"};
+  enum id {scm, disort, adding_doubling, toon, dda};
+  const std::vector<std::string> description {"scm", "disort", "adding_doubling", "toon", "dda"};
 }
 
 
@@ -124,6 +125,35 @@ inline std::unique_ptr<RadiativeTransfer> selectRadiativeTransfer(
           nb_angles,
           nb_grid_points,
           config->use_gpu);
+    }
+
+    case rt_modules::dda :
+    {
+      if (parameters.size() > 1)
+      {
+        std::string error_message = "Four-stream DDA radiative transfer takes at most one parameter (delta_m/no_delta_m)!\n";
+        throw InvalidInput(std::string ("forward_model.toml"), error_message);
+      }
+
+      //delta-M scaling of strongly forward-peaked phase functions is on by default
+      bool use_delta_m = true;
+
+      if (parameters.size() == 1)
+      {
+        if (parameters[0] == "no_delta_m")
+          use_delta_m = false;
+        else if (parameters[0] != "delta_m")
+        {
+          std::string error_message = "Unknown dda option \"" + parameters[0] + "\" (allowed: delta_m, no_delta_m)!\n";
+          throw InvalidInput(std::string ("forward_model.toml"), error_message);
+        }
+      }
+
+      return std::make_unique<DiscreteOrdinateAdding>(
+          spectral_grid,
+          nb_grid_points,
+          config->use_gpu,
+          use_delta_m);
     }
   }
 

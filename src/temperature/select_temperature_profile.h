@@ -18,6 +18,7 @@
 
 #include "piecewise_poly_temperature.h"
 #include "milne_solution_temperature.h"
+#include "modified_milne_temperature.h"
 #include "constant_temperature.h"
 #include "cubic_b_spline_temperature.h"
 #include "pchip_temperature.h"
@@ -31,8 +32,8 @@ namespace bear {
 //definition of the different chemistry modules with an
 //identifier, a keyword to be located in the config file and a short version of the keyword
 namespace temp_profile_modules{
-  enum id {poly, milne, constant, cubicbspline, guillot, adspline, madhusudhan_seager, pchip};
-  const std::vector<std::string> description {"poly", "milne", "const", "cubicbspline", "guillot", "adiabate_spline", "madhusudhan_seager", "pchip"};
+  enum id {poly, milne, modified_milne, constant, cubicbspline, guillot, adspline, madhusudhan_seager, pchip};
+  const std::vector<std::string> description {"poly", "milne", "modified_milne", "const", "cubicbspline", "guillot", "adiabate_spline", "madhusudhan_seager", "pchip"};
 }
 
 
@@ -98,6 +99,9 @@ inline std::unique_ptr<Temperature> selectTemperatureProfile(
 
     case temp_profile_modules::milne :
       return std::make_unique<MilneTemperature>();
+
+    case temp_profile_modules::modified_milne :
+      return std::make_unique<ModifiedMilneTemperature>();
 
     case temp_profile_modules::cubicbspline :
       if (parameters.size() != 1 && parameters.size() != 2)
