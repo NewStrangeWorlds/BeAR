@@ -302,9 +302,7 @@ std::vector<float> HighResObservation::modelMatrixGPU(
 
   launchHighResInterpFilterOnly(
     broadened_spectrum_gpu,
-    model_wavelengths_gpu,
-    static_cast<int>(nb_model_points),
-    all_wavelengths_dev,
+    modelGridGPU(nb_model_points),
     order_offsets_dev,
     order_nb_pixels_dev,
     orbital_phases_dev,
@@ -559,16 +557,11 @@ void HighResObservation::initDeviceMemory()
       max_pixels_per_order = static_cast<int>(order.nb_pixels);
   }
 
-  // Build flattened wavelength array and per-order offsets
-  // Observed wavelengths kept in double on the device: as float (~500 nm) they carry
-  // ~18 m/s of positional error, which shifts the Doppler-interpolation point and, on
-  // sharp lines, changes the model far more than float rounding — the dominant source
-  // of the CPU/GPU high-res likelihood mismatch.
-  std::vector<double> all_wavelengths;
+  // Per-order pixel offsets and sizes.  The pixel wavelengths themselves reach the
+  // kernels through the lookup tables of initModelGridGPU.
   std::vector<int> offsets(nb_orders);
   std::vector<int> nb_pixels_vec(nb_orders);
 
-  all_wavelengths.reserve(total_pixels);
   size_t offset = 0;
 
   for (size_t ord = 0; ord < nb_orders; ++ord)
@@ -577,13 +570,9 @@ void HighResObservation::initDeviceMemory()
     offsets[ord] = static_cast<int>(offset);
     nb_pixels_vec[ord] = static_cast<int>(order.nb_pixels);
 
-    for (size_t p = 0; p < order.nb_pixels; ++p)
-      all_wavelengths.push_back(order.wavelengths[p]);
-
     offset += order.nb_pixels;
   }
 
-  moveToDevice(all_wavelengths_dev, all_wavelengths);
   moveToDevice(order_offsets_dev, offsets);
   moveToDevice(order_nb_pixels_dev, nb_pixels_vec);
 
@@ -669,12 +658,18 @@ void HighResObservation::initDeviceMemory()
   // Upload projection matrices and allocate filtered model workspace (GPU)
   if (has_filtering)
   {
-    std::vector<float> proj_flat(nb_orders * nb_exposures * nb_exposures);
+    // transposed and padded layout, see highres_loglike_kernels.h
+    const size_t K = nb_exposures;
+    const size_t Kp = ((K + highres_projection_padding - 1) / highres_projection_padding)
+                      * highres_projection_padding;
+
+    std::vector<float> proj_flat(nb_orders * K * Kp, 0.0f);
 
     for (size_t ord = 0; ord < nb_orders; ++ord)
-      for (size_t i = 0; i < nb_exposures * nb_exposures; ++i)
-        proj_flat[ord * nb_exposures * nb_exposures + i] =
-          static_cast<float>(projection_matrices[ord][i]);
+      for (size_t e = 0; e < K; ++e)
+        for (size_t j = 0; j < K; ++j)
+          proj_flat[ord * K * Kp + j * Kp + e] =
+            static_cast<float>(projection_matrices[ord][e * K + j]);
 
     moveToDevice(projection_matrices_dev, proj_flat);
 
@@ -748,9 +743,188 @@ void HighResObservation::initDeviceMemory()
 }
 
 
+// Builds the per-order slices of the model grid and the per-pixel rest positions
+// in ln(lambda), see HighResModelGridGPU.  Each slice covers the order's
+// wavelength range extended by a Doppler margin of 1% (about 3000 km/s), so that
+// every physically relevant shift stays inside it; a lookup outside the slice
+// yields a model value of 0, as a lookup outside the model grid did before.
+void HighResObservation::initModelGridGPU(const std::vector<double>& model_wavelengths)
+{
+  freeModelGridGPU();
+
+  const size_t n_model = model_wavelengths.size();
+
+  if (n_model < 2)
+  {
+    std::string error_message =
+      "The high-res model grid has fewer than two points; cannot build the GPU lookup tables.\n";
+    throw InvalidInput(std::string("HighResObservation::initModelGridGPU"), error_message);
+  }
+
+  std::vector<double> ln_model(n_model);
+
+  for (size_t i = 0; i < n_model; ++i)
+    ln_model[i] = std::log(model_wavelengths[i]);
+
+  const double margin = 0.01;
+
+  std::vector<int> slice_start(nb_orders), slice_len(nb_orders), slice_offset(nb_orders);
+  std::vector<float> inv_mean_dln(nb_orders);
+  std::vector<float> slice_ln, slice_ln_lo, slice_inv_dln, slice_dln;
+  std::vector<float> pix_ln, pix_ln_lo, pix_t0;
+  std::vector<int> pix_j0;
+
+  pix_ln.reserve(total_pixels);
+  pix_ln_lo.reserve(total_pixels);
+  pix_t0.reserve(total_pixels);
+  pix_j0.reserve(total_pixels);
+
+  // splits a position into a float and the float remainder of the rounding
+  auto splitPosition = [](const double x, std::vector<float>& hi, std::vector<float>& lo) {
+    const float x_hi = static_cast<float>(x);
+    hi.push_back(x_hi);
+    lo.push_back(static_cast<float>(x - static_cast<double>(x_hi)));
+  };
+
+  // first index i with ln_model[i] <= value on the descending grid
+  auto firstAtOrBelow = [&](const double value) -> size_t {
+    auto it = std::lower_bound(ln_model.begin(), ln_model.end(), value, std::greater<double>());
+    return static_cast<size_t>(std::distance(ln_model.begin(), it));
+  };
+
+  for (size_t ord = 0; ord < nb_orders; ++ord)
+  {
+    const auto& order = spectral_orders[ord];
+
+    const auto wl_minmax = std::minmax_element(order.wavelengths.begin(), order.wavelengths.end());
+    const double ln_lo = std::log(*wl_minmax.first * 1e-3) - margin;
+    const double ln_hi = std::log(*wl_minmax.second * 1e-3) + margin;
+
+    // the slice includes the grid point above ln_hi and the one at or below ln_lo
+    size_t i_start = firstAtOrBelow(ln_hi);
+    if (i_start > 0) --i_start;
+    if (i_start > n_model - 2) i_start = n_model - 2;
+
+    size_t i_end = firstAtOrBelow(ln_lo);
+    if (i_end > n_model - 1) i_end = n_model - 1;
+    if (i_end < i_start + 1) i_end = i_start + 1;
+
+    const size_t len = i_end - i_start + 1;
+    const double ln_ref = 0.5 * (ln_model[i_start] + ln_model[i_end]);
+
+    slice_start[ord] = static_cast<int>(i_start);
+    slice_len[ord] = static_cast<int>(len);
+    slice_offset[ord] = static_cast<int>(slice_ln.size());
+    inv_mean_dln[ord] = static_cast<float>(
+      static_cast<double>(len - 1) / (ln_model[i_start] - ln_model[i_end]));
+
+    for (size_t j = 0; j < len; ++j)
+    {
+      splitPosition(ln_model[i_start + j] - ln_ref, slice_ln, slice_ln_lo);
+
+      const double dln = (j == 0) ? 0.0 : ln_model[i_start + j - 1] - ln_model[i_start + j];
+      slice_dln.push_back(static_cast<float>(dln));
+      slice_inv_dln.push_back(static_cast<float>(dln > 0.0 ? 1.0 / dln : 0.0));
+    }
+
+    for (size_t p = 0; p < order.nb_pixels; ++p)
+    {
+      const double ln_wl = std::log(order.wavelengths[p] * 1e-3);
+      splitPosition(ln_wl - ln_ref, pix_ln, pix_ln_lo);
+
+      const size_t i = firstAtOrBelow(ln_wl);
+      const bool inside = i >= i_start + 1 && i <= i_end;
+
+      if (inside)
+      {
+        pix_j0.push_back(static_cast<int>(i - i_start));
+        pix_t0.push_back(static_cast<float>(
+          (ln_model[i - 1] - ln_wl) / (ln_model[i - 1] - ln_model[i])));
+      }
+      else
+      {
+        pix_j0.push_back(-1);
+        pix_t0.push_back(0.0f);
+      }
+    }
+  }
+
+  moveToDevice(slice_start_dev, slice_start);
+  moveToDevice(slice_len_dev, slice_len);
+  moveToDevice(slice_offset_dev, slice_offset);
+  moveToDevice(slice_ln_dev, slice_ln);
+  moveToDevice(slice_ln_lo_dev, slice_ln_lo);
+  moveToDevice(slice_inv_dln_dev, slice_inv_dln);
+  moveToDevice(slice_dln_dev, slice_dln);
+  moveToDevice(order_inv_mean_dln_dev, inv_mean_dln);
+  moveToDevice(pix_ln_dev, pix_ln);
+  moveToDevice(pix_ln_lo_dev, pix_ln_lo);
+  moveToDevice(pix_j0_dev, pix_j0);
+  moveToDevice(pix_t0_dev, pix_t0);
+
+  model_grid_nb_points = n_model;
+}
+
+
+HighResModelGridGPU HighResObservation::modelGridGPU(const size_t nb_model_points) const
+{
+  if (model_grid_nb_points == 0 || slice_ln_dev == nullptr)
+  {
+    std::string error_message =
+      "The GPU lookup tables of the model grid have not been built; call initModelGridGPU first.\n";
+    throw InvalidInput(std::string("HighResObservation::modelGridGPU"), error_message);
+  }
+
+  if (nb_model_points != model_grid_nb_points)
+  {
+    std::string error_message =
+      "The high-res model grid has " + std::to_string(nb_model_points)
+      + " points, but the GPU lookup tables were built for "
+      + std::to_string(model_grid_nb_points) + ".\n";
+    throw InvalidInput(std::string("HighResObservation::modelGridGPU"), error_message);
+  }
+
+  HighResModelGridGPU grid;
+  grid.slice_start = slice_start_dev;
+  grid.slice_len = slice_len_dev;
+  grid.slice_offset = slice_offset_dev;
+  grid.slice_ln = slice_ln_dev;
+  grid.slice_ln_lo = slice_ln_lo_dev;
+  grid.slice_inv_dln = slice_inv_dln_dev;
+  grid.slice_dln = slice_dln_dev;
+  grid.order_inv_mean_dln = order_inv_mean_dln_dev;
+  grid.pix_ln = pix_ln_dev;
+  grid.pix_ln_lo = pix_ln_lo_dev;
+  grid.pix_j0 = pix_j0_dev;
+  grid.pix_t0 = pix_t0_dev;
+
+  return grid;
+}
+
+
+void HighResObservation::freeModelGridGPU()
+{
+  if (slice_start_dev != nullptr) deleteFromDevice(slice_start_dev);
+  if (slice_len_dev != nullptr) deleteFromDevice(slice_len_dev);
+  if (slice_offset_dev != nullptr) deleteFromDevice(slice_offset_dev);
+  if (slice_ln_dev != nullptr) deleteFromDevice(slice_ln_dev);
+  if (slice_ln_lo_dev != nullptr) deleteFromDevice(slice_ln_lo_dev);
+  if (slice_inv_dln_dev != nullptr) deleteFromDevice(slice_inv_dln_dev);
+  if (slice_dln_dev != nullptr) deleteFromDevice(slice_dln_dev);
+  if (order_inv_mean_dln_dev != nullptr) deleteFromDevice(order_inv_mean_dln_dev);
+  if (pix_ln_dev != nullptr) deleteFromDevice(pix_ln_dev);
+  if (pix_ln_lo_dev != nullptr) deleteFromDevice(pix_ln_lo_dev);
+  if (pix_j0_dev != nullptr) deleteFromDevice(pix_j0_dev);
+  if (pix_t0_dev != nullptr) deleteFromDevice(pix_t0_dev);
+
+  model_grid_nb_points = 0;
+}
+
+
 void HighResObservation::freeDeviceMemory()
 {
-  if (all_wavelengths_dev != nullptr) deleteFromDevice(all_wavelengths_dev);
+  freeModelGridGPU();
+
   if (all_flux_dev != nullptr) deleteFromDevice(all_flux_dev);
   if (order_offsets_dev != nullptr) deleteFromDevice(order_offsets_dev);
   if (order_nb_pixels_dev != nullptr) deleteFromDevice(order_nb_pixels_dev);
@@ -1138,9 +1312,7 @@ void HighResObservation::computeLogLikelihoodGPU(
   {
     launchHighResLogLikeFiltered(
       broadened_spectrum_gpu,
-      model_wavelengths_gpu,
-      static_cast<int>(nb_model_points),
-      all_wavelengths_dev,
+      modelGridGPU(nb_model_points),
       all_flux_dev,
       order_offsets_dev,
       order_nb_pixels_dev,
@@ -1171,9 +1343,7 @@ void HighResObservation::computeLogLikelihoodGPU(
   {
     launchHighResLogLikeGibson(
       broadened_spectrum_gpu,
-      model_wavelengths_gpu,
-      static_cast<int>(nb_model_points),
-      all_wavelengths_dev,
+      modelGridGPU(nb_model_points),
       all_flux_dev,
       order_offsets_dev,
       order_nb_pixels_dev,
@@ -1197,9 +1367,7 @@ void HighResObservation::computeLogLikelihoodGPU(
   {
     launchHighResLogLike(
       broadened_spectrum_gpu,
-      model_wavelengths_gpu,
-      static_cast<int>(nb_model_points),
-      all_wavelengths_dev,
+      modelGridGPU(nb_model_points),
       all_flux_dev,
       order_offsets_dev,
       order_nb_pixels_dev,

@@ -11,9 +11,39 @@
 namespace bear {
 
 
-// Largest number of exposures the filtered GPU path supports.  The per-pixel
-// model column is held in a fixed-size local array; see highResInterpFilterKernel.
+// Largest number of exposures the filtered GPU path supports.  The projection
+// kernel stages a tile of K x 32 model values in shared memory, see
+// highResProjectKernel; this bound keeps the smallest tile within 64 KB.
 constexpr int highres_max_exposures_gpu = 512;
+
+
+// Precomputed geometry of the model grid, built once per observation by
+// HighResObservation::initModelGridGPU.  All kernels locate the Doppler-shifted
+// model values in float arithmetic on these tables instead of searching the
+// double wavelength grid:
+//  * every order owns a contiguous slice of the (descending) model grid that
+//    covers its wavelength range plus a generous Doppler margin; the slice stores
+//    ln(lambda) relative to a per-order reference, together with the cell widths
+//    and their inverses;
+//  * every pixel stores its rest position in the same units and its bracket at
+//    zero velocity, which seeds the short scans at the shifted positions.
+// Positions are kept as double-float pairs (hi + lo, with lo the rounding
+// remainder of hi), so that the lookups reach ~1e-7 of a grid cell with FP32
+// arithmetic only.
+struct HighResModelGridGPU {
+  const int*   slice_start = nullptr;        // [nb_orders] model index of the first slice point
+  const int*   slice_len = nullptr;          // [nb_orders] points in the slice
+  const int*   slice_offset = nullptr;       // [nb_orders] offset into the slice arrays
+  const float* slice_ln = nullptr;           // ln(lambda) - ln_ref, descending within a slice (hi part)
+  const float* slice_ln_lo = nullptr;        // low part of slice_ln
+  const float* slice_inv_dln = nullptr;      // 1 / (slice_ln[j-1] - slice_ln[j]), 0 at j = 0
+  const float* slice_dln = nullptr;          // slice_ln[j-1] - slice_ln[j], 0 at j = 0
+  const float* order_inv_mean_dln = nullptr; // [nb_orders] 1 / mean cell width of the slice
+  const float* pix_ln = nullptr;             // [total_pixels] ln(lambda_rest) - ln_ref of the order (hi part)
+  const float* pix_ln_lo = nullptr;          // low part of pix_ln
+  const int*   pix_j0 = nullptr;             // [total_pixels] bracket in the slice at zero velocity, -1 if outside
+  const float* pix_t0 = nullptr;             // [total_pixels] weight of point j0 at zero velocity
+};
 
 
 // Likelihood form, mirrored from HighResLikelihoodMode so that this header does
@@ -36,9 +66,7 @@ constexpr int highres_projection_center_time = 2;  // subtract the temporal mean
 // alpha >= 0: explicit scale factor (free-alpha mode).
 void launchHighResLogLike(
     const float* broadened_spectrum_dev,
-    const double* model_wavelengths_dev,
-    int n_model,
-    const double* order_wavelengths_dev,
+    const HighResModelGridGPU& model_grid,
     const float* order_flux_dev,
     const int* order_offsets_dev,
     const int* order_nb_pixels_dev,
@@ -61,9 +89,7 @@ void launchHighResLogLike(
 // (inverse-variance weighted means subtracted per exposure).
 void launchHighResLogLikeGibson(
     const float* broadened_spectrum_dev,
-    const double* model_wavelengths_dev,
-    int n_model,
-    const double* order_wavelengths_dev,
+    const HighResModelGridGPU& model_grid,
     const float* order_flux_dev,
     const int* order_offsets_dev,
     const int* order_nb_pixels_dev,
@@ -84,6 +110,13 @@ void launchHighResLogLikeGibson(
     bool use_phase_function = false);
 
 
+// Layout of the projection matrices on the device: per order the TRANSPOSED
+// (I - P) with the exposure index padded to a multiple of four,
+//   projection_matrices_dev[ord * K * Kp + j * Kp + e] = (I - P)[e][j],  Kp = 4 ceil(K/4),
+// so that the projection kernel reads four exposures of a column as one float4.
+constexpr int highres_projection_padding = 4;
+
+
 // Filtered path (a #filtering_basis is present), for all three likelihood forms.
 //
 // Kernel 1 interpolates the model at every exposure, applies the optional
@@ -101,9 +134,7 @@ void launchHighResLogLikeGibson(
 // likelihood_form == highres_form_gibson.
 void launchHighResLogLikeFiltered(
     const float* broadened_spectrum_dev,
-    const double* model_wavelengths_dev,
-    int n_model,
-    const double* order_wavelengths_dev,
+    const HighResModelGridGPU& model_grid,
     const float* order_flux_dev,
     const int* order_offsets_dev,
     const int* order_nb_pixels_dev,
@@ -138,9 +169,7 @@ void launchHighResLogLikeFiltered(
 // filtering.  No likelihood is evaluated.
 void launchHighResInterpFilterOnly(
     const float* broadened_spectrum_dev,
-    const double* model_wavelengths_dev,
-    int n_model,
-    const double* order_wavelengths_dev,
+    const HighResModelGridGPU& model_grid,
     const int* order_offsets_dev,
     const int* order_nb_pixels_dev,
     const double* orbital_phases_dev,

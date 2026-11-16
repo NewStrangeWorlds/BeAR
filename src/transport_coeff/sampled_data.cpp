@@ -39,11 +39,17 @@ void SampledData::sampleCrossSections(
   cross_sections.assign(sampling_list_indices.size(), 0.0);
 
 
+  const std::vector<float>& file_data = data_file.cross_sections;
+
   for(size_t i=0; i<sampling_list_indices.size(); ++i)
   {
-    if (sampling_list_indices[i] > data_file.cross_sections.size()-1) break;
+    if (sampling_list_indices[i] >= file_data.size()) break;
 
-    cross_sections[i] = data_file.cross_sections[sampling_list_indices[i]];
+    cross_sections[i] = file_data[sampling_list_indices[i]];
+
+    //CIA data are stored as log10 values, see CrossSectionFile
+    if (data_file.is_data_log)
+      cross_sections[i] = std::pow(10.0, cross_sections[i]);
   }
 
 

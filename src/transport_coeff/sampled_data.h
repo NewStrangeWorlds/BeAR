@@ -29,7 +29,8 @@ class CrossSectionFile {
     const bool is_data_log = false;
     bool is_loaded = false;
 
-    std::vector<double> cross_sections;
+    //the raw file content, single precision, linear or log10 values
+    std::vector<float> cross_sections;
 };
 
 

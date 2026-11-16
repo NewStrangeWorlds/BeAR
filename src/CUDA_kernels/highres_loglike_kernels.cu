@@ -19,175 +19,268 @@
 namespace bear {
 
 
-// Binary search in a descending array: find first index i such that arr[i] <= val
+// ============================================================================
+// Model lookup on the precomputed per-order slices (see HighResModelGridGPU)
+// ============================================================================
+
+
+// Slice of the model grid owned by one order, with all pointers resolved.
+struct OrderSlice {
+  const float* ln;        // ln(lambda) - ln_ref, descending (hi part)
+  const float* ln_lo;     // low part
+  const float* inv_dln;   // 1 / cell width in ln(lambda)
+  const float* dln;       // cell width in ln(lambda)
+  int start;              // model index of ln[0]
+  int len;
+  float inv_mean_dln;
+};
+
+
 __device__ __forceinline__
-int binarySearchDescending(
-  const double* __restrict__ arr,
-  int n,
-  double val)
+OrderSlice orderSlice(const HighResModelGridGPU& g, const int ord)
 {
-  int lo = 0, hi = n - 1;
+  OrderSlice s;
 
-  while (lo < hi)
-  {
-    int mid = (lo + hi) / 2;
+  const int off = g.slice_offset[ord];
+  s.ln = g.slice_ln + off;
+  s.ln_lo = g.slice_ln_lo + off;
+  s.inv_dln = g.slice_inv_dln + off;
+  s.dln = g.slice_dln + off;
+  s.start = g.slice_start[ord];
+  s.len = g.slice_len[ord];
+  s.inv_mean_dln = g.order_inv_mean_dln[ord];
 
-    if (arr[mid] > val)
-      lo = mid + 1;
-    else
-      hi = mid;
-  }
-
-  return lo;
+  return s;
 }
 
 
-// Same bracket as binarySearchDescending, but found by a short linear scan
-// from a nearby hint index. Used when consecutive lookups target nearly
-// identical wavelengths (e.g. the same pixel at consecutive exposures, whose
-// Doppler shifts differ by only a few km/s ~ a few grid points).
+// A position in ln(lambda) as a double-float pair: hi carries the float value,
+// lo the rounding remainder, so that hi + lo holds ~16 significant digits.
+struct Pos {
+  float hi;
+  float lo;
+};
+
+
+// Exact sum of two positions (two-sum of the hi parts, the error joins the lo parts).
 __device__ __forceinline__
-int bracketFromHint(
-  const double* __restrict__ arr,
-  int n,
-  double val,
-  int hint)
+Pos addPos(const Pos a, const Pos b)
 {
-  int i = min(max(hint, 0), n - 1);
+  const float s = a.hi + b.hi;
+  const float bb = s - a.hi;
+  const float err = (a.hi - (s - bb)) + (b.hi - bb);
 
-  while (i > 0 && arr[i - 1] <= val) --i;
-  while (i < n - 1 && arr[i] > val) ++i;
+  Pos r;
+  r.hi = s;
+  r.lo = err + (a.lo + b.lo);
 
-  return i;
+  return r;
 }
 
 
-// Linear interpolation of a spectrum on the (descending) model grid, also
-// returning the bracket index so that a second spectrum can be interpolated at
-// the same wavelength without another binary search.
+// Signed distance ln[j] - u of a slice point from a position, > 0 when the
+// grid point lies above u.  Only meaningful when the two are within a grid cell
+// or so, where the hi parts subtract exactly (Sterbenz) and lo carries the rest.
 __device__ __forceinline__
-float interpolateModelRawIdx(
-  const float*  __restrict__ spectrum,
-  const double* __restrict__ model_wavelengths,
-  int n_model,
-  double wl,
-  int& out_idx)
+float distPos(const OrderSlice& sl, const int j, const Pos u)
 {
-  int idx = binarySearchDescending(model_wavelengths, n_model, wl);
-  out_idx = idx;
-
-  if (idx < 1 || idx >= n_model)
-    return 0.0f;
-
-  double w1 = model_wavelengths[idx - 1];
-  double w2 = model_wavelengths[idx];
-  float t = (float)((wl - w1) / (w2 - w1));
-
-  return (1.0f - t) * spectrum[idx - 1] + t * spectrum[idx];
+  return (sl.ln[j] - u.hi) + (sl.ln_lo[j] - u.lo);
 }
 
 
-// Interpolate a spectrum at a pre-computed bracket index (no binary search).
+// Per-exposure Doppler geometry in the units of the slices: the shift of
+// ln(lambda) at the exposure's radial velocity, the shifts of the two edges of
+// the exposure-blur box, the inverse box width and the phase weight.
+struct ExposureShift {
+  Pos shift;         // ln(1 / (1 + v_rad/c))
+  Pos shift_lo;      // same for the box edge at v_rad + |dV|/2 (smaller shift)
+  Pos shift_hi;      // same for the box edge at v_rad - |dV|/2 (larger shift)
+  float inv_box;     // 1 / (shift_hi - shift_lo)
+  float phase_w;
+  int blur;          // 1: box-average over the exposure smear, 0: point value
+};
+
+
+// Bracket of u on the descending slice: the first index j with ln[j] <= u,
+// found by a short scan of the hi parts from a nearby hint, then settled with
+// the exact distances.  The bracket is valid when 1 <= j < len and u < ln[0];
+// the callers test the latter themselves.
 __device__ __forceinline__
-float interpolateAtIdx(
-  const float*  __restrict__ spectrum,
-  const double* __restrict__ model_wavelengths,
-  int n_model,
-  int idx,
-  double wl)
+int bracketScan(const OrderSlice& sl, const Pos u, const int hint)
 {
-  if (idx < 1 || idx >= n_model)
-    return 0.0f;
+  int j = min(max(hint, 1), sl.len - 1);
 
-  double w1 = model_wavelengths[idx - 1];
-  double w2 = model_wavelengths[idx];
-  float t = (float)((wl - w1) / (w2 - w1));
+  while (j > 1 && sl.ln[j - 1] <= u.hi) --j;
+  while (j < sl.len && sl.ln[j] > u.hi) ++j;
 
-  return (1.0f - t) * spectrum[idx - 1] + t * spectrum[idx];
+  // the hi-part scan can be off by one where u is within a float ulp of a grid point
+  if (j > 1 && distPos(sl, j - 1, u) <= 0.0f)
+    --j;
+  else if (j < sl.len && distPos(sl, j, u) > 0.0f)
+    ++j;
+
+  return j;
 }
 
 
-// Exposure (boxcar) blurring: mean of the spectrum over the wavelength interval
-// [wl_lo, wl_hi] (wl_lo < wl_hi), computed as a direct trapezoidal integral over the
-// descending model grid divided by the interval width.  Numerically identical to the
-// CPU cumulative-integral formulation.  Returns false (and leaves out_mean untouched)
-// when the interval falls outside the model range, so the caller can substitute 0.
-// If hint >= 1 is passed (the bracket index of a nearby wavelength, e.g. the box
-// centre already located by the caller), both edge brackets are found by short
-// linear scans from it and no binary search is performed at all.
+// Linear interpolation of spectrum within cell j of the slice at position u.
 __device__ __forceinline__
-bool boxMeanRaw(
-  const float*  __restrict__ spectrum,
-  const double* __restrict__ model_wavelengths,
-  int n_model,
-  double wl_lo,
-  double wl_hi,
-  double& out_mean,
-  int hint = -1)
+float lerpInCell(
+  const float* __restrict__ spectrum,
+  const OrderSlice& sl,
+  const int j,
+  const Pos u)
 {
-  // In range requires model_wavelengths[n-1] < wl_lo and wl_hi < model_wavelengths[0].
-  if (wl_lo <= model_wavelengths[n_model - 1] || wl_hi >= model_wavelengths[0])
-    return false;
+  const float t = distPos(sl, j - 1, u) * sl.inv_dln[j];
+  const float* s = spectrum + sl.start;
 
-  // Bracket for the upper edge: model_wavelengths[i] <= wl < model_wavelengths[i-1].
-  // Seed from the caller's hint (scan) when available, else binary-search.
-  int i_hi;
-  if (hint >= 1 && hint < n_model)
+  return (1.0f - t) * s[j - 1] + t * s[j];
+}
+
+
+// Mean of the spectrum over the box [u_lo, u_hi] in ln(lambda), as a trapezoidal
+// integral over the slice cells.  j is the bracket of the box centre, from which
+// both edges are found by short scans.  Over a box a few cells wide, integrating
+// in ln(lambda) instead of lambda changes the mean by O(dV/c)^2, far below float
+// resolution.  Returns false when an edge leaves the slice.
+__device__ __forceinline__
+bool boxMeanOnSlice(
+  const float* __restrict__ spectrum,
+  const OrderSlice& sl,
+  const int j,
+  const Pos u_lo,
+  const Pos u_hi,
+  const float inv_box,
+  float& out_mean)
+{
+  if (distPos(sl, 0, u_hi) <= 0.0f) return false;
+
+  const int j_hi = bracketScan(sl, u_hi, j);
+  const int j_lo = bracketScan(sl, u_lo, j);
+
+  if (j_hi < 1 || j_lo >= sl.len) return false;
+
+  const float* s = spectrum + sl.start;
+
+  const float t_hi = distPos(sl, j_hi - 1, u_hi) * sl.inv_dln[j_hi];
+  const float f_hi = (1.0f - t_hi) * s[j_hi - 1] + t_hi * s[j_hi];
+
+  const float t_lo = distPos(sl, j_lo - 1, u_lo) * sl.inv_dln[j_lo];
+  const float f_lo = (1.0f - t_lo) * s[j_lo - 1] + t_lo * s[j_lo];
+
+  if (j_hi == j_lo)
   {
-    i_hi = hint;
-    while (i_hi > 1        && model_wavelengths[i_hi - 1] <= wl_hi) --i_hi;
-    while (i_hi < n_model  && model_wavelengths[i_hi]     >  wl_hi) ++i_hi;
-  }
-  else
-  {
-    i_hi = binarySearchDescending(model_wavelengths, n_model, wl_hi);
-  }
-
-  // wl_lo < wl_hi and the grid is descending, so the lower-edge bracket is at an
-  // index >= i_hi and only a few pixels away (the box is narrow).  Find it with a
-  // short linear scan instead of a second binary search.
-  int i_lo = i_hi;
-  while (i_lo < n_model && model_wavelengths[i_lo] > wl_lo) ++i_lo;
-
-  if (i_hi < 1 || i_lo < 1 || i_lo >= n_model)
-    return false;
-
-  // Model value at the two edges (linear interpolation within their cells).
-  const double whi1 = model_wavelengths[i_hi - 1];  // larger
-  const double whi2 = model_wavelengths[i_hi];       // smaller
-  const double f_hi = (double)spectrum[i_hi - 1]
-    + ((double)spectrum[i_hi] - (double)spectrum[i_hi - 1])
-      * ((whi1 - wl_hi) / (whi1 - whi2));
-
-  const double wlo1 = model_wavelengths[i_lo - 1];  // larger
-  const double wlo2 = model_wavelengths[i_lo];       // smaller
-  const double f_lo = (double)spectrum[i_lo - 1]
-    + ((double)spectrum[i_lo] - (double)spectrum[i_lo - 1])
-      * ((wlo1 - wl_lo) / (wlo1 - wlo2));
-
-  double integral;
-
-  if (i_hi == i_lo)
-  {
-    // Both edges share a cell.
-    integral = 0.5 * (f_lo + f_hi) * (wl_hi - wl_lo);
-  }
-  else
-  {
-    // Top partial cell: wl_hi down to grid point whi2.
-    integral = 0.5 * (f_hi + (double)spectrum[i_hi]) * (wl_hi - whi2);
-
-    // Full interior cells between whi2 and wlo1.
-    for (int i = i_hi; i <= i_lo - 2; ++i)
-      integral += 0.5 * ((double)spectrum[i] + (double)spectrum[i + 1])
-                      * (model_wavelengths[i] - model_wavelengths[i + 1]);
-
-    // Bottom partial cell: grid point wlo1 down to wl_lo.
-    integral += 0.5 * ((double)spectrum[i_lo - 1] + f_lo) * (wlo1 - wl_lo);
+    // both edges share a cell
+    out_mean = 0.5f * (f_lo + f_hi);
+    return true;
   }
 
-  out_mean = integral / (wl_hi - wl_lo);
+  // top partial cell: u_hi down to grid point j_hi
+  float integral = 0.5f * (f_hi + s[j_hi]) * (1.0f - t_hi) * sl.dln[j_hi];
+
+  // full interior cells
+  for (int i = j_hi; i <= j_lo - 2; ++i)
+    integral += 0.5f * (s[i] + s[i + 1]) * sl.dln[i + 1];
+
+  // bottom partial cell: grid point j_lo - 1 down to u_lo
+  integral += 0.5f * (s[j_lo - 1] + f_lo) * t_lo * sl.dln[j_lo];
+
+  out_mean = integral * inv_box;
+
   return true;
+}
+
+
+// Model value of one pixel at one exposure:
+//   * point-interpolated at the Doppler-shifted position, or box-averaged over
+//     the intra-exposure smear;
+//   * emission (stellar != nullptr): multiplied by Fs(lambda')/Fs(lambda_rest), so
+//     that only Fp is Doppler shifted and Fs stays in the stellar rest frame;
+//     inv_fs_rest = 1/Fs(lambda_rest), computed once per pixel by the caller, or
+//     a negative value when Fs(lambda_rest) is not positive (no correction);
+//   * transmission (stellar == nullptr): transit depth in ppm converted to the
+//     relative in-transit flux change.
+// Returns 0 outside the slice.  j_hint is the bracket of a previous lookup at a
+// nearby position (or a prediction) and is updated to the bracket found here.
+__device__ __forceinline__
+float modelValueOnSlice(
+  const float* __restrict__ spectrum,
+  const float* __restrict__ stellar,
+  const OrderSlice& sl,
+  const Pos u_rest,
+  const ExposureShift& ex,
+  const float inv_fs_rest,
+  int& j_hint)
+{
+  const Pos u = addPos(u_rest, ex.shift);
+
+  const int j = bracketScan(sl, u, j_hint);
+  j_hint = j;
+
+  if (j < 1 || j >= sl.len || distPos(sl, 0, u) <= 0.0f)
+    return 0.0f;
+
+  float m;
+
+  if (ex.blur)
+  {
+    if (!boxMeanOnSlice(spectrum, sl, j, addPos(u_rest, ex.shift_lo), addPos(u_rest, ex.shift_hi),
+                        ex.inv_box, m))
+      return 0.0f;
+  }
+  else
+  {
+    m = lerpInCell(spectrum, sl, j, u);
+  }
+
+  if (stellar == nullptr)
+    return static_cast<float>(transit_depth_to_flux) * m;
+
+  if (inv_fs_rest > 0.0f)
+    m *= lerpInCell(stellar, sl, j, u) * inv_fs_rest;
+
+  return m;
+}
+
+
+// 1/Fs at the rest wavelength of a pixel (emission), or -1 when there is no
+// stellar spectrum, the pixel lies outside the slice or Fs is not positive.
+__device__ __forceinline__
+float inverseStellarRest(
+  const float* __restrict__ stellar,
+  const OrderSlice& sl,
+  const int j0,
+  const float t0)
+{
+  if (stellar == nullptr || j0 < 1 || j0 >= sl.len)
+    return -1.0f;
+
+  const float* s = stellar + sl.start;
+  const float fs = (1.0f - t0) * s[j0 - 1] + t0 * s[j0];
+
+  return fs > 0.0f ? 1.0f / fs : -1.0f;
+}
+
+
+// Rest position of a pixel as a double-float pair.
+__device__ __forceinline__
+Pos pixelPosition(const HighResModelGridGPU& g, const int p)
+{
+  Pos u;
+  u.hi = g.pix_ln[p];
+  u.lo = g.pix_ln_lo[p];
+  return u;
+}
+
+
+// Bracket prediction for a pixel at a given exposure shift from its bracket at
+// zero velocity: the grid is descending, so a positive shift moves to lower indices.
+__device__ __forceinline__
+int predictBracket(const int j0, const float shift, const OrderSlice& sl)
+{
+  const int j = (j0 >= 0) ? j0 : sl.len / 2;
+
+  return j - __float2int_rn(shift * sl.inv_mean_dln);
 }
 
 
@@ -224,104 +317,54 @@ void exposureGeometry(
 }
 
 
-// Model value at observed wavelength wl_rest (µm) for one exposure:
-//   * box-averaged over the intra-exposure smear delta_v, or point-interpolated
-//     when the smear is negligible, at the Doppler target wl_rest * inv_dop;
-//   * emission (stellar_spectrum != nullptr): multiplied by Fs(λ')/Fs(λ_rest), so
-//     that only Fp is Doppler shifted and Fs stays in the stellar rest frame;
-//     fs_rest = Fs(λ_rest) is computed once per pixel by the caller;
-//   * transmission (stellar_spectrum == nullptr): converted from transit depth
-//     in ppm to the relative in-transit flux change, -1e-6 depth.
-// Returns 0 outside the model grid.
-// idx_hint: bracket index of a previous lookup at a nearby wavelength (-1 if
-// none); the bracket is then found by a short scan instead of a binary search.
-// Updated to the bracket found here.
 __device__ __forceinline__
-float modelValueAtTarget(
-  const float*  __restrict__ model_src,
-  const double* __restrict__ model_wavelengths,
-  const int n_model,
-  const double wl_rest,
-  const double inv_dop,
-  const double delta_v,
-  const float*  __restrict__ stellar_spectrum,
-  const float fs_rest,
-  int& idx_hint)
+Pos splitPosition(const double x)
 {
-  const double wl_dop = wl_rest * inv_dop;
-  const int idx = (idx_hint < 0)
-    ? binarySearchDescending(model_wavelengths, n_model, wl_dop)
-    : bracketFromHint(model_wavelengths, n_model, wl_dop, idx_hint);
-
-  idx_hint = idx;
-
-  if (idx < 1 || idx >= n_model || model_wavelengths[idx] > wl_dop)
-    return 0.0f;
-
-  float m;
-
-  if (fabs(delta_v) > exposure_blur_min_kms)
-  {
-    // Box-at-target: edges at v_rad ± dV/2 (1/inv_dop = 1 + v_rad/c).
-    const double c_kms  = constants::light_c * 1e-5;
-    const double half   = 0.5 * fabs(delta_v);
-    const double inv_lo = 1.0 / (1.0 / inv_dop + half / c_kms);  // larger v -> smaller inv
-    const double inv_hi = 1.0 / (1.0 / inv_dop - half / c_kms);
-    double mean;
-
-    if (!boxMeanRaw(model_src, model_wavelengths, n_model,
-                    wl_rest * inv_lo, wl_rest * inv_hi, mean, idx))
-      return 0.0f;
-
-    m = (float)mean;
-  }
-  else
-  {
-    m = interpolateAtIdx(model_src, model_wavelengths, n_model, idx, wl_dop);
-  }
-
-  if (stellar_spectrum == nullptr)
-    return (float)(transit_depth_to_flux * (double)m);
-
-  if (fs_rest > 0.0f)
-    m *= interpolateAtIdx(stellar_spectrum, model_wavelengths, n_model, idx, wl_dop) / fs_rest;
-
-  return m;
+  Pos p;
+  p.hi = (float)x;
+  p.lo = (float)(x - (double)p.hi);
+  return p;
 }
 
 
+// The same geometry converted to the ln(lambda) shifts of the slices.  The box
+// edges sit at v_rad -/+ |dV|/2 (1/inv_dop = 1 + v_rad/c).
 __device__ __forceinline__
-float modelValueAtTarget(
-  const float*  __restrict__ model_src,
-  const double* __restrict__ model_wavelengths,
-  const int n_model,
-  const double wl_rest,
-  const double inv_dop,
-  const double delta_v,
-  const float*  __restrict__ stellar_spectrum,
-  const float fs_rest)
+ExposureShift exposureShift(
+  const double phase_obs,
+  const double v_bary,
+  const float* __restrict__ exposure_blur_coeff,
+  const int exp,
+  const double Kp,
+  const double Vsys,
+  const double dphi,
+  const bool use_phase_function)
 {
-  int idx_hint = -1;
+  double inv_dop, delta_v, phase_w;
+  exposureGeometry(phase_obs, v_bary, exposure_blur_coeff, exp,
+                   Kp, Vsys, dphi, use_phase_function, inv_dop, delta_v, phase_w);
 
-  return modelValueAtTarget(model_src, model_wavelengths, n_model, wl_rest,
-                            inv_dop, delta_v, stellar_spectrum, fs_rest, idx_hint);
-}
+  ExposureShift ex;
+  ex.shift = splitPosition(log(inv_dop));
+  ex.phase_w = (float)phase_w;
+  ex.blur = fabs(delta_v) > exposure_blur_min_kms ? 1 : 0;
+  ex.shift_lo = ex.shift;
+  ex.shift_hi = ex.shift;
+  ex.inv_box = 0.0f;
 
+  if (ex.blur)
+  {
+    const double c_kms = constants::light_c * 1e-5;
+    const double half = 0.5 * fabs(delta_v);
+    const double ln_lo = -log(1.0 / inv_dop + half / c_kms);
+    const double ln_hi = -log(1.0 / inv_dop - half / c_kms);
 
-__device__ __forceinline__
-float stellarRestValue(
-  const float*  __restrict__ stellar_spectrum,
-  const double* __restrict__ model_wavelengths,
-  const int n_model,
-  const double wl_rest)
-{
-  if (stellar_spectrum == nullptr)
-    return 0.0f;
+    ex.shift_lo = splitPosition(ln_lo);
+    ex.shift_hi = splitPosition(ln_hi);
+    ex.inv_box = (float)(1.0 / (ln_hi - ln_lo));
+  }
 
-  int idx;
-  const float fs = interpolateModelRawIdx(stellar_spectrum, model_wavelengths, n_model, wl_rest, idx);
-
-  return (idx >= 1 && idx < n_model && model_wavelengths[idx] <= wl_rest) ? fs : 0.0f;
+  return ex;
 }
 
 
@@ -332,24 +375,24 @@ float stellarRestValue(
 // transmission spectrum) from being multiplied by a large model offset (e.g. the
 // -1e-6 x transit depth continuum).  Must be called by all threads of the block.
 __device__
-double blockModelReference(
+float blockModelReference(
   const float*  __restrict__ model_src,
-  const double* __restrict__ model_wavelengths,
-  const int n_model,
-  const double* __restrict__ wl_order,
-  const double inv_dop,
-  const double delta_v,
-  const double phase_w,
-  const float*  __restrict__ stellar_spectrum)
+  const float*  __restrict__ stellar_spectrum,
+  const HighResModelGridGPU& grid,
+  const OrderSlice& sl,
+  const int offset,
+  const ExposureShift& ex)
 {
-  __shared__ double s_ref;
+  __shared__ float s_ref;
 
   if (threadIdx.x == 0)
   {
-    const double wl_rest = wl_order[0] * 1e-3;
-    const float fs_rest = stellarRestValue(stellar_spectrum, model_wavelengths, n_model, wl_rest);
-    s_ref = phase_w * (double)modelValueAtTarget(
-      model_src, model_wavelengths, n_model, wl_rest, inv_dop, delta_v, stellar_spectrum, fs_rest);
+    const int j0 = grid.pix_j0[offset];
+    const float inv_fs = inverseStellarRest(stellar_spectrum, sl, j0, grid.pix_t0[offset]);
+    int j = predictBracket(j0, ex.shift.hi, sl);
+
+    s_ref = ex.phase_w * modelValueOnSlice(
+      model_src, stellar_spectrum, sl, pixelPosition(grid, offset), ex, inv_fs, j);
   }
 
   __syncthreads();
@@ -411,9 +454,7 @@ void blockQuadraticFit(
 __global__
 void highResLogLikeKernel(
   const float*  __restrict__ broadened_spectrum,
-  const double* __restrict__ model_wavelengths,
-  const int                  n_model,
-  const double* __restrict__ order_wavelengths,
+  const HighResModelGridGPU  grid,
   const float*  __restrict__ order_flux,
   const int*    __restrict__ order_offsets,
   const int*    __restrict__ order_nb_pixels,
@@ -440,26 +481,24 @@ void highResLogLikeKernel(
   const int N = order_nb_pixels[ord];
   const int offset = order_offsets[ord];
 
-  const double* wl_order = order_wavelengths + offset;
   const float* flux = order_flux + (size_t)offset * nb_exposures + (size_t)exp * N;
 
-  double inv_dop, delta_v, phase_w;
-  exposureGeometry(orbital_phases[exp], v_bary[exp], exposure_blur_coeff, exp,
-                   Kp, Vsys, dphi, use_phase_function, inv_dop, delta_v, phase_w);
+  const OrderSlice sl = orderSlice(grid, ord);
+  const ExposureShift ex = exposureShift(orbital_phases[exp], v_bary[exp], exposure_blur_coeff, exp,
+                                         Kp, Vsys, dphi, use_phase_function);
 
-  const double m_ref = blockModelReference(
-    broadened_spectrum, model_wavelengths, n_model, wl_order, inv_dop, delta_v,
-    phase_w, stellar_spectrum);
+  const float m_ref = blockModelReference(broadened_spectrum, stellar_spectrum, grid, sl, offset, ex);
 
   double sum_m = 0.0, sum_m2 = 0.0, sum_dm = 0.0, sum_d = 0.0;
 
   for (int p = tid; p < N; p += blockDim.x)
   {
-    const double wl_rest = wl_order[p] * 1e-3;
-    const float fs_rest = stellarRestValue(stellar_spectrum, model_wavelengths, n_model, wl_rest);
-    const double m = phase_w * (double)modelValueAtTarget(
-      broadened_spectrum, model_wavelengths, n_model, wl_rest, inv_dop, delta_v,
-      stellar_spectrum, fs_rest) - m_ref;
+    const int j0 = grid.pix_j0[offset + p];
+    const float inv_fs = inverseStellarRest(stellar_spectrum, sl, j0, grid.pix_t0[offset + p]);
+    int j = predictBracket(j0, ex.shift.hi, sl);
+
+    const double m = (double)(ex.phase_w * modelValueOnSlice(
+      broadened_spectrum, stellar_spectrum, sl, pixelPosition(grid, offset + p), ex, inv_fs, j) - m_ref);
     const double d = (double)flux[p];
 
     sum_m  += m;
@@ -492,9 +531,7 @@ void highResLogLikeKernel(
 __host__
 void launchHighResLogLike(
     const float* broadened_spectrum_dev,
-    const double* model_wavelengths_dev,
-    int n_model,
-    const double* order_wavelengths_dev,
+    const HighResModelGridGPU& model_grid,
     const float* order_flux_dev,
     const int* order_offsets_dev,
     const int* order_nb_pixels_dev,
@@ -517,9 +554,7 @@ void launchHighResLogLike(
 
   highResLogLikeKernel<<<blocks, threads>>>(
     broadened_spectrum_dev,
-    model_wavelengths_dev,
-    n_model,
-    order_wavelengths_dev,
+    model_grid,
     order_flux_dev,
     order_offsets_dev,
     order_nb_pixels_dev,
@@ -546,9 +581,7 @@ void launchHighResLogLike(
 __global__
 void highResLogLikeGibsonKernel(
   const float*  __restrict__ broadened_spectrum,
-  const double* __restrict__ model_wavelengths,
-  const int                  n_model,
-  const double* __restrict__ order_wavelengths,
+  const HighResModelGridGPU  grid,
   const float*  __restrict__ order_flux,
   const int*    __restrict__ order_offsets,
   const int*    __restrict__ order_nb_pixels,
@@ -577,27 +610,25 @@ void highResLogLikeGibsonKernel(
   const int N = order_nb_pixels[ord];
   const int offset = order_offsets[ord];
 
-  const double* wl_order = order_wavelengths + offset;
   const float* flux  = order_flux + (size_t)offset * nb_exposures + (size_t)exp * N;
   const float* sigma = flux_uncertainties + (size_t)offset * nb_exposures + (size_t)exp * N;
 
-  double inv_dop, delta_v, phase_w;
-  exposureGeometry(orbital_phases[exp], v_bary[exp], exposure_blur_coeff, exp,
-                   Kp, Vsys, dphi, use_phase_function, inv_dop, delta_v, phase_w);
+  const OrderSlice sl = orderSlice(grid, ord);
+  const ExposureShift ex = exposureShift(orbital_phases[exp], v_bary[exp], exposure_blur_coeff, exp,
+                                         Kp, Vsys, dphi, use_phase_function);
 
-  const double m_ref = blockModelReference(
-    broadened_spectrum, model_wavelengths, n_model, wl_order, inv_dop, delta_v,
-    phase_w, stellar_spectrum);
+  const float m_ref = blockModelReference(broadened_spectrum, stellar_spectrum, grid, sl, offset, ex);
 
   double local_Sm = 0.0, local_Sfm = 0.0, local_Smm = 0.0;
 
   for (int p = tid; p < N; p += blockDim.x)
   {
-    const double wl_rest = wl_order[p] * 1e-3;
-    const float fs_rest = stellarRestValue(stellar_spectrum, model_wavelengths, n_model, wl_rest);
-    const double m = phase_w * (double)modelValueAtTarget(
-      broadened_spectrum, model_wavelengths, n_model, wl_rest, inv_dop, delta_v,
-      stellar_spectrum, fs_rest) - m_ref;
+    const int j0 = grid.pix_j0[offset + p];
+    const float inv_fs = inverseStellarRest(stellar_spectrum, sl, j0, grid.pix_t0[offset + p]);
+    int j = predictBracket(j0, ex.shift.hi, sl);
+
+    const double m = (double)(ex.phase_w * modelValueOnSlice(
+      broadened_spectrum, stellar_spectrum, sl, pixelPosition(grid, offset + p), ex, inv_fs, j) - m_ref);
     const double f = (double)flux[p];
     const double s = (double)sigma[p];
     const double inv_s2 = 1.0 / (s * s);
@@ -625,9 +656,7 @@ void highResLogLikeGibsonKernel(
 __host__
 void launchHighResLogLikeGibson(
     const float* broadened_spectrum_dev,
-    const double* model_wavelengths_dev,
-    int n_model,
-    const double* order_wavelengths_dev,
+    const HighResModelGridGPU& model_grid,
     const float* order_flux_dev,
     const int* order_offsets_dev,
     const int* order_nb_pixels_dev,
@@ -652,9 +681,7 @@ void launchHighResLogLikeGibson(
 
   highResLogLikeGibsonKernel<<<blocks, threads>>>(
     broadened_spectrum_dev,
-    model_wavelengths_dev,
-    n_model,
-    order_wavelengths_dev,
+    model_grid,
     order_flux_dev,
     order_offsets_dev,
     order_nb_pixels_dev,
@@ -682,30 +709,24 @@ void launchHighResLogLikeGibson(
 // ============================================================================
 
 
-// Kernel 1: interpolate the model at all Doppler shifts, then treat each pixel
-// column of the order according to `projection`.
+// Kernel 1a: interpolate the model at all Doppler shifts, apply the phase weight
+// and the optional re-injection scale, and write the raw model matrix of the order.
 // 2D grid: blockIdx.x = order, blockIdx.y = pixel chunk, so the GPU is saturated
-// even for a small number of orders.  Each thread processes one pixel column and
-// loops over all exposures; the column lives in the local array raw[MAX_K].
+// even for a small number of orders.  Each thread processes one pixel and loops
+// over all exposures, chaining the bracket from one exposure to the next.
 //
-// Shared memory: the per-exposure Doppler factors, smears and phase weights
-// (3 K doubles), followed by the (I - P) matrix (K^2 floats) when it fits.
-// Otherwise the matrix is read from global memory (it stays cached in L1/L2).
+// Shared memory: the per-exposure shifts (K ExposureShift).
 //
 // Output: model_out[ord_offset * K + exp * N + p]
-template <int MAX_K>
 __global__
-void highResInterpFilterKernel(
+void highResInterpKernel(
   const float*  __restrict__ broadened_spectrum,
-  const double* __restrict__ model_wavelengths,
-  const int                  n_model,
-  const double* __restrict__ order_wavelengths,
+  const HighResModelGridGPU  grid,
   const int*    __restrict__ order_offsets,
   const int*    __restrict__ order_nb_pixels,
   const double* __restrict__ orbital_phases,
   const double* __restrict__ v_bary,
   const float*  __restrict__ exposure_blur_coeff,
-  const float*  __restrict__ projection_matrices,
   float*        __restrict__ model_out,
   const int                  nb_orders,
   const int                  nb_exposures,
@@ -713,10 +734,8 @@ void highResInterpFilterKernel(
   const double               Vsys,
   const double               dphi,
   const float*  __restrict__ model_scale,
-  const int                  projection,
   const bool                 use_phase_function,
-  const float*  __restrict__ stellar_spectrum,
-  const bool                 matrix_in_shared)
+  const float*  __restrict__ stellar_spectrum)
 {
   const int ord = blockIdx.x;
   const int tid = threadIdx.x;
@@ -726,91 +745,146 @@ void highResInterpFilterKernel(
   const int K = nb_exposures;
   const int N = order_nb_pixels[ord];
   const int offset = order_offsets[ord];
-  const double* wl_order = order_wavelengths + offset;
 
   extern __shared__ double s_shared_raw[];
-  double* s_inv_dop = s_shared_raw;
-  double* s_delta_v = s_shared_raw + K;
-  double* s_phase_w = s_shared_raw + 2 * K;
-  float*  s_matrix  = (float*)(s_shared_raw + 3 * K);
-
-  const float* proj_ptr = projection_matrices + (size_t)ord * K * K;
-  const float* IminusP = matrix_in_shared ? s_matrix : proj_ptr;
-
-  if (projection == highres_projection_filter && matrix_in_shared)
-    for (int i = tid; i < K * K; i += blockDim.x)
-      s_matrix[i] = proj_ptr[i];
+  ExposureShift* s_ex = (ExposureShift*)s_shared_raw;
 
   for (int e = tid; e < K; e += blockDim.x)
-    exposureGeometry(orbital_phases[e], v_bary[e], exposure_blur_coeff, e,
-                     Kp, Vsys, dphi, use_phase_function,
-                     s_inv_dop[e], s_delta_v[e], s_phase_w[e]);
+    s_ex[e] = exposureShift(orbital_phases[e], v_bary[e], exposure_blur_coeff, e,
+                            Kp, Vsys, dphi, use_phase_function);
 
   __syncthreads();
 
+  const OrderSlice sl = orderSlice(grid, ord);
+
   for (int p = blockIdx.y * blockDim.x + tid; p < N; p += blockDim.x * gridDim.y)
   {
-    const double wl_rest = wl_order[p] * 1e-3;
+    const Pos u_rest = pixelPosition(grid, offset + p);
+    const int j0 = grid.pix_j0[offset + p];
 
     // Fs(λ_rest) is the same for all exposures of this pixel.
-    const float fs_rest = stellarRestValue(stellar_spectrum, model_wavelengths, n_model, wl_rest);
+    const float inv_fs = inverseStellarRest(stellar_spectrum, sl, j0, grid.pix_t0[offset + p]);
 
-    float raw[MAX_K];
+    float* out = model_out + (size_t)offset * K + p;
 
-    // Bracket index of the previous exposure; consecutive exposures shift the
-    // wavelength by only a few grid points, so after the first (binary) search
-    // each subsequent bracket is found by a short scan from the previous one.
-    int idx_prev = -1;
+    // Bracket of the previous exposure; consecutive exposures shift the position
+    // by only a few grid points, so after the first prediction each subsequent
+    // bracket is found by a short scan from the previous one.
+    int j = predictBracket(j0, s_ex[0].shift.hi, sl);
 
     for (int e = 0; e < K; ++e)
     {
-      float m = (float)(s_phase_w[e] * (double)modelValueAtTarget(
-        broadened_spectrum, model_wavelengths, n_model, wl_rest,
-        s_inv_dop[e], s_delta_v[e], stellar_spectrum, fs_rest, idx_prev));
+      float m = s_ex[e].phase_w * modelValueOnSlice(
+        broadened_spectrum, stellar_spectrum, sl, u_rest, s_ex[e], inv_fs, j);
 
       // Re-injection (Line et al. 2021): put the model in detector units by
       // multiplying with the background the filter captures, S = P D.
       if (model_scale != nullptr)
         m *= model_scale[(size_t)offset * K + (size_t)e * N + p];
 
-      raw[e] = m;
+      out[(size_t)e * N] = m;
     }
+  }
+}
 
-    float* out = model_out + (size_t)offset * K + p;
 
-    if (projection == highres_projection_filter)
+// Kernel 1b: temporal treatment of the raw model matrix of an order, in place.
+// One block per (order, tile of TILE pixels); the tile's K x TILE values are staged
+// in shared memory, laid out [exposure][pixel] so that the reads are conflict-free.
+// The block has TILE x PROJECT_GROUPS threads: the groups split the exposures, and
+// each thread accumulates four exposures per shared-memory read from a float4 of
+// the transposed, padded projection matrix (layout: see initDeviceMemory).
+//   projection_filter:      out = (I - P) raw
+//   projection_center_time: subtract the temporal mean of each pixel
+constexpr int highres_project_groups = 4;
+
+template <int TILE>
+__global__
+void highResProjectKernel(
+  const float*  __restrict__ projection_matrices_t,
+  float*        __restrict__ model_inout,
+  const int*    __restrict__ order_offsets,
+  const int*    __restrict__ order_nb_pixels,
+  const int                  nb_orders,
+  const int                  nb_exposures,
+  const int                  nb_exposures_padded,
+  const int                  projection)
+{
+  const int ord = blockIdx.x;
+  const int tid = threadIdx.x;
+  const int group = threadIdx.y;
+
+  if (ord >= nb_orders) return;
+
+  const int K = nb_exposures;
+  const int Kp = nb_exposures_padded;
+  const int N = order_nb_pixels[ord];
+  const int offset = order_offsets[ord];
+  const int p = blockIdx.y * TILE + tid;
+
+  extern __shared__ float s_tile[];   // [K][TILE]
+
+  float* column = model_inout + (size_t)offset * K + p;
+
+  // all threads take part in the barrier; those beyond the order's last pixel
+  // only skip the loads and stores
+  const bool active = p < N;
+
+  if (active)
+    for (int e = group; e < K; e += highres_project_groups)
+      s_tile[e * TILE + tid] = column[(size_t)e * N];
+
+  __syncthreads();
+
+  if (!active) return;
+
+  if (projection == highres_projection_filter)
+  {
+    const float* matrix_t = projection_matrices_t + (size_t)ord * K * Kp;
+
+    // exposures of this group, in blocks of four (the padding makes the float4
+    // loads aligned and the extra accumulators harmless)
+    const int chunk = ((Kp / 4 + highres_project_groups - 1) / highres_project_groups) * 4;
+    const int e_begin = group * chunk;
+    const int e_end = min(e_begin + chunk, Kp);
+
+    for (int e0 = e_begin; e0 < e_end; e0 += 4)
     {
-      for (int e = 0; e < K; ++e)
+      float4 acc = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+      const float4* mt = reinterpret_cast<const float4*>(matrix_t + e0);
+      const int stride4 = Kp / 4;
+
+      for (int jj = 0; jj < K; ++jj)
       {
-        const float* row = IminusP + e * K;
-        float val = 0.0f;
+        const float x = s_tile[jj * TILE + tid];
+        const float4 m = __ldg(mt + jj * stride4);
 
-        for (int j = 0; j < K; ++j)
-          val += row[j] * raw[j];
-
-        out[(size_t)e * N] = val;
+        acc.x += m.x * x;
+        acc.y += m.y * x;
+        acc.z += m.z * x;
+        acc.w += m.w * x;
       }
-    }
-    else if (projection == highres_projection_center_time)
-    {
-      // Data-only mode: remove only the temporal mean of each pixel (N_PCA = 0
-      // model filtering).  A continuum that does not move with the planet cancels,
-      // the Doppler trail of the lines is kept.
-      double mean = 0.0;
 
-      for (int e = 0; e < K; ++e)
-        mean += raw[e];
-
-      mean /= (double)K;
-
-      for (int e = 0; e < K; ++e)
-        out[(size_t)e * N] = (float)((double)raw[e] - mean);
+      column[(size_t)e0 * N] = acc.x;
+      if (e0 + 1 < K) column[(size_t)(e0 + 1) * N] = acc.y;
+      if (e0 + 2 < K) column[(size_t)(e0 + 2) * N] = acc.z;
+      if (e0 + 3 < K) column[(size_t)(e0 + 3) * N] = acc.w;
     }
-    else
-    {
-      for (int e = 0; e < K; ++e)
-        out[(size_t)e * N] = raw[e];
-    }
+  }
+  else
+  {
+    // Data-only mode: remove only the temporal mean of each pixel (N_PCA = 0
+    // model filtering).  A continuum that does not move with the planet cancels,
+    // the Doppler trail of the lines is kept.
+    double mean = 0.0;
+
+    for (int e = 0; e < K; ++e)
+      mean += s_tile[e * TILE + tid];
+
+    mean /= (double)K;
+
+    for (int e = group; e < K; e += highres_project_groups)
+      column[(size_t)e * N] = (float)((double)s_tile[e * TILE + tid] - mean);
   }
 }
 
@@ -831,31 +905,48 @@ static int maxDynamicSharedMemoryBytes()
 }
 
 
-template <int MAX_K, typename... Args>
-static void launchInterpFilterInstance(
-  const dim3 blocks, const int threads, const size_t shared_bytes, Args... args)
+// Opts a kernel into dynamic shared memory above 48 KB, once per kernel.
+template <typename Kernel>
+static void optInSharedMemory(Kernel kernel, const size_t shared_bytes, size_t& opted_in_bytes)
 {
-  // Above 48 KB, dynamic shared memory needs an explicit opt-in per kernel.
-  static size_t opted_in_bytes = 48 * 1024;
-
   if (shared_bytes > opted_in_bytes)
   {
     gpuErrchk(cudaFuncSetAttribute(
-      highResInterpFilterKernel<MAX_K>,
-      cudaFuncAttributeMaxDynamicSharedMemorySize,
-      static_cast<int>(shared_bytes)));
+      kernel, cudaFuncAttributeMaxDynamicSharedMemorySize, static_cast<int>(shared_bytes)));
     opted_in_bytes = shared_bytes;
   }
+}
 
-  highResInterpFilterKernel<MAX_K><<<blocks, threads, shared_bytes>>>(args...);
+
+template <int TILE>
+static void launchProjectInstance(
+  const float* projection_matrices_dev,
+  float* model_dev,
+  const int* order_offsets_dev,
+  const int* order_nb_pixels_dev,
+  const int nb_orders,
+  const int nb_exposures,
+  const int max_pixels_per_order,
+  const int projection)
+{
+  static size_t opted_in_bytes = 48 * 1024;
+
+  const size_t shared_bytes = static_cast<size_t>(nb_exposures) * TILE * sizeof(float);
+  optInSharedMemory(highResProjectKernel<TILE>, shared_bytes, opted_in_bytes);
+
+  const dim3 blocks(nb_orders, (max_pixels_per_order + TILE - 1) / TILE);
+  const dim3 threads(TILE, highres_project_groups);
+  const int nb_exposures_padded = ((nb_exposures + 3) / 4) * 4;
+
+  highResProjectKernel<TILE><<<blocks, threads, shared_bytes>>>(
+    projection_matrices_dev, model_dev, order_offsets_dev, order_nb_pixels_dev,
+    nb_orders, nb_exposures, nb_exposures_padded, projection);
 }
 
 
 static void launchInterpFilter(
     const float* broadened_spectrum_dev,
-    const double* model_wavelengths_dev,
-    const int n_model,
-    const double* order_wavelengths_dev,
+    const HighResModelGridGPU& model_grid,
     const int* order_offsets_dev,
     const int* order_nb_pixels_dev,
     const double* orbital_phases_dev,
@@ -872,37 +963,51 @@ static void launchInterpFilter(
     const bool use_phase_function,
     const float* stellar_spectrum_dev)
 {
-  const int threads = 256;
-  const dim3 blocks(nb_orders, (max_pixels_per_order + threads - 1) / threads);
-
-  const size_t K = static_cast<size_t>(nb_exposures);
-  const size_t base_bytes = 3 * K * sizeof(double);
-  const size_t matrix_bytes = K * K * sizeof(float);
-
-  const bool matrix_in_shared = projection == highres_projection_filter
-    && base_bytes + matrix_bytes <= static_cast<size_t>(maxDynamicSharedMemoryBytes());
-  const size_t shared_bytes = base_bytes + (matrix_in_shared ? matrix_bytes : 0);
-
-  #define BEAR_INTERP_FILTER_ARGS \
-    broadened_spectrum_dev, model_wavelengths_dev, n_model, order_wavelengths_dev, \
-    order_offsets_dev, order_nb_pixels_dev, orbital_phases_dev, v_bary_dev, \
-    exposure_blur_coeff_dev, projection_matrices_dev, model_out_dev, nb_orders, \
-    nb_exposures, Kp, Vsys, dphi, model_scale_dev, projection, use_phase_function, \
-    stellar_spectrum_dev, matrix_in_shared
-
-  if (nb_exposures <= 128)
-    launchInterpFilterInstance<128>(blocks, threads, shared_bytes, BEAR_INTERP_FILTER_ARGS);
-  else if (nb_exposures <= 256)
-    launchInterpFilterInstance<256>(blocks, threads, shared_bytes, BEAR_INTERP_FILTER_ARGS);
-  else if (nb_exposures <= highres_max_exposures_gpu)
-    launchInterpFilterInstance<highres_max_exposures_gpu>(
-      blocks, threads, shared_bytes, BEAR_INTERP_FILTER_ARGS);
-  else
+  if (nb_exposures > highres_max_exposures_gpu)
     throw std::runtime_error(
       "launchInterpFilter: " + std::to_string(nb_exposures) + " exposures exceed the GPU limit of "
       + std::to_string(highres_max_exposures_gpu) + "\n");
 
-  #undef BEAR_INTERP_FILTER_ARGS
+  // Kernel 1a: the raw model matrix
+  {
+    static size_t opted_in_bytes = 48 * 1024;
+
+    const int threads = 256;
+    const dim3 blocks(nb_orders, (max_pixels_per_order + threads - 1) / threads);
+    const size_t shared_bytes = static_cast<size_t>(nb_exposures) * sizeof(ExposureShift);
+
+    optInSharedMemory(highResInterpKernel, shared_bytes, opted_in_bytes);
+
+    highResInterpKernel<<<blocks, threads, shared_bytes>>>(
+      broadened_spectrum_dev, model_grid, order_offsets_dev, order_nb_pixels_dev,
+      orbital_phases_dev, v_bary_dev, exposure_blur_coeff_dev, model_out_dev,
+      nb_orders, nb_exposures, Kp, Vsys, dphi, model_scale_dev,
+      use_phase_function, stellar_spectrum_dev);
+
+    CUDA_CHECK_AFTER_KERNEL();
+  }
+
+  if (projection == highres_projection_none)
+    return;
+
+  // Kernel 1b: the temporal treatment, with the widest tile whose K x TILE
+  // floats fit into the dynamic shared memory
+  const size_t max_shared = static_cast<size_t>(maxDynamicSharedMemoryBytes());
+  const size_t bytes_per_pixel = static_cast<size_t>(nb_exposures) * sizeof(float);
+
+  if (128 * bytes_per_pixel <= max_shared)
+    launchProjectInstance<128>(projection_matrices_dev, model_out_dev, order_offsets_dev,
+      order_nb_pixels_dev, nb_orders, nb_exposures, max_pixels_per_order, projection);
+  else if (64 * bytes_per_pixel <= max_shared)
+    launchProjectInstance<64>(projection_matrices_dev, model_out_dev, order_offsets_dev,
+      order_nb_pixels_dev, nb_orders, nb_exposures, max_pixels_per_order, projection);
+  else if (32 * bytes_per_pixel <= max_shared)
+    launchProjectInstance<32>(projection_matrices_dev, model_out_dev, order_offsets_dev,
+      order_nb_pixels_dev, nb_orders, nb_exposures, max_pixels_per_order, projection);
+  else
+    throw std::runtime_error(
+      "launchInterpFilter: " + std::to_string(nb_exposures)
+      + " exposures do not fit into the shared memory of the projection kernel\n");
 
   CUDA_CHECK_AFTER_KERNEL();
 }
@@ -1165,9 +1270,7 @@ void highResTotalCCFLogLikeKernel(
 __host__
 void launchHighResLogLikeFiltered(
     const float* broadened_spectrum_dev,
-    const double* model_wavelengths_dev,
-    int n_model,
-    const double* order_wavelengths_dev,
+    const HighResModelGridGPU& model_grid,
     const float* order_flux_dev,
     const int* order_offsets_dev,
     const int* order_nb_pixels_dev,
@@ -1197,9 +1300,7 @@ void launchHighResLogLikeFiltered(
   // Kernel 1: interpolate, weight, scale, and filter or centre the model
   launchInterpFilter(
     broadened_spectrum_dev,
-    model_wavelengths_dev,
-    n_model,
-    order_wavelengths_dev,
+    model_grid,
     order_offsets_dev,
     order_nb_pixels_dev,
     orbital_phases_dev,
@@ -1303,9 +1404,7 @@ void launchHighResLogLikeFiltered(
 __host__
 void launchHighResInterpFilterOnly(
     const float* broadened_spectrum_dev,
-    const double* model_wavelengths_dev,
-    int n_model,
-    const double* order_wavelengths_dev,
+    const HighResModelGridGPU& model_grid,
     const int* order_offsets_dev,
     const int* order_nb_pixels_dev,
     const double* orbital_phases_dev,
@@ -1324,9 +1423,7 @@ void launchHighResInterpFilterOnly(
 {
   launchInterpFilter(
     broadened_spectrum_dev,
-    model_wavelengths_dev,
-    n_model,
-    order_wavelengths_dev,
+    model_grid,
     order_offsets_dev,
     order_nb_pixels_dev,
     orbital_phases_dev,

@@ -11,6 +11,7 @@
 #include <string>
 
 #include "../CUDA_kernels/data_management_kernels.h"
+#include "../CUDA_kernels/highres_loglike_kernels.h"
 
 
 namespace bear {
@@ -43,6 +44,13 @@ class HighResObservation {
     void init(const std::string& file_path);
     void initDeviceMemory();
     void freeDeviceMemory();
+
+    // Precomputes the float lookup tables of the model grid (per-order slices and
+    // per-pixel rest positions) the GPU kernels interpolate on, see
+    // HighResModelGridGPU.  model_wavelengths is the high-res model grid in µm,
+    // descending.  Must be called after initDeviceMemory and before any GPU
+    // likelihood evaluation; call again if the model grid changes.
+    void initModelGridGPU(const std::vector<double>& model_wavelengths);
 
     const std::string& observationName() const { return observation_name; }
     double resolvingPower() const { return resolving_power; }
@@ -216,8 +224,27 @@ class HighResObservation {
       std::vector<double>& model_on_order) const;
 
     // --- GPU buffers ---
-    // Flattened GPU buffers for the unfiltered kernel
-    double* all_wavelengths_dev = nullptr;   // flattened order wavelengths (nm)
+    // Precomputed model-grid tables (initModelGridGPU), all owned here
+    int* slice_start_dev = nullptr;
+    int* slice_len_dev = nullptr;
+    int* slice_offset_dev = nullptr;
+    float* slice_ln_dev = nullptr;
+    float* slice_ln_lo_dev = nullptr;
+    float* slice_inv_dln_dev = nullptr;
+    float* slice_dln_dev = nullptr;
+    float* order_inv_mean_dln_dev = nullptr;
+    float* pix_ln_dev = nullptr;
+    float* pix_ln_lo_dev = nullptr;
+    int* pix_j0_dev = nullptr;
+    float* pix_t0_dev = nullptr;
+    size_t model_grid_nb_points = 0;   // size of the model grid the tables were built for
+
+    // Collects the table pointers for the kernels; throws if the tables are missing
+    // or were built for a grid of a different size.
+    HighResModelGridGPU modelGridGPU(const size_t nb_model_points) const;
+    void freeModelGridGPU();
+
+    // Flattened GPU buffers for the likelihood kernels
     float* all_flux_dev = nullptr;          // flattened flux [per order: nb_exp * nb_pix]
     int* order_offsets_dev = nullptr;       // pixel offset per order
     int* order_nb_pixels_dev = nullptr;     // pixels per order

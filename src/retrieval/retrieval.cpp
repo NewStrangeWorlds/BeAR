@@ -222,7 +222,10 @@ Retrieval::Retrieval(
   if (config->use_gpu)
   {
     for (auto& obs : highres_observations)
+    {
       obs.initDeviceMemory();
+      obs.initModelGridGPU(spectral_grid_highres->wavelength_list);
+    }
 
     initGPUMemory();
   }
