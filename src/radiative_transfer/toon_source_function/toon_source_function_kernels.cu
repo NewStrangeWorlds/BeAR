@@ -26,20 +26,38 @@ constexpr double omega_max = 1.0 - 1e-6;
 constexpr double tau_min_two_stream = 1e-6;
 constexpr double mu1 = 0.5;
 
+//formal solution (see the comment on the second pass of the kernel): with lambda mu
+//below this value the integrals of cosh(lambda t) and sinh(lambda t) along the ray are
+//expanded in powers of lambda, above it their closed forms are used
+constexpr float lambda_mu_series = 0.05f;
 
-//two-stream and source function quantities of a single layer
-struct ToonLayerDev {
-  double tau, tau_ts, omega, g, b0, b1;
-  double gamma_sum, lambda, gam, e_lambda;
-  double e1, e2, e3, e4;
-  double c_plus_top, c_minus_top, c_plus_bot, c_minus_bot;
+//integrals of t^n exp(-t/mu): series below this value of tau/mu, closed form above
+constexpr float x_series = 1.0f;
+
+//number of terms of the series of the lower incomplete gamma function
+constexpr int nb_series_terms = 10;
+
+
+//1/x in double precision from a single-precision seed and two Newton steps
+//(relative error of a few 1e-16); the FP64 division sequence is several times slower
+__device__ __forceinline__ double reciprocal(const double x)
+{
+  double r = static_cast<double>(__frcp_rn(static_cast<float>(x)));
+  r = fma(r, fma(-x, r, 1.0), r);
+  r = fma(r, fma(-x, r, 1.0), r);
+  return r;
+}
+
+
+
+//optical properties of layer i (0 = bottom), assembled in single precision from the
+//level-based gas coefficients and the layer-based cloud properties
+struct LayerPropsDev {
+  float tau, omega, one_minus_omega, g;
 };
 
 
-//assembles the optical properties of layer i (0 = bottom) and the two-stream quantities
-//the computation is done in double precision: the two-stream system becomes
-//ill-conditioned for thin or conservatively scattering layers
-__device__ __forceinline__ ToonLayerDev toonLayerDev(
+__device__ __forceinline__ LayerPropsDev layerPropsDev(
   const int i,
   const int tid,
   const int nb_spectral_points,
@@ -48,61 +66,108 @@ __device__ __forceinline__ ToonLayerDev toonLayerDev(
   const float* __restrict__ cloud_optical_depth,
   const float* __restrict__ cloud_single_scattering,
   const float* __restrict__ cloud_asym_param,
-  const float* s_altitude,
-  const double planck_top,
-  const double planck_bot)
+  const float* s_altitude)
 {
-  ToonLayerDev l;
-
   const int idx0 = i * nb_spectral_points + tid;
   const int idx1 = (i + 1) * nb_spectral_points + tid;
 
-  const double dz = s_altitude[i+1] - s_altitude[i];
+  const float dz = s_altitude[i+1] - s_altitude[i];
 
-  const double absorption_depth = dz * (absorption_coeff[idx1] + absorption_coeff[idx0]) * 0.5;
-  const double gas_scattering_depth = dz * (scattering_coeff[idx1] + scattering_coeff[idx0]) * 0.5;
+  const float absorption_depth = dz * (absorption_coeff[idx1] + absorption_coeff[idx0]) * 0.5f;
+  const float gas_scattering_depth = dz * (scattering_coeff[idx1] + scattering_coeff[idx0]) * 0.5f;
 
-  double tau = absorption_depth + gas_scattering_depth;
-  double cloud_scattering_depth = 0.0;
-  double g_cloud = 0.0;
+  float tau = absorption_depth + gas_scattering_depth;
+  float cloud_scattering_depth = 0.0f;
+  float cloud_absorption_depth = 0.0f;
+  float g_cloud = 0.0f;
 
   if (cloud_optical_depth != nullptr)
   {
-    const double cloud_tau = cloud_optical_depth[idx0];
+    const float cloud_tau = cloud_optical_depth[idx0];
     tau += cloud_tau;
+    cloud_absorption_depth = cloud_tau;
 
     if (cloud_single_scattering != nullptr)
-      cloud_scattering_depth = cloud_tau * cloud_single_scattering[idx0];
+    {
+      const float cloud_ssa = cloud_single_scattering[idx0];
+      cloud_scattering_depth = cloud_tau * cloud_ssa;
+      cloud_absorption_depth = cloud_tau * (1.0f - cloud_ssa);
+    }
 
     if (cloud_asym_param != nullptr)
       g_cloud = cloud_asym_param[idx0];
   }
 
-  if (tau < 0.0) tau = 0.0;
+  if (tau < 0.0f) tau = 0.0f;
 
-  const double scattering_depth = gas_scattering_depth + cloud_scattering_depth;
+  const float scattering_depth = gas_scattering_depth + cloud_scattering_depth;
 
-  double omega = (tau > 0.0) ? scattering_depth / tau : 0.0;
-  if (omega > omega_max) omega = omega_max;
+  LayerPropsDev p;
+
+  p.tau = tau;
+  p.omega = (tau > 0.0f) ? fminf(scattering_depth / tau, 1.0f) : 0.0f;
+
+  //the absorbed fraction assembled from the absorption directly: 1 - omega loses its
+  //relative accuracy in single precision for nearly conservative scattering
+  p.one_minus_omega = (tau > 0.0f) ? fminf(fmaxf((absorption_depth + cloud_absorption_depth) / tau, 0.0f), 1.0f) : 1.0f;
 
   //Rayleigh scattering has a zero asymmetry parameter
-  const double g = (scattering_depth > 0.0) ? cloud_scattering_depth / scattering_depth * g_cloud : 0.0;
+  p.g = (scattering_depth > 0.0f) ? cloud_scattering_depth / scattering_depth * g_cloud : 0.0f;
 
-  l.tau = tau;
-  l.tau_ts = fmax(tau, tau_min_two_stream);
-  l.omega = omega;
-  l.g = g;
+  return p;
+}
 
-  l.b0 = planck_top;
-  l.b1 = (planck_bot - planck_top) / l.tau_ts;
 
-  //hemispheric mean closure
+
+//two-stream quantities of a layer (Toon et al. 1989, hemispheric mean closure)
+//the two-stream system is ill-conditioned for thin and for conservatively scattering
+//layers; its coefficients and its solution are therefore kept in double precision,
+//with the same expressions as in the CPU version
+struct TwoStreamDev {
+  double tau_ts, lambda, gam, e_lambda;
+  double e1, e2, e3, e4;
+  double c_plus_top, c_minus_top, c_plus_bot, c_minus_bot;
+};
+
+
+__device__ __forceinline__ TwoStreamDev twoStreamDev(
+  const LayerPropsDev& p,
+  const float planck_top,
+  const float planck_diff)
+{
+  TwoStreamDev l;
+
+  //omega and 1 - omega as a consistent pair: the accurately known one of the two single-precision
+  //values defines the other (gamma1 - gamma2 = 2 (1 - omega), and Gamma depends on both)
+  double omega, one_minus_omega;
+
+  if (p.one_minus_omega < 0.5f)
+  {
+    one_minus_omega = fmax(static_cast<double>(p.one_minus_omega), 1.0 - omega_max);
+    omega = 1.0 - one_minus_omega;
+  }
+  else
+  {
+    omega = static_cast<double>(p.omega);
+    one_minus_omega = 1.0 - omega;
+  }
+
+  const double g = p.g;
+
+  l.tau_ts = fmax(static_cast<double>(p.tau), tau_min_two_stream);
+
+  //the Planck gradient from the difference of the level values evaluated with full
+  //relative accuracy (the two-stream solution of a diffusive layer depends on the gradient)
+  const double b0 = planck_top;
+  const double b1 = static_cast<double>(planck_diff) * reciprocal(l.tau_ts);
+
   const double gamma1 = 2.0 - omega * (1.0 + g);
   const double gamma2 = omega * (1.0 - g);
+  const double gamma_sum = gamma1 + gamma2;
 
-  l.gamma_sum = gamma1 + gamma2;
-  l.lambda = sqrt((gamma1 - gamma2) * (gamma1 + gamma2));
-  l.gam = gamma2 / (gamma1 + l.lambda);
+  //gamma1 - gamma2 = 2 (1 - omega)
+  l.lambda = sqrt(2.0 * one_minus_omega * gamma_sum);
+  l.gam = gamma2 * reciprocal(gamma1 + l.lambda);
   l.e_lambda = exp(-l.lambda * l.tau_ts);
 
   l.e1 = 1.0 + l.gam * l.e_lambda;
@@ -111,9 +176,9 @@ __device__ __forceinline__ ToonLayerDev toonLayerDev(
   l.e4 = l.gam - l.e_lambda;
 
   //particular solution, Eq. 27 of Toon et al. with 2 pi mu1 = pi
-  const double c0 = constants::pi * l.b0;
-  const double c1 = constants::pi * l.b1 / l.gamma_sum;
-  const double c_bot = constants::pi * l.b1 * l.tau_ts;
+  const double c0 = constants::pi * b0;
+  const double c1 = constants::pi * b1 * reciprocal(gamma_sum);
+  const double c_bot = constants::pi * b1 * l.tau_ts;
 
   l.c_plus_top = c0 + c1;
   l.c_minus_top = c0 - c1;
@@ -142,15 +207,72 @@ __device__ __forceinline__ void thomasStep(
 
   if (r == 0)
   {
-    c_prime[idx] = d / b;
-    d_prime[idx] = e / b;
+    const double rb = reciprocal(b);
+    c_prime[idx] = d * rb;
+    d_prime[idx] = e * rb;
   }
   else
   {
     const int idx_prev = idx - nb_spectral_points;
-    const double denom = b - a * c_prime[idx_prev];
-    c_prime[idx] = d / denom;
-    d_prime[idx] = (e - a * d_prime[idx_prev]) / denom;
+    const double rdenom = reciprocal(b - a * c_prime[idx_prev]);
+    c_prime[idx] = d * rdenom;
+    d_prime[idx] = (e - a * d_prime[idx_prev]) * rdenom;
+  }
+}
+
+
+
+//integrals I_n = int_0^tau t^n exp(-t/mu) dt/mu = mu^n gamma(n+1, x) for n = 1 .. n_max,
+//with x = tau/mu and the lower incomplete gamma function gamma; e_mu = exp(-x)
+//small x: gamma(n+1, x) = x^(n+1) e^-x sum_j x^j / ((n+1)(n+2)...(n+1+j))
+//large x: gamma(n+1, x) = n! (1 - e^-x sum_(k<=n) x^k/k!)
+template <int n_max>
+__device__ __forceinline__ void thinLayerIntegrals(
+  const float x,
+  const float mu,
+  const float e_mu,
+  float integrals[6])
+{
+  float mu_n = 1.0f;
+
+  if (x < x_series)
+  {
+    float x_np1 = x * x;
+
+    #pragma unroll
+    for (int n = 1; n <= n_max; ++n)
+    {
+      float term = 1.0f / static_cast<float>(n + 1);
+      float sum = term;
+
+      #pragma unroll
+      for (int j = 1; j <= nb_series_terms; ++j)
+      {
+        term *= x / static_cast<float>(n + 1 + j);
+        sum += term;
+      }
+
+      mu_n *= mu;
+      integrals[n] = mu_n * x_np1 * e_mu * sum;
+      x_np1 *= x;
+    }
+  }
+  else
+  {
+    float poly = 1.0f;
+    float x_k = 1.0f;
+    float factorial = 1.0f;
+
+    #pragma unroll
+    for (int n = 1; n <= n_max; ++n)
+    {
+      x_k *= x;
+      factorial *= static_cast<float>(n);
+      poly += x_k / factorial;
+
+      mu_n *= mu;
+      integrals[n] = mu_n * factorial * (1.0f - e_mu * poly);
+    }
   }
 }
 
@@ -161,6 +283,17 @@ __device__ __forceinline__ void thomasStep(
 //one thread per spectral point; the temperature and altitude profiles are staged in shared memory
 //pass 1 (top to bottom): assembles and eliminates the tridiagonal two-stream system (Toon et al. 1989, Eqs. 39-44)
 //pass 2 (bottom to top): back substitution fused with the formal solution along the Gauss angles
+//
+//Precision: the Planck function, the layer optical properties and the formal solution are
+//evaluated in single precision, the two-stream system in double precision (see twoStreamDev).
+//The scattering source of a layer, G exp(-lambda (tau - t)) + H exp(-lambda t), has coefficients
+//G and H that grow like 1/tau for thin layers and like 1/sqrt(1 - omega) for conservative
+//scattering, while their combinations U = G e_lambda + H and V = lambda (G e_lambda - H) stay
+//finite. U and V are formed in double precision and the source is integrated along the ray as
+//  S(t) = B0 + B1 t + U cosh(lambda t) + V sinh(lambda t)/lambda,
+//with the integrals of the last two terms expanded in powers of lambda where lambda mu is small
+//and in closed form otherwise. Only for lambda mu >= 1, i.e. weakly scattering layers whose
+//G and H are small, is the original form of the integrals used directly.
 __global__
 void toonSourceFunctionDev(
   float* __restrict__ model_spectrum_gpu,
@@ -197,33 +330,43 @@ void toonSourceFunctionDev(
   const int nb_layers = nb_grid_points - 1;
   const int nb_rows = 2 * nb_layers;
 
+  //workspace: the eliminated tridiagonal system and the two-stream quantities needed again in pass 2
   double* c_prime = workspace;
-  double* d_prime = workspace + static_cast<size_t>(nb_rows) * nb_spectral_points;
+  double* d_prime = c_prime + static_cast<size_t>(nb_rows) * nb_spectral_points;
+  double* lambda_ws = d_prime + static_cast<size_t>(nb_rows) * nb_spectral_points;
+  double* gam_ws = lambda_ws + static_cast<size_t>(nb_layers) * nb_spectral_points;
+  double* e_lambda_ws = gam_ws + static_cast<size_t>(nb_layers) * nb_spectral_points;
 
-  double mu[max_nb_angles];
-  double weight[max_nb_angles];
+  float mu[max_nb_angles];
+  float weight[max_nb_angles];
 
   #pragma unroll
   for (int k = 0; k < max_nb_angles; ++k)
   {
-    mu[k] = (k < nb_angles) ? gauss_nodes_dev[k] : 1.0;
-    weight[k] = (k < nb_angles) ? gauss_weights_dev[k] : 0.0;
+    mu[k] = (k < nb_angles) ? static_cast<float>(gauss_nodes_dev[k]) : 1.0f;
+    weight[k] = (k < nb_angles) ? static_cast<float>(gauss_weights_dev[k]) : 0.0f;
   }
+
+  constexpr float two_pi = 2.0f * constants::pi;
 
 
   for (int tid = blockIdx.x * blockDim.x + threadIdx.x; tid < nb_spectral_points; tid += blockDim.x * gridDim.x)
   {
-    const double wavenumber = wavenumber_list_dev[tid];
+    const float wavenumber = static_cast<float>(wavenumber_list_dev[tid]);
+    const float wavenumber_cube = wavenumber * wavenumber * wavenumber;
 
     //---- pass 1: top to bottom, Toon layer n = 1 is the top layer (BeAR layer nb_layers - 1)
-    double planck_top = planckFunction(static_cast<double>(s_temperature[nb_layers]), wavenumber);
-    double planck_bot = planckFunction(static_cast<double>(s_temperature[nb_layers-1]), wavenumber);
+    float planck_top = planckFunctionAccurate(s_temperature[nb_layers], wavenumber_cube, wavenumber);
+    float planck_bot = planckFunctionAccurate(s_temperature[nb_layers-1], wavenumber_cube, wavenumber);
+    float planck_diff = planckDifferenceAccurate(s_temperature[nb_layers-1], s_temperature[nb_layers], wavenumber_cube, wavenumber);
 
-    ToonLayerDev cur = toonLayerDev(
-      nb_layers - 1, tid, nb_spectral_points,
-      absorption_coeff_dev, scattering_coeff_dev,
-      cloud_optical_depth_dev, cloud_single_scattering_dev, cloud_asym_param_dev,
-      s_altitude, planck_top, planck_bot);
+    TwoStreamDev cur = twoStreamDev(
+      layerPropsDev(
+        nb_layers - 1, tid, nb_spectral_points,
+        absorption_coeff_dev, scattering_coeff_dev,
+        cloud_optical_depth_dev, cloud_single_scattering_dev, cloud_asym_param_dev,
+        s_altitude),
+      planck_top, planck_diff);
 
     //top boundary: no downward flux at the top of the atmosphere
     thomasStep(c_prime, d_prime, 0, tid, nb_spectral_points,
@@ -233,14 +376,22 @@ void toonSourceFunctionDev(
     {
       const int i = nb_layers - n;
 
-      planck_top = planck_bot;
-      planck_bot = planckFunction(static_cast<double>(s_temperature[i]), wavenumber);
+      const int idx_layer = (i + 1) * nb_spectral_points + tid;
+      lambda_ws[idx_layer] = cur.lambda;
+      gam_ws[idx_layer] = cur.gam;
+      e_lambda_ws[idx_layer] = cur.e_lambda;
 
-      const ToonLayerDev nxt = toonLayerDev(
-        i, tid, nb_spectral_points,
-        absorption_coeff_dev, scattering_coeff_dev,
-        cloud_optical_depth_dev, cloud_single_scattering_dev, cloud_asym_param_dev,
-        s_altitude, planck_top, planck_bot);
+      planck_top = planck_bot;
+      planck_bot = planckFunctionAccurate(s_temperature[i], wavenumber_cube, wavenumber);
+      planck_diff = planckDifferenceAccurate(s_temperature[i], s_temperature[i+1], wavenumber_cube, wavenumber);
+
+      const TwoStreamDev nxt = twoStreamDev(
+        layerPropsDev(
+          i, tid, nb_spectral_points,
+          absorption_coeff_dev, scattering_coeff_dev,
+          cloud_optical_depth_dev, cloud_single_scattering_dev, cloud_asym_param_dev,
+          s_altitude),
+        planck_top, planck_diff);
 
       const double delta_plus = nxt.c_plus_top - cur.c_plus_bot;
       const double delta_minus = nxt.c_minus_top - cur.c_minus_bot;
@@ -261,16 +412,20 @@ void toonSourceFunctionDev(
       cur = nxt;
     }
 
+    lambda_ws[tid] = cur.lambda;
+    gam_ws[tid] = cur.gam;
+    e_lambda_ws[tid] = cur.e_lambda;
+
     //bottom boundary: black surface emitting at the bottom temperature
     //planck_bot now holds the Planck function at the bottom level
-    const double planck_surface = planck_bot;
+    const float planck_surface = planck_bot;
 
     thomasStep(c_prime, d_prime, nb_rows - 1, tid, nb_spectral_points,
-      cur.e1, cur.e2, 0.0, constants::pi * planck_surface - cur.c_plus_bot);
+      cur.e1, cur.e2, 0.0, constants::pi * static_cast<double>(planck_surface) - cur.c_plus_bot);
 
 
     //---- pass 2: bottom to top, back substitution fused with the formal solution
-    double intensity[max_nb_angles];
+    float intensity[max_nb_angles];
 
     #pragma unroll
     for (int k = 0; k < max_nb_angles; ++k)
@@ -291,59 +446,110 @@ void toonSourceFunctionDev(
       const double y1 = d_prime[idx1] - c_prime[idx1] * y2;
       y_next = y1;
 
-      planck_top = planckFunction(static_cast<double>(s_temperature[i+1]), wavenumber);
+      planck_top = planckFunctionAccurate(s_temperature[i+1], wavenumber_cube, wavenumber);
+      planck_diff = planckDifferenceAccurate(s_temperature[i], s_temperature[i+1], wavenumber_cube, wavenumber);
 
-      const ToonLayerDev l = toonLayerDev(
+      const LayerPropsDev p = layerPropsDev(
         i, tid, nb_spectral_points,
         absorption_coeff_dev, scattering_coeff_dev,
         cloud_optical_depth_dev, cloud_single_scattering_dev, cloud_asym_param_dev,
-        s_altitude, planck_top, planck_bot);
+        s_altitude);
 
-      const double planck_layer_bot = planck_bot;
       planck_bot = planck_top;
 
-      if (l.tau <= 0.0) continue;
+      if (p.tau <= 0.0f) continue;
 
-      const double a = y1 + y2;
-      const double b = y1 - y2;
+      const int idx_layer = i * nb_spectral_points + tid;
+      const double lambda = lambda_ws[idx_layer];
+      const double gam = gam_ws[idx_layer];
+      const double e_lambda = e_lambda_ws[idx_layer];
 
-      const bool scattering = l.tau >= tau_min_two_stream && l.omega > 0.0;
+      const bool scattering = p.tau >= static_cast<float>(tau_min_two_stream) && p.omega > 0.0f;
+
+      const float tau_ts = fmaxf(p.tau, static_cast<float>(tau_min_two_stream));
+      const float omega = fminf(p.omega, static_cast<float>(omega_max));
+      const float gamma_sum = 2.0f - 2.0f * omega * p.g;
+
+      //Planck gradients: with the floored optical depth for the two-stream source,
+      //with the true one for the thermal emission
+      const float b1_ts = planck_diff / tau_ts;
+      const float b1 = planck_diff / p.tau;
+      const float planck_shift = scattering ? b1_ts * omega * p.g / gamma_sum : 0.0f;
 
       //scattering source coefficients, Table 3 of Toon et al. (1989), divided by 2 pi
-      const double G = (1.0/mu1 - l.lambda) * a / (2.0 * constants::pi);
-      const double H = l.gam * (l.lambda + 1.0/mu1) * b / (2.0 * constants::pi);
-      const double planck_shift = scattering ? l.b1 * l.omega * l.g / l.gamma_sum : 0.0;
+      const double a = y1 + y2;
+      const double b = y1 - y2;
+      const double G = (1.0/mu1 - lambda) * a / (2.0 * constants::pi);
+      const double H = gam * (lambda + 1.0/mu1) * b / (2.0 * constants::pi);
 
-      //Planck gradient of the true layer for the thermal part of the source
-      const double b1 = (planck_layer_bot - planck_top) / l.tau;
+      //source coefficients at the layer top, formed in double precision
+      const double G_top = G * e_lambda;
+      const float U = scattering ? static_cast<float>(G_top + H) : 0.0f;
+      const float V = scattering ? static_cast<float>(lambda * (G_top - H)) : 0.0f;
+      const float G_f = static_cast<float>(G);
+      const float H_f = static_cast<float>(H);
+      const float lambda_f = static_cast<float>(lambda);
+      const float lambda2 = lambda_f * lambda_f;
+      const float e_lambda_f = static_cast<float>(e_lambda);
+      const float source_0 = planck_top + planck_shift;
 
       #pragma unroll
       for (int k = 0; k < max_nb_angles; ++k)
       {
         if (k >= nb_angles) break;
 
-        const double x = l.tau / mu[k];
-        const double e_mu = exp(-x);
+        const float x = p.tau / mu[k];
+        const float e_mu = expf(-x);
+        const float d_mu = -expm1f(-x);
+        const float lambda_mu = lambda_f * mu[k];
 
-        //integral of tau exp(-tau/mu) dtau/mu, series for thin layers
-        const double lin_term = (x > 1e-3)
-          ? -mu[k] * expm1(-x) - l.tau * e_mu
-          : l.tau * x / 2.0 * (1.0 - 2.0 * x / 3.0);
+        float integrals[6];
 
-        double i_up = intensity[k] * e_mu
-          + (l.b0 + planck_shift) * (1.0 - e_mu)
-          + b1 * lin_term;
+        //thermal part: B0 (1 - e_mu) + B1 int t exp(-t/mu) dt/mu
+        if (scattering && lambda_mu < lambda_mu_series)
+          thinLayerIntegrals<5>(x, mu[k], e_mu, integrals);
+        else
+          thinLayerIntegrals<1>(x, mu[k], e_mu, integrals);
+
+        float i_up = intensity[k] * e_mu + source_0 * d_mu + b1 * integrals[1];
 
         if (scattering)
         {
-          //removable singularity at lambda mu = 1
-          const double xi = l.lambda * mu[k] - 1.0;
-          const double t1 = (fabs(xi) > 1e-6)
-            ? (e_mu - l.e_lambda) / xi
-            : e_mu * x * (1.0 - xi * x / 2.0);
-          const double t2 = (1.0 - l.e_lambda * e_mu) / (l.lambda * mu[k] + 1.0);
+          if (lambda_mu < lambda_mu_series)
+          {
+            //int cosh(lambda t) e^(-t/mu) dt/mu and int sinh(lambda t)/lambda e^(-t/mu) dt/mu as series
+            const float cosh_int = d_mu + lambda2 * (integrals[2] * (1.0f/2.0f) + lambda2 * integrals[4] * (1.0f/24.0f));
+            const float sinh_int = integrals[1] + lambda2 * (integrals[3] * (1.0f/6.0f) + lambda2 * integrals[5] * (1.0f/120.0f));
 
-          i_up += G * t1 + H * t2;
+            i_up += U * cosh_int + V * sinh_int;
+          }
+          else if (lambda_mu < 1.0f)
+          {
+            //closed forms from the integrals of exp(+-lambda t - t/mu): x expm1(y)/y with y = (lambda mu - 1) x
+            //and (1 - exp(-(lambda mu + 1) x))/(lambda mu + 1)
+            const float y = (lambda_mu - 1.0f) * x;
+            const float int_plus = x * ((y != 0.0f) ? expm1f(y) / y : 1.0f);
+            const float int_minus = -expm1f(-(lambda_mu + 1.0f) * x) / (lambda_mu + 1.0f);
+
+            const float cosh_int = 0.5f * (int_plus + int_minus);
+            const float sinh_int = 0.5f * (int_plus - int_minus) / lambda_f;
+
+            i_up += U * cosh_int + V * sinh_int;
+          }
+          else
+          {
+            //weakly scattering layer: G and H are small, the original integrals can be used
+            //removable singularity at lambda mu = 1: with y = (lambda mu - 1) x the first integral
+            //is e_mu x (1 - e^-y)/y, used where the direct difference of the exponentials cancels
+            const float xi = lambda_mu - 1.0f;
+            const float y = xi * x;
+            const float t1 = (fabsf(y) > 0.1f)
+              ? (e_mu - e_lambda_f) / xi
+              : e_mu * x * ((y != 0.0f) ? -expm1f(-y) / y : 1.0f);
+            const float t2 = (1.0f - e_lambda_f * e_mu) / (lambda_mu + 1.0f);
+
+            i_up += G_f * t1 + H_f * t2;
+          }
         }
 
         intensity[k] = i_up;
@@ -351,13 +557,13 @@ void toonSourceFunctionDev(
     }
 
 
-    double flux = 0.0;
+    float flux = 0.0f;
 
     #pragma unroll
     for (int k = 0; k < max_nb_angles; ++k)
       flux += intensity[k] * mu[k] * weight[k];
 
-    model_spectrum_gpu[tid] = static_cast<float>(2.0 * constants::pi * flux * 1e-3 * spectrum_scaling);
+    model_spectrum_gpu[tid] = static_cast<float>(two_pi * flux * 1e-3 * spectrum_scaling);
   }
 }
 
@@ -396,8 +602,9 @@ void ToonSourceFunction::calcSpectrumGPU(
   const size_t nb_spectral_points = spectral_grid->nbSpectralPoints();
   const size_t nb_layers = nb_grid_points - 1;
 
-  //workspace for the Thomas algorithm: two arrays of 2 nb_layers rows per spectral point
-  const size_t required_size = 2 * 2 * nb_layers * nb_spectral_points;
+  //workspace: two arrays of 2 nb_layers rows for the Thomas algorithm
+  //and three per-layer arrays of two-stream quantities, all per spectral point
+  const size_t required_size = (2 * 2 + 3) * nb_layers * nb_spectral_points;
 
   if (workspace_dev == nullptr || workspace_size != required_size)
   {

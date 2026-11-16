@@ -17,6 +17,7 @@ namespace bear {
 struct LayerOpticalProperties {
   double optical_depth = 0.0;             //gas absorption + Rayleigh scattering + cloud extinction
   double single_scattering = 0.0;         //total single scattering albedo (gas + cloud)
+  double absorbed_fraction = 1.0;         //1 - single_scattering, assembled from the absorption directly
   double cloud_scattering_fraction = 0.0; //fraction of the scattering optical depth due to clouds
   double cloud_asym_param = 0.0;          //asymmetry parameter of the cloud scattering
 };
@@ -45,15 +46,20 @@ inline LayerOpticalProperties layerOpticalProperties(
   const double gas_scattering_depth = dz * (scattering_coeff[j+1] + scattering_coeff[j]) / 2.;
 
   double cloud_scattering_depth = 0.0;
+  double cloud_absorption_depth = 0.0;
 
   p.optical_depth = absorption_depth + gas_scattering_depth;
 
   if (cloud_optical_depth.size() != 0)
   {
     p.optical_depth += cloud_optical_depth[j];
+    cloud_absorption_depth = cloud_optical_depth[j];
 
     if (cloud_single_scattering.size() != 0)
+    {
       cloud_scattering_depth = cloud_optical_depth[j] * cloud_single_scattering[j];
+      cloud_absorption_depth = cloud_optical_depth[j] * (1.0 - cloud_single_scattering[j]);
+    }
 
     if (cloud_asym_param.size() != 0)
       p.cloud_asym_param = cloud_asym_param[j];
@@ -64,9 +70,14 @@ inline LayerOpticalProperties layerOpticalProperties(
   const double scattering_depth = gas_scattering_depth + cloud_scattering_depth;
 
   if (p.optical_depth > 0.0)
+  {
     p.single_scattering = scattering_depth / p.optical_depth;
+    p.absorbed_fraction = (absorption_depth + cloud_absorption_depth) / p.optical_depth;
+  }
 
   if (p.single_scattering > 1.0) p.single_scattering = 1.0;
+  if (p.absorbed_fraction < 0.0) p.absorbed_fraction = 0.0;
+  if (p.absorbed_fraction > 1.0) p.absorbed_fraction = 1.0;
 
   if (scattering_depth > 0.0)
     p.cloud_scattering_fraction = cloud_scattering_depth / scattering_depth;

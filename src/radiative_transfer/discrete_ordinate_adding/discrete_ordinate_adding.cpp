@@ -75,8 +75,8 @@ double DiscreteOrdinateAdding::calcSpectrum(
   //lower boundary: black surface emitting at the bottom temperature
   double planck_bot = aux::planckFunctionWavenumber(atmosphere.temperature[0], wavenumber);
 
-  dda::Mat2 reflection = {0.0, 0.0, 0.0, 0.0};
-  dda::Vec2 intensity = {planck_bot, planck_bot};
+  dda::Mat2<double> reflection = {0.0, 0.0, 0.0, 0.0};
+  dda::Vec2<double> intensity = {planck_bot, planck_bot};
 
   for (size_t i=0; i<nb_layers; ++i)
   {
@@ -93,11 +93,12 @@ double DiscreteOrdinateAdding::calcSpectrum(
 
     double tau = p.optical_depth;
     double omega = p.single_scattering;
+    double one_minus_omega = p.absorbed_fraction;
     double chi[dda::nb_moments];
 
-    dda::scaledOpticalProperties(tau, omega, p.cloud_scattering_fraction, p.cloud_asym_param, use_delta_m, chi);
+    dda::scaledOpticalProperties(tau, omega, one_minus_omega, p.cloud_scattering_fraction, p.cloud_asym_param, use_delta_m, chi);
 
-    const dda::Layer layer = dda::layerSolution(tau, omega, chi, planck_top, planck_bot);
+    const dda::Layer<double> layer = dda::layerSolution(tau, omega, one_minus_omega, chi, planck_top, planck_bot);
 
     dda::addLayer(reflection, intensity, layer);
 

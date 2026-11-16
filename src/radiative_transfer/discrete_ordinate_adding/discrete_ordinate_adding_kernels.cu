@@ -20,7 +20,8 @@ namespace bear{
 
 //one thread per spectral point; the temperature and altitude profiles are staged in shared memory
 //the layers are added from the bottom up, the layer algebra is shared with the CPU version (dda_layer.h)
-//and done in double precision, the 2x2 eigen problem is ill-conditioned for thin layers
+//and evaluated in single precision: its cancellation-free form keeps the result within a few 1e-6
+//of the double-precision CPU solution, also for thin layers and nearly conservative scattering
 __global__
 void discreteOrdinateAddingDev(
   float* __restrict__ model_spectrum_gpu,
@@ -54,57 +55,70 @@ void discreteOrdinateAddingDev(
 
   for (int tid = blockIdx.x * blockDim.x + threadIdx.x; tid < nb_spectral_points; tid += blockDim.x * gridDim.x)
   {
-    const double wavenumber = wavenumber_list_dev[tid];
+    const float wavenumber = static_cast<float>(wavenumber_list_dev[tid]);
+    const float wavenumber_cube = wavenumber * wavenumber * wavenumber;
 
     //lower boundary: black surface emitting at the bottom temperature
-    double planck_bot = planckFunction(static_cast<double>(s_temperature[0]), wavenumber);
+    float planck_bot = planckFunctionAccurate(s_temperature[0], wavenumber_cube, wavenumber);
 
-    dda::Mat2 reflection = {0.0, 0.0, 0.0, 0.0};
-    dda::Vec2 intensity = {planck_bot, planck_bot};
+    dda::Mat2<float> reflection = {0.0f, 0.0f, 0.0f, 0.0f};
+    dda::Vec2<float> intensity = {planck_bot, planck_bot};
 
     for (int i = 0; i < nb_layers; ++i)
     {
-      const double planck_top = planckFunction(static_cast<double>(s_temperature[i+1]), wavenumber);
+      const float planck_top = planckFunctionAccurate(s_temperature[i+1], wavenumber_cube, wavenumber);
 
       //optical properties of layer i from the level-based gas coefficients and the layer-based cloud properties
       const int idx0 = i * nb_spectral_points + tid;
       const int idx1 = (i + 1) * nb_spectral_points + tid;
 
-      const double dz = s_altitude[i+1] - s_altitude[i];
+      const float dz = s_altitude[i+1] - s_altitude[i];
 
-      const double absorption_depth = dz * (absorption_coeff_dev[idx1] + absorption_coeff_dev[idx0]) * 0.5;
-      const double gas_scattering_depth = dz * (scattering_coeff_dev[idx1] + scattering_coeff_dev[idx0]) * 0.5;
+      const float absorption_depth = dz * (absorption_coeff_dev[idx1] + absorption_coeff_dev[idx0]) * 0.5f;
+      const float gas_scattering_depth = dz * (scattering_coeff_dev[idx1] + scattering_coeff_dev[idx0]) * 0.5f;
 
-      double tau = absorption_depth + gas_scattering_depth;
-      double cloud_scattering_depth = 0.0;
-      double g_cloud = 0.0;
+      float tau = absorption_depth + gas_scattering_depth;
+      float cloud_scattering_depth = 0.0f;
+      float cloud_absorption_depth = 0.0f;
+      float g_cloud = 0.0f;
 
       if (cloud_optical_depth_dev != nullptr)
       {
-        const double cloud_tau = cloud_optical_depth_dev[idx0];
+        const float cloud_tau = cloud_optical_depth_dev[idx0];
         tau += cloud_tau;
+        cloud_absorption_depth = cloud_tau;
 
         if (cloud_single_scattering_dev != nullptr)
-          cloud_scattering_depth = cloud_tau * cloud_single_scattering_dev[idx0];
+        {
+          const float cloud_ssa = cloud_single_scattering_dev[idx0];
+          cloud_scattering_depth = cloud_tau * cloud_ssa;
+          cloud_absorption_depth = cloud_tau * (1.0f - cloud_ssa);
+        }
 
         if (cloud_asym_param_dev != nullptr)
           g_cloud = cloud_asym_param_dev[idx0];
       }
 
-      if (tau < 0.0) tau = 0.0;
+      if (tau < 0.0f) tau = 0.0f;
 
-      const double scattering_depth = gas_scattering_depth + cloud_scattering_depth;
+      const float scattering_depth = gas_scattering_depth + cloud_scattering_depth;
 
-      double omega = (tau > 0.0) ? scattering_depth / tau : 0.0;
-      if (omega > 1.0) omega = 1.0;
+      float omega = 0.0f;
+      float one_minus_omega = 1.0f;
 
-      const double cloud_fraction = (scattering_depth > 0.0) ? cloud_scattering_depth / scattering_depth : 0.0;
+      if (tau > 0.0f)
+      {
+        omega = fminf(scattering_depth / tau, 1.0f);
+        one_minus_omega = fminf(fmaxf((absorption_depth + cloud_absorption_depth) / tau, 0.0f), 1.0f);
+      }
 
-      double chi[dda::nb_moments];
+      const float cloud_fraction = (scattering_depth > 0.0f) ? cloud_scattering_depth / scattering_depth : 0.0f;
 
-      dda::scaledOpticalProperties(tau, omega, cloud_fraction, g_cloud, use_delta_m, chi);
+      float chi[dda::nb_moments];
 
-      const dda::Layer layer = dda::layerSolution(tau, omega, chi, planck_top, planck_bot);
+      dda::scaledOpticalProperties(tau, omega, one_minus_omega, cloud_fraction, g_cloud, use_delta_m, chi);
+
+      const dda::Layer<float> layer = dda::layerSolution(tau, omega, one_minus_omega, chi, planck_top, planck_bot);
 
       dda::addLayer(reflection, intensity, layer);
 
