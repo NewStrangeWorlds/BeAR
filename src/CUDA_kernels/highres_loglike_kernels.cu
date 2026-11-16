@@ -10,6 +10,7 @@
 #include "../additional/physical_const.h"
 #include "../observations/highres_model_transform.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <stdexcept>
@@ -401,47 +402,6 @@ float blockModelReference(
 }
 
 
-// Least-squares quadratic a + b x + c x^2 in the centred pixel index
-// x = p - (N-1)/2 of y[0..N-1].  Must be called by all threads of the block;
-// every thread receives the coefficients.
-__device__
-void blockQuadraticFit(
-  const float* __restrict__ y,
-  const int N,
-  double& a,
-  double& b,
-  double& c)
-{
-  const double p_mid = 0.5 * (double)(N - 1);
-
-  double sy = 0.0, sxy = 0.0, sx2y = 0.0;
-
-  for (int p = threadIdx.x; p < N; p += blockDim.x)
-  {
-    const double x = (double)p - p_mid;
-    const double v = (double)y[p];
-    sy   += v;
-    sxy  += x * v;
-    sx2y += x * x * v;
-  }
-
-  sy   = blockReduceSum(sy);
-  sxy  = blockReduceSum(sxy);
-  sx2y = blockReduceSum(sx2y);
-
-  __shared__ double s_coeff[3];
-
-  if (threadIdx.x == 0)
-    quadraticFitFromSums((double)N, sy, sxy, sx2y, s_coeff[0], s_coeff[1], s_coeff[2]);
-
-  __syncthreads();
-
-  a = s_coeff[0];
-  b = s_coeff[1];
-  c = s_coeff[2];
-}
-
-
 // ============================================================================
 // Unfiltered path
 // ============================================================================
@@ -707,6 +667,14 @@ void launchHighResLogLikeGibson(
 // ============================================================================
 // Filtered path: Gibson et al. 2022 fast model filtering, and data-only mode
 // ============================================================================
+//
+// Kernel 1a interpolates the raw model matrix of every order.  In filter mode
+// the pixel moments of the raw exposures then give, through (I - P), the
+// quadratic that detrends each filtered exposure.  Kernel 1b applies (I - P)
+// (or removes the temporal mean in data-only mode) tile by tile, subtracts the
+// quadratic in registers and accumulates the likelihood sums per tile; the
+// filtered model itself is only written out for the diagnostic export.
+// Kernel 2 combines the tiles and evaluates the logarithms.
 
 
 // Kernel 1a: interpolate the model at all Doppler shifts, apply the phase weight
@@ -788,31 +756,197 @@ void highResInterpKernel(
 }
 
 
-// Kernel 1b: temporal treatment of the raw model matrix of an order, in place.
-// One block per (order, tile of TILE pixels); the tile's K x TILE values are staged
-// in shared memory, laid out [exposure][pixel] so that the reads are conflict-free.
-// The block has TILE x PROJECT_GROUPS threads: the groups split the exposures, and
-// each thread accumulates four exposures per shared-memory read from a float4 of
-// the transposed, padded projection matrix (layout: see initDeviceMemory).
-//   projection_filter:      out = (I - P) raw
-//   projection_center_time: subtract the temporal mean of each pixel
-constexpr int highres_project_groups = 4;
+// Compensated float accumulation of products: the product is split exactly with
+// an FMA and the running sum with a two-sum, so that the total reaches double
+// accuracy at float cost.
+struct CompensatedSum {
+  float sum = 0.0f;
+  float err = 0.0f;
 
-template <int TILE>
+  __device__ __forceinline__ void add(const float a, const float b)
+  {
+    const float p = a * b;
+    const float p_err = fmaf(a, b, -p);
+    const float t = sum + p;
+    const float bb = t - sum;
+
+    err += ((sum - (t - bb)) + (p - bb)) + p_err;
+    sum = t;
+  }
+
+  __device__ __forceinline__ double value() const
+  {
+    return (double)sum + (double)err;
+  }
+};
+
+
+// Kernel 1b-pre, filter mode: pixel moments sum m, sum x m, sum x^2 m of every raw
+// exposure (x the centred pixel index), one warp per (order, exposure).  The
+// quadratic detrending of the filtered model needs these moments of the
+// filtered exposures, which follow from the raw ones through the same (I - P)
+// (both are linear in the model); the fit is then known before the filter runs
+// and the residual can be formed in registers, see highResProjectKernel.
+// The filter removes the static part of the model, and with it all but ~1e-4 of
+// the raw moments, so these are accumulated with compensated arithmetic: plain
+// float sums would leave the fit coefficients with errors of ~1e-3.  Rounding
+// that is the same for every exposure, like that of x^2 for very long orders,
+// passes through (I - P) unamplified and is harmless.
 __global__
-void highResProjectKernel(
-  const float*  __restrict__ projection_matrices_t,
-  float*        __restrict__ model_inout,
+void highResRawMomentsKernel(
+  const float*  __restrict__ model_raw,
   const int*    __restrict__ order_offsets,
+  const int*    __restrict__ order_nb_pixels,
+  const int                  nb_exposures,
+  double*       __restrict__ raw_moments)
+{
+  const int ord = blockIdx.x;
+  const int warp = threadIdx.x >> 5;
+  const int lane = threadIdx.x & 31;
+  const int e = blockIdx.y * (blockDim.x >> 5) + warp;
+
+  if (e >= nb_exposures) return;
+
+  const int N = order_nb_pixels[ord];
+  const float* column = model_raw + (size_t)order_offsets[ord] * nb_exposures + (size_t)e * N;
+  const float p_mid = 0.5f * (float)(N - 1);
+
+  CompensatedSum s0, s1, s2;
+
+  for (int p = lane; p < N; p += 32)
+  {
+    const float m = column[p];
+    const float x = (float)p - p_mid;
+
+    s0.add(m, 1.0f);
+    s1.add(x, m);
+    s2.add(x * x, m);
+  }
+
+  const double m0 = warpReduceSum(s0.value());
+  const double m1 = warpReduceSum(s1.value());
+  const double m2 = warpReduceSum(s2.value());
+
+  if (lane == 0)
+  {
+    double* out = raw_moments + ((size_t)ord * nb_exposures + e) * 3;
+    out[0] = m0;
+    out[1] = m1;
+    out[2] = m2;
+  }
+}
+
+
+// Coefficients a, b, c of the least-squares quadratic of every filtered
+// exposure, from the raw moments and the transposed (I - P); one thread per
+// (order, exposure).  Errors in the coefficients act on the likelihood sums only
+// to second order (the residual is orthogonal to the quadratics).
+__global__
+void highResFitCoefficientsKernel(
+  const double* __restrict__ raw_moments,
+  const float*  __restrict__ projection_matrices_t,
   const int*    __restrict__ order_nb_pixels,
   const int                  nb_orders,
   const int                  nb_exposures,
   const int                  nb_exposures_padded,
+  float4*       __restrict__ fit_coeff)
+{
+  const int idx = blockIdx.x * blockDim.x + threadIdx.x;
+  const int ord = idx / nb_exposures;
+  const int e = idx - ord * nb_exposures;
+
+  if (ord >= nb_orders) return;
+
+  const float* matrix_t =
+    projection_matrices_t + (size_t)ord * nb_exposures * nb_exposures_padded + e;
+  const double* moments = raw_moments + (size_t)ord * nb_exposures * 3;
+
+  double s0 = 0.0, s1 = 0.0, s2 = 0.0;
+
+  #pragma unroll 8
+  for (int j = 0; j < nb_exposures; ++j)
+  {
+    const double w = __ldg(matrix_t + (size_t)j * nb_exposures_padded);
+
+    s0 += w * moments[j * 3];
+    s1 += w * moments[j * 3 + 1];
+    s2 += w * moments[j * 3 + 2];
+  }
+
+  double a, b, c;
+  quadraticFitFromSums((double)order_nb_pixels[ord], s0, s1, s2, a, b, c);
+
+  fit_coeff[idx] = make_float4((float)a, (float)b, (float)c, 0.0f);
+}
+
+
+// Kernel 1b: temporal treatment of the raw model matrix of an order and the
+// likelihood sums.  One block per (order, tile of TILE pixels); the tile's K x TILE
+// raw values are staged in shared memory, laid out [exposure][pixel] so that the
+// reads are conflict-free.  The block has TILE x PROJECT_GROUPS threads: the groups
+// split the exposures, and each thread accumulates four exposures per shared-memory
+// read from a float4 of the transposed, padded projection matrix (layout: see
+// initDeviceMemory).
+//   projection_filter:      (I - P) raw, then minus the quadratic of the exposure
+//   projection_center_time: minus the temporal mean of each pixel
+// LIKELIHOOD_SUMS = false writes the treated model back in place (diagnostics).
+// LIKELIHOOD_SUMS = true keeps it in registers and accumulates the sums the
+// likelihood needs over the tile, in float within a warp and in double across the
+// warps, per (order, exposure) in filter mode:
+//   Brogi & Line forms:  sum d r, sum r^2                       (r = detrended model)
+//   Gibson form:         sum r/s^2, sum f r/s^2, sum r^2/s^2
+// and per order in data-only mode, over all its exposures:
+//   sum d r, sum r^2, sum d^2, and the three Gibson sums.
+// The data d carry the per-exposure data mean (Brogi & Line) already removed.
+constexpr int highres_project_groups = 4;
+constexpr int highres_nb_sums = 3;          // partial sums per (order, exposure), filter mode
+constexpr int highres_nb_order_sums = 6;    // partial sums per order, data-only mode
+
+
+// Bytes of dynamic shared memory of the projection kernel: the model tile, the
+// quadratic coefficients and data means of the exposures, the warp partial sums.
+static size_t projectSharedBytes(const int tile, const int nb_exposures)
+{
+  const int warps_per_group = tile / 32;
+  const int nb_warps = warps_per_group * highres_project_groups;
+  const int partial_floats = std::max(
+    nb_exposures * highres_nb_sums * warps_per_group, nb_warps * highres_nb_order_sums);
+
+  return static_cast<size_t>(nb_exposures) * tile * sizeof(float)
+       + static_cast<size_t>(nb_exposures) * sizeof(float4)
+       + static_cast<size_t>(partial_floats) * sizeof(float);
+}
+
+
+template <int TILE, bool LIKELIHOOD_SUMS>
+__global__
+void highResProjectKernel(
+  const float*  __restrict__ projection_matrices_t,
+  float*        __restrict__ model_inout,
+  const float*  __restrict__ order_flux,
+  const float*  __restrict__ flux_uncertainties,
+  const float*  __restrict__ data_mean,
+  const float4* __restrict__ fit_coeff,
+  const int*    __restrict__ order_offsets,
+  const int*    __restrict__ order_nb_pixels,
+  double*       __restrict__ partials,
+  const int                  nb_orders,
+  const int                  nb_exposures,
+  const int                  nb_exposures_padded,
+  const int                  nb_tiles,
   const int                  projection)
 {
+  constexpr int warps_per_group = TILE / 32;
+  constexpr int nb_warps = warps_per_group * highres_project_groups;
+  constexpr int nb_threads = nb_warps * 32;
+
   const int ord = blockIdx.x;
+  const int tile = blockIdx.y;
   const int tid = threadIdx.x;
   const int group = threadIdx.y;
+  const int flat = group * TILE + tid;
+  const int lane = tid & 31;
+  const int warp = tid >> 5;   // within the group
 
   if (ord >= nb_orders) return;
 
@@ -820,27 +954,42 @@ void highResProjectKernel(
   const int Kp = nb_exposures_padded;
   const int N = order_nb_pixels[ord];
   const int offset = order_offsets[ord];
-  const int p = blockIdx.y * TILE + tid;
+  const int p = tile * TILE + tid;
 
-  extern __shared__ float s_tile[];   // [K][TILE]
+  extern __shared__ float s_shared[];
+  float* s_tile = s_shared;                                                    // [K][TILE]
+  float4* s_coeff = reinterpret_cast<float4*>(s_tile + (size_t)K * TILE);     // [K]
+  float* s_part = reinterpret_cast<float*>(s_coeff + K);                      // warp partials
 
-  float* column = model_inout + (size_t)offset * K + p;
+  const size_t column_offset = (size_t)offset * K + p;
+  float* column = model_inout + column_offset;
+  const float* flux = order_flux + column_offset;
+  const float* sigma = (flux_uncertainties != nullptr) ? flux_uncertainties + column_offset : nullptr;
 
-  // all threads take part in the barrier; those beyond the order's last pixel
-  // only skip the loads and stores
+  // threads beyond the order's last pixel only take part in the barriers and
+  // reductions, with zero contributions
   const bool active = p < N;
 
+  // the model, data and uncertainties are streamed once (evict-first); the
+  // projection matrix is read K times per tile
   if (active)
     for (int e = group; e < K; e += highres_project_groups)
-      s_tile[e * TILE + tid] = column[(size_t)e * N];
+      s_tile[e * TILE + tid] = __ldcs(column + (size_t)e * N);
+
+  if (LIKELIHOOD_SUMS && projection == highres_projection_filter)
+    for (int e = flat; e < K; e += nb_threads)
+    {
+      float4 c = fit_coeff[ord * K + e];
+      c.w = (data_mean != nullptr) ? data_mean[ord * K + e] : 0.0f;
+      s_coeff[e] = c;
+    }
 
   __syncthreads();
-
-  if (!active) return;
 
   if (projection == highres_projection_filter)
   {
     const float* matrix_t = projection_matrices_t + (size_t)ord * K * Kp;
+    const float x = (float)p - 0.5f * (float)(N - 1);
 
     // exposures of this group, in blocks of four (the padding makes the float4
     // loads aligned and the extra accumulators harmless)
@@ -856,19 +1005,95 @@ void highResProjectKernel(
 
       for (int jj = 0; jj < K; ++jj)
       {
-        const float x = s_tile[jj * TILE + tid];
+        const float v = s_tile[jj * TILE + tid];
         const float4 m = __ldg(mt + jj * stride4);
 
-        acc.x += m.x * x;
-        acc.y += m.y * x;
-        acc.z += m.z * x;
-        acc.w += m.w * x;
+        acc.x += m.x * v;
+        acc.y += m.y * v;
+        acc.z += m.z * v;
+        acc.w += m.w * v;
       }
 
-      column[(size_t)e0 * N] = acc.x;
-      if (e0 + 1 < K) column[(size_t)(e0 + 1) * N] = acc.y;
-      if (e0 + 2 < K) column[(size_t)(e0 + 2) * N] = acc.z;
-      if (e0 + 3 < K) column[(size_t)(e0 + 3) * N] = acc.w;
+      if (!LIKELIHOOD_SUMS)
+      {
+        if (active)
+        {
+          column[(size_t)e0 * N] = acc.x;
+          if (e0 + 1 < K) column[(size_t)(e0 + 1) * N] = acc.y;
+          if (e0 + 2 < K) column[(size_t)(e0 + 2) * N] = acc.z;
+          if (e0 + 3 < K) column[(size_t)(e0 + 3) * N] = acc.w;
+        }
+
+        continue;
+      }
+
+      const float filtered[4] = {acc.x, acc.y, acc.z, acc.w};
+
+      #pragma unroll
+      for (int i = 0; i < 4; ++i)
+      {
+        const int e = e0 + i;
+
+        if (e >= K) break;   // uniform across the block
+
+        float v0 = 0.0f, v1 = 0.0f, v2 = 0.0f;
+
+        if (active)
+        {
+          const float4 c = s_coeff[e];
+          const float r = filtered[i] - (c.x + x * (c.y + x * c.z));
+          const float d = __ldcs(flux + (size_t)e * N) - c.w;
+
+          if (sigma != nullptr)
+          {
+            const float s = __ldcs(sigma + (size_t)e * N);
+            const float w = 1.0f / (s * s);
+
+            v0 = r * w;
+            v1 = d * r * w;
+            v2 = r * r * w;
+          }
+          else
+          {
+            v0 = d * r;
+            v1 = r * r;
+          }
+        }
+
+        v0 = warpReduceSum(v0);
+        v1 = warpReduceSum(v1);
+        v2 = warpReduceSum(v2);
+
+        if (lane == 0)
+        {
+          float* part = s_part + (e * highres_nb_sums) * warps_per_group + warp;
+
+          part[0] = v0;
+          part[warps_per_group] = v1;
+          part[2 * warps_per_group] = v2;
+        }
+      }
+    }
+
+    if (!LIKELIHOOD_SUMS) return;
+
+    __syncthreads();
+
+    for (int e = flat; e < K; e += nb_threads)
+    {
+      double* out = partials + (((size_t)ord * K + e) * nb_tiles + tile) * highres_nb_sums;
+
+      #pragma unroll
+      for (int k = 0; k < highres_nb_sums; ++k)
+      {
+        const float* part = s_part + (e * highres_nb_sums + k) * warps_per_group;
+        double s = 0.0;
+
+        for (int w = 0; w < warps_per_group; ++w)
+          s += part[w];
+
+        out[k] = s;
+      }
     }
   }
   else
@@ -876,15 +1101,171 @@ void highResProjectKernel(
     // Data-only mode: remove only the temporal mean of each pixel (N_PCA = 0
     // model filtering).  A continuum that does not move with the planet cancels,
     // the Doppler trail of the lines is kept.
-    double mean = 0.0;
+    float mean = 0.0f;
 
     for (int e = 0; e < K; ++e)
       mean += s_tile[e * TILE + tid];
 
-    mean /= (double)K;
+    mean /= (float)K;
 
-    for (int e = group; e < K; e += highres_project_groups)
-      column[(size_t)e * N] = (float)((double)s_tile[e * TILE + tid] - mean);
+    if (!LIKELIHOOD_SUMS)
+    {
+      if (active)
+        for (int e = group; e < K; e += highres_project_groups)
+          column[(size_t)e * N] = s_tile[e * TILE + tid] - mean;
+
+      return;
+    }
+
+    float v[highres_nb_order_sums] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
+
+    if (active)
+      for (int e = group; e < K; e += highres_project_groups)
+      {
+        const float r = s_tile[e * TILE + tid] - mean;
+        const float d = __ldcs(flux + (size_t)e * N);
+
+        v[0] += d * r;
+        v[1] += r * r;
+        v[2] += d * d;
+
+        if (sigma != nullptr)
+        {
+          const float s = __ldcs(sigma + (size_t)e * N);
+          const float w = 1.0f / (s * s);
+
+          v[3] += r * w;
+          v[4] += d * r * w;
+          v[5] += r * r * w;
+        }
+      }
+
+    const int warp_flat = flat >> 5;
+
+    #pragma unroll
+    for (int k = 0; k < highres_nb_order_sums; ++k)
+    {
+      v[k] = warpReduceSum(v[k]);
+
+      if (lane == 0) s_part[k * nb_warps + warp_flat] = v[k];
+    }
+
+    __syncthreads();
+
+    if (flat < highres_nb_order_sums)
+    {
+      double s = 0.0;
+
+      for (int w = 0; w < nb_warps; ++w)
+        s += s_part[flat * nb_warps + w];
+
+      partials[((size_t)ord * nb_tiles + tile) * highres_nb_order_sums + flat] = s;
+    }
+  }
+}
+
+
+// Kernel 2, filter mode: one log-likelihood per (order, exposure) from the tile
+// partials.
+__global__
+void highResFilteredLogLikeKernel(
+  const double* __restrict__ partials,
+  const int*    __restrict__ order_nb_pixels,
+  const double* __restrict__ data_sf2,
+  const double* __restrict__ gibson_S1,
+  const double* __restrict__ gibson_Sf,
+  const double* __restrict__ gibson_Sff,
+  const int                  nb_orders,
+  const int                  nb_exposures,
+  const int                  nb_tiles,
+  const int                  likelihood_form,
+  const double               alpha,
+  double*       __restrict__ d_log_like)
+{
+  const int idx = blockIdx.x * blockDim.x + threadIdx.x;
+  const int ord = idx / nb_exposures;
+
+  if (ord >= nb_orders) return;
+
+  const double* part = partials + (size_t)idx * nb_tiles * highres_nb_sums;
+
+  double s0 = 0.0, s1 = 0.0, s2 = 0.0;
+
+  for (int t = 0; t < nb_tiles; ++t)
+  {
+    s0 += part[t * highres_nb_sums];
+    s1 += part[t * highres_nb_sums + 1];
+    s2 += part[t * highres_nb_sums + 2];
+  }
+
+  const double dN = (double)order_nb_pixels[ord];
+  double log_like;
+
+  if (likelihood_form == highres_form_gibson)
+  {
+    log_like = gibsonLogLike(gibson_S1[idx], gibson_Sf[idx], gibson_Sff[idx], s0, s1, s2, dN, alpha);
+  }
+  else
+  {
+    if (!(s1 > 0.0)) return;
+
+    const double a = (likelihood_form == highres_form_free_alpha) ? alpha : -1.0;
+    log_like = brogiLineLogLike(s0, s1, data_sf2[idx], dN, a);
+  }
+
+  atomicAdd(d_log_like, log_like);
+}
+
+
+// Kernel 2, data-only mode: one log-likelihood per order from the tile partials,
+// with N = pixels x exposures of the order.
+__global__
+void highResTotalCCFLogLikeKernel(
+  const double* __restrict__ partials,
+  const int*    __restrict__ order_nb_pixels,
+  const double* __restrict__ gibson_S1,
+  const double* __restrict__ gibson_Sf,
+  const double* __restrict__ gibson_Sff,
+  const int                  nb_orders,
+  const int                  nb_exposures,
+  const int                  nb_tiles,
+  const int                  likelihood_form,
+  const double               alpha,
+  double*       __restrict__ d_log_like)
+{
+  for (int ord = blockIdx.x * blockDim.x + threadIdx.x; ord < nb_orders; ord += blockDim.x * gridDim.x)
+  {
+    const double* part = partials + (size_t)ord * nb_tiles * highres_nb_order_sums;
+    double sums[highres_nb_order_sums] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+
+    for (int t = 0; t < nb_tiles; ++t)
+      for (int k = 0; k < highres_nb_order_sums; ++k)
+        sums[k] += part[t * highres_nb_order_sums + k];
+
+    const double dN = (double)order_nb_pixels[ord] * (double)nb_exposures;
+
+    double log_like = 0.0;
+
+    if (likelihood_form == highres_form_gibson)
+    {
+      double S1 = 0.0, Sf = 0.0, Sff = 0.0;
+
+      for (int e = 0; e < nb_exposures; ++e)
+      {
+        S1  += gibson_S1[ord * nb_exposures + e];
+        Sf  += gibson_Sf[ord * nb_exposures + e];
+        Sff += gibson_Sff[ord * nb_exposures + e];
+      }
+
+      log_like = gibsonLogLike(S1, Sf, Sff, sums[3], sums[4], sums[5], dN, alpha);
+    }
+    else
+    {
+      const double a = (likelihood_form == highres_form_free_alpha) ? alpha : -1.0;
+      log_like = brogiLineLogLike(sums[0], sums[1], sums[2] / dN, dN, a);
+    }
+
+    atomicAdd(d_log_like, log_like);
   }
 }
 
@@ -918,33 +1299,8 @@ static void optInSharedMemory(Kernel kernel, const size_t shared_bytes, size_t& 
 }
 
 
-template <int TILE>
-static void launchProjectInstance(
-  const float* projection_matrices_dev,
-  float* model_dev,
-  const int* order_offsets_dev,
-  const int* order_nb_pixels_dev,
-  const int nb_orders,
-  const int nb_exposures,
-  const int max_pixels_per_order,
-  const int projection)
-{
-  static size_t opted_in_bytes = 48 * 1024;
-
-  const size_t shared_bytes = static_cast<size_t>(nb_exposures) * TILE * sizeof(float);
-  optInSharedMemory(highResProjectKernel<TILE>, shared_bytes, opted_in_bytes);
-
-  const dim3 blocks(nb_orders, (max_pixels_per_order + TILE - 1) / TILE);
-  const dim3 threads(TILE, highres_project_groups);
-  const int nb_exposures_padded = ((nb_exposures + 3) / 4) * 4;
-
-  highResProjectKernel<TILE><<<blocks, threads, shared_bytes>>>(
-    projection_matrices_dev, model_dev, order_offsets_dev, order_nb_pixels_dev,
-    nb_orders, nb_exposures, nb_exposures_padded, projection);
-}
-
-
-static void launchInterpFilter(
+// Kernel 1a
+static void launchInterp(
     const float* broadened_spectrum_dev,
     const HighResModelGridGPU& model_grid,
     const int* order_offsets_dev,
@@ -952,318 +1308,116 @@ static void launchInterpFilter(
     const double* orbital_phases_dev,
     const double* v_bary_dev,
     const float* exposure_blur_coeff_dev,
-    const float* projection_matrices_dev,
     float* model_out_dev,
     const int nb_orders,
     const int nb_exposures,
     const int max_pixels_per_order,
     const double Kp, const double Vsys, const double dphi,
     const float* model_scale_dev,
-    const int projection,
     const bool use_phase_function,
     const float* stellar_spectrum_dev)
 {
   if (nb_exposures > highres_max_exposures_gpu)
     throw std::runtime_error(
-      "launchInterpFilter: " + std::to_string(nb_exposures) + " exposures exceed the GPU limit of "
+      "launchInterp: " + std::to_string(nb_exposures) + " exposures exceed the GPU limit of "
       + std::to_string(highres_max_exposures_gpu) + "\n");
 
-  // Kernel 1a: the raw model matrix
-  {
-    static size_t opted_in_bytes = 48 * 1024;
+  static size_t opted_in_bytes = 48 * 1024;
 
-    const int threads = 256;
-    const dim3 blocks(nb_orders, (max_pixels_per_order + threads - 1) / threads);
-    const size_t shared_bytes = static_cast<size_t>(nb_exposures) * sizeof(ExposureShift);
+  const int threads = 256;
+  const dim3 blocks(nb_orders, (max_pixels_per_order + threads - 1) / threads);
+  const size_t shared_bytes = static_cast<size_t>(nb_exposures) * sizeof(ExposureShift);
 
-    optInSharedMemory(highResInterpKernel, shared_bytes, opted_in_bytes);
+  optInSharedMemory(highResInterpKernel, shared_bytes, opted_in_bytes);
 
-    highResInterpKernel<<<blocks, threads, shared_bytes>>>(
-      broadened_spectrum_dev, model_grid, order_offsets_dev, order_nb_pixels_dev,
-      orbital_phases_dev, v_bary_dev, exposure_blur_coeff_dev, model_out_dev,
-      nb_orders, nb_exposures, Kp, Vsys, dphi, model_scale_dev,
-      use_phase_function, stellar_spectrum_dev);
-
-    CUDA_CHECK_AFTER_KERNEL();
-  }
-
-  if (projection == highres_projection_none)
-    return;
-
-  // Kernel 1b: the temporal treatment, with the widest tile whose K x TILE
-  // floats fit into the dynamic shared memory
-  const size_t max_shared = static_cast<size_t>(maxDynamicSharedMemoryBytes());
-  const size_t bytes_per_pixel = static_cast<size_t>(nb_exposures) * sizeof(float);
-
-  if (128 * bytes_per_pixel <= max_shared)
-    launchProjectInstance<128>(projection_matrices_dev, model_out_dev, order_offsets_dev,
-      order_nb_pixels_dev, nb_orders, nb_exposures, max_pixels_per_order, projection);
-  else if (64 * bytes_per_pixel <= max_shared)
-    launchProjectInstance<64>(projection_matrices_dev, model_out_dev, order_offsets_dev,
-      order_nb_pixels_dev, nb_orders, nb_exposures, max_pixels_per_order, projection);
-  else if (32 * bytes_per_pixel <= max_shared)
-    launchProjectInstance<32>(projection_matrices_dev, model_out_dev, order_offsets_dev,
-      order_nb_pixels_dev, nb_orders, nb_exposures, max_pixels_per_order, projection);
-  else
-    throw std::runtime_error(
-      "launchInterpFilter: " + std::to_string(nb_exposures)
-      + " exposures do not fit into the shared memory of the projection kernel\n");
+  highResInterpKernel<<<blocks, threads, shared_bytes>>>(
+    broadened_spectrum_dev, model_grid, order_offsets_dev, order_nb_pixels_dev,
+    orbital_phases_dev, v_bary_dev, exposure_blur_coeff_dev, model_out_dev,
+    nb_orders, nb_exposures, Kp, Vsys, dphi, model_scale_dev,
+    use_phase_function, stellar_spectrum_dev);
 
   CUDA_CHECK_AFTER_KERNEL();
 }
 
 
-// Kernel 2 (filter_model = true, Brogi & Line forms): one block per (order,
-// exposure).  A quadratic in pixel index is removed from the filtered model,
-// which takes out the continuum curvature that survives (I - P), e.g. the
-// blackbody slope shifted by ±Kp.  The filtered data were detrended the same
-// way once at initialisation.
-__global__
-void highResLogLikeFromFilteredKernel(
-  const float*  __restrict__ model_filtered,
-  const float*  __restrict__ order_flux,
-  const int*    __restrict__ order_offsets,
-  const int*    __restrict__ order_nb_pixels,
-  const float*  __restrict__ data_mean,
-  const double* __restrict__ data_sf2,
-  const int                  nb_orders,
-  const int                  nb_exposures,
-  const double               alpha,
-  double*       __restrict__ d_log_like)
+template <int TILE, bool LIKELIHOOD_SUMS>
+static int launchProjectInstance(
+  const float* projection_matrices_dev,
+  float* model_dev,
+  const float* order_flux_dev,
+  const float* flux_uncertainties_dev,
+  const float* data_mean_dev,
+  const float4* fit_coeff_dev,
+  const int* order_offsets_dev,
+  const int* order_nb_pixels_dev,
+  double* partials_dev,
+  const int nb_orders,
+  const int nb_exposures,
+  const int max_pixels_per_order,
+  const int projection)
 {
-  const int task = blockIdx.x;
-  const int exp  = task / nb_orders;
-  const int ord  = task % nb_orders;
-  const int tid  = threadIdx.x;
+  static size_t opted_in_bytes = 48 * 1024;
 
-  const int N = order_nb_pixels[ord];
-  const int offset = order_offsets[ord];
+  const size_t shared_bytes = projectSharedBytes(TILE, nb_exposures);
+  optInSharedMemory(highResProjectKernel<TILE, LIKELIHOOD_SUMS>, shared_bytes, opted_in_bytes);
 
-  const float* flux  = order_flux + (size_t)offset * nb_exposures + (size_t)exp * N;
-  const float* model = model_filtered + (size_t)offset * nb_exposures + (size_t)exp * N;
+  const int nb_tiles = (max_pixels_per_order + TILE - 1) / TILE;
+  const dim3 blocks(nb_orders, nb_tiles);
+  const dim3 threads(TILE, highres_project_groups);
+  const int nb_exposures_padded = ((nb_exposures + 3) / 4) * 4;
 
-  double ma, mb, mc;
-  blockQuadraticFit(model, N, ma, mb, mc);
+  highResProjectKernel<TILE, LIKELIHOOD_SUMS><<<blocks, threads, shared_bytes>>>(
+    projection_matrices_dev, model_dev, order_flux_dev, flux_uncertainties_dev,
+    data_mean_dev, fit_coeff_dev, order_offsets_dev, order_nb_pixels_dev, partials_dev,
+    nb_orders, nb_exposures, nb_exposures_padded, nb_tiles, projection);
 
-  const double p_mid = 0.5 * (double)(N - 1);
-  const double dmean = (double)data_mean[ord * nb_exposures + exp];
+  CUDA_CHECK_AFTER_KERNEL();
 
-  double local_rxf = 0.0;
-  double local_rff = 0.0;
-
-  for (int p = tid; p < N; p += blockDim.x)
-  {
-    const double x = (double)p - p_mid;
-    const double d = (double)flux[p] - dmean;
-    const double m = (double)model[p] - (ma + mb * x + mc * x * x);
-    local_rxf += d * m;
-    local_rff += m * m;
-  }
-
-  local_rxf = blockReduceSum(local_rxf);
-  local_rff = blockReduceSum(local_rff);
-
-  if (tid == 0)
-  {
-    const double sf2 = data_sf2[ord * nb_exposures + exp];
-
-    if (local_rff > 0.0)
-      atomicAdd(d_log_like, brogiLineLogLike(local_rxf, local_rff, sf2, (double)N, alpha));
-  }
+  return nb_tiles;
 }
 
 
-// Kernel 2 (filter_model = true, Gibson form): one block per (order, exposure).
-// The model gets the same quadratic detrending as in the Brogi & Line kernel, so
-// that data and model are treated alike; the inverse-variance weighted means are
-// then removed through the S_f/S_1 and S_m/S_1 terms.
-__global__
-void highResLogLikeFromFilteredGibsonKernel(
-  const float*  __restrict__ model_filtered,
-  const float*  __restrict__ order_flux,
-  const int*    __restrict__ order_offsets,
-  const int*    __restrict__ order_nb_pixels,
-  const float*  __restrict__ flux_uncertainties,
-  const double* __restrict__ gibson_S1,
-  const double* __restrict__ gibson_Sf,
-  const double* __restrict__ gibson_Sff,
-  const int                  nb_orders,
-  const int                  nb_exposures,
-  const double               alpha,
-  double*       __restrict__ d_log_like)
+// Kernel 1b with the widest tile that fits into the dynamic shared memory;
+// returns the number of pixel tiles per order the partial sums are laid out for.
+template <bool LIKELIHOOD_SUMS>
+static int launchProject(
+  const float* projection_matrices_dev,
+  float* model_dev,
+  const float* order_flux_dev,
+  const float* flux_uncertainties_dev,
+  const float* data_mean_dev,
+  const float4* fit_coeff_dev,
+  const int* order_offsets_dev,
+  const int* order_nb_pixels_dev,
+  double* partials_dev,
+  const int nb_orders,
+  const int nb_exposures,
+  const int max_pixels_per_order,
+  const int projection)
 {
-  const int task = blockIdx.x;
-  const int exp  = task / nb_orders;
-  const int ord  = task % nb_orders;
-  const int tid  = threadIdx.x;
+  const size_t max_shared = static_cast<size_t>(maxDynamicSharedMemoryBytes());
 
-  const int N = order_nb_pixels[ord];
-  const int offset = order_offsets[ord];
+  if (projectSharedBytes(128, nb_exposures) <= max_shared)
+    return launchProjectInstance<128, LIKELIHOOD_SUMS>(
+      projection_matrices_dev, model_dev, order_flux_dev, flux_uncertainties_dev, data_mean_dev,
+      fit_coeff_dev, order_offsets_dev, order_nb_pixels_dev, partials_dev,
+      nb_orders, nb_exposures, max_pixels_per_order, projection);
 
-  const float* model = model_filtered + (size_t)offset * nb_exposures + (size_t)exp * N;
-  const float* flux  = order_flux + (size_t)offset * nb_exposures + (size_t)exp * N;
-  const float* sigma = flux_uncertainties + (size_t)offset * nb_exposures + (size_t)exp * N;
+  if (projectSharedBytes(64, nb_exposures) <= max_shared)
+    return launchProjectInstance<64, LIKELIHOOD_SUMS>(
+      projection_matrices_dev, model_dev, order_flux_dev, flux_uncertainties_dev, data_mean_dev,
+      fit_coeff_dev, order_offsets_dev, order_nb_pixels_dev, partials_dev,
+      nb_orders, nb_exposures, max_pixels_per_order, projection);
 
-  double ma, mb, mc;
-  blockQuadraticFit(model, N, ma, mb, mc);
+  if (projectSharedBytes(highres_min_tile, nb_exposures) <= max_shared)
+    return launchProjectInstance<highres_min_tile, LIKELIHOOD_SUMS>(
+      projection_matrices_dev, model_dev, order_flux_dev, flux_uncertainties_dev, data_mean_dev,
+      fit_coeff_dev, order_offsets_dev, order_nb_pixels_dev, partials_dev,
+      nb_orders, nb_exposures, max_pixels_per_order, projection);
 
-  const double p_mid = 0.5 * (double)(N - 1);
-
-  double local_Sm = 0.0, local_Sfm = 0.0, local_Smm = 0.0;
-
-  for (int p = tid; p < N; p += blockDim.x)
-  {
-    const double x = (double)p - p_mid;
-    const double m = (double)model[p] - (ma + mb * x + mc * x * x);
-    const double f = (double)flux[p];
-    const double s = (double)sigma[p];
-    const double inv_s2 = 1.0 / (s * s);
-
-    local_Sm  += m * inv_s2;
-    local_Sfm += f * m * inv_s2;
-    local_Smm += m * m * inv_s2;
-  }
-
-  local_Sm  = blockReduceSum(local_Sm);
-  local_Sfm = blockReduceSum(local_Sfm);
-  local_Smm = blockReduceSum(local_Smm);
-
-  if (tid == 0)
-  {
-    const int idx = ord * nb_exposures + exp;
-
-    atomicAdd(d_log_like, gibsonLogLike(
-      gibson_S1[idx], gibson_Sf[idx], gibson_Sff[idx],
-      local_Sm, local_Sfm, local_Smm, (double)N, alpha));
-  }
-}
-
-
-// Data-only mode (filter_model = false), stage 1.  One block per (order,
-// exposure); each block reduces its exposure's sums and atomically adds them to
-// the per-order partials [ord * 6 + k]:
-//   k = 0..2: R_xf = sum d m, R_ff = sum m^2, sum d^2          (Brogi & Line forms)
-//   k = 3..5: S_m, S_fm, S_mm with 1/sigma^2 weights          (Gibson form only)
-// The model is centred in time per pixel (kernel 1) and the (I - P)-filtered data
-// have zero temporal mean per pixel, so a continuum that does not move with the
-// planet cancels from every sum.
-__global__
-void highResTotalCCFSumsKernel(
-  const float*  __restrict__ model_centred,
-  const float*  __restrict__ order_flux,
-  const int*    __restrict__ order_offsets,
-  const int*    __restrict__ order_nb_pixels,
-  const float*  __restrict__ flux_uncertainties,
-  const int                  nb_orders,
-  const int                  nb_exposures,
-  double*       __restrict__ order_partials)
-{
-  const int task = blockIdx.x;
-  const int exp  = task / nb_orders;
-  const int ord  = task % nb_orders;
-  const int tid  = threadIdx.x;
-
-  const int N      = order_nb_pixels[ord];
-  const int offset = order_offsets[ord];
-
-  const float* flux  = order_flux + (size_t)offset * nb_exposures + (size_t)exp * N;
-  const float* model = model_centred + (size_t)offset * nb_exposures + (size_t)exp * N;
-  const float* sigma = flux_uncertainties != nullptr
-    ? flux_uncertainties + (size_t)offset * nb_exposures + (size_t)exp * N
-    : nullptr;
-
-  double rxf = 0.0, rff = 0.0, sff = 0.0;
-  double sm = 0.0, sfm = 0.0, smm = 0.0;
-
-  for (int p = tid; p < N; p += blockDim.x)
-  {
-    const double d = (double)flux[p];
-    const double m = (double)model[p];
-
-    rxf += d * m;
-    rff += m * m;
-    sff += d * d;
-
-    if (sigma != nullptr)
-    {
-      const double inv_s2 = 1.0 / ((double)sigma[p] * (double)sigma[p]);
-      sm  += m * inv_s2;
-      sfm += d * m * inv_s2;
-      smm += m * m * inv_s2;
-    }
-  }
-
-  rxf = blockReduceSum(rxf);
-  rff = blockReduceSum(rff);
-  sff = blockReduceSum(sff);
-
-  if (sigma != nullptr)
-  {
-    sm  = blockReduceSum(sm);
-    sfm = blockReduceSum(sfm);
-    smm = blockReduceSum(smm);
-  }
-
-  if (tid == 0)
-  {
-    double* partials = order_partials + ord * 6;
-    atomicAdd(&partials[0], rxf);
-    atomicAdd(&partials[1], rff);
-    atomicAdd(&partials[2], sff);
-
-    if (sigma != nullptr)
-    {
-      atomicAdd(&partials[3], sm);
-      atomicAdd(&partials[4], sfm);
-      atomicAdd(&partials[5], smm);
-    }
-  }
-}
-
-
-// Data-only mode, stage 2: one log-likelihood per order from the partials, with
-// N = pixels x exposures of the order.
-__global__
-void highResTotalCCFLogLikeKernel(
-  const double* __restrict__ order_partials,
-  const int*    __restrict__ order_nb_pixels,
-  const double* __restrict__ gibson_S1,
-  const double* __restrict__ gibson_Sf,
-  const double* __restrict__ gibson_Sff,
-  const int                  nb_orders,
-  const int                  nb_exposures,
-  const int                  likelihood_form,
-  const double               alpha,
-  double*       __restrict__ d_log_like)
-{
-  for (int ord = blockIdx.x * blockDim.x + threadIdx.x; ord < nb_orders; ord += blockDim.x * gridDim.x)
-  {
-    const double* partials = order_partials + ord * 6;
-    const double dN = (double)order_nb_pixels[ord] * (double)nb_exposures;
-
-    double log_like = 0.0;
-
-    if (likelihood_form == highres_form_gibson)
-    {
-      double S1 = 0.0, Sf = 0.0, Sff = 0.0;
-
-      for (int e = 0; e < nb_exposures; ++e)
-      {
-        S1  += gibson_S1[ord * nb_exposures + e];
-        Sf  += gibson_Sf[ord * nb_exposures + e];
-        Sff += gibson_Sff[ord * nb_exposures + e];
-      }
-
-      log_like = gibsonLogLike(S1, Sf, Sff, partials[3], partials[4], partials[5], dN, alpha);
-    }
-    else
-    {
-      const double a = (likelihood_form == highres_form_free_alpha) ? alpha : -1.0;
-      log_like = brogiLineLogLike(partials[0], partials[1], partials[2] / dN, dN, a);
-    }
-
-    atomicAdd(d_log_like, log_like);
-  }
+  throw std::runtime_error(
+    "launchProject: " + std::to_string(nb_exposures)
+    + " exposures do not fit into the shared memory of the projection kernel\n");
 }
 
 
@@ -1281,6 +1435,7 @@ void launchHighResLogLikeFiltered(
     const float* exposure_blur_coeff_dev,
     const float* projection_matrices_dev,
     float* model_filtered_dev,
+    const HighResFilteredScratchGPU& scratch,
     int nb_orders,
     int nb_exposures,
     int max_pixels_per_order,
@@ -1297,104 +1452,65 @@ void launchHighResLogLikeFiltered(
     const float* stellar_spectrum_dev,
     double* d_log_like_dev)
 {
-  // Kernel 1: interpolate, weight, scale, and filter or centre the model
-  launchInterpFilter(
-    broadened_spectrum_dev,
-    model_grid,
-    order_offsets_dev,
-    order_nb_pixels_dev,
-    orbital_phases_dev,
-    v_bary_dev,
-    exposure_blur_coeff_dev,
-    projection_matrices_dev,
-    model_filtered_dev,
-    nb_orders,
-    nb_exposures,
-    max_pixels_per_order,
-    Kp, Vsys, dphi,
-    model_scale_dev,
-    filter_model ? highres_projection_filter : highres_projection_center_time,
-    use_phase_function,
-    stellar_spectrum_dev);
+  // Kernel 1a: the raw model matrix
+  launchInterp(
+    broadened_spectrum_dev, model_grid, order_offsets_dev, order_nb_pixels_dev,
+    orbital_phases_dev, v_bary_dev, exposure_blur_coeff_dev, model_filtered_dev,
+    nb_orders, nb_exposures, max_pixels_per_order, Kp, Vsys, dphi, model_scale_dev,
+    use_phase_function, stellar_spectrum_dev);
 
-  const int threads = 256;
   const bool gibson = likelihood_form == highres_form_gibson;
+  const float* uncertainties = gibson ? flux_uncertainties_dev : nullptr;
+  float4* fit_coeff_dev = reinterpret_cast<float4*>(scratch.fit_coeff);
 
   if (filter_model)
   {
-    // Kernel 2: per (order, exposure) likelihood
-    const int blocks = nb_orders * nb_exposures;
+    // the quadratic of every filtered exposure, from the raw moments
+    const int warps = 8;
+    const dim3 moment_blocks(nb_orders, (nb_exposures + warps - 1) / warps);
 
-    if (gibson)
-      highResLogLikeFromFilteredGibsonKernel<<<blocks, threads>>>(
-        model_filtered_dev,
-        order_flux_dev,
-        order_offsets_dev,
-        order_nb_pixels_dev,
-        flux_uncertainties_dev,
-        gibson_S1_dev,
-        gibson_Sf_dev,
-        gibson_Sff_dev,
-        nb_orders,
-        nb_exposures,
-        alpha,
-        d_log_like_dev);
-    else
-      highResLogLikeFromFilteredKernel<<<blocks, threads>>>(
-        model_filtered_dev,
-        order_flux_dev,
-        order_offsets_dev,
-        order_nb_pixels_dev,
-        data_mean_dev,
-        data_sf2_dev,
-        nb_orders,
-        nb_exposures,
-        likelihood_form == highres_form_free_alpha ? alpha : -1.0,
-        d_log_like_dev);
+    highResRawMomentsKernel<<<moment_blocks, 32 * warps>>>(
+      model_filtered_dev, order_offsets_dev, order_nb_pixels_dev, nb_exposures, scratch.raw_moments);
+
+    CUDA_CHECK_AFTER_KERNEL();
+
+    const int nb_tasks = nb_orders * nb_exposures;
+    const int threads = 128;
+    const int nb_exposures_padded = ((nb_exposures + 3) / 4) * 4;
+
+    highResFitCoefficientsKernel<<<(nb_tasks + threads - 1) / threads, threads>>>(
+      scratch.raw_moments, projection_matrices_dev, order_nb_pixels_dev,
+      nb_orders, nb_exposures, nb_exposures_padded, fit_coeff_dev);
+
+    CUDA_CHECK_AFTER_KERNEL();
+
+    // Kernel 1b: (I - P), detrending and the sums per (order, exposure)
+    const int nb_tiles = launchProject<true>(
+      projection_matrices_dev, model_filtered_dev, order_flux_dev, uncertainties,
+      gibson ? nullptr : data_mean_dev, fit_coeff_dev, order_offsets_dev, order_nb_pixels_dev,
+      scratch.partials, nb_orders, nb_exposures, max_pixels_per_order, highres_projection_filter);
+
+    // Kernel 2: the logarithms
+    highResFilteredLogLikeKernel<<<(nb_tasks + threads - 1) / threads, threads>>>(
+      scratch.partials, order_nb_pixels_dev, data_sf2_dev,
+      gibson_S1_dev, gibson_Sf_dev, gibson_Sff_dev,
+      nb_orders, nb_exposures, nb_tiles, likelihood_form, alpha, d_log_like_dev);
 
     CUDA_CHECK_AFTER_KERNEL();
   }
   else
   {
-    // Data-only mode: sums over all exposures of an order, one logarithm per order.
-    // The small per-order partials buffer is cached between calls.
-    static double* order_partials_dev = nullptr;
-    static int order_partials_capacity = 0;
-
-    if (order_partials_capacity < nb_orders)
-    {
-      if (order_partials_dev != nullptr)
-        gpuErrchk(cudaFree(order_partials_dev));
-
-      gpuErrchk(cudaMalloc(&order_partials_dev, nb_orders * 6 * sizeof(double)));
-      order_partials_capacity = nb_orders;
-    }
-
-    gpuErrchk(cudaMemset(order_partials_dev, 0, nb_orders * 6 * sizeof(double)));
-
-    highResTotalCCFSumsKernel<<<nb_orders * nb_exposures, threads>>>(
-      model_filtered_dev,
-      order_flux_dev,
-      order_offsets_dev,
-      order_nb_pixels_dev,
-      gibson ? flux_uncertainties_dev : nullptr,
-      nb_orders,
-      nb_exposures,
-      order_partials_dev);
-
-    CUDA_CHECK_AFTER_KERNEL();
+    // Data-only mode: sums over all exposures of an order, one logarithm per order
+    const int nb_tiles = launchProject<true>(
+      projection_matrices_dev, model_filtered_dev, order_flux_dev, uncertainties,
+      nullptr, nullptr, order_offsets_dev, order_nb_pixels_dev,
+      scratch.partials, nb_orders, nb_exposures, max_pixels_per_order,
+      highres_projection_center_time);
 
     highResTotalCCFLogLikeKernel<<<1, 128>>>(
-      order_partials_dev,
-      order_nb_pixels_dev,
-      gibson_S1_dev,
-      gibson_Sf_dev,
-      gibson_Sff_dev,
-      nb_orders,
-      nb_exposures,
-      likelihood_form,
-      alpha,
-      d_log_like_dev);
+      scratch.partials, order_nb_pixels_dev,
+      gibson_S1_dev, gibson_Sf_dev, gibson_Sff_dev,
+      nb_orders, nb_exposures, nb_tiles, likelihood_form, alpha, d_log_like_dev);
 
     CUDA_CHECK_AFTER_KERNEL();
   }
@@ -1421,24 +1537,21 @@ void launchHighResInterpFilterOnly(
     bool use_phase_function,
     const float* stellar_spectrum_dev)
 {
-  launchInterpFilter(
-    broadened_spectrum_dev,
-    model_grid,
-    order_offsets_dev,
-    order_nb_pixels_dev,
-    orbital_phases_dev,
-    v_bary_dev,
-    exposure_blur_coeff_dev,
-    projection_matrices_dev,
-    model_filtered_dev,
-    nb_orders,
-    nb_exposures,
-    max_pixels_per_order,
-    Kp, Vsys, dphi,
-    model_scale_dev,
-    projection,
-    use_phase_function,
-    stellar_spectrum_dev);
+  launchInterp(
+    broadened_spectrum_dev, model_grid, order_offsets_dev, order_nb_pixels_dev,
+    orbital_phases_dev, v_bary_dev, exposure_blur_coeff_dev, model_filtered_dev,
+    nb_orders, nb_exposures, max_pixels_per_order, Kp, Vsys, dphi, model_scale_dev,
+    use_phase_function, stellar_spectrum_dev);
+
+  if (projection == highres_projection_none)
+    return;
+
+  // the treated model, written back in place; the quadratic detrending of the
+  // likelihood is not applied here
+  launchProject<false>(
+    projection_matrices_dev, model_filtered_dev, nullptr, nullptr, nullptr, nullptr,
+    order_offsets_dev, order_nb_pixels_dev, nullptr,
+    nb_orders, nb_exposures, max_pixels_per_order, projection);
 }
 
 

@@ -675,6 +675,11 @@ void HighResObservation::initDeviceMemory()
 
     // Workspace for filtered model: [total_pixels * nb_exposures]
     allocateOnDevice(model_filtered_dev, total_pixels * nb_exposures);
+
+    allocateOnDevice(filtered_scratch.raw_moments, highResMomentsSize(nb_orders, nb_exposures));
+    allocateOnDevice(filtered_scratch.fit_coeff, highResFitCoeffSize(nb_orders, nb_exposures));
+    allocateOnDevice(filtered_scratch.partials,
+      highResPartialsSize(nb_orders, nb_exposures, max_pixels_per_order));
   }
 
   // Upload model scale matrix for re-injection (CHIMERA-style)
@@ -935,6 +940,9 @@ void HighResObservation::freeDeviceMemory()
   if (data_sf2_dev != nullptr) deleteFromDevice(data_sf2_dev);
   if (projection_matrices_dev != nullptr) deleteFromDevice(projection_matrices_dev);
   if (model_filtered_dev != nullptr) deleteFromDevice(model_filtered_dev);
+  if (filtered_scratch.raw_moments != nullptr) deleteFromDevice(filtered_scratch.raw_moments);
+  if (filtered_scratch.fit_coeff != nullptr) deleteFromDevice(filtered_scratch.fit_coeff);
+  if (filtered_scratch.partials != nullptr) deleteFromDevice(filtered_scratch.partials);
   if (model_scale_dev != nullptr) deleteFromDevice(model_scale_dev);
   if (flux_uncertainties_dev != nullptr) deleteFromDevice(flux_uncertainties_dev);
   if (gibson_S1_dev != nullptr) deleteFromDevice(gibson_S1_dev);
@@ -1323,6 +1331,7 @@ void HighResObservation::computeLogLikelihoodGPU(
       exposure_blur_coeff_arg,
       projection_matrices_dev,
       model_filtered_dev,
+      filtered_scratch,
       static_cast<int>(nb_orders),
       static_cast<int>(nb_exposures),
       max_pixels_per_order,

@@ -260,6 +260,7 @@ class HighResObservation {
     // Additional GPU buffers for filtered path
     float* projection_matrices_dev = nullptr;  // [nb_orders * nb_exp * nb_exp]
     float* model_filtered_dev = nullptr;       // workspace [total_pixels * nb_exposures]
+    HighResFilteredScratchGPU filtered_scratch;  // moments, detrending coefficients, partial sums
     size_t total_pixels = 0;
 
     // Optional per-pixel, per-exposure scale matrix for model re-injection

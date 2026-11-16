@@ -7,14 +7,48 @@
 #ifndef HIGHRES_LOGLIKE_KERNELS_H
 #define HIGHRES_LOGLIKE_KERNELS_H
 
+#include <algorithm>
+#include <cstddef>
 
 namespace bear {
 
 
 // Largest number of exposures the filtered GPU path supports.  The projection
-// kernel stages a tile of K x 32 model values in shared memory, see
-// highResProjectKernel; this bound keeps the smallest tile within 64 KB.
+// kernel stages a tile of K x highres_min_tile model values plus a few words per
+// exposure in shared memory, see highResProjectKernel; this bound keeps the
+// smallest tile below 80 KB.
 constexpr int highres_max_exposures_gpu = 512;
+constexpr int highres_min_tile = 32;
+
+
+// Device workspace of the filtered likelihood, owned by the observation and
+// sized with the functions below: the pixel moments of the raw exposures and
+// the quadratic detrending coefficients (both per order and exposure), and the
+// partial likelihood sums per pixel tile.
+struct HighResFilteredScratchGPU {
+  double* raw_moments = nullptr;   // [nb_orders * nb_exposures * 3]
+  float*  fit_coeff = nullptr;     // [nb_orders * nb_exposures * 4], a float4 per exposure
+  double* partials = nullptr;      // [highResPartialsSize(...)]
+};
+
+inline size_t highResMomentsSize(const size_t nb_orders, const size_t nb_exposures)
+{
+  return nb_orders * nb_exposures * 3;
+}
+
+inline size_t highResFitCoeffSize(const size_t nb_orders, const size_t nb_exposures)
+{
+  return nb_orders * nb_exposures * 4;
+}
+
+inline size_t highResPartialsSize(
+  const size_t nb_orders, const size_t nb_exposures, const size_t max_pixels_per_order)
+{
+  const size_t nb_tiles = (max_pixels_per_order + highres_min_tile - 1) / highres_min_tile;
+  const size_t sums_per_tile = std::max<size_t>(3 * nb_exposures, 6);
+
+  return nb_orders * nb_tiles * sums_per_tile;
+}
 
 
 // Precomputed geometry of the model grid, built once per observation by
@@ -127,6 +161,8 @@ constexpr int highres_projection_padding = 4;
 // after removing a quadratic in pixel index from the model (the data were
 // detrended the same way at initialisation).  With filter_model = false, the
 // sums are accumulated over all exposures of an order before the logarithm.
+// The likelihood sums are formed while the model is filtered, so that
+// model_filtered_dev only holds the raw (interpolated) model afterwards.
 //
 // model_scale_dev: optional re-injection matrix (same layout as order_flux_dev),
 // only valid together with filter_model = true.
@@ -145,6 +181,7 @@ void launchHighResLogLikeFiltered(
     const float* exposure_blur_coeff_dev,
     const float* projection_matrices_dev,
     float* model_filtered_dev,
+    const HighResFilteredScratchGPU& scratch,
     int nb_orders,
     int nb_exposures,
     int max_pixels_per_order,
