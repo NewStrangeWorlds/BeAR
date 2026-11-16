@@ -217,6 +217,8 @@ class EmissionModel : public ForwardModel{
     double radiusDistanceScaling(const std::vector<double>& parameter);
     void changeSpectrumUnitsGPU(float* spectrum_gpu);
 
+    float* model_spectrum_gpu_ = nullptr;   //spectrum buffer of calcSpectrum
+
     void setCloudProperties(
       const std::vector<std::vector<double>>& cloud_optical_depth,
       const std::vector<std::vector<double>>& cloud_single_scattering,

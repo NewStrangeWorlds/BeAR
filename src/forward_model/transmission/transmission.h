@@ -215,6 +215,9 @@ class TransmissionModel : public ForwardModel{
 
     std::vector<std::vector<double>> cloud_extinction;
     float* cloud_extinction_gpu = nullptr;
+    float* model_spectrum_gpu_ = nullptr;      //spectrum buffer of calcSpectrum
+    float* transmission_path_dev = nullptr;    //limb path lengths per (tangent height, layer)
+    size_t transmission_path_size = 0;
 
     bool fit_mean_molecular_weight = false;
     bool fit_scale_height = false;

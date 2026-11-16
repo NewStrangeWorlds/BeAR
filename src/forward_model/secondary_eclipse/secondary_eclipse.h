@@ -200,6 +200,14 @@ class OccultationModel : public ForwardModel{
 
     void initModules(const OccultationConfig& model_config);
 
+    //device buffers reused between model evaluations
+    std::vector<float*> planet_spectrum_obs_gpu_;
+    std::vector<float*> stellar_spectrum_obs_gpu_;
+    float* stellar_spectrum_gpu_ = nullptr;
+    float* model_spectrum_gpu_ = nullptr;   //spectrum buffer of calcSpectrum
+
+    void initDeviceBuffers();
+
     std::vector<double> model_parameters;
     std::vector<double> chemistry_parameters;
     std::vector<double> cloud_parameters;

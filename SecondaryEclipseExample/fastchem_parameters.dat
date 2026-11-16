@@ -1,8 +1,8 @@
 #element abundance file   
-fastchem_data/element_abundances_solar.dat
+fastchem_data/element_abundances/asplund_2009.dat
 
 #species data file    
-fastchem_data/logK.dat
+fastchem_data/logK/logK.dat
 
 #accuracy of chemistry iteration
 1.0e-4

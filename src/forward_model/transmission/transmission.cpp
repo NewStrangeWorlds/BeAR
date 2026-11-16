@@ -504,12 +504,11 @@ std::vector<double> TransmissionModel::calcSpectrum(
         cloud_extinction_gpu);
     }
 
-    float* model_spectrum_gpu = nullptr;
-
-    allocateOnDevice(model_spectrum_gpu, spectral_grid->nbSpectralPoints());
+    if (model_spectrum_gpu_ == nullptr)
+      allocateOnDevice(model_spectrum_gpu_, spectral_grid->nbSpectralPoints());
 
     calcTransitDepthGPU(
-      model_spectrum_gpu,
+      model_spectrum_gpu_,
       opacity_calc.absorption_coeff_gpu,
       opacity_calc.scattering_coeff_dev,
       cloud_extinction_gpu,
@@ -520,11 +519,9 @@ std::vector<double> TransmissionModel::calcSpectrum(
 
     {
       std::vector<float> spectrum_float(spectral_grid->nbSpectralPoints());
-      moveToHost(model_spectrum_gpu, spectrum_float);
-      deleteFromDevice(model_spectrum_gpu);
+      moveToHost(model_spectrum_gpu_, spectrum_float);
       spectrum.assign(spectrum_float.begin(), spectrum_float.end());
     }
-    deleteFromDevice(cloud_extinction_gpu);
   }
   else
   {
@@ -559,6 +556,12 @@ TransmissionModel::~TransmissionModel()
 
   if (spectrum_highres_gpu_ != nullptr)
     deleteFromDevice(spectrum_highres_gpu_);
+
+  if (model_spectrum_gpu_ != nullptr)
+    deleteFromDevice(model_spectrum_gpu_);
+
+  if (transmission_path_dev != nullptr)
+    deleteFromDevice(transmission_path_dev);
 }
 
 

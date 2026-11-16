@@ -74,6 +74,7 @@ class SpectralBands{
     int* convolution_start_dev = nullptr;
     int* convolution_end_dev = nullptr;
     double* instrument_profile_sigma_dev = nullptr;
+    int convolution_max_tile = 0;                                         //largest shared-memory tile of the GPU convolution
     int* band_start_dev = nullptr;
     int* band_end_dev = nullptr;
 
@@ -97,6 +98,9 @@ class SpectralBands{
     void setConvolutionQuadratureIntervals(
       const size_t index,
       const double cutoff_distance);
+    int convolutionTileSize(
+      const std::vector<int>& convolution_start,
+      const std::vector<int>& convolution_end);
 };
 
 

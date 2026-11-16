@@ -221,6 +221,14 @@ class PhaseCurveModel : public ForwardModel{
 
     float* stellar_flux_highres_gpu_ = nullptr;
 
+    //device buffers reused between model evaluations
+    std::vector<float*> planet_spectrum_obs_gpu_;
+    std::vector<float*> stellar_spectrum_obs_gpu_;
+    float* stellar_spectrum_gpu_ = nullptr;
+    float* model_spectrum_gpu_ = nullptr;   //spectrum buffer of calcSpectrum
+
+    void initDeviceBuffers();
+
     // Cached stellar spectrum for per-pixel Doppler correction in high-res kernels.
     std::vector<double> stellar_spectrum_cpu_;
 

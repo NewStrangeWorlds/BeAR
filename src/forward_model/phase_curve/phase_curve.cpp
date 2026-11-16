@@ -304,18 +304,14 @@ bool PhaseCurveModel::calcModelGPU(
       }
     }
 
-    std::vector<float*> planet_spectrum_obs(observations.size(), nullptr);
-    std::vector<float*> stellar_spectrum_obs(observations.size(), nullptr);
-    for (size_t i = 0; i < observations.size(); ++i)
-    {
-      allocateOnDevice(planet_spectrum_obs[i], observations[i].nbPoints());
-      allocateOnDevice(stellar_spectrum_obs[i], observations[i].nbPoints());
-    }
+    initDeviceBuffers();
+
+    std::vector<float*>& planet_spectrum_obs = planet_spectrum_obs_gpu_;
+    std::vector<float*>& stellar_spectrum_obs = stellar_spectrum_obs_gpu_;
+    float* stellar_spectrum = stellar_spectrum_gpu_;
 
     convertSpectrumToObservationGPU(spectrum, true, planet_spectrum_obs);
 
-    float* stellar_spectrum = nullptr;
-    allocateOnDevice(stellar_spectrum, spectral_grid->nbSpectralPoints());
     stellar_model->calcFluxGPU(stellar_parameters, stellar_spectrum);
     convertSpectrumToObservationGPU(stellar_spectrum, true, stellar_spectrum_obs);
 
@@ -337,12 +333,6 @@ bool PhaseCurveModel::calcModelGPU(
       static_cast<int>(spectral_grid->nbSpectralPoints()),
       rr2);
 
-    deleteFromDevice(stellar_spectrum);
-    for (size_t i = 0; i < observations.size(); ++i)
-    {
-      deleteFromDevice(planet_spectrum_obs[i]);
-      deleteFromDevice(stellar_spectrum_obs[i]);
-    }
   }
 
   // === High-res path ===
@@ -446,8 +436,8 @@ std::vector<double> PhaseCurveModel::calcSpectrum(
   {
     opacity_calc.calculateGPU(cloud_models, std::vector<double> {});
 
-    float* model_spectrum_gpu = nullptr;
-    allocateOnDevice(model_spectrum_gpu, spectral_grid->nbSpectralPoints());
+    if (model_spectrum_gpu_ == nullptr)
+      allocateOnDevice(model_spectrum_gpu_, spectral_grid->nbSpectralPoints());
 
     radiative_transfer->calcSpectrumGPU(
       atmosphere,
@@ -457,12 +447,11 @@ std::vector<double> PhaseCurveModel::calcSpectrum(
       opacity_calc.cloud_single_scattering_dev,
       opacity_calc.cloud_asym_param_dev,
       1.0,
-      model_spectrum_gpu);
+      model_spectrum_gpu_);
 
     {
       std::vector<float> spectrum_float(spectral_grid->nbSpectralPoints());
-      moveToHost(model_spectrum_gpu, spectrum_float);
-      deleteFromDevice(model_spectrum_gpu);
+      moveToHost(model_spectrum_gpu_, spectrum_float);
       spectrum.assign(spectrum_float.begin(), spectrum_float.end());
     }
   }
@@ -492,6 +481,33 @@ PhaseCurveModel::~PhaseCurveModel()
 {
   if (stellar_flux_highres_gpu_ != nullptr)
     deleteFromDevice(stellar_flux_highres_gpu_);
+
+  for (auto & p : planet_spectrum_obs_gpu_) deleteFromDevice(p);
+  for (auto & p : stellar_spectrum_obs_gpu_) deleteFromDevice(p);
+
+  if (stellar_spectrum_gpu_ != nullptr) deleteFromDevice(stellar_spectrum_gpu_);
+  if (model_spectrum_gpu_ != nullptr) deleteFromDevice(model_spectrum_gpu_);
+}
+
+
+
+//allocates the device buffers of the observation-sized planet and stellar spectra
+//and of the stellar spectrum on the model grid once; their sizes do not change
+void PhaseCurveModel::initDeviceBuffers()
+{
+  if (stellar_spectrum_gpu_ != nullptr)
+    return;
+
+  planet_spectrum_obs_gpu_.assign(observations.size(), nullptr);
+  stellar_spectrum_obs_gpu_.assign(observations.size(), nullptr);
+
+  for (size_t i = 0; i < observations.size(); ++i)
+  {
+    allocateOnDevice(planet_spectrum_obs_gpu_[i], observations[i].nbPoints());
+    allocateOnDevice(stellar_spectrum_obs_gpu_[i], observations[i].nbPoints());
+  }
+
+  allocateOnDevice(stellar_spectrum_gpu_, spectral_grid->nbSpectralPoints());
 }
 
 

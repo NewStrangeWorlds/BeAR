@@ -173,6 +173,8 @@ void SpectralBands::initDeviceMemory()
     moveToDevice(convolution_start_dev, convolution_start);
     moveToDevice(convolution_end_dev, convolution_end);
 
+    convolution_max_tile = convolutionTileSize(convolution_start, convolution_end);
+
     moveToDevice(instrument_profile_sigma_dev, instrument_profile_sigma);
   }
 

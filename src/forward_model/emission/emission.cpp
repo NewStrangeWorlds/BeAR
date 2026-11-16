@@ -310,9 +310,8 @@ std::vector<double> EmissionModel::calcSpectrum(
   {
     opacity_calc.calculateGPU(cloud_models, std::vector<double> {});
 
-    float* model_spectrum_gpu = nullptr;
-
-    allocateOnDevice(model_spectrum_gpu, spectral_grid->nbSpectralPoints());
+    if (model_spectrum_gpu_ == nullptr)
+      allocateOnDevice(model_spectrum_gpu_, spectral_grid->nbSpectralPoints());
 
     radiative_transfer->calcSpectrumGPU(
       atmosphere,
@@ -322,12 +321,11 @@ std::vector<double> EmissionModel::calcSpectrum(
       opacity_calc.cloud_single_scattering_dev,
       opacity_calc.cloud_asym_param_dev,
       1.0,
-      model_spectrum_gpu);
+      model_spectrum_gpu_);
 
     {
       std::vector<float> spectrum_float(spectral_grid->nbSpectralPoints());
-      moveToHost(model_spectrum_gpu, spectrum_float);
-      deleteFromDevice(model_spectrum_gpu);
+      moveToHost(model_spectrum_gpu_, spectrum_float);
       spectrum.assign(spectrum_float.begin(), spectrum_float.end());
     }
   }
@@ -419,6 +417,8 @@ void EmissionModel::setCloudProperties(
 
 EmissionModel::~EmissionModel()
 {
+  if (model_spectrum_gpu_ != nullptr)
+    deleteFromDevice(model_spectrum_gpu_);
 }
 
 

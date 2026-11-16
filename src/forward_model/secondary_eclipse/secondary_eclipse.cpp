@@ -269,23 +269,17 @@ bool OccultationModel::calcModelGPU(
     spectrum);
 
 
-  std::vector<float*> planet_spectrum_obs(observations.size(), nullptr);
-  std::vector<float*> stellar_spectrum_obs(observations.size(), nullptr);
+  initDeviceBuffers();
 
-  for (size_t i=0; i<observations.size(); ++i)
-  {
-    allocateOnDevice(planet_spectrum_obs[i], observations[i].nbPoints());
-    allocateOnDevice(stellar_spectrum_obs[i], observations[i].nbPoints());
-  }
+  std::vector<float*>& planet_spectrum_obs = planet_spectrum_obs_gpu_;
+  std::vector<float*>& stellar_spectrum_obs = stellar_spectrum_obs_gpu_;
+  float* stellar_spectrum = stellar_spectrum_gpu_;
 
   convertSpectrumToObservationGPU(
     spectrum,
     true,
     planet_spectrum_obs);
 
-
-  float* stellar_spectrum = nullptr;
-  allocateOnDevice(stellar_spectrum, spectral_grid->nbSpectralPoints());
 
   stellar_model->calcFluxGPU(stellar_parameters, stellar_spectrum);
 
@@ -312,15 +306,6 @@ bool OccultationModel::calcModelGPU(
   }
 
 
-  deleteFromDevice(albedo_contribution_bands_gpu);
-
-  for (size_t i=0; i<observations.size(); ++i)
-  {
-    deleteFromDevice(planet_spectrum_obs[i]);
-    deleteFromDevice(stellar_spectrum_obs[i]);
-  }
-
-
   applyObservationModifierGPU(spectrum_modifier_parameters, spectrum_obs);
 
 
@@ -333,10 +318,28 @@ bool OccultationModel::calcModelGPU(
     radius_ratio,
     albedo_contribution_gpu);
 
-  deleteFromDevice(albedo_contribution_gpu);
-  deleteFromDevice(stellar_spectrum);
-
   return neglect;
+}
+
+
+
+//allocates the device buffers of the observation-sized planet and stellar spectra
+//and of the stellar spectrum on the model grid once; their sizes do not change
+void OccultationModel::initDeviceBuffers()
+{
+  if (stellar_spectrum_gpu_ != nullptr)
+    return;
+
+  planet_spectrum_obs_gpu_.assign(observations.size(), nullptr);
+  stellar_spectrum_obs_gpu_.assign(observations.size(), nullptr);
+
+  for (size_t i=0; i<observations.size(); ++i)
+  {
+    allocateOnDevice(planet_spectrum_obs_gpu_[i], observations[i].nbPoints());
+    allocateOnDevice(stellar_spectrum_obs_gpu_[i], observations[i].nbPoints());
+  }
+
+  allocateOnDevice(stellar_spectrum_gpu_, spectral_grid->nbSpectralPoints());
 }
 
 
@@ -401,9 +404,10 @@ std::vector<double> OccultationModel::calcSpectrum(
   {
     opacity_calc.calculateGPU(cloud_models, std::vector<double> {});
 
-    float* model_spectrum_gpu = nullptr;
+    initDeviceBuffers();
 
-    allocateOnDevice(model_spectrum_gpu, spectral_grid->nbSpectralPoints());
+    if (model_spectrum_gpu_ == nullptr)
+      allocateOnDevice(model_spectrum_gpu_, spectral_grid->nbSpectralPoints());
 
     radiative_transfer->calcSpectrumGPU(
       atmosphere,
@@ -413,29 +417,23 @@ std::vector<double> OccultationModel::calcSpectrum(
       opacity_calc.cloud_single_scattering_dev,
       opacity_calc.cloud_asym_param_dev,
       1.0,
-      model_spectrum_gpu);
+      model_spectrum_gpu_);
 
-    float* stellar_spectrum = nullptr;
-    allocateOnDevice(stellar_spectrum, spectral_grid->nbSpectralPoints());
-    stellar_model->calcFluxGPU(std::vector<double> {}, stellar_spectrum);
+    stellar_model->calcFluxGPU(std::vector<double> {}, stellar_spectrum_gpu_);
 
     float* albedo_contribution_gpu = nullptr;
 
     calcOccultationGPU(
-      model_spectrum_gpu,
-      model_spectrum_gpu,
-      stellar_spectrum,
+      model_spectrum_gpu_,
+      model_spectrum_gpu_,
+      stellar_spectrum_gpu_,
       spectral_grid->nbSpectralPoints(),
       radius_ratio,
       albedo_contribution_gpu);
 
-    deleteFromDevice(albedo_contribution_gpu);
-    deleteFromDevice(stellar_spectrum);
-
     {
       std::vector<float> spectrum_float(spectral_grid->nbSpectralPoints());
-      moveToHost(model_spectrum_gpu, spectrum_float);
-      deleteFromDevice(model_spectrum_gpu);
+      moveToHost(model_spectrum_gpu_, spectrum_float);
       spectrum.assign(spectrum_float.begin(), spectrum_float.end());
     }
   }
@@ -468,6 +466,11 @@ std::vector<double> OccultationModel::calcSpectrum(
 
 OccultationModel::~OccultationModel()
 {
+  for (auto & p : planet_spectrum_obs_gpu_) deleteFromDevice(p);
+  for (auto & p : stellar_spectrum_obs_gpu_) deleteFromDevice(p);
+
+  if (stellar_spectrum_gpu_ != nullptr) deleteFromDevice(stellar_spectrum_gpu_);
+  if (model_spectrum_gpu_ != nullptr) deleteFromDevice(model_spectrum_gpu_);
 }
 
 
