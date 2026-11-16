@@ -125,7 +125,7 @@ inline void OpacityCalculation::calculateGPU(
       cs1_ptrs, cs2_ptrs, cs3_ptrs, cs4_ptrs,
       temp_factors, pres_factors,
       cs_log_number_densities, cs_grid_points,
-      batch_buffers, nb_spectral_points,
+      batch_buffers, nb_spectral_points, nb_grid_points,
       absorption_coeff_gpu);
 
   // Launch batched Rayleigh kernel

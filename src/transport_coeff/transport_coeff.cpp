@@ -261,14 +261,17 @@ void TransportCoefficients::prepareBatchedGPU(
 
   const size_t nb_grid_points = atmosphere.nb_grid_points;
 
-  for (size_t gp = 0; gp < nb_grid_points; ++gp)
+  //the species is the outer loop: consecutive work items of one species at
+  //neighbouring grid points mostly share their tabulated cross sections,
+  //which the batched kernel exploits by reading each distinct table only once
+  for (auto& species : gas_species)
   {
-    const double temperature = atmosphere.temperature[gp];
-    const double pressure = atmosphere.pressure[gp];
-    const auto& number_densities = atmosphere.number_densities[gp];
-
-    for (auto& species : gas_species)
+    for (size_t gp = 0; gp < nb_grid_points; ++gp)
     {
+      const double temperature = atmosphere.temperature[gp];
+      const double pressure = atmosphere.pressure[gp];
+      const auto& number_densities = atmosphere.number_densities[gp];
+
       double number_density = number_densities[species->species_index];
 
       for (const auto& partner : species->getCIACollisionPartners())
