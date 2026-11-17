@@ -265,7 +265,7 @@ PYBIND11_MODULE(bear, m) {
         .def_readwrite("cloud_model_parameters", &bear::TransmissionModelConfig::cloud_model_parameters)
         .def_readwrite("modules", &bear::TransmissionModelConfig::modules)
         .def_readwrite("modules_parameters", &bear::TransmissionModelConfig::modules_parameters)
-        .def_readwrite("opacity_species_symbol", &bear::TransmissionModelConfig::modules)
+        .def_readwrite("opacity_species_symbol", &bear::TransmissionModelConfig::opacity_species_symbol)
         .def_readwrite("opacity_species_folder", &bear::TransmissionModelConfig::opacity_species_folder);
 
     py::class_<bear::OccultationConfig>(m, "OccultationConfig", genericConfig)
@@ -387,7 +387,7 @@ PYBIND11_MODULE(bear, m) {
           const bool,
           const std::vector<std::string>&>())
         .def_readwrite("save_temperatures", &bear::EmissionPostProcessConfig::save_temperatures)
-        .def_readwrite("save_effective_temperatures", &bear::EmissionPostProcessConfig::save_temperatures)
+        .def_readwrite("save_effective_temperatures", &bear::EmissionPostProcessConfig::save_effective_temperatures)
         .def_readwrite("save_spectra", &bear::EmissionPostProcessConfig::save_spectra)
         .def_readwrite("save_contribution_functions", &bear::EmissionPostProcessConfig::save_contribution_functions)
         .def_readwrite("delete_sampler_files", &bear::EmissionPostProcessConfig::delete_sampler_files);

@@ -346,6 +346,9 @@ std::vector<double> EmissionModel::calcSpectrum(
 
   cloud_models.clear();
 
+  //the radiative transfer returns the flux per wavenumber, convert it to W m-2 micron-1
+  //like the retrieval path does
+  radiative_transfer->changeSpectrumUnits(spectrum);
 
   for (size_t i=0; i<spectrum.size(); ++i)
     spectrum[i] *= radius*radius/distance/distance;

@@ -143,11 +143,18 @@ void AdiabateSplineTemperature::addCubicSpline(
 {
   double control_points_step = (std::log10(pressure_rcb) - std::log10(pressure.back())) / (nb_control_points - 1.0);
 
+  //the deepest control point sits at the radiative-convective boundary and is
+  //fixed to the adiabat temperature there (continuity of the profile); the
+  //nb_control_points-1 free parameters are the control points above it, in
+  //order of decreasing pressure (temp_t1 is the one closest to the boundary)
   std::vector<double> temperature_control_point(nb_control_points, 0.0);
 
-  for (size_t i=0; i<nb_control_points; ++i)
-    temperature_control_point[i] = parameters[i];
+  temperature_control_point[0] = temperature_rcb;
 
+  for (size_t i=1; i<nb_control_points; ++i)
+    temperature_control_point[i] = parameters[i-1];
+
+  //the knots below run from the top of the atmosphere down to the boundary
   std::reverse(temperature_control_point.begin(), temperature_control_point.end());
 
   std::vector<double> x_knots(nb_control_points);

@@ -203,6 +203,7 @@ bool Observation::readBandSpectroscopyData(std::fstream& file)
     right_edge = 0;
     error = 0.0;
     line_profile_fwhm = 0.0;
+    retrieval_weight = 0.0;
 
     input >> left_edge 
       >> right_edge 
@@ -222,7 +223,8 @@ bool Observation::readBandSpectroscopyData(std::fstream& file)
     if (line_profile_fwhm != 0.0 && nb_data_columns > 4)
       instrument_profile_fwhm.push_back(line_profile_fwhm);
 
-    if (nb_data_columns == 5)
+    //optional weighting factor in the sixth column
+    if (nb_data_columns == 6)
       likelihood_weight.push_back(retrieval_weight);
     else
       likelihood_weight.push_back(1.0);

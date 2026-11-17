@@ -472,6 +472,9 @@ std::vector<double> PhaseCurveModel::calcSpectrum(
 
   cloud_models.clear();
 
+  //the radiative transfer returns the flux per wavenumber, convert it to W m-2 micron-1
+  radiative_transfer->changeSpectrumUnits(spectrum);
+
   return spectrum;
 }
 
