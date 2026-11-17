@@ -11,7 +11,10 @@ for a wide range of objects.
 high-resolution phase-curve spectra.
 It can use low to mid-resolution spectral data, as well as photometric data points. It has support for
 constant temperature and abundance profiles of atmospheric constituents but can also retrieve
-vertically-varying profiles if the observational data is good enough.
+vertically-varying profiles if the observational data is good enough. For emission spectra,
+``BeAR`` offers several radiative transfer schemes, from a fast pure-absorption solver to multi-stream
+methods that include multiple scattering by clouds and Rayleigh scattering, together with a range of
+cloud models, including scattering clouds with tabulated Mie properties.
 
 The core of ``BeAR`` is written in C++ and CUDA, but the code is used through its Python module
 ``bear``, which allows the forward model and retrieval calculations to be performed in Python. The

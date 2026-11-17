@@ -38,8 +38,8 @@ html_theme_options = {
     'sidebar_hide_name': False,
     'navigation_with_keys': True,
     'top_of_page_buttons': ['view'],
-    'source_repository': 'https://github.com/daniel-kitzmann/beardevdoc/',
-    'source_branch': 'main',
+    'source_repository': 'https://github.com/newstrangeworlds/bear/',
+    'source_branch': 'docs',
     'source_directory': 'docs_src/',
     'light_css_variables': {
         'color-brand-primary': '#8a5a2b',

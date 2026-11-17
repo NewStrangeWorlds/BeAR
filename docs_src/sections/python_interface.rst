@@ -165,6 +165,9 @@ is provided in the script ``python/secondary_eclipse/bear_secondary_eclipse_spec
 Emission Spectrum Forward Model
 ###############################
 
-This forward model calculates emission spectra. An exampe of how to use this forward model
-is provided in the script ``python/emission/bear_emission_spectrum.py``. The source code for the Python interface of this forward model is located in 
-``python/emission/src`` folder.
+This forward model calculates emission spectra. An example of how to use this forward model
+is provided in the script ``python/emission/bear_emission_spectrum.py``. The source code for the Python interface of this forward model is located in
+``python/emission/src`` folder. The helper class ``BeAREmissionModel`` defined there takes the
+:ref:`radiative transfer scheme <sec:radiative_transfer>` as an optional constructor argument (default: the
+short characteristics method ``scm``) and accepts the optional arguments ``cloud_single_scattering`` and
+``cloud_asym_param`` in its ``calcSpectrum`` method to describe scattering clouds.

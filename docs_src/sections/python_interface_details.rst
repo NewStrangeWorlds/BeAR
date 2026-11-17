@@ -150,6 +150,12 @@ The Retrieval class has the following methods:
   as input and returns an object of type ``bear.ForwardModelOutput`` that contains the corresponding model spectra.
   If the argument ``return_high_res_spectrum`` is set to ``True``, the high-resolution spectrum will also be returned
   in the output object. Note that, unlike ``computeLikelihood()``, this method does not expand a free parameter vector.
+  Physical parameters are always in cgs units (e.g. radii and distances in cm, regardless of the units used in
+  ``priors.config``), which is why the input should be built with ``convertToPhysicalParameters()`` or taken from
+  ``convertCubeParameters()`` rather than from the raw prior values. The returned ``spectrum_obs`` contains, for every
+  observation, the model binned to the observational data in the units and wavelength order of the corresponding data
+  file, i.e. exactly the values that enter the likelihood; ``spectrum`` is the model on the full spectral grid in
+  increasing wavenumber order.
 
 ``computeAtmosphereStructure(physical_parameters, species_symbols)``
   This method takes the *full* ``list[float]`` of physical parameters (as returned by ``convertToPhysicalParameters()``)
@@ -389,10 +395,10 @@ The Config class has the following method:
 .. note::
 
    The underlying configuration also contains further options that are read from ``retrieval.toml`` but are
-   not exposed as writable attributes of the Python ``Config`` class. These include ``spectral_resolution_highres``
-   (the spectral resolution of the high-resolution grid, used by the phase-curve forward model) and
-   ``nb_disort_streams`` (the number of streams used by the DisORT++ radiative transfer solver). Set these
-   through the ``retrieval.toml`` file.
+   not exposed as writable attributes of the Python ``Config`` class, such as ``spectral_resolution_highres``
+   (the spectral resolution of the high-resolution grid, used by the phase-curve forward model). Set these
+   through the ``retrieval.toml`` file. The radiative transfer scheme and its parameters (e.g. the number of
+   streams) are part of the forward model configuration, see :ref:`sec:radiative_transfer`.
 
 
 bear.SpectralGrid
@@ -1141,7 +1147,7 @@ The constructor has the following arguments:
   A ``list[str]`` that contains the parameters of the temperature profile model.
 
 ``radiative_transfer_model``
-  A ``str`` that contains the choice of the radiative transfer model. The available options can be found :ref:`here <sec:forward_model_se>`.
+  A ``str`` that contains the choice of the radiative transfer model. The available options can be found :ref:`here <sec:radiative_transfer>`.
 
 ``radiative_transfer_parameters``
   A ``list[str]`` that contains the parameters of the radiative transfer model.
@@ -1379,7 +1385,7 @@ The constructor has the following arguments:
   A ``list[str]`` that contains the parameters of the temperature profile model.
 
 ``radiative_transfer_model``
-  A ``str`` that contains the choice of the radiative transfer model. The available options can be found :ref:`here <sec:forward_model_em>`.
+  A ``str`` that contains the choice of the radiative transfer model. The available options can be found :ref:`here <sec:radiative_transfer>`.
 
 ``radiative_transfer_parameters``
   A ``list[str]`` that contains the parameters of the radiative transfer model.
@@ -1581,6 +1587,18 @@ subfolders (see :ref:`here <sec:python_interface>`). The raw classes have the fo
       list[list[float]] mixing_ratios,
       list[list[float]] cloud_optical_depth,
       bool use_variable_gravity)
+    list[float] calcSpectrum(
+      float surface_gravity,
+      float radius,
+      float distance,
+      list[float] pressure,
+      list[float] temperature,
+      list[str] species_symbol,
+      list[list[float]] mixing_ratios,
+      list[list[float]] cloud_optical_depth,
+      list[list[float]] cloud_single_scattering,
+      list[list[float]] cloud_asym_param,
+      bool use_variable_gravity)
 
 The constructors take a ``bear.Config`` object, in which at least ``use_gpu``, ``forward_model_type``,
 ``cross_section_file_path``, ``spectral_disecretisation``, and ``spectral_resolution`` should be set, and a
@@ -1589,10 +1607,14 @@ argument ``nb_grid_points`` is the number of atmospheric levels; ``opacity_speci
 ``opacity_species_folder`` describe the opacity sources as in the forward-model configuration classes. The
 ``OccultationModel`` additionally requires a stellar spectrum given as a list of wavelengths (in micron) and the
 corresponding flux values (in W m\ :sup:`-2` micron\ :sup:`-1`), while the ``EmissionModel`` requires the choice of the radiative transfer model and its
-parameters (see :ref:`here <sec:forward_model_em>`).
+parameters, using the same keywords as the ``radiative_transfer`` entry of the ``forward_model.toml`` file
+(see :ref:`here <sec:radiative_transfer>`).
 
 The ``calcSpectrum`` methods compute a single spectrum on the spectral grid and return it as a ``list[float]`` in the
 order of the ``wavenumber_list`` of the spectral grid (i.e. in increasing wavenumber, decreasing wavelength). The
+``EmissionModel`` returns the flux at the observer in W m\ :sup:`-2` micron\ :sup:`-1`, the same units as the
+retrieval uses for emission spectra, while the ``TransmissionModel`` and the ``OccultationModel`` return the transit
+and the eclipse depth in ppm, respectively. The
 arguments ``pressure`` (in bar) and ``temperature`` (in K) are lists with ``nb_grid_points`` entries. The argument
 ``species_symbol`` is a list of chemical species symbols and ``mixing_ratios`` the corresponding volume mixing ratios,
 where the first index refers to the atmospheric level and the second one to the species. The argument
@@ -1602,3 +1624,13 @@ are given in cm. For the transmission model, ``radius_ratio`` is the ratio of th
 ``planet_radius`` the radius at the bottom of the atmosphere. For the emission model, ``radius`` and ``distance`` are
 used to scale the emitted flux to the one observed at the given distance. The flag ``use_variable_gravity`` determines
 if the gravity is allowed to vary with altitude.
+
+The ``EmissionModel`` has a second ``calcSpectrum`` overload that additionally takes the single scattering albedo
+(``cloud_single_scattering``) and the asymmetry parameter (``cloud_asym_param``) of the clouds, both with the same
+shape as ``cloud_optical_depth``. With these, the clouds are treated as scattering particles, provided that a
+radiative transfer scheme with scattering has been chosen (see :ref:`sec:radiative_transfer`). The first overload
+corresponds to purely absorbing clouds, i.e. a single scattering albedo of zero. The Python helper class
+``BeAREmissionModel`` in ``python/emission/src/setup_emission_model.py`` exposes the same functionality through
+the optional keyword arguments ``cloud_single_scattering`` and ``cloud_asym_param`` of its ``calcSpectrum``
+method, and takes the radiative transfer scheme via its ``radiative_transfer_model`` and
+``radiative_transfer_model_parameters`` constructor arguments (default: ``"scm"`` without parameters).

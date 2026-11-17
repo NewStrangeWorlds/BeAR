@@ -9,6 +9,8 @@ temperature-pressure profiles
 
   - Milne's solution
 
+  - Modified Milne's solution
+
   - Guillot temperature profile
 
   - Isoprofile
@@ -58,6 +60,59 @@ be listed in the prior config file (identified by their prior names):
 
   - :code:`temp_eff`: the effective temperature :math:`T_\mathrm{eff}`
   
+
+Modified Milne's solution
+-------------------------
+
+The modified Milne profile extends Milne's solution by a flexible Hopf function that
+allows the temperature of the upper, optically thin atmosphere to deviate from the
+classic grey solution. It follows the *modified Milne* profile of the Exo_Skryer code
+by E. Lee. In the ``forward_model.toml`` file, this parametrisation is chosen by setting
+the ``temperature`` model to :code:`modified_milne`:
+
+.. code:: toml
+
+   temperature = { model = "modified_milne", params = [] }
+
+The profile is given by
+
+.. math:: T^4(p) = \frac{3}{4} T_\mathrm{eff}^4 \left(\tau(p) + q(p) \right) ,
+
+with the grey optical depth :math:`\tau(p) = \kappa \, p / g` for a constant opacity
+:math:`\kappa` and the surface gravity :math:`g`, and a Hopf function that varies
+with pressure according to
+
+.. math:: q(p) = q_\infty + \left(q_0 - q_\infty\right)
+   \exp\left[-\left(\frac{p}{p_\mathrm{t}}\right)^\beta\right] ,
+   \qquad q_0 = \frac{4}{3} \left(\frac{T_\mathrm{skin}}{T_\mathrm{eff}}\right)^4 .
+
+Here, :math:`q_\infty = 0.710446` is the asymptotic value of the Hopf function of the
+classic Milne solution for :math:`\tau \to \infty`. At low pressures, :math:`q`
+approaches :math:`q_0`, such that the temperature at zero optical depth is equal to the
+free skin temperature :math:`T_\mathrm{skin}`. At high pressures, on the other hand,
+the profile converges to the classic Milne solution. The transition pressure
+:math:`p_\mathrm{t}` and the exponent :math:`\beta` of the stretched exponential set the
+location and the sharpness of the transition between the two regimes. Compared to the
+classic Milne solution, the additional parameters give the retrieval the freedom to
+adjust the temperature of the upper atmosphere, which is often needed to fit the cores
+of strong absorption bands.
+
+The modified Milne temperature profile has five free parameters that have to be
+listed in the prior config file (identified by their prior names):
+
+  - :code:`temp_kappa_ross`: :math:`\kappa`, the constant grey opacity in units of
+    :math:`\mathrm{cm}^2/\mathrm{g}`
+
+  - :code:`temp_eff`: the effective temperature :math:`T_\mathrm{eff}`
+
+  - :code:`temp_ratio`: the ratio :math:`T_\mathrm{skin}/T_\mathrm{eff}` of the skin
+    temperature to the effective temperature
+
+  - :code:`temp_p_t`: the transition pressure :math:`p_\mathrm{t}` in bar
+
+  - :code:`temp_beta`: the exponent :math:`\beta` of the stretched exponential that
+    controls the sharpness of the transition
+
 
 Guillot profile
 ---------------

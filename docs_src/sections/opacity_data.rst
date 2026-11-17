@@ -97,6 +97,13 @@ Inside the binary file itself, the data has to be stored as single-precision val
 not the usual double-precision ones. This is already the case for the standard
 HELIOS-k opacity files that can be found on DACE, for example.
 
+The script ``tools/create_filelist.py`` in the BeAR repository can generate the ``filelist.dat``
+files automatically for opacity folders downloaded from DACE that follow the HELIOS-k naming
+convention. It scans all sub-folders of a given directory (set via the ``main_directory``
+variable at the top of the script), derives the molecular weight from the isotopologue formula
+encoded in the folder name (this requires the ``pyteomics`` Python package), and extracts the
+pressure and temperature of each binary file from its file name.
+
 
 Special cases
 -------------

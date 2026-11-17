@@ -19,6 +19,7 @@ to daniel.kitzmann@unibe.ch .
    sections/opacity_data
    sections/observations
    sections/forward_models
+   sections/radiative_transfer
    sections/high_resolution
    sections/priors
    sections/retrieval_setup

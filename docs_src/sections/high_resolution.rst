@@ -295,6 +295,33 @@ line contrast to be measured rather than assumed, at the cost of one extra
 parameter; leaving it out selects the fully marginalized Brogi & Line
 likelihood, which is scale-free.
 
+.. _sec:highres_gpu_precision:
+
+Numerical precision of the ``marginalized_alpha`` mode on the GPU
+-----------------------------------------------------------------
+
+The GPU evaluates the high-resolution model in single precision, the CPU in
+double precision. For the ``free_alpha`` and ``gibson`` modes and for the
+data-only mode both agree to about :math:`10^{-5}` of the log-likelihood.
+The ``marginalized_alpha`` mode can differ by more, because it is scale-free:
+only the *shape* of the model after the temporal filter :math:`(I - P)` and the
+quadratic detrending enters, not its amplitude. For models with weak planetary
+lines, the part of the model that survives the filter can be as small as
+:math:`10^{-7}` of the raw model, which is below the resolution of a
+single-precision spectrum. The GPU residual is then dominated by rounding noise,
+:math:`s_g^2` is overestimated and the GPU log-likelihood falls below the CPU
+value. In a test retrieval setup (WASP-77Ab with IGRINS, 44 orders, 79
+exposures), the two paths differed by 0.4% of the total log-likelihood at a
+typical parameter point and by up to 8% at a point with very low line contrast,
+while the underlying model matrices agreed to :math:`2\times10^{-7}`.
+
+In practice this only affects parameter regions in which the marginalized
+likelihood is amplitude-degenerate anyway (the CPU assigns such a model the same
+likelihood as a strong-lined one with the same line pattern), and the GPU
+effectively penalises them. If a scale-free likelihood with the exact
+double-precision behaviour is required, run the retrieval on the CPU; otherwise
+the ``free_alpha`` mode, which re-injection requires in any case, is unaffected.
+
 
 Modules
 =======

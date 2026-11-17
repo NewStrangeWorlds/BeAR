@@ -44,7 +44,11 @@ The accepted values (each with a short alias) are:
   - ``phase_curve`` / ``pc``
 
 Each model (except the flat line) requires its own config file ``forward_model.toml`` that
-is discussed below.
+is discussed below. The building blocks of these files, i.e. the
+:ref:`temperature profiles <sec:temperature_profiles>`, :ref:`chemistry models <sec:chemistry_models>`,
+:ref:`cloud models <sec:cloud_models>`, :ref:`stellar spectra <sec:stellar_spectra>`,
+:ref:`radiative transfer schemes <sec:radiative_transfer>`, and
+:ref:`opacity sources <sec:opacity_config>`, are described in their own sections.
 
 
 Model postprocessing
@@ -290,19 +294,11 @@ With the next entries, the parametrisation for the :ref:`temperature profile <se
 the :ref:`stellar spectrum <sec:stellar_spectra>`, and the :ref:`cloud models <sec:cloud_models>` are set.
 
 After that, the radiative transfer scheme is chosen via
-``radiative_transfer = { model = "...", params = [...] }``. There are currently three
-different options:
-
-  - ``scm`` - the short characteristic method (ShortCharacteristics), ``params = []``,
-    available for CPU and GPU.
-
-  - ``disort`` - the discrete-ordinate solver DisORT++ (an external library), which takes
-    exactly one parameter, the number of streams (must be 4, 8, 16, or 32). Only available
-    for CPU; it throws an error if run on the GPU.
-
-  - ``adding_doubling`` - the adding-doubling method (AddingDoublingRT), which takes exactly
-    one parameter, the number of quadrature points. Available for CPU and GPU, and supports
-    aerosol/multiple scattering.
+``radiative_transfer = { model = "...", params = [...] }``. BeAR offers several
+schemes, from the fast, purely absorbing short characteristics method (``scm``) to
+multi-stream solvers that include multiple scattering by clouds and Rayleigh scattering
+(``toon``, ``dda``, ``adding_doubling``, and ``disort``). They are described in the
+:ref:`section on radiative transfer schemes <sec:radiative_transfer>`.
 
 Finally, the different :ref:`chemistry models <sec:chemistry_models>`, chemical species, and the
 :ref:`opacity sources <sec:opacity_data>` are selected. It is important to note that
@@ -451,20 +447,12 @@ With the next two entries, the parametrisation for the
 :ref:`temperature profile <sec:temperature_profiles>` and
 the :ref:`cloud models <sec:cloud_models>` are set.
 
-After that, the radiative transfer scheme is set via
-``radiative_transfer = { model = "...", params = [...] }``. There are currently three
-different options:
-
-  - ``scm`` - the short characteristic method (ShortCharacteristics), ``params = []``,
-    available for CPU and GPU.
-
-  - ``disort`` - the discrete-ordinate solver DisORT++ (an external library), which takes
-    exactly one parameter, the number of streams (must be 4, 8, 16, or 32). Only available
-    for CPU; it throws an error if run on the GPU.
-
-  - ``adding_doubling`` - the adding-doubling method (AddingDoublingRT), which takes exactly
-    one parameter, the number of quadrature points. Available for CPU and GPU, and supports
-    aerosol/multiple scattering.
+After that, the radiative transfer scheme is chosen via
+``radiative_transfer = { model = "...", params = [...] }``. BeAR offers several
+schemes, from the fast, purely absorbing short characteristics method (``scm``) to
+multi-stream solvers that include multiple scattering by clouds and Rayleigh scattering
+(``toon``, ``dda``, ``adding_doubling``, and ``disort``). They are described in the
+:ref:`section on radiative transfer schemes <sec:radiative_transfer>`.
 
 Finally, the different :ref:`chemistry models <sec:chemistry_models>`, chemical species, and the
 :ref:`opacity sources <sec:opacity_data>` are selected. It is important to note that
@@ -539,7 +527,8 @@ Model config file
 
 The ``forward_model.toml`` file for the phase-curve model uses the same building
 blocks as the other models (``atmosphere``, ``temperature``, ``stellar_spectrum``,
-``clouds``, ``radiative_transfer``, ``chemistry``, ``opacity``) and adds two
+``clouds``, ``radiative_transfer``, ``chemistry``, ``opacity``; see
+:ref:`sec:radiative_transfer` for the available radiative transfer schemes) and adds two
 high-resolution-specific pieces:
 
   - an optional ``opacity_highres`` block, a separate opacity table for the
