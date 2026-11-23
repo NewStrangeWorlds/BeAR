@@ -51,6 +51,7 @@ namespace bear{
 //cloud properties at array index j
 //the single scattering albedo is weighted by the optical depth, the asymmetry
 //parameter by the scattering optical depth (same scheme as OpacityCalculation::calculate)
+//without the arrays of the scattering properties (nullptr), only the optical depths are added
 __device__ __forceinline__ void mixCloudLayer(
   float* optical_depth,
   float* single_scattering_albedo,
@@ -60,6 +61,12 @@ __device__ __forceinline__ void mixCloudLayer(
   const double layer_single_scattering,
   const double layer_asym_param)
 {
+  if (single_scattering_albedo == nullptr || asym_param == nullptr)
+  {
+    optical_depth[j] = optical_depth[j] + layer_optical_depth;
+    return;
+  }
+
   const double tau_scattering1 = optical_depth[j] * single_scattering_albedo[j];
   const double tau_scattering2 = layer_optical_depth * layer_single_scattering;
   const double tau_scattering_mix = tau_scattering1 + tau_scattering2;

@@ -214,7 +214,6 @@ class TransmissionModel : public ForwardModel{
     size_t nb_grid_points = 0;
 
     std::vector<std::vector<double>> cloud_extinction;
-    float* cloud_extinction_gpu = nullptr;
     float* model_spectrum_gpu_ = nullptr;      //spectrum buffer of calcSpectrum
     float* transmission_path_dev = nullptr;    //limb path lengths per (tangent height, layer)
     size_t transmission_path_size = 0;
@@ -261,7 +260,7 @@ class TransmissionModel : public ForwardModel{
       float* transit_radius_dev,
       float* absorption_coeff_dev,
       float* scattering_coeff_dev,
-      float* cloud_extinction_coeff_dev,
+      float* cloud_optical_depth_dev,
       const Atmosphere& atmosphere,
       const size_t nb_spectral_points,
       const double radius_planet,

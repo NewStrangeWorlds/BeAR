@@ -100,8 +100,13 @@ void FixedCloudModel::opticalPropertiesGPU(
   }
 
   moveToDevice(optical_depth_dev, optical_depth_flat, false);
-  moveToDevice(single_scattering_dev, single_scattering_flat, false);
-  moveToDevice(asym_param, asymmetry_param_flat, false);
+
+  //the scattering properties are not needed by all forward models
+  if (single_scattering_dev != nullptr)
+    moveToDevice(single_scattering_dev, single_scattering_flat, false);
+
+  if (asym_param != nullptr)
+    moveToDevice(asym_param, asymmetry_param_flat, false);
 }
 
 

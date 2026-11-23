@@ -32,7 +32,8 @@ class OpacityCalculation {
       const std::vector<std::string> opacity_species_symbol,
       const std::vector<std::string> opacity_species_folder,
       const bool use_gpu_,
-      const bool use_cloud_)
+      const bool use_cloud_,
+      const bool extinction_only_ = false)
       : spectral_grid(spectral_grid_)
       , atmosphere(atmosphere_)
       , transport_coeff(
@@ -42,6 +43,7 @@ class OpacityCalculation {
           opacity_species_folder)
       , use_gpu(use_gpu_)
       , use_cloud(use_cloud_)
+      , extinction_only(extinction_only_)
       {
         initDeviceMemory();
       }
@@ -61,7 +63,10 @@ class OpacityCalculation {
     std::vector< std::vector<double> > cloud_single_scattering;
     std::vector< std::vector<double> > cloud_asym_param;
 
-    //pointer to the array that holds the pointers to the coefficients on the GPU
+    //coefficients on the GPU
+    //in the extinction-only mode, absorption_coeff_gpu contains the total gas 
+    //extinction (absorption and scattering) and scattering_coeff_dev as well as the
+    //cloud single scattering albedos and asymmetry parameters are not used (nullptr)
     float* absorption_coeff_gpu = nullptr;
     float* scattering_coeff_dev = nullptr;
 
@@ -76,6 +81,8 @@ class OpacityCalculation {
 
     bool use_gpu = false;
     bool use_cloud = false;
+    //GPU only: for models that need no separate scattering properties (transmission spectra)
+    bool extinction_only = false;
 
     BatchedDeviceBuffers batch_buffers;
 
@@ -90,14 +97,6 @@ inline void OpacityCalculation::calculateGPU(
 {
   const size_t nb_grid_points = atmosphere->nb_grid_points;
   const size_t nb_spectral_points = spectral_grid->nbSpectralPoints();
-
-  initCrossSectionsHost(
-    nb_spectral_points*nb_grid_points,
-    absorption_coeff_gpu);
-
-  initCrossSectionsHost(
-    nb_spectral_points*nb_grid_points,
-    scattering_coeff_dev);
 
   // Collect all cross-section and Rayleigh metadata on the CPU
   std::vector<float*> cs1_ptrs, cs2_ptrs, cs3_ptrs, cs4_ptrs;
@@ -115,26 +114,23 @@ inline void OpacityCalculation::calculateGPU(
     cs_log_number_densities, cs_grid_points,
     ray_ptrs, ray_number_densities, ray_grid_points);
 
-  // Ensure batch buffers are large enough
-  size_t max_items = std::max(cs_grid_points.size(), ray_grid_points.size());
-  allocateBatchBuffers(batch_buffers, max_items);
-
-  //Launch batched cross-section kernel
-  if (!cs_grid_points.empty())
-    launchBatchedCrossSections(
+  //gas absorption and Rayleigh scattering in a single kernel launch
+  //the kernel writes all elements of the coefficient arrays
+  if (!cs_grid_points.empty() || !ray_grid_points.empty())
+    launchBatchedOpacities(
       cs1_ptrs, cs2_ptrs, cs3_ptrs, cs4_ptrs,
       temp_factors, pres_factors,
       cs_log_number_densities, cs_grid_points,
-      batch_buffers, nb_spectral_points, nb_grid_points,
-      absorption_coeff_gpu);
-
-  // Launch batched Rayleigh kernel
-  if (!ray_grid_points.empty())
-    launchBatchedRayleigh(
       ray_ptrs, ray_number_densities, ray_grid_points,
-      batch_buffers, nb_spectral_points,
+      batch_buffers, nb_spectral_points, nb_grid_points,
+      absorption_coeff_gpu,
       scattering_coeff_dev);
-  
+  else
+  {
+    initializeOnDevice(absorption_coeff_gpu, nb_spectral_points*nb_grid_points);
+    initializeOnDevice(scattering_coeff_dev, nb_spectral_points*nb_grid_points);
+  }
+
   //H- continuum, all grid points in a single batched launch
   transport_coeff.calculateContinuumGPU(
     atmosphere->temperature,
@@ -278,15 +274,21 @@ inline void OpacityCalculation::initDeviceMemory()
   const size_t nb_spectral_points = spectral_grid->nbSpectralPoints();
 
   allocateOnDevice(absorption_coeff_gpu, nb_grid_points*nb_spectral_points);
-  allocateOnDevice(scattering_coeff_dev, nb_grid_points*nb_spectral_points);
+
+  if (!extinction_only)
+    allocateOnDevice(scattering_coeff_dev, nb_grid_points*nb_spectral_points);
 
   if (use_cloud)
   { 
     const size_t nb_layers = nb_grid_points - 1;
 
     allocateOnDevice(cloud_optical_depths_dev, nb_layers*nb_spectral_points);
-    allocateOnDevice(cloud_single_scattering_dev, nb_layers*nb_spectral_points);
-    allocateOnDevice(cloud_asym_param_dev, nb_layers*nb_spectral_points);
+
+    if (!extinction_only)
+    {
+      allocateOnDevice(cloud_single_scattering_dev, nb_layers*nb_spectral_points);
+      allocateOnDevice(cloud_asym_param_dev, nb_layers*nb_spectral_points);
+    }
 
     initializeOnDevice(cloud_optical_depths_dev, nb_layers*nb_spectral_points);
     initializeOnDevice(cloud_single_scattering_dev, nb_layers*nb_spectral_points);
@@ -301,15 +303,21 @@ inline OpacityCalculation::~OpacityCalculation()
   if (use_gpu)
   {
     deleteFromDevice(absorption_coeff_gpu);
-    deleteFromDevice(scattering_coeff_dev);
+
+    if (scattering_coeff_dev != nullptr)
+      deleteFromDevice(scattering_coeff_dev);
 
     freeBatchBuffers(batch_buffers);
 
     if (use_cloud)
     {
       deleteFromDevice(cloud_optical_depths_dev);
-      deleteFromDevice(cloud_single_scattering_dev);
-      deleteFromDevice(cloud_asym_param_dev);
+
+      if (cloud_single_scattering_dev != nullptr)
+        deleteFromDevice(cloud_single_scattering_dev);
+
+      if (cloud_asym_param_dev != nullptr)
+        deleteFromDevice(cloud_asym_param_dev);
     }
   }
 }

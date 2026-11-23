@@ -138,7 +138,8 @@ void TransmissionModel::setHighResGrid(SpectralGrid* grid)
     opacity_species_symbol_,
     opacity_species_folder_,
     config->use_gpu,
-    false);  // no clouds on high-res grid
+    false,   // no clouds on high-res grid
+    true);   // transmission only needs the total extinction
 
   // Classify modules: broadening modules -> highres, everything else -> lowres
   for (size_t i = 0; i < modules.size(); ++i)

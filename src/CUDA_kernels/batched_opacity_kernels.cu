@@ -11,7 +11,6 @@
 #include <cstring>
 #include <vector>
 #include <algorithm>
-#include <numeric>
 
 
 namespace bear{
@@ -66,14 +65,23 @@ float tableLoad(const bool used, const float* __restrict__ q, const int tid)
 //the same time, into the thread's own column of shared memory, from which the
 //items interpolate; the sums per grid point stay in registers, their order
 //(species by species) is deterministic
-__global__ void batchedCrossSectionsDevice(
+//the Rayleigh scattering coefficients of the group are accumulated in the same 
+//way from the cross sections of the nb_rayleigh scattering species (one table 
+//each, shared by all grid points) and their number densities per grid point
+//every element of the output arrays is written, they need no initialisation;
+//without a scattering array, the scattering is added to the absorption coefficient
+__global__ void batchedOpacitiesDevice(
   const float* const* __restrict__ run_tables,
   const int* __restrict__ run_nb_tables,
   const float4* __restrict__ items,
   const int* __restrict__ group_run_offsets,
+  const float* const* __restrict__ rayleigh_tables,
+  const float* __restrict__ rayleigh_densities,
+  const int nb_rayleigh,
   const int nb_spectral_points,
   const int nb_grid_points,
-  float* __restrict__ absorption_coeff)
+  float* __restrict__ absorption_coeff,
+  float* __restrict__ scattering_coeff)
 {
   __shared__ float s_tables[batch_cs_run_tables * batch_cs_threads];
 
@@ -126,59 +134,55 @@ __global__ void batchedCrossSectionsDevice(
     }
   }
 
+  float scattering[batch_cs_group];
+
+  #pragma unroll
+  for (int j = 0; j < batch_cs_group; ++j)
+    scattering[j] = 0.0f;
+
+  for (int r = 0; r < nb_rayleigh; ++r)
+  {
+    const float cross_section = rayleigh_tables[r][tid];
+    const float* densities = rayleigh_densities + (group * nb_rayleigh + r) * batch_cs_group;
+
+    #pragma unroll
+    for (int j = 0; j < batch_cs_group; ++j)
+      scattering[j] += cross_section * densities[j];
+  }
+
   const int gp_start = group * batch_cs_group;
 
   #pragma unroll
   for (int j = 0; j < batch_cs_group; ++j)
     if (gp_start + j < nb_grid_points)
-      absorption_coeff[(gp_start + j) * nb_spectral_points + tid] += sum[j];
+    {
+      const size_t idx = static_cast<size_t>(gp_start + j) * nb_spectral_points + tid;
+
+      if (scattering_coeff != nullptr)
+      {
+        absorption_coeff[idx] = sum[j];
+        scattering_coeff[idx] = scattering[j];
+      }
+      else
+        absorption_coeff[idx] = sum[j] + scattering[j];
+    }
 }
 
 
 
-__global__ void batchedRayleighDevice(
-  float** __restrict__ rayleigh_cs,
-  const double* __restrict__ number_densities,
-  const int* __restrict__ group_offsets,
-  const int* __restrict__ group_grid_points,
-  const int nb_spectral_points,
-  float* __restrict__ scattering_coeff)
+void allocateBatchBuffers(BatchedDeviceBuffers& buffers, size_t nb_bytes)
 {
-  const int tid = blockIdx.x * blockDim.x + threadIdx.x;
-  const int g = blockIdx.y;
-
-  if (tid >= nb_spectral_points) return;
-
-  const int k_start = group_offsets[g];
-  const int k_end   = group_offsets[g + 1];
-
-  float sum = 0.0f;
-
-  for (int k = k_start; k < k_end; ++k)
-    sum += rayleigh_cs[k][tid] * static_cast<float>(number_densities[k]);
-
-  scattering_coeff[group_grid_points[g] * nb_spectral_points + tid] += sum;
-}
-
-
-
-void allocateBatchBuffers(BatchedDeviceBuffers& buffers, size_t capacity)
-{
-  if (buffers.capacity >= capacity) return;
+  if (buffers.capacity >= nb_bytes) return;
 
   freeBatchBuffers(buffers);
 
-  gpuErrchk(cudaMalloc(&buffers.cs_blob_dev,
-    capacity * batch_cs_item_bytes + batch_blob_extra_bytes));
-  gpuErrchk(cudaMallocHost(&buffers.cs_blob_host,
-    capacity * batch_cs_item_bytes + batch_blob_extra_bytes));
+  //some head room, the size of the batch changes with the model parameters
+  nb_bytes += nb_bytes / 2;
 
-  gpuErrchk(cudaMalloc(&buffers.ray_blob_dev,
-    capacity * batch_ray_item_bytes + batch_blob_extra_bytes));
-  gpuErrchk(cudaMallocHost(&buffers.ray_blob_host,
-    capacity * batch_ray_item_bytes + batch_blob_extra_bytes));
+  gpuErrchk(cudaMalloc(&buffers.blob_dev, nb_bytes));
+  gpuErrchk(cudaMallocHost(&buffers.blob_host, nb_bytes));
 
-  buffers.capacity = capacity;
+  buffers.capacity = nb_bytes;
 }
 
 
@@ -187,22 +191,18 @@ void freeBatchBuffers(BatchedDeviceBuffers& buffers)
 {
   if (buffers.capacity == 0) return;
 
-  gpuErrchk(cudaFree(buffers.cs_blob_dev));
-  gpuErrchk(cudaFreeHost(buffers.cs_blob_host));
-  gpuErrchk(cudaFree(buffers.ray_blob_dev));
-  gpuErrchk(cudaFreeHost(buffers.ray_blob_host));
+  gpuErrchk(cudaFree(buffers.blob_dev));
+  gpuErrchk(cudaFreeHost(buffers.blob_host));
 
-  buffers.cs_blob_dev = nullptr;
-  buffers.cs_blob_host = nullptr;
-  buffers.ray_blob_dev = nullptr;
-  buffers.ray_blob_host = nullptr;
+  buffers.blob_dev = nullptr;
+  buffers.blob_host = nullptr;
 
   buffers.capacity = 0;
 }
 
 
 
-void launchBatchedCrossSections(
+void launchBatchedOpacities(
   const std::vector<float*>& cs1_ptrs,
   const std::vector<float*>& cs2_ptrs,
   const std::vector<float*>& cs3_ptrs,
@@ -211,13 +211,16 @@ void launchBatchedCrossSections(
   const std::vector<float>& pres_factors,
   const std::vector<float>& log_number_densities,
   const std::vector<int>& grid_points,
+  const std::vector<float*>& rayleigh_ptrs,
+  const std::vector<double>& rayleigh_number_densities,
+  const std::vector<int>& rayleigh_grid_points,
   BatchedDeviceBuffers& buffers,
   int nb_spectral_points,
   int nb_grid_points,
-  float* absorption_coeff_device)
+  float* absorption_coeff_device,
+  float* scattering_coeff_device)
 {
   const size_t n = grid_points.size();
-  if (n == 0) return;
 
   //the items arrive species by species with increasing grid point; the species
   //boundaries are where the grid point does not increase
@@ -340,113 +343,71 @@ void launchBatchedCrossSections(
     for (int u = run_nb_tables[r]; u < batch_cs_run_tables; ++u)
       run_tables[r * batch_cs_run_tables + u] = run_tables[r * batch_cs_run_tables];
 
-  allocateBatchBuffers(buffers, nb_runs + nb_groups + 2);
+  //Rayleigh scattering: one table per scattering species (the items arrive species 
+  //by species) and its number densities per grid point, stored per group of grid 
+  //points; the species order is that of the items
+  std::vector<const float*> rayleigh_tables;
+  std::vector<size_t> rayleigh_species(rayleigh_grid_points.size());
+
+  for (size_t k = 0; k < rayleigh_grid_points.size(); ++k)
+  {
+    if (k == 0 || rayleigh_ptrs[k] != rayleigh_tables.back())
+      rayleigh_tables.push_back(rayleigh_ptrs[k]);
+
+    rayleigh_species[k] = rayleigh_tables.size() - 1;
+  }
+
+  const size_t nb_rayleigh = rayleigh_tables.size();
+
+  std::vector<float> rayleigh_densities(nb_groups * nb_rayleigh * batch_cs_group, 0.0f);
+
+  for (size_t k = 0; k < rayleigh_grid_points.size(); ++k)
+  {
+    const int gp = rayleigh_grid_points[k];
+    const size_t g = gp / batch_cs_group;
+
+    rayleigh_densities[(g * nb_rayleigh + rayleigh_species[k]) * batch_cs_group + gp % batch_cs_group] =
+      static_cast<float>(rayleigh_number_densities[k]);
+  }
 
   //pack all metadata tightly into the pinned staging blob
-  //(the 16-byte items first, then the pointer array, to keep the alignment)
+  //(the 16-byte items first, then the pointer arrays, to keep the alignment)
   const size_t off_tab  = items.size() * sizeof(float4);
-  const size_t off_ntab = off_tab + run_tables.size() * sizeof(float*);
+  const size_t off_rtab = off_tab + run_tables.size() * sizeof(float*);
+  const size_t off_ntab = off_rtab + nb_rayleigh * sizeof(float*);
   const size_t off_goff = off_ntab + nb_runs * sizeof(int);
-  const size_t total_bytes = off_goff + (nb_groups + 1) * sizeof(int);
+  const size_t off_rdens = off_goff + (nb_groups + 1) * sizeof(int);
+  const size_t total_bytes = off_rdens + rayleigh_densities.size() * sizeof(float);
 
-  char* host = buffers.cs_blob_host;
-  std::memcpy(host,            items.data(), items.size() * sizeof(float4));
-  std::memcpy(host + off_tab,  run_tables.data(), run_tables.size() * sizeof(float*));
-  std::memcpy(host + off_ntab, run_nb_tables.data(), nb_runs * sizeof(int));
-  std::memcpy(host + off_goff, group_run_offsets.data(), (nb_groups + 1) * sizeof(int));
+  allocateBatchBuffers(buffers, total_bytes);
+
+  char* host = buffers.blob_host;
+  std::memcpy(host,             items.data(), items.size() * sizeof(float4));
+  std::memcpy(host + off_tab,   run_tables.data(), run_tables.size() * sizeof(float*));
+  std::memcpy(host + off_rtab,  rayleigh_tables.data(), nb_rayleigh * sizeof(float*));
+  std::memcpy(host + off_ntab,  run_nb_tables.data(), nb_runs * sizeof(int));
+  std::memcpy(host + off_goff,  group_run_offsets.data(), (nb_groups + 1) * sizeof(int));
+  std::memcpy(host + off_rdens, rayleigh_densities.data(), rayleigh_densities.size() * sizeof(float));
 
   //single upload of the whole batch
-  gpuErrchk(cudaMemcpy(buffers.cs_blob_dev, host,
+  gpuErrchk(cudaMemcpy(buffers.blob_dev, host,
     total_bytes, cudaMemcpyHostToDevice));
 
-  const char* dev = buffers.cs_blob_dev;
+  const char* dev = buffers.blob_dev;
 
   const dim3 blocks((nb_spectral_points + batch_cs_threads - 1) / batch_cs_threads, nb_groups);
 
-  batchedCrossSectionsDevice<<<blocks, batch_cs_threads>>>(
+  batchedOpacitiesDevice<<<blocks, batch_cs_threads>>>(
     (const float* const*)(dev + off_tab),
     (const int*)(dev + off_ntab),
     (const float4*)dev,
     (const int*)(dev + off_goff),
+    (const float* const*)(dev + off_rtab),
+    (const float*)(dev + off_rdens),
+    static_cast<int>(nb_rayleigh),
     nb_spectral_points,
     nb_grid_points,
-    absorption_coeff_device);
-
-  CUDA_CHECK_AFTER_KERNEL();
-}
-
-
-
-void launchBatchedRayleigh(
-  const std::vector<float*>& rayleigh_ptrs,
-  const std::vector<double>& number_densities,
-  const std::vector<int>& grid_points,
-  BatchedDeviceBuffers& buffers,
-  int nb_spectral_points,
-  float* scattering_coeff_device)
-{
-  const size_t n = grid_points.size();
-  if (n == 0) return;
-
-  //group the work items by grid point (stable sort keeps the species order
-  //within a grid point, so the summation order is independent of the input order)
-  std::vector<int> order(n);
-  std::iota(order.begin(), order.end(), 0);
-  std::stable_sort(order.begin(), order.end(),
-    [&](const int a, const int b) { return grid_points[a] < grid_points[b]; });
-
-  std::vector<int> group_offsets, group_grid;
-  group_offsets.reserve(n + 1);
-  group_grid.reserve(n);
-
-  for (size_t i = 0; i < n; ++i)
-    if (i == 0 || grid_points[order[i]] != grid_points[order[i-1]])
-    {
-      group_offsets.push_back(static_cast<int>(i));
-      group_grid.push_back(grid_points[order[i]]);
-    }
-
-  group_offsets.push_back(static_cast<int>(n));
-  const size_t nb_groups = group_grid.size();
-
-  allocateBatchBuffers(buffers, n);
-
-  //pack all metadata tightly into the pinned staging blob
-  //(8-byte members first to keep alignment)
-  const size_t off_dens = n * sizeof(float*);
-  const size_t off_goff = off_dens + n * sizeof(double);
-  const size_t off_ggrid = off_goff + (nb_groups + 1) * sizeof(int);
-  const size_t total_bytes = off_ggrid + nb_groups * sizeof(int);
-
-  char* host = buffers.ray_blob_host;
-
-  float** h_ptrs = reinterpret_cast<float**>(host);
-  double* h_dens = reinterpret_cast<double*>(host + off_dens);
-
-  for (size_t i = 0; i < n; ++i)
-  {
-    h_ptrs[i] = rayleigh_ptrs[order[i]];
-    h_dens[i] = number_densities[order[i]];
-  }
-
-  std::memcpy(host + off_goff, group_offsets.data(), (nb_groups + 1) * sizeof(int));
-  std::memcpy(host + off_ggrid, group_grid.data(), nb_groups * sizeof(int));
-
-  //single upload of the whole batch
-  gpuErrchk(cudaMemcpy(buffers.ray_blob_dev, host,
-    total_bytes, cudaMemcpyHostToDevice));
-
-  char* dev = buffers.ray_blob_dev;
-
-  const int threads = 256;
-  dim3 blocks((nb_spectral_points + threads - 1) / threads, nb_groups);
-
-  batchedRayleighDevice<<<blocks, threads>>>(
-    (float**)dev,
-    (double*)(dev + off_dens),
-    (int*)(dev + off_goff),
-    (int*)(dev + off_ggrid),
-    nb_spectral_points,
+    absorption_coeff_device,
     scattering_coeff_device);
 
   CUDA_CHECK_AFTER_KERNEL();

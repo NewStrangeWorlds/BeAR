@@ -15,30 +15,26 @@ namespace bear{
 
 //the per-work-item metadata of a batch is packed into a single blob so that it
 //can be uploaded with one memcpy from pinned host memory instead of many small
-//pageable transfers; the launchers compute the typed array pointers per call
+//pageable transfers; the launcher computes the typed array pointers per call
 struct BatchedDeviceBuffers {
-  char* cs_blob_dev = nullptr;
-  char* cs_blob_host = nullptr;   //pinned host staging buffer
+  char* blob_dev = nullptr;
+  char* blob_host = nullptr;   //pinned host staging buffer
 
-  char* ray_blob_dev = nullptr;
-  char* ray_blob_host = nullptr;  //pinned host staging buffer
-
-  size_t capacity = 0;
+  size_t capacity = 0;         //in bytes
 };
 
-//bytes per work item in the packed blobs: for the cross-section blob the unit is
-//a run of eight 16-byte items with its 16 table pointers and table count, plus the
-//run offsets per group of grid points (one trailing entry); the Rayleigh blob holds
-//per item a pointer, a double and the grouping data
-constexpr size_t batch_cs_item_bytes = 8*16 + 16*sizeof(float*) + 2*sizeof(int);
-constexpr size_t batch_ray_item_bytes = sizeof(float*) + sizeof(double) + 2*sizeof(int);
-constexpr size_t batch_blob_extra_bytes = 4*sizeof(int);
 
-
-void allocateBatchBuffers(BatchedDeviceBuffers& buffers, size_t capacity);
+void allocateBatchBuffers(BatchedDeviceBuffers& buffers, size_t nb_bytes);
 void freeBatchBuffers(BatchedDeviceBuffers& buffers);
 
-void launchBatchedCrossSections(
+//gas absorption and Rayleigh scattering coefficients of all grid points in a
+//single kernel launch; the kernel writes every element of the output arrays, 
+//they do not need to be initialised
+//the cross-section and Rayleigh work items are expected species by species with 
+//increasing grid points
+//if scattering_coeff_device is a nullptr, the scattering coefficients are added 
+//to the absorption coefficients instead (total gas extinction)
+void launchBatchedOpacities(
   const std::vector<float*>& cs1_ptrs,
   const std::vector<float*>& cs2_ptrs,
   const std::vector<float*>& cs3_ptrs,
@@ -47,17 +43,13 @@ void launchBatchedCrossSections(
   const std::vector<float>& pres_factors,
   const std::vector<float>& log_number_densities,
   const std::vector<int>& grid_points,
+  const std::vector<float*>& rayleigh_ptrs,
+  const std::vector<double>& rayleigh_number_densities,
+  const std::vector<int>& rayleigh_grid_points,
   BatchedDeviceBuffers& buffers,
   int nb_spectral_points,
   int nb_grid_points,
-  float* absorption_coeff_device);
-
-void launchBatchedRayleigh(
-  const std::vector<float*>& rayleigh_ptrs,
-  const std::vector<double>& number_densities,
-  const std::vector<int>& grid_points,
-  BatchedDeviceBuffers& buffers,
-  int nb_spectral_points,
+  float* absorption_coeff_device,
   float* scattering_coeff_device);
 
 
