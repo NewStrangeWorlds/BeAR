@@ -164,9 +164,13 @@ name-keyed, the entries are identified by their names rather than their order:
 
   - ``log_g`` - logarithm of surface gravity :math:`\log g` in cgs units
 
-  - ``bottom_radius`` - planet radius
+  - ``bottom_radius`` - planet radius at the bottom of the atmosphere
 
   - ``star_radius`` - stellar radius
+
+If a reference pressure is set in the model config file (see below), the planet radius
+is defined at that pressure instead and the parameter is called ``reference_radius``.
+In both cases, ``log_g`` refers to the same level as the radius.
 
 
 Model config file
@@ -201,11 +205,39 @@ prior configuration file.
 
 The second key, ``use_variable_gravity``, is a boolean (``true`` or ``false``) that determines
 whether the gravitational acceleration is kept constant or allowed to vary with altitude
-throughout the atmosphere.
+throughout the atmosphere. If the key is omitted, a variable gravity is used. In this case,
+the gravity follows
+
+.. math::
+  g(r) = g_\mathrm{ref} \left(\frac{r_\mathrm{ref}}{r}\right)^2 \ ,
+
+where :math:`g_\mathrm{ref}` is the surface gravity given by ``log_g`` and
+:math:`r_\mathrm{ref}` the planet radius. Both refer to the bottom of the atmosphere or,
+if it is set, to the reference pressure described below. With ``use_variable_gravity = false``,
+the gravity is equal to :math:`g_\mathrm{ref}` at all altitudes.
 
 The ``atmosphere`` table sets the vertical discretisation of the atmosphere. This includes the
 number of atmospheric layers (``nb_grid_points``) as well as the bottom (``bottom_pressure``) and
 top-of-atmosphere (``top_pressure``) pressures in units of bars.
+
+Optionally, the table can contain a reference pressure in bar, for example
+``reference_pressure = 0.01``. The planet radius and the surface gravity are then defined at
+this pressure and the altitude grid is integrated upwards and downwards from it. The radius
+parameter in the priors configuration file is called ``reference_radius`` in this case. The
+reference pressure has to be located between the bottom and top pressures, but it does not
+need to coincide with a grid point. Without this key, radius and gravity refer to the bottom
+of the atmosphere. A value close to the pressures probed by the transit, such as 0.01 bar, has
+two advantages: a surface gravity derived from the measured mass and transit radius is valid
+at this level, and the retrieved radius no longer depends on the choice of ``bottom_pressure``.
+
+.. note::
+
+   On the GPU, the transmission spectrum kernel keeps the vertical grid in the shared memory
+   of each thread block (256 bytes per grid point). The number of grid points is therefore
+   limited by the maximum shared memory per block of the GPU. On an NVIDIA RTX 5080, for
+   example, 350 grid points work, while 400 fail with the error ``GPUassert: invalid argument``.
+   Typical values of 100 to 200 grid points are far below this limit. The CPU version has no
+   such restriction.
 
 With the next two entries, the parametrisation for the
 :ref:`temperature profile <sec:temperature_profiles>` and

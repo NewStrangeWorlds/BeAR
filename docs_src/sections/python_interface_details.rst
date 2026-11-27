@@ -898,6 +898,7 @@ The configuration class for the transmission model has the following structure:
       list[list[str]] modules_parameters)
     nb_grid_points : int = 0
     atmos_boundaries : list[float]
+    reference_pressure : float = 0.0
     fit_mean_molecular_weight : bool = False
     fit_scale_height : bool = False
     temperature_profile_model : str = ""
@@ -1002,6 +1003,7 @@ The additional arguments are:
 
 ``use_variable_gravity``
   A ``bool`` that determines if the variable gravity with altitude is used in the calculations.
+  The second constructor, which does not have this argument, uses a variable gravity.
 
 ``cloud_model``
   A ``list[str]`` that contains the choice of the cloud model(s). The available options can be found :ref:`here <sec:cloud_models>`.
