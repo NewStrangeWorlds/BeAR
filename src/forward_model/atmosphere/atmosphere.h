@@ -78,7 +78,7 @@ class Atmosphere {
     void createPressureGrid(const std::vector<double>& domain_boundaries);
     void calcAltitude(
       const double g, const std::vector<double>& mean_molecular_weights);
-    void calcAltitudeVariableGravity(
+    bool calcAltitudeVariableGravity(
       const double g, 
       const double bottom_radius,
       const std::vector<double>& mean_molecular_weights);

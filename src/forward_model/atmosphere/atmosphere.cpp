@@ -88,10 +88,14 @@ bool Atmosphere::calcAtmosphereStructure(
   
   
   if (use_variable_gravity)
-    calcAltitudeVariableGravity(
+  {
+    const bool unbound_atmosphere = calcAltitudeVariableGravity(
       surface_gravity, 
       bottom_radius,
       mean_molecular_weights);
+
+    if (unbound_atmosphere) neglect_model = true;
+  }
   else
     calcAltitude(surface_gravity, mean_molecular_weights);
   
@@ -153,10 +157,14 @@ bool Atmosphere::calcAtmosphereStructure(
   mean_molecular_weights.assign(nb_grid_points, mean_molecular_weight);
   
   if (use_variable_gravity)
-    calcAltitudeVariableGravity(
+  {
+    const bool unbound_atmosphere = calcAltitudeVariableGravity(
       surface_gravity, 
       bottom_radius,
       mean_molecular_weights);
+
+    if (unbound_atmosphere) neglect_model = true;
+  }
   else
     calcAltitude(surface_gravity, mean_molecular_weights);
   
@@ -270,22 +278,24 @@ void Atmosphere::setAtmosphericStructure(
 
 
 //determine the vertical grid via hydrostatic equilibrium
+//integrates dz = -H dln(p) with the trapezoidal rule in ln(p)
+//this is exact for a layer with a constant scale height
 void Atmosphere::calcAltitude(
   const double surface_gravity, 
   const std::vector<double>& mean_molecular_weights)
 {
   altitude.assign(nb_grid_points, 0.0);
-  std::vector<double> mass_density(nb_grid_points, 0.0);
+  std::vector<double> pressure_scale_height(nb_grid_points, 0.0);
 
   for (size_t i=0; i<nb_grid_points; ++i)
-    mass_density[i] = mean_molecular_weights[i] * pressure[i]*1e6 / (constants::gas_constant  * temperature[i]);
+    pressure_scale_height[i] = constants::gas_constant * temperature[i] 
+                             / (mean_molecular_weights[i] * surface_gravity);
 
   for (size_t i=1; i<nb_grid_points; i++)
   {
-    double delta_z = 
-      (1.0/(mass_density[i]*surface_gravity) 
-      + 1.0/(mass_density[i-1]*surface_gravity)) 
-      * 0.5 * (pressure[i-1]*1e6 - pressure[i]*1e6);
+    const double delta_z = 
+      0.5 * (pressure_scale_height[i] + pressure_scale_height[i-1])
+      * std::log(pressure[i-1]/pressure[i]);
 
     altitude[i] = altitude[i-1] + delta_z;
   }
@@ -293,29 +303,50 @@ void Atmosphere::calcAltitude(
 
 
 //determine the vertical grid via hydrostatic equilibrium
-void Atmosphere::calcAltitudeVariableGravity(
+//with a gravity that varies as g(r) = g_bottom * (r_bottom/r)^2
+//in this case, hydrostatic equilibrium can be written as
+//d(1/r) = R*T/(mu * g_bottom * r_bottom^2) dln(p)
+//which is integrated with the trapezoidal rule in ln(p)
+//this is exact for a layer with constant T/mu
+//returns true if the atmosphere is not gravitationally bound
+bool Atmosphere::calcAltitudeVariableGravity(
   const double surface_gravity_bottom,
   const double bottom_radius,
   const std::vector<double>& mean_molecular_weights)
 { 
   altitude.assign(nb_grid_points, 0.0);
-  std::vector<double> mass_density(nb_grid_points, 0.0);
+  std::vector<double> integrand(nb_grid_points, 0.0);
 
   for (size_t i=0; i<nb_grid_points; ++i)
-    mass_density[i] = mean_molecular_weights[i] * pressure[i]*1e6 / (constants::gas_constant  * temperature[i]);
+    integrand[i] = constants::gas_constant * temperature[i] 
+                 / (mean_molecular_weights[i] * surface_gravity_bottom * bottom_radius*bottom_radius);
   
   for (size_t i=1; i<nb_grid_points; i++)
   { 
     const double local_radius = bottom_radius + altitude[i-1];
-    const double surface_gravity = surface_gravity_bottom * std::pow(bottom_radius/local_radius, 2.0);
-    
-    const double delta_z = 
-      (1.0/(mass_density[i]*surface_gravity) 
-      + 1.0/(mass_density[i-1]*surface_gravity)) 
-      * 0.5 * (pressure[i-1]*1e6 - pressure[i]*1e6);
+
+    //1/r_(i-1) - 1/r_i
+    const double delta_inverse_radius = 
+      0.5 * (integrand[i] + integrand[i-1]) * std::log(pressure[i-1]/pressure[i]);
+
+    const double x = local_radius * delta_inverse_radius;
+
+    //the pressure never drops to the requested value at any finite radius
+    if (x >= 1.0)
+    {
+      for (size_t j=i; j<nb_grid_points; ++j)
+        altitude[j] = altitude[i-1];
+
+      return true;
+    }
+
+    //r_i - r_(i-1), written such that no large numbers are subtracted
+    const double delta_z = local_radius * x / (1.0 - x);
 
     altitude[i] = altitude[i-1] + delta_z;
   }
+
+  return false;
 }
 
 
