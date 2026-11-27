@@ -39,7 +39,7 @@ TransmissionModelConfig::TransmissionModelConfig(
   : TransmissionModelConfig(
       false,
       false,
-      false,
+      true,   //variable gravity is the default
       nb_grid_points_,
       atmos_bottom_pressure_,
       atmos_top_pressure_,
@@ -138,7 +138,7 @@ void TransmissionModelConfig::readConfigFile(const std::string& file_name)
     std::cout << "- Fit for scale height: yes\n";
   }
 
-  use_variable_gravity = readBooleanParameter(cfg, "use_variable_gravity", false);
+  use_variable_gravity = readBooleanParameter(cfg, "use_variable_gravity", true);
 
   readModelBlock(cfg, "temperature",
     temperature_profile_model, temperature_profile_parameters, "Temperature profile");

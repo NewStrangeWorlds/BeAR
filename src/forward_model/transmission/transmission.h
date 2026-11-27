@@ -48,7 +48,7 @@ class TransmissionModelConfig : public GenericConfig{
 
     bool fit_mean_molecular_weight = false;
     bool fit_scale_height = false;
-    bool use_variable_gravity = false;
+    bool use_variable_gravity = true;
 
     //pressure in bar where the planet radius and the surface gravity are defined
     //for values <= 0, the bottom of the atmosphere is used
@@ -225,7 +225,7 @@ class TransmissionModel : public ForwardModel{
 
     bool fit_mean_molecular_weight = false;
     bool fit_scale_height = false;
-    bool use_variable_gravity = false;
+    bool use_variable_gravity = true;
     
     void initModules(
       const TransmissionModelConfig& model_config);

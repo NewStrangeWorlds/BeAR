@@ -102,7 +102,7 @@ bool Atmosphere::calcAtmosphereStructure(
   else
     calcAltitude(surface_gravity, reference_radius, mean_molecular_weights);
   
-  calcScaleHeight(surface_gravity, mean_molecular_weights);
+  calcScaleHeight(surface_gravity, reference_radius, use_variable_gravity, mean_molecular_weights);
 
   if (altitude_dev != nullptr)
   {
@@ -171,7 +171,7 @@ bool Atmosphere::calcAtmosphereStructure(
   else
     calcAltitude(surface_gravity, reference_radius, mean_molecular_weights);
   
-  calcScaleHeight(surface_gravity, mean_molecular_weights);
+  calcScaleHeight(surface_gravity, reference_radius, use_variable_gravity, mean_molecular_weights);
 
   if (altitude_dev != nullptr)
   {
@@ -270,7 +270,7 @@ void Atmosphere::setAtmosphericStructure(
   else
     calcAltitude(surface_gravity, reference_radius, mean_molecular_weights);
   
-  calcScaleHeight(surface_gravity, mean_molecular_weights);
+  calcScaleHeight(surface_gravity, reference_radius, use_variable_gravity, mean_molecular_weights);
 
   if (altitude_dev != nullptr)
   {
@@ -439,13 +439,28 @@ void Atmosphere::calcAltitude(
 }
 
 
+//pressure scale height at each level
+//for a variable gravity, the local gravity g(r) = g_ref * (r_ref/r)^2 is used
 void Atmosphere::calcScaleHeight(
-  const double surface_gravity, const std::vector<double>& mean_molecular_weights)
+  const double surface_gravity, 
+  const double reference_radius,
+  const bool use_variable_gravity,
+  const std::vector<double>& mean_molecular_weights)
 {
   scale_height.assign(nb_grid_points, 0.0);
 
   for (size_t i=0; i<nb_grid_points; ++i)
-    scale_height[i] = constants::gas_constant * temperature[i] / (mean_molecular_weights[i] * surface_gravity);
+  {
+    double gravity = surface_gravity;
+
+    if (use_variable_gravity)
+    {
+      const double radius = bottom_radius + altitude[i];
+      gravity *= (reference_radius/radius) * (reference_radius/radius);
+    }
+
+    scale_height[i] = constants::gas_constant * temperature[i] / (mean_molecular_weights[i] * gravity);
+  }
 }
 
 

@@ -83,7 +83,7 @@ class BeARTransmissionModel:
     chem_species, 
     mixing_ratios,
     cloud_optical_depth,
-    use_variable_gravity=False,
+    use_variable_gravity=True,
     reference_pressure=None) :
 
     #pressure (in bar) where the planet radius and the surface gravity are defined

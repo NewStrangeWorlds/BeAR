@@ -100,7 +100,10 @@ class Atmosphere {
       const double constant_scale_height,
       const double reference_radius);
     void calcScaleHeight(
-      const double g, const std::vector<double>& mean_molecular_weights);
+      const double g, 
+      const double reference_radius,
+      const bool use_variable_gravity,
+      const std::vector<double>& mean_molecular_weights);
 };
 
 
