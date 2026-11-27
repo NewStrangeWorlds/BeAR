@@ -50,6 +50,10 @@ class TransmissionModelConfig : public GenericConfig{
     bool fit_scale_height = false;
     bool use_variable_gravity = false;
 
+    //pressure in bar where the planet radius and the surface gravity are defined
+    //for values <= 0, the bottom of the atmosphere is used
+    double reference_pressure = 0.0;
+
     //bool use_optional_modules = false;
 
     std::string temperature_profile_model;
@@ -176,7 +180,8 @@ class TransmissionModel : public ForwardModel{
       const std::vector<std::string>& species_symbol,
       const std::vector<std::vector<double>>& mixing_ratios,
       const std::vector<std::vector<double>>& cloud_optical_depth,
-      const double use_variable_gravity);
+      const double use_variable_gravity,
+      const double reference_pressure = 0.0);
 
     virtual void setHighResGrid(SpectralGrid* grid) override;
 

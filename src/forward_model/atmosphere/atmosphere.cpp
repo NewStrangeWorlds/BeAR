@@ -4,9 +4,11 @@
 // This file is part of BeAR (https://github.com/newstrangeworlds/BeAR).
 
 #include <string>
+#include <sstream>
 #include <iostream>
 #include <fstream>
 #include <cmath>
+#include <algorithm>
 #include <vector>
 #include <omp.h>
 #include <iomanip>
@@ -15,6 +17,7 @@
 
 #include "../../chemistry/chem_species.h"
 #include "../../additional/physical_const.h"
+#include "../../additional/exceptions.h"
 #include "../../CUDA_kernels/data_management_kernels.h"
 #include "../../chemistry/fixed_chemistry.h"
 
@@ -47,7 +50,7 @@ Atmosphere::Atmosphere(
 
 bool Atmosphere::calcAtmosphereStructure(
   const double surface_gravity,
-  const double bottom_radius,
+  const double reference_radius,
   const bool use_variable_gravity,
   Temperature* temperature_profile,
   const std::vector<double>& temp_parameters,
@@ -91,13 +94,13 @@ bool Atmosphere::calcAtmosphereStructure(
   {
     const bool unbound_atmosphere = calcAltitudeVariableGravity(
       surface_gravity, 
-      bottom_radius,
+      reference_radius,
       mean_molecular_weights);
 
     if (unbound_atmosphere) neglect_model = true;
   }
   else
-    calcAltitude(surface_gravity, mean_molecular_weights);
+    calcAltitude(surface_gravity, reference_radius, mean_molecular_weights);
   
   calcScaleHeight(surface_gravity, mean_molecular_weights);
 
@@ -114,7 +117,7 @@ bool Atmosphere::calcAtmosphereStructure(
 
 bool Atmosphere::calcAtmosphereStructure(
   const double surface_gravity,
-  const double bottom_radius,
+  const double reference_radius,
   const bool use_variable_gravity,
   Temperature* temperature_profile,
   const std::vector<double>& temp_parameters,
@@ -160,13 +163,13 @@ bool Atmosphere::calcAtmosphereStructure(
   {
     const bool unbound_atmosphere = calcAltitudeVariableGravity(
       surface_gravity, 
-      bottom_radius,
+      reference_radius,
       mean_molecular_weights);
 
     if (unbound_atmosphere) neglect_model = true;
   }
   else
-    calcAltitude(surface_gravity, mean_molecular_weights);
+    calcAltitude(surface_gravity, reference_radius, mean_molecular_weights);
   
   calcScaleHeight(surface_gravity, mean_molecular_weights);
 
@@ -183,6 +186,7 @@ bool Atmosphere::calcAtmosphereStructure(
 
 bool Atmosphere::calcAtmosphereStructure(
   const double surface_gravity,
+  const double reference_radius,
   const double constant_scale_height,
   Temperature* temperature_profile,
   const std::vector<double>& temp_parameters,
@@ -221,7 +225,7 @@ bool Atmosphere::calcAtmosphereStructure(
     if (neglect) neglect_model = true;
   }
 
-  calcAltitude(constant_scale_height);
+  calcAltitude(constant_scale_height, reference_radius);
   scale_height.assign(nb_grid_points, constant_scale_height*100000.0);
 
   if (altitude_dev != nullptr)
@@ -237,7 +241,7 @@ bool Atmosphere::calcAtmosphereStructure(
 
 void Atmosphere::setAtmosphericStructure(
   const double surface_gravity,
-  const double bottom_radius,
+  const double reference_radius,
   const bool use_variable_gravity,
   const std::vector<double>& pressure_,
   const std::vector<double>& temperature_,
@@ -261,10 +265,10 @@ void Atmosphere::setAtmosphericStructure(
   if (use_variable_gravity)
     calcAltitudeVariableGravity(
       surface_gravity, 
-      bottom_radius,
+      reference_radius,
       mean_molecular_weights);
   else
-    calcAltitude(surface_gravity, mean_molecular_weights);
+    calcAltitude(surface_gravity, reference_radius, mean_molecular_weights);
   
   calcScaleHeight(surface_gravity, mean_molecular_weights);
 
@@ -277,82 +281,149 @@ void Atmosphere::setAtmosphericStructure(
 
 
 
+//returns the pressure of the reference level, i.e. the level where
+//the reference radius and the surface gravity are defined
+//if no reference pressure has been set, the bottom of the grid is used
+double Atmosphere::referencePressure() const
+{
+  if (reference_pressure <= 0.0) return pressure.front();
+
+  //small tolerance since the grid boundaries are affected by round-off errors
+  const double tolerance = 1e-10;
+
+  if (reference_pressure > pressure.front()*(1.0 + tolerance) 
+    || reference_pressure < pressure.back()*(1.0 - tolerance))
+  {
+    std::ostringstream message;
+    message << "The reference pressure of " << reference_pressure 
+            << " bar is outside of the pressure grid ("
+            << pressure.front() << " to " << pressure.back() << " bar).\n";
+
+    throw InvalidInput(std::string ("Atmosphere::referencePressure"), message.str());
+  }
+
+  return std::min(std::max(reference_pressure, pressure.back()), pressure.front());
+}
+
+
+//integrates a level quantity f over ln(p) with the trapezoidal rule
+//returns the integral of f dln(p) between the reference pressure and each level
+//it is positive above the reference pressure and negative below it
+//if the reference pressure is located between two levels, f is 
+//interpolated linearly in ln(p)
+std::vector<double> Atmosphere::integrateFromReferencePressure(
+  const std::vector<double>& f) const
+{
+  std::vector<double> integral(nb_grid_points, 0.0);
+
+  if (nb_grid_points < 2) return integral;
+
+  const double p_ref = referencePressure();
+
+  //index of the level directly below the reference pressure
+  size_t k = 0;
+
+  while (k < nb_grid_points-2 && pressure[k+1] >= p_ref) ++k;
+
+  const double weight = std::log(pressure[k]/p_ref) / std::log(pressure[k]/pressure[k+1]);
+  const double f_ref = f[k] + weight * (f[k+1] - f[k]);
+
+  //the two levels enclosing the reference pressure
+  integral[k+1] = 0.5 * (f_ref + f[k+1]) * std::log(p_ref/pressure[k+1]);
+  integral[k] = - 0.5 * (f_ref + f[k]) * std::log(pressure[k]/p_ref);
+
+  //upwards
+  for (size_t i=k+2; i<nb_grid_points; ++i)
+    integral[i] = integral[i-1] 
+                + 0.5 * (f[i] + f[i-1]) * std::log(pressure[i-1]/pressure[i]);
+
+  //downwards
+  for (size_t i=k; i-- > 0; )
+    integral[i] = integral[i+1] 
+                - 0.5 * (f[i] + f[i+1]) * std::log(pressure[i]/pressure[i+1]);
+
+  return integral;
+}
+
+
 //determine the vertical grid via hydrostatic equilibrium
 //integrates dz = -H dln(p) with the trapezoidal rule in ln(p)
 //this is exact for a layer with a constant scale height
+//the reference radius is the radius at the reference pressure
+//the altitudes are given with respect to the bottom of the grid
 void Atmosphere::calcAltitude(
   const double surface_gravity, 
+  const double reference_radius,
   const std::vector<double>& mean_molecular_weights)
 {
-  altitude.assign(nb_grid_points, 0.0);
   std::vector<double> pressure_scale_height(nb_grid_points, 0.0);
 
   for (size_t i=0; i<nb_grid_points; ++i)
     pressure_scale_height[i] = constants::gas_constant * temperature[i] 
                              / (mean_molecular_weights[i] * surface_gravity);
 
-  for (size_t i=1; i<nb_grid_points; i++)
-  {
-    const double delta_z = 
-      0.5 * (pressure_scale_height[i] + pressure_scale_height[i-1])
-      * std::log(pressure[i-1]/pressure[i]);
+  //altitudes with respect to the reference pressure
+  altitude = integrateFromReferencePressure(pressure_scale_height);
 
-    altitude[i] = altitude[i-1] + delta_z;
-  }
+  bottom_radius = reference_radius + altitude.front();
+
+  const double bottom_altitude = altitude.front();
+
+  for (auto & z : altitude) z -= bottom_altitude;
 }
 
 
 //determine the vertical grid via hydrostatic equilibrium
-//with a gravity that varies as g(r) = g_bottom * (r_bottom/r)^2
+//with a gravity that varies as g(r) = g_ref * (r_ref/r)^2
+//where g_ref and r_ref are the values at the reference pressure
 //in this case, hydrostatic equilibrium can be written as
-//d(1/r) = R*T/(mu * g_bottom * r_bottom^2) dln(p)
+//d(1/r) = R*T/(mu * g_ref * r_ref^2) dln(p)
 //which is integrated with the trapezoidal rule in ln(p)
 //this is exact for a layer with constant T/mu
+//the altitudes are given with respect to the bottom of the grid
 //returns true if the atmosphere is not gravitationally bound
 bool Atmosphere::calcAltitudeVariableGravity(
-  const double surface_gravity_bottom,
-  const double bottom_radius,
+  const double surface_gravity_reference,
+  const double reference_radius,
   const std::vector<double>& mean_molecular_weights)
 { 
   altitude.assign(nb_grid_points, 0.0);
+  bottom_radius = reference_radius;
+
   std::vector<double> integrand(nb_grid_points, 0.0);
 
   for (size_t i=0; i<nb_grid_points; ++i)
     integrand[i] = constants::gas_constant * temperature[i] 
-                 / (mean_molecular_weights[i] * surface_gravity_bottom * bottom_radius*bottom_radius);
-  
-  for (size_t i=1; i<nb_grid_points; i++)
-  { 
-    const double local_radius = bottom_radius + altitude[i-1];
+                 / (mean_molecular_weights[i] * surface_gravity_reference * reference_radius*reference_radius);
 
-    //1/r_(i-1) - 1/r_i
-    const double delta_inverse_radius = 
-      0.5 * (integrand[i] + integrand[i-1]) * std::log(pressure[i-1]/pressure[i]);
+  //1/r_ref - 1/r
+  const std::vector<double> delta_inverse_radius = integrateFromReferencePressure(integrand);
 
-    const double x = local_radius * delta_inverse_radius;
+  std::vector<double> radius(nb_grid_points, 0.0);
 
-    //the pressure never drops to the requested value at any finite radius
-    if (x >= 1.0)
-    {
-      for (size_t j=i; j<nb_grid_points; ++j)
-        altitude[j] = altitude[i-1];
+  for (size_t i=0; i<nb_grid_points; ++i)
+  {
+    const double inverse_radius = 1.0/reference_radius - delta_inverse_radius[i];
 
-      return true;
-    }
+    //the pressure never drops to the value of this level at any finite radius
+    if (inverse_radius <= 0.0) return true;
 
-    //r_i - r_(i-1), written such that no large numbers are subtracted
-    const double delta_z = local_radius * x / (1.0 - x);
-
-    altitude[i] = altitude[i-1] + delta_z;
+    radius[i] = 1.0/inverse_radius;
   }
+
+  bottom_radius = radius.front();
+
+  for (size_t i=0; i<nb_grid_points; ++i)
+    altitude[i] = radius[i] - bottom_radius;
 
   return false;
 }
 
 
-//determine the vertical grid via hydrostatic equilibrium
+//determine the vertical grid for a constant scale height
 void Atmosphere::calcAltitude(
-  const double constant_scale_height)
+  const double constant_scale_height,
+  const double reference_radius)
 {
   altitude.assign(nb_grid_points, 0.0);
   
@@ -363,6 +434,8 @@ void Atmosphere::calcAltitude(
   {
     altitude[i] = - scale_height * std::log(pressure[i]/pressure[0]);
   }
+
+  bottom_radius = reference_radius - scale_height * std::log(pressure[0]/referencePressure());
 }
 
 

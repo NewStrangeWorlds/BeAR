@@ -62,6 +62,7 @@ TransmissionModel::TransmissionModel (
   fit_mean_molecular_weight = model_config.fit_mean_molecular_weight;
   fit_scale_height = model_config.fit_scale_height;
   use_variable_gravity = model_config.use_variable_gravity;
+  atmosphere.reference_pressure = model_config.reference_pressure;
   
   //select and set up the modules
   initModules(model_config);
@@ -139,7 +140,7 @@ void TransmissionModel::extractParameters(
 bool TransmissionModel::calcAtmosphereStructure(const std::vector<double>& parameter)
 {
   const double surface_gravity = std::pow(10,parameter[0]);
-  const double bottom_radius = parameter[1];
+  const double reference_radius = parameter[1];
 
   bool neglect_model = false;
 
@@ -147,7 +148,7 @@ bool TransmissionModel::calcAtmosphereStructure(const std::vector<double>& param
   {
     neglect_model = atmosphere.calcAtmosphereStructure(
       surface_gravity,
-      bottom_radius,
+      reference_radius,
       use_variable_gravity,
       temperature_profile.get(),
       temperature_parameters,
@@ -163,7 +164,7 @@ bool TransmissionModel::calcAtmosphereStructure(const std::vector<double>& param
   if (fit_mean_molecular_weight)
     neglect_model = atmosphere.calcAtmosphereStructure(
       surface_gravity,
-      bottom_radius,
+      reference_radius,
       use_variable_gravity,
       temperature_profile.get(),
       temperature_parameters,
@@ -173,6 +174,7 @@ bool TransmissionModel::calcAtmosphereStructure(const std::vector<double>& param
   else
     neglect_model = atmosphere.calcAtmosphereStructure(
       surface_gravity,
+      reference_radius,
       param,
       temperature_profile.get(),
       temperature_parameters,
@@ -205,7 +207,8 @@ bool TransmissionModel::calcModelCPU(
 
   bool neglect = calcAtmosphereStructure(parameters);
 
-  const double bottom_radius = parameters[1];
+  //radius of the lowest grid point, derived from the reference radius
+  const double bottom_radius = atmosphere.bottom_radius;
   const double star_radius = parameters[2];
 
   // === Low-res path (skip if no low-res spectral points) ===
@@ -296,7 +299,8 @@ bool TransmissionModel::calcModelGPU(
 
   bool neglect = calcAtmosphereStructure(parameter);
 
-  const double bottom_radius = parameter[1];
+  //radius of the lowest grid point, derived from the reference radius
+  const double bottom_radius = atmosphere.bottom_radius;
   const double star_radius = parameter[2];
 
   // === Low-res path (skip if no low-res spectral points) ===
@@ -447,8 +451,11 @@ std::vector<double> TransmissionModel::calcSpectrum(
   const std::vector<std::string>& species_symbol,
   const std::vector<std::vector<double>>& mixing_ratios,
   const std::vector<std::vector<double>>& cloud_optical_depth,
-  const double use_variable_gravity)
+  const double use_variable_gravity,
+  const double reference_pressure)
 {
+  atmosphere.reference_pressure = reference_pressure;
+
   atmosphere.setAtmosphericStructure(
     surface_gravity, 
     planet_radius,
@@ -458,7 +465,7 @@ std::vector<double> TransmissionModel::calcSpectrum(
     species_symbol, 
     mixing_ratios);
 
-  const double bottom_radius = planet_radius;
+  const double bottom_radius = atmosphere.bottom_radius;
   const double star_radius = planet_radius/radius_ratio;
   
   setCloudProperties(cloud_optical_depth);

@@ -108,6 +108,21 @@ void TransmissionModelConfig::readConfigFile(const std::string& file_name)
   atmos_boundaries[0] = pressure_boundaries[0];
   atmos_boundaries[1] = pressure_boundaries[1];
 
+  //optional reference pressure for the planet radius and the surface gravity
+  if (cfg["atmosphere"]["reference_pressure"])
+  {
+    reference_pressure = requirePositive(
+      *cfg["atmosphere"].as_table(), "atmosphere", "reference_pressure");
+
+    if (reference_pressure > atmos_boundaries[0] || reference_pressure < atmos_boundaries[1])
+      throw InvalidInput(std::string ("TransmissionModelConfig::readConfigFile"),
+        std::string("The reference pressure has to be located between the bottom and top pressure.\n"));
+
+    std::cout << "- Reference pressure: " << reference_pressure << "\n";
+  }
+  else
+    std::cout << "- Reference pressure: bottom of the atmosphere\n";
+
   const std::string fit_mode = readParameter(cfg, "fit_mode",
     std::vector<std::string>({"mmw", "sh", "no", "No"}));
 

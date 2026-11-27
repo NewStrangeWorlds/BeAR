@@ -91,7 +91,11 @@ void TransmissionModel::initModules(const TransmissionModelConfig& model_config)
   parameter_names.clear();
 
   parameter_names.push_back("log_g");
-  parameter_names.push_back("bottom_radius");
+  //the radius is defined either at the bottom of the atmosphere or at the reference pressure
+  if (atmosphere.reference_pressure > 0.0)
+    parameter_names.push_back("reference_radius");
+  else
+    parameter_names.push_back("bottom_radius");
   parameter_names.push_back("star_radius");
 
   //optional 4th general parameter (see nb_general_param in the constructor)

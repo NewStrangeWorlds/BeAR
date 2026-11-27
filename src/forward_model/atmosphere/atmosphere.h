@@ -36,13 +36,21 @@ class Atmosphere {
     std::vector<double> scale_height;
     std::vector< std::vector<double> > number_densities;
 
+    //pressure in bar where the reference radius and the surface gravity are defined
+    //for values <= 0, the bottom of the grid is used
+    double reference_pressure = 0.0;
+
+    //radius of the lowest grid point, the altitudes are given with respect to it
+    //calculated together with the altitudes from the reference radius
+    double bottom_radius = 0.0;
+
     float* altitude_dev = nullptr;
     float* pressure_dev = nullptr;
     float* temperature_dev = nullptr;
 
     bool calcAtmosphereStructure(
       const double surface_gravity,
-      const double bottom_radius,
+      const double reference_radius,
       const bool use_variable_gravity,
       Temperature* temperature_profile,
       const std::vector<double>& temp_parameters,
@@ -50,7 +58,7 @@ class Atmosphere {
       const std::vector<double>& chem_parameters);
     bool calcAtmosphereStructure(
       const double surface_gravity,
-      const double bottom_radius,
+      const double reference_radius,
       const bool use_variable_gravity,
       Temperature* temperature_profile,
       const std::vector<double>& temp_parameters,
@@ -59,6 +67,7 @@ class Atmosphere {
       const double mean_molecular_weight);
     bool calcAtmosphereStructure(
       const double surface_gravity,
+      const double reference_radius,
       const double constant_scale_height,
       Temperature* temperature_profile,
       const std::vector<double>& temp_parameters,
@@ -67,7 +76,7 @@ class Atmosphere {
 
     void setAtmosphericStructure(
       const double surface_gravity,
-      const double bottom_radius,
+      const double reference_radius,
       const bool use_variable_gravity,
       const std::vector<double>& pressure_,
       const std::vector<double>& temperature_,
@@ -76,14 +85,20 @@ class Atmosphere {
 
   private:
     void createPressureGrid(const std::vector<double>& domain_boundaries);
+    double referencePressure() const;
+    std::vector<double> integrateFromReferencePressure(
+      const std::vector<double>& f) const;
     void calcAltitude(
-      const double g, const std::vector<double>& mean_molecular_weights);
+      const double g, 
+      const double reference_radius,
+      const std::vector<double>& mean_molecular_weights);
     bool calcAltitudeVariableGravity(
       const double g, 
-      const double bottom_radius,
+      const double reference_radius,
       const std::vector<double>& mean_molecular_weights);
     void calcAltitude(
-      const double constant_scale_height);
+      const double constant_scale_height,
+      const double reference_radius);
     void calcScaleHeight(
       const double g, const std::vector<double>& mean_molecular_weights);
 };

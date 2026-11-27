@@ -255,6 +255,7 @@ PYBIND11_MODULE(bear, m) {
           const std::vector<std::vector<std::string>>&>())
         .def_readwrite("nb_grid_points", &bear::TransmissionModelConfig::nb_grid_points)
         .def_readwrite("atmos_boundaries", &bear::TransmissionModelConfig::atmos_boundaries)
+        .def_readwrite("reference_pressure", &bear::TransmissionModelConfig::reference_pressure)
         .def_readwrite("fit_mean_molecular_weight", &bear::TransmissionModelConfig::fit_mean_molecular_weight)
         .def_readwrite("fit_scale_height", &bear::TransmissionModelConfig::fit_scale_height)
         .def_readwrite("temperature_profile_model", &bear::TransmissionModelConfig::temperature_profile_model)
@@ -415,7 +416,17 @@ PYBIND11_MODULE(bear, m) {
           const size_t, 
           const std::vector<std::string>&, 
           const std::vector<std::string>&>(), py::keep_alive<1, 2>(), py::keep_alive<1, 3>())
-        .def("calcSpectrum", &bear::TransmissionModel::calcSpectrum);
+        .def("calcSpectrum", &bear::TransmissionModel::calcSpectrum,
+          py::arg("surface_gravity"),
+          py::arg("planet_radius"),
+          py::arg("radius_ratio"),
+          py::arg("pressure"),
+          py::arg("temperature"),
+          py::arg("species_symbol"),
+          py::arg("mixing_ratios"),
+          py::arg("cloud_optical_depth"),
+          py::arg("use_variable_gravity"),
+          py::arg("reference_pressure") = 0.0);
 
     py::class_<bear::OccultationModel>(m, "OccultationModel")
         .def(py::init<

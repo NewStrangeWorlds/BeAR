@@ -83,7 +83,13 @@ class BeARTransmissionModel:
     chem_species, 
     mixing_ratios,
     cloud_optical_depth,
-    use_variable_gravity=False) :
+    use_variable_gravity=False,
+    reference_pressure=None) :
+
+    #pressure (in bar) where the planet radius and the surface gravity are defined
+    #if it is not set, the bottom of the atmosphere is used
+    if reference_pressure is None:
+      reference_pressure = 0.0
 
     cloud_tau = np.copy(cloud_optical_depth)
     
@@ -101,7 +107,8 @@ class BeARTransmissionModel:
         chem_species, 
         mixing_ratios, 
         cloud_tau,
-        np.bool_(use_variable_gravity)))
+        np.bool_(use_variable_gravity),
+        reference_pressure))
     
     spectrum = np.flip(spectrum)
 
